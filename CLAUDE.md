@@ -25,10 +25,15 @@ decisions), then the feature's doc in `docs/features/`, then the `AGENTS.md` of 
 
 ## Git
 
+Branches: **`develop`** is the working branch, and every change lands there first. **`main`** is
+the released branch. It only receives merges from `develop`, done by the owner.
+
 - **Remote sessions** (Claude Code on the web/mobile app, or `@claude` in a GitHub issue/PR): the
-  task itself is the request to deliver. Work on a branch, commit in small Conventional-Commit
-  slices, push, and open a PR against `main` describing what changed and how it was verified.
-  Never push to `main` directly.
+  task itself is the request to deliver. Start from the latest `develop` (`git fetch && git
+  checkout develop && git pull` if the session started elsewhere), create a branch from it, commit in
+  small Conventional-Commit slices, push, and open a PR **into `develop`** describing what changed
+  and how it was verified. Never push to `develop` or `main` directly, and never open a PR into
+  `main`.
 - **Local sessions** (VS Code / terminal on the owner's PC): don't commit or push unless asked; suggest
   a commit message instead (`api/AGENTS.md` §10–11).
 - Commit format: `<type>(<scope>): <summary>` with a bullet body. Scope is the feature or area, and

@@ -87,8 +87,12 @@ app can replace Money Lover for daily use.
 
 Goal: every later feature can be built from a phone, through GitHub.
 
-1. **GitHub**: create the repo, push `main`, protect `main` (PR + green CI required). CI already
-   exists: `.github/workflows/api.yml` and `web.yml`, each running only when its folder changes.
+1. **GitHub**: ✅ repo pushed with `main` + `develop`. Still to do:
+   - Set **`develop` as the default branch** (Settings → General), so Claude sessions and new PRs
+     start from it.
+   - Protect `develop` and `main` (PR + green CI required). CI already exists:
+     `.github/workflows/api.yml` and `web.yml`, each running only when its folder changes.
+   - Vercel: production deploys from `main`, previews from `develop` and PR branches.
 2. **API on Vercel**
    - Add a Vercel entry for Express (export the app from `createApp()`; `main.ts`'s `listen` stays for
      local dev). Check that `@/` aliases resolve in the Vercel build (build with `tsc` + `tsc-alias`

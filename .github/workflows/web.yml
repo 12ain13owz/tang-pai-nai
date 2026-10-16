@@ -1,10 +1,10 @@
 name: Web
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths: ['web/**', '.github/workflows/web.yml']
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths: ['web/**', '.github/workflows/web.yml']
 jobs:
   verify:

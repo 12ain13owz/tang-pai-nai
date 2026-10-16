@@ -1,10 +1,10 @@
 name: API
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths: ['api/**', '.github/workflows/api.yml']
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths: ['api/**', '.github/workflows/api.yml']
 jobs:
   verify:
