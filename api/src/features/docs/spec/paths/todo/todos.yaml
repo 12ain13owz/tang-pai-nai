@@ -1,0 +1,35 @@
+get:
+  tags:
+    - Todo
+  summary: List todos
+  operationId: listTodos
+  responses:
+    '200':
+      description: Every todo
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/todo-list-response.schema.yaml'
+
+post:
+  tags:
+    - Todo
+  summary: Create a todo
+  operationId: createTodo
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/todo-create.schema.yaml'
+  responses:
+    '201':
+      description: The created todo
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/todo-response.schema.yaml'
+    '409':
+      $ref: '../../components/responses/error.response.yaml'
+    '422':
+      $ref: '../../components/responses/error.response.yaml'

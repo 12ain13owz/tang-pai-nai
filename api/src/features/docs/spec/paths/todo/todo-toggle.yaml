@@ -1,0 +1,24 @@
+parameters:
+  - name: id
+    in: path
+    required: true
+    schema:
+      type: string
+      format: uuid
+
+patch:
+  tags:
+    - Todo
+  summary: Toggle a todo's done flag
+  operationId: toggleTodo
+  responses:
+    '200':
+      description: The todo with `done` flipped
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/todo-response.schema.yaml'
+    '404':
+      $ref: '../../components/responses/error.response.yaml'
+    '422':
+      $ref: '../../components/responses/error.response.yaml'

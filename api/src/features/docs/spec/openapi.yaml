@@ -1,0 +1,40 @@
+openapi: 3.1.0
+info:
+  title: NodeJS Template API
+  version: 1.0.0
+  description: API documentation for the Node.js template project
+
+servers:
+  - url: http://localhost:3000
+
+tags:
+  - name: Health
+    description: Service health checks
+  - name: Todo
+    description: Reference CRUD feature (in-memory, resets on restart)
+
+paths:
+  /health:
+    $ref: './paths/health/health.yaml'
+  /todos:
+    $ref: './paths/todo/todos.yaml'
+  /todos/{id}:
+    $ref: './paths/todo/todo-by-id.yaml'
+  /todos/{id}/toggle:
+    $ref: './paths/todo/todo-toggle.yaml'
+
+components:
+  schemas:
+    HealthResponse:
+      $ref: './components/models/health.schema.yaml'
+    Error:
+      $ref: './components/models/error.schema.yaml'
+    Todo:
+      $ref: './components/models/todo.schema.yaml'
+    CreateTodoRequest:
+      $ref: './components/models/todo-create.schema.yaml'
+  responses:
+    SuccessResponse:
+      $ref: './components/responses/success.response.yaml'
+    ErrorResponse:
+      $ref: './components/responses/error.response.yaml'

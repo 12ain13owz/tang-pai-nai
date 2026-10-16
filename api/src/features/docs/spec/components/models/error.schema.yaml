@@ -1,0 +1,92 @@
+type: object
+properties:
+  message:
+    type: string
+    description: A human-readable message describing the error
+    example: Todo not found
+  timestamp:
+    type: string
+    format: date-time
+    description: The time when the error occurred in ISO 8601 format
+    example: 2026-01-01T00:00:00.000Z
+  data:
+    type: object
+    description: Additional error details (only included in development mode)
+    nullable: true
+    properties:
+      name:
+        type: string
+        description: The error class name
+        example: NotFoundError
+      status:
+        type: integer
+        description: HTTP status code of the error
+        example: 404
+      severity:
+        type: string
+        description: The severity level of the error
+        enum: [error, warn, info, http, verbose, debug]
+        example: warn
+      context:
+        type: object
+        description: Contextual information about the error
+        properties:
+          operation:
+            type: string
+            description: The name of the operation that caused the error
+            example: getTodo
+            nullable: true
+          endpoint:
+            type: object
+            description: Details about the HTTP request that caused the error
+            nullable: true
+            properties:
+              method:
+                type: string
+                description: The HTTP method of the request
+                example: GET
+              url:
+                type: string
+                description: The URL of the request
+                example: /todos/3f1c2a9e-8b4d-4c7a-9e21-5d6f7a8b9c0d
+              body:
+                type: object
+                description: The request body (omitted when empty)
+                nullable: true
+              params:
+                type: object
+                description: The URL parameters (omitted when empty)
+                nullable: true
+              query:
+                type: object
+                description: The query parameters (omitted when empty)
+                nullable: true
+          metadata:
+            type: object
+            description: Extra structured context attached by the code that raised the error
+            nullable: true
+            additionalProperties: true
+            example:
+              id: 3f1c2a9e-8b4d-4c7a-9e21-5d6f7a8b9c0d
+      stack:
+        type: array
+        description: Parsed stack trace frames (most recent call first)
+        items:
+          type: object
+          properties:
+            function:
+              type: string
+              description: The function name at this frame
+              example: getById
+            file:
+              type: string
+              description: The source file, relative to the project root
+              example: src/features/todo/todo.service.ts
+            line:
+              type: integer
+              description: The line number in the source file
+              example: 14
+            column:
+              type: integer
+              description: The column number in the source file
+              example: 13

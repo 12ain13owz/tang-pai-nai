@@ -1,0 +1,5 @@
+{
+  // ESLint runs per app: each folder has its own flat config and node_modules.
+  "eslint.workingDirectories": [{ "pattern": "./api" }, { "pattern": "./web" }],
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
+}

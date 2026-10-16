@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    /* Output — emit Node-ready JS (no bundler in the pipeline) */
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "rootDir": "src",
+    "outDir": "dist",
+    "sourceMap": true,
+    "removeComments": true,
+
+    /* Module interop */
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+
+    /* Path alias — resolved relative to this file (baseUrl is deprecated in TS 6+) */
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    /* Type safety (strict already covers noImplicitAny / strictNullChecks / etc.) */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Build performance */
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

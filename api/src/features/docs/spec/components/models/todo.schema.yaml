@@ -1,0 +1,17 @@
+type: object
+required: [id, title, done, createdAt]
+properties:
+  id:
+    type: string
+    format: uuid
+    example: 3f1c2a9e-8b4d-4c7a-9e21-5d6f7a8b9c0d
+  title:
+    type: string
+    example: Buy milk
+  done:
+    type: boolean
+    example: false
+  createdAt:
+    type: string
+    format: date-time
+    example: '2026-01-01T00:00:00.000Z'

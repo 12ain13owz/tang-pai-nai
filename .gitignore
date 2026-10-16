@@ -1,0 +1,8 @@
+# Each app keeps its own .gitignore (api/.gitignore, web/.gitignore); this covers the root only.
+node_modules/
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+.idea/

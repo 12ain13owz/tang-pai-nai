@@ -1,0 +1,37 @@
+parameters:
+  - name: id
+    in: path
+    required: true
+    schema:
+      type: string
+      format: uuid
+
+get:
+  tags:
+    - Todo
+  summary: Get a todo by id
+  operationId: getTodoById
+  responses:
+    '200':
+      description: The todo
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/todo-response.schema.yaml'
+    '404':
+      $ref: '../../components/responses/error.response.yaml'
+    '422':
+      $ref: '../../components/responses/error.response.yaml'
+
+delete:
+  tags:
+    - Todo
+  summary: Delete a todo
+  operationId: deleteTodo
+  responses:
+    '200':
+      $ref: '../../components/responses/success.response.yaml'
+    '404':
+      $ref: '../../components/responses/error.response.yaml'
+    '422':
+      $ref: '../../components/responses/error.response.yaml'

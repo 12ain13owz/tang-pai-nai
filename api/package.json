@@ -1,0 +1,82 @@
+{
+  "name": "tang-pai-nai-api",
+  "version": "0.1.0",
+  "description": "Tang Pai Nai — personal income / expense tracker REST API",
+  "main": "main.ts",
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env.prod dist/main.js",
+    "dev": "tsx --watch --env-file-if-exists=.env.dev src/main.ts",
+    "fix": "eslint . --fix && prettier --write .",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "clean": "rimraf dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json --resolve-full-paths && npm run copy-assets",
+    "copy-assets": "node -e \"require('node:fs').cpSync('src/features/docs/spec','dist/features/docs/spec',{recursive:true})\"",
+    "setup-env": "tsx scripts/setup-env.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "scripts-info": {
+    "start": "Runs the compiled application in production mode using environment variables.",
+    "dev": "Starts the development server with hot-reload (tsx) and development environment.",
+    "fix": "Automatically fixes linting issues and formats code with Prettier.",
+    "lint": "Checks the codebase with ESLint without modifying files (used by CI).",
+    "typecheck": "Type-checks src, including test files, with tsc without emitting output (used by CI).",
+    "clean": "Removes the dist directory for a fresh build.",
+    "build": "Compiles TypeScript to JavaScript, resolves path aliases, and copies OpenAPI spec assets.",
+    "copy-assets": "Copies the OpenAPI YAML spec tree into dist/ (not handled by tsc).",
+    "setup-env": "Initializes .env.dev and .env.prod files from templates.",
+    "test": "Runs the test suite once (Vitest).",
+    "test:watch": "Runs the test suite in watch mode (Vitest)."
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "typescript"
+  ],
+  "author": "Dryst",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "@apidevtools/swagger-parser": "^12.1.0",
+    "@scalar/express-api-reference": "^0.10.12",
+    "chalk": "^6.0.1",
+    "cors": "^2.8.6",
+    "dayjs": "^1.11.21",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.1",
+    "helmet": "^8.3.0",
+    "morgan": "^1.11.0",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^26.1.2",
+    "@types/supertest": "^7.2.1",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import-x": "^4.17.1",
+    "eslint-plugin-n": "^18.2.2",
+    "eslint-plugin-security": "^4.0.1",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "globals": "^17.9.0",
+    "prettier": "^3.9.6",
+    "rimraf": "^6.1.3",
+    "supertest": "^7.2.2",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.9.1",
+    "tsx": "^4.23.5",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.66.0",
+    "vitest": "^4.1.10"
+  }
+}

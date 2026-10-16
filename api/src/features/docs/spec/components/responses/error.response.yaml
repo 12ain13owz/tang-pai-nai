@@ -1,0 +1,5 @@
+description: Error response
+content:
+  application/json:
+    schema:
+      $ref: '../models/error.schema.yaml'
