@@ -6,9 +6,8 @@ How **ตังค์ไปไหน** looks, reads and behaves on screen. Read 
 - **How it looks and behaves** is this file.
 - **How to write the code** (folders, Angular, forms, lint) is [`AGENTS.md`](AGENTS.md).
 
-If the app and this file disagree, the app wins: fix this file in the same change. Items marked
-**Proposal** aren't decided yet. Confirm them with the owner the first time a screen needs them,
-then drop the marker.
+If the app and this file disagree, the app wins: fix this file in the same change. A new design
+choice that isn't decided yet is marked **Proposal** until the owner confirms it.
 
 ---
 
@@ -43,8 +42,9 @@ then drop the marker.
 - **Spacing**: page padding `p-4`. Sections are `gap-6` apart; items inside a section are `gap-3`.
   Use Tailwind's scale only, never arbitrary pixel values, except for safe-area `env()` values.
 - **Section heading**: `text-sm font-medium text-muted-foreground`, above a group of rows or fields.
-- **Grouped rows** (settings, details): a rounded bordered card with `divide-y` rows
-  (`rounded-xl border border-border`), each row `px-4 py-3`, label left, value or control right.
+- **Cards and grouped rows** (summaries, settings, details): a surface on the page, so it uses the
+  card token: `rounded-xl border border-border bg-card text-card-foreground`, with `divide-y` rows,
+  each `px-4 py-3`, label left, value or control right.
 
 ## 3. Colour
 
@@ -54,14 +54,15 @@ palette classes. That's what keeps dark mode working.
 | Use                         | Token                                               |
 | --------------------------- | --------------------------------------------------- |
 | Page background / text      | `bg-background` / `text-foreground`                 |
+| Cards, sheets (surfaces)    | `bg-card` / `text-card-foreground`                  |
 | Secondary text, inactive    | `text-muted-foreground`                             |
 | Subtle fills (chips, pills) | `bg-muted`                                          |
 | Primary action (one/screen) | `bg-primary text-primary-foreground` (via `hlmBtn`) |
 | Error, offline, destructive | `text-destructive`, `bg-destructive/10`             |
 | Lines                       | `border-border`                                     |
-| Income / expense amounts    | **Proposal:** new `--income` / `--expense` tokens   |
+| Income / expense amounts    | `text-income` / `text-expense` (added in #6)        |
 
-**Proposal: money tokens.** Add these with the first screen that shows amounts (Wallet, #6):
+**Money tokens.** Added with the first screen that shows amounts (Wallet, #6):
 `--income` (green) and `--expense` (red), each with a light and a dark value that pass 4.5:1
 contrast on `--background`, exposed as `text-income` / `text-expense`. Don't reuse `destructive`
 for expenses: an expense isn't an error.
@@ -70,13 +71,18 @@ for expenses: an expense isn't an error.
 Use them for the icon circle's background, with a white or black glyph picked for contrast. Never
 use them for text on the page background.
 
-**Proposal: brand accent.** The UI stays neutral (black primary in light, white in dark). The green
-of the app icon's ฿ is the only brand colour. It isn't used in the UI unless the owner asks for one.
+**No brand accent.** The UI stays neutral (black primary in light, white in dark). The green of the
+app icon's ฿ is the only brand colour, and the UI doesn't use it.
 
 ## 4. Typography
 
-- **Font**: the system stack (`--font-sans`). Thai uses the OS's Thai font (Thonburi on iOS, Noto
-  Sans Thai on Android). There's no web font to download, so the app stays fast offline.
+- **Font: Noto Sans Thai** (variable, weights 100–900), a **loopless** Thai face (ไม่มีหัว), with
+  Latin and digits in the same family. It's self-hosted from `@fontsource-variable/noto-sans-thai`
+  (imported in `styles.css`, ~75 KB for Thai + Latin + Latin-ext), so the service worker prefetches
+  it and it works offline. `--font-sans` puts it first, with the system stack as a fallback. Don't
+  add a second family; use weights (`font-medium`, `font-semibold`) for hierarchy.
+  Alternatives the owner saw: Anuphan, IBM Plex Sans Thai. Switching is the import plus
+  `--font-sans`.
 - **Never tighten Thai line height.** Thai stacks vowels and tone marks above and below the line, so
   `leading-none` / `leading-tight` clip them. Keep the default line height for anything that can
   hold Thai.
@@ -103,8 +109,9 @@ of the app icon's ฿ is the only brand colour. It isn't used in the UI unless t
 - **Dates**: relative words for recent days (วันนี้, เมื่อวาน), then a short Thai date such as
   `จ. 14 ต.ค.`. Day headers in the transaction list show the date on the left and the day total on
   the right.
-- **Proposal: era.** `Intl.DateTimeFormat('th-TH')` shows the Buddhist era (พ.ศ. 2569). Keep that
-  default wherever a year is shown, since it's what Thai users expect.
+- **Era: พ.ศ.** Wherever a year is shown, use the Buddhist era (พ.ศ. 2569), which is the default of
+  `Intl.DateTimeFormat('th-TH')`. Never switch to ค.ศ. Stored dates stay ISO / `YYYY-MM-DD`
+  (Gregorian); the era is display only.
 
 ## 6. Components and patterns
 
@@ -136,13 +143,15 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 
 ## 7. Icons
 
-- **lucide only** (`@ng-icons/lucide`), outline style. Sizes: 20px in the tab bar and rows, 24px in
+- **lucide only**, through its Angular package `@ng-icons/lucide` (`NgIcon` + `provideIcons`),
+  outline style. Don't add another icon library. Sizes: 20px in the tab bar and rows, 24px in
   headers, larger only inside empty-state circles.
 - Decorative icons get `aria-hidden="true"`. An icon that is the whole label of a control needs an
   `aria-label` on the control.
-- **Proposal: category and wallet icons.** The user picks from a curated lucide set (food, transport,
-  home, shopping, …) shown as a grid in the picker. They're stored as the lucide name, so there's
-  no image upload.
+- **Category and wallet icons**: the user picks from a curated lucide set (food, transport, home,
+  shopping, …) shown as a grid in the picker. They're stored as the lucide name (e.g.
+  `lucideCoffee`), so there's no image upload. The curated list lives in code next to the picker
+  (#6 / #7).
 
 ## 8. Interaction and motion
 
@@ -160,6 +169,11 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 
 - Light, dark, or follow the system (default). The choice is on the account page. `ThemeService`
   sets `.dark` on `<html>`.
+- **Dark = near-black page, lighter grey surfaces, white text.** The page (`--background`,
+  `#0a0a0a`) is the darkest layer. Cards and sheets (`--card`, about `#1c1c1c`) sit one step
+  lighter, and chips/pills (`--muted`) one more. In the dark, elevation reads as "lighter", because
+  shadows don't show, the same as iOS and Material. A near-black page also saves battery on OLED
+  phones. The owner chose this over "grey page, black cards".
 - Tokens handle almost everything. Check each new screen in **both** themes at 375 × 812 before the
   PR, paying most attention to user colours, shadows (nearly invisible in dark) and borders.
 
