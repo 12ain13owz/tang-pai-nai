@@ -97,12 +97,14 @@ with no deploy and no third-party API keys.
    `/api/*` to `http://localhost:3000` with the same path mapping the prod rewrite will use, so the
    browser sees one origin in dev as in prod and the auth cookie behaves the same.
 3. **Database**: local SQLite file `api/data/local.db` (gitignored), set up in #2.
-4. **Mailer** (`core/mailer` port, adapter = **Nodemailer**):
-   - No `SMTP_URL` set → a dev transport prints each mail (to, subject, text with the code and
-     link) to **stdout**, not through the app logger, so log files never hold codes (auth rule 18).
-     It refuses to start when `NODE_ENV=production`.
-   - `SMTP_URL` set (e.g. a local Mailpit at `smtp://localhost:1025`) → sends over SMTP. No API key
-     is needed for that either.
+4. **Notifications**: ✅ `core/notification` (see `api/AGENTS.md` §2). One `notifier`, two channels
+   (email, SMS), provider chosen by env:
+   - `EMAIL_PROVIDER=console` (default) prints mail (to, subject, text with the code and link) to
+     **stdout**, not through the app logger, so log files never hold codes (auth rule 18).
+     `EMAIL_PROVIDER=smtp` + `SMTP_URL` sends via **Nodemailer** (e.g. a local Mailpit at
+     `smtp://localhost:1025`, no API key).
+   - `SMS_PROVIDER=console` (default) prints the SMS; `disabled` makes sends fail with `503`.
+   - `console` providers are refused when `NODE_ENV=production`.
 5. **Features that need an outside key stay off** until their env vars are set: Google sign-in is
    disabled without `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (the endpoints return `404`, the web
    hides the button). Scheduled jobs (auth cleanup, recurring #12) run as npm scripts locally
@@ -143,8 +145,8 @@ Deferred: do this only when the owner asks. Kept here so the work is ready to pi
    `api` / `web`). Set each project's "Ignored Build Step" to skip builds when its folder didn't
    change (`git diff --quiet HEAD^ HEAD ./`). The web preview's `/api` points at the API's preview
    or staging URL.
-6. **Mail in prod**: pick a provider (see backlog) and plug it in behind `core/mailer`, either as
-   Nodemailer SMTP settings or its own adapter.
+6. **Mail/SMS in prod**: pick providers (see backlog) and plug them in behind `core/notification`,
+   as SMTP settings or as a new adapter in `provider.registry.ts`.
 
 ## Then: Database foundation (#2)
 
@@ -181,8 +183,10 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 - **Local-first.** Until Deploy (#17), both apps run only locally (sandbox or the owner's PC). No
   feature may require a third-party API key to run or test; anything that needs one is off when its
   env vars are missing.
-- **Mailer = Nodemailer** behind a `core/mailer` port. Dev prints mail to stdout (or sends to a
-  local SMTP catcher via `SMTP_URL`). The prod provider is chosen at #17.
+- **Notifications = pluggable providers** behind `core/notification`: one `notifier`, email + SMS
+  channels, provider picked by env (`EMAIL_PROVIDER`, `SMS_PROVIDER`). Email uses **Nodemailer**
+  SMTP; dev prints to stdout. Real providers (prod mail, an SMS gateway) are added as adapters at
+  #17 or when a feature needs them.
 - **Lint baseline is shared by convention.** The web `eslint.config.mjs` mirrors the API's baseline
   rules (import order, `@/` alias, no `../` imports, unused imports, type-aware TS rules) and adds
   angular-eslint. Change a baseline rule in both repos together.
@@ -218,6 +222,8 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 
 - **Prod email provider** for OTP and magic links (decide at #17). Dev uses Nodemailer with no
   provider. Proposal: **Resend** (free tier, offers SMTP too, so it can stay a Nodemailer config).
+- **SMS provider + use**: what is SMS for (OTP by phone? reminders?) and which gateway (e.g.
+  ThaiBulkSMS, Twilio)? The channel exists; no feature uses it yet.
 - **Family sharing model** (#16): shared wallets with members (owner / editor / viewer), or a
   "household" that owns wallets? Decide before #16, ideally before #6 if it changes the wallet table.
 - **Offline support**: queue new transactions while offline and sync later? Nice for travel. It's
