@@ -50,6 +50,7 @@
     "express-rate-limit": "^8.6.1",
     "helmet": "^8.3.0",
     "morgan": "^1.11.0",
+    "nodemailer": "^10.1.2",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0",
     "zod": "^4.4.3"
@@ -60,6 +61,7 @@
     "@types/express": "^5.0.6",
     "@types/morgan": "^1.9.10",
     "@types/node": "^26.1.2",
+    "@types/nodemailer": "^8.0.2",
     "@types/supertest": "^7.2.1",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",

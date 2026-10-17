@@ -8,6 +8,9 @@ export const LOG = {
   SERVER: {
     listening: (baseUrl: string) => `Server listening at ${baseUrl}`,
   },
+  NOTIFICATION: {
+    sent: (channel: string, provider: string) => `[Notification] Sent ${channel} via ${provider}`,
+  },
 }
 
 // API response pools. Flat on purpose: UPPER_CASE = fixed text, camelCase = builder.
@@ -44,4 +47,5 @@ export const ERRORS = {
   minLength: (field: string, length: number) => `${field} must be at least ${length} characters`,
   maxLength: (field: string, length: number) => `${field} must be at most ${length} characters`,
   failedAction: (action?: string, target?: string) => `Failed to ${action} ${target}`,
+  devOnly: (value: string) => `"${value}" is only allowed in development`,
 }

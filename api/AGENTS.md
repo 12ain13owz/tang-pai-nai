@@ -58,6 +58,7 @@ src/
     error/       # AppError, domain errors, error logger, error middleware, wrapUnexpected
     logger/      # Winston setup
     middleware/  # custom Express middleware (validate)
+    notification/ # outgoing email + SMS: notifier, provider ports, adapters, provider registry
     server/      # bootstrap + graceful shutdown (onShutdown hooks)
   features/      # Business features. One folder per feature. May import core + shared.
   shared/        # Pure building blocks (constants, types, utils). No feature/business logic.
@@ -110,6 +111,36 @@ Rules of thumb:
 - Ports never throw for a missing record. Reads and updates return `null`, deletes return `false`. The adapter translates however its driver signals "not found" (a `null` result, an affected-row count of 0, a driver error code). The **service** is the only place that decides whether that is an error (`NotFoundError`). Keeping it in the port's return type makes the compiler force both sides to handle it.
 - Use factory functions with a deps object, not classes, so the style stays consistent with the rest of the codebase.
 - Naming: a factory is `create<Feature><Role>` (`createTodoService`, `createTodoController`), the instance it returns is `<feature><Role>` (`todoService`, `todoController`), and CRUD methods are single verbs (`create`, `getById`, `remove`). Factory and instance need different names, so keep the `create` prefix. Factories are only called in `index.ts` and tests. Everywhere else code works with the instance (`todoController.create`), the same way a module-style feature uses `countryController.update`.
+
+### Notifications (`src/core/notification/`)
+
+Everything the app sends to a person (OTP, magic link, later reminders) goes through one
+`notifier`. Callers choose the **channel**; config chooses the **provider**:
+
+```ts
+import { notifier } from '@/core/notification'
+import { NotificationChannel } from '@/shared/types'
+
+await notifier.send({ channel: NotificationChannel.EMAIL, to, subject, text })
+await notifier.send({ channel: NotificationChannel.SMS, to: '+66812345678', text })
+```
+
+| Env              | Values                                                                        | Default                             |
+| ---------------- | ----------------------------------------------------------------------------- | ----------------------------------- |
+| `EMAIL_PROVIDER` | `console` (prints to stdout, dev only), `smtp` (Nodemailer, needs `SMTP_URL`) | `console`                           |
+| `EMAIL_FROM`     | sender address                                                                | `Tang Pai Nai <no-reply@localhost>` |
+| `SMTP_URL`       | `smtp://` or `smtps://` URL, e.g. Mailpit `smtp://localhost:1025`             | unset                               |
+| `SMS_PROVIDER`   | `console` (prints to stdout, dev only), `disabled` (send fails with `503`)    | `console`                           |
+
+- `console` providers are rejected at startup when `NODE_ENV=production`. They write to stdout,
+  never through the logger, so log files never hold codes or links. The notifier only logs the
+  channel and provider name, never the recipient or body.
+- **Add a provider**: add its value to `EmailProviderName` / `SmsProviderName` (`@/shared/types`),
+  write `<channel>.<provider>.ts` implementing `EmailProvider` / `SmsProvider`
+  (`notification.type.ts`), add an entry in `provider.registry.ts`, and add its env vars (§9). Wrap
+  nothing yourself: `notifier.send` already runs the provider inside `wrapUnexpected`. A hosted mail
+  service that offers SMTP needs no new code, only `EMAIL_PROVIDER=smtp` + `SMTP_URL`.
+- Features import only `notifier` (and the types), never an adapter.
 
 ### Graceful shutdown
 

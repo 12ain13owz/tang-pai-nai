@@ -194,8 +194,9 @@ Exact request/response shapes go in OpenAPI (`/docs`) once the endpoints are bui
 - Every user-owned feature (wallet, category, transaction, …) sits behind `authenticate` and scopes
   every query by `req.user.id`.
 - Category: a new user gets the default category set seeded on creation (see `category.md`).
-- Mailer: `core/mailer` port, Nodemailer adapter. In dev it prints mail to stdout (or uses a local
-  SMTP catcher via `SMTP_URL`); the prod provider is picked at deploy (ROADMAP #17).
+- Mail: sent with `notifier.send({ channel: email, … })` from `core/notification`. In dev the
+  `console` provider prints it to stdout (or `smtp` + `SMTP_URL` sends to a local catcher); the prod
+  provider is picked at deploy (ROADMAP #17).
 - Google sign-in is off unless `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are set: its endpoints
   return `404` and the web hides the button. Local dev runs without them (ROADMAP "Local-first").
 
