@@ -9,8 +9,9 @@ If anything here conflicts with the actual code, the code wins — update this f
 > expense tracker modelled on Money Lover, for the owner and their family. _What_ to build and in what
 > order lives in [`ROADMAP.md`](../ROADMAP.md); what each feature does (data, rules, endpoints)
 > lives in [`docs/features/`](../docs/features/README.md). Read the feature doc before building its
-> screens. This file only covers _how_ to write the code here. Run every npm command from this folder
-> (`cd web`).
+> screens. How screens look and read (layout, colour, type, patterns, Thai wording) lives in
+> [`DESIGN.md`](DESIGN.md). This file only covers _how_ to write the code here. Run every npm command
+> from this folder (`cd web`).
 
 ---
 
@@ -26,7 +27,7 @@ and spartan.
 UX target: it should feel like a native mobile app. That means a fixed **bottom tab bar**, bottom
 sheets instead of centred modals, safe-area insets (`env(safe-area-inset-*)`), large touch targets
 (≥ 44px), and no hover-only interactions. Design for a 375px-wide screen first; wider screens just
-centre the same layout (max width ~480px).
+centre the same layout (max width ~480px). The full design guide is [`DESIGN.md`](DESIGN.md).
 
 ### Testing
 
@@ -300,8 +301,9 @@ for one.
 
 ## 5. Definition of done
 
-1. Build the screen(s) against the feature doc.
-2. Try it on a phone-sized viewport (375×812) and check touch targets, safe areas and the bottom bar.
+1. Build the screen(s) against the feature doc and [`DESIGN.md`](DESIGN.md).
+2. Try it on a phone-sized viewport (375×812), in light and dark, and go through the checklist in
+   `DESIGN.md` §12.
 3. Run:
 
 ```bash
