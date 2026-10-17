@@ -1,0 +1,53 @@
+/* Midnight Gold: navy page, gold accent (default). Every text/background pair passes WCAG AA (DESIGN.md §3). */
+/* Scoped by attribute, not :root only, so a swatch with data-palette previews it anywhere. */
+
+:root,
+[data-palette='midnight-gold'] {
+  --background: oklch(0.975 0.007 265);
+  --foreground: oklch(0.2 0.03 265);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.03 265);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.03 265);
+  --primary: oklch(0.8 0.15 80);
+  --primary-foreground: oklch(0.2 0.03 70);
+  --secondary: oklch(0.94 0.014 265);
+  --secondary-foreground: oklch(0.2 0.03 265);
+  --muted: oklch(0.94 0.014 265);
+  --muted-foreground: oklch(0.48 0.03 265);
+  --accent: oklch(0.94 0.014 265);
+  --accent-foreground: oklch(0.2 0.03 265);
+  --destructive: oklch(0.55 0.22 27);
+  --border: oklch(0.91 0.014 265);
+  --input: oklch(0.88 0.014 265);
+  --ring: oklch(0.53 0.12 75);
+  --brand: oklch(0.53 0.12 75);
+  --income: oklch(0.52 0.14 155);
+  --expense: oklch(0.55 0.2 25);
+}
+
+.dark,
+.dark [data-palette='midnight-gold'],
+.dark[data-palette='midnight-gold'] {
+  --background: oklch(0.16 0.03 265);
+  --foreground: oklch(0.97 0.01 265);
+  --card: oklch(0.22 0.035 265);
+  --card-foreground: oklch(0.97 0.01 265);
+  --popover: oklch(0.22 0.035 265);
+  --popover-foreground: oklch(0.97 0.01 265);
+  --primary: oklch(0.82 0.15 82);
+  --primary-foreground: oklch(0.2 0.03 70);
+  --secondary: oklch(0.29 0.04 265);
+  --secondary-foreground: oklch(0.97 0.01 265);
+  --muted: oklch(0.29 0.04 265);
+  --muted-foreground: oklch(0.75 0.04 265);
+  --accent: oklch(0.29 0.04 265);
+  --accent-foreground: oklch(0.97 0.01 265);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.82 0.15 82);
+  --brand: oklch(0.82 0.15 82);
+  --income: oklch(0.78 0.16 155);
+  --expense: oklch(0.72 0.17 22);
+}

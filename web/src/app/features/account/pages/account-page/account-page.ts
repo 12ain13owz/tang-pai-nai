@@ -2,19 +2,21 @@ import { Component, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder } from '@angular/forms'
 import { DeviceStorageService } from '@/core/pwa'
-import { ThemeService } from '@/core/theme'
-import type { ThemePreference } from '@/core/theme'
+import { PALETTES, ThemeService } from '@/core/theme'
+import type { PaletteId, ThemePreference } from '@/core/theme'
 import { SelectField } from '@/shared/components/form'
 import type { SelectOption } from '@/shared/types'
+import { PalettePicker } from './palette-picker'
 
 @Component({
   selector: 'app-account-page',
-  imports: [SelectField],
+  imports: [SelectField, PalettePicker],
   template: `
     <div class="flex flex-col gap-6 p-4">
       <section class="flex flex-col gap-3" aria-labelledby="appearance-heading">
         <h2 id="appearance-heading" class="text-sm font-medium text-muted-foreground">การแสดงผล</h2>
-        <app-select-field [control]="themeControl" label="ธีม" [options]="themeOptions" />
+        <app-select-field [control]="themeControl" label="โหมดสี" [options]="themeOptions" />
+        <app-palette-picker [control]="paletteControl" [palettes]="palettes" />
       </section>
 
       <section class="flex flex-col gap-3" aria-labelledby="device-heading">
@@ -60,7 +62,10 @@ export class AccountPage {
     { value: 'dark', label: 'มืด' },
   ]
 
+  protected readonly palettes = PALETTES
+
   protected themeControl = this.nnfb.control<ThemePreference | ''>(this.themeService.preference())
+  protected paletteControl = this.nnfb.control<PaletteId>(this.themeService.palette().id)
 
   constructor() {
     this.themeControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((preference) => {
@@ -68,5 +73,8 @@ export class AccountPage {
         this.themeService.setPreference(preference)
       }
     })
+    this.paletteControl.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((id) => this.themeService.setPalette(id))
   }
 }
