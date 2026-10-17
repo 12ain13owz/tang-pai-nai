@@ -43,7 +43,7 @@ Drizzle schema: `src/core/database/schema/auth.ts`. All ids are UUIDv7, and all 
   `revokedAt?`, `replacedById?`, `lastUsedAt`, `userAgent?`, `createdAt`. Each row is one refresh
   token. All rotations of one sign-in share a `familyId`.
 - **signup_allowlist** — `email` (PK), `invitedBy?`, `createdAt`. Seeded from env
-  `SIGNUP_ALLOWLIST` (comma-separated) on deploy.
+  `SIGNUP_ALLOWLIST` (comma-separated) by the seed script.
 - **rate_limit_buckets** — `key` (e.g. `otp:email:<hash>`, `signin:ip:<hash>`), `count`,
   `windowStart`. These counters are DB-backed because in-memory limits reset on every serverless
   instance.
@@ -155,6 +155,7 @@ Raw OTPs, link tokens and refresh tokens are **never stored**, only their hashes
 20. Cleanup: a daily **Vercel Cron** job (`POST /internal/cron/auth-cleanup`, protected by
     `CRON_SECRET`) deletes challenges, sessions and rate-limit buckets more than 7 days past
     expiry or revocation. It replaces tripsurance's `setInterval`, which can't run on serverless.
+    Until deploy, the same job runs locally as an npm script.
 
 ## Endpoints
 
@@ -193,7 +194,10 @@ Exact request/response shapes go in OpenAPI (`/docs`) once the endpoints are bui
 - Every user-owned feature (wallet, category, transaction, …) sits behind `authenticate` and scopes
   every query by `req.user.id`.
 - Category: a new user gets the default category set seeded on creation (see `category.md`).
-- Mailer: `core/mailer` port with a provider adapter (Resend proposed, see ROADMAP backlog).
+- Mailer: `core/mailer` port, Nodemailer adapter. In dev it prints mail to stdout (or uses a local
+  SMTP catcher via `SMTP_URL`); the prod provider is picked at deploy (ROADMAP #17).
+- Google sign-in is off unless `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are set: its endpoints
+  return `404` and the web hides the button. Local dev runs without them (ROADMAP "Local-first").
 
 ## Changes vs tripsurance
 
