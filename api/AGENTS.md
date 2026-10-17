@@ -10,7 +10,7 @@ If anything here conflicts with the actual code, the code wins — update this f
 > [`docs/features/`](../docs/features/README.md). This file only covers _how_ to write the code.
 > Run every npm command from this folder (`cd api`).
 > Sections below that say "not wired up yet" describe the starter baseline — the roadmap decides when
-> each one is built (database in Phase 1, auth in Phase 2).
+> each one is built (the database is wired up in ROADMAP #2; auth comes in #4).
 
 ---
 
@@ -22,7 +22,6 @@ Folders are split **by feature**, and each feature is layered **Clean Architectu
 
 Not wired up yet — add inside the existing structure when a consuming project needs it, don't pre-build it speculatively:
 
-- **Database / ORM** — none, and the starter doesn't pick one (SQL or Mongo, Prisma, Sequelize, TypeORM, a raw driver, …). `todo` stores data with an in-memory adapter (`todo.repository.memory.ts`); a real project adds `<feature>.repository.<driver>.ts` and switches to it in the feature's `index.ts` (§2, §6 step 5).
 - **Auth** — none (`req.user`, JWT, sessions, etc. don't exist).
 - **i18n / structured messages** — `AppError`/`createResponse` take a plain `string` message. Do not introduce a `{ key, message, params }` message shape or an i18n layer speculatively; that's a real requirement of specific downstream products, not a default this starter should carry.
 
@@ -55,6 +54,7 @@ When tests are requested, follow this standard so output stays consistent across
 src/
   core/          # Infrastructure, app-wide. Knows nothing about specific features.
     config/      # env loading + Zod validation, runtime options (cors/helmet/rate-limit)
+    database/    # Drizzle + libsql client, shared columns, schema/ (one file per feature), migrate + seed
     error/       # AppError, domain errors, error logger, error middleware, wrapUnexpected
     logger/      # Winston setup
     middleware/  # custom Express middleware (validate)
@@ -111,6 +111,31 @@ Rules of thumb:
 - Ports never throw for a missing record. Reads and updates return `null`, deletes return `false`. The adapter translates however its driver signals "not found" (a `null` result, an affected-row count of 0, a driver error code). The **service** is the only place that decides whether that is an error (`NotFoundError`). Keeping it in the port's return type makes the compiler force both sides to handle it.
 - Use factory functions with a deps object, not classes, so the style stays consistent with the rest of the codebase.
 - Naming: a factory is `create<Feature><Role>` (`createTodoService`, `createTodoController`), the instance it returns is `<feature><Role>` (`todoService`, `todoController`), and CRUD methods are single verbs (`create`, `getById`, `remove`). Factory and instance need different names, so keep the `create` prefix. Factories are only called in `index.ts` and tests. Everywhere else code works with the instance (`todoController.create`), the same way a module-style feature uses `countryController.update`.
+
+### Database (`src/core/database/`)
+
+**Drizzle ORM + `@libsql/client`** on SQLite: `DATABASE_URL=file:./data/local.db` in dev (the
+folder is created on first use and gitignored), `:memory:` in tests (`vitest.config.ts`), and a
+Turso `libsql://` URL + `DATABASE_AUTH_TOKEN` in prod. Foreign keys are enforced.
+
+| File / folder           | What                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------- |
+| `index.ts`              | `db` (Drizzle), `client` (closed via `onShutdown`), column helpers, `Database` type    |
+| `columns.ts`            | `id()` (UUIDv7 text PK), `epochMs()`, `timestamps` (`createdAt`/`updatedAt`, epoch ms) |
+| `schema/<feature>.ts`   | that feature's tables; re-export it from `schema/index.ts`                             |
+| `migrate.ts`, `seed.ts` | run by `npm run db:migrate` / `npm run db:seed`                                        |
+| `api/drizzle/`          | generated SQL migrations (`npm run db:generate`), **committed**, never edited by hand  |
+
+- Column names are written in camelCase in TS and stored as snake_case (`casing: 'snake_case'` on
+  the client and in `drizzle.config.ts`), so don't pass explicit column names.
+- Every table uses `id()` and `...timestamps`; user-owned tables add `userId` (ROADMAP → Money &
+  data). Amounts are `integer()` in minor units, calendar dates `text()` as `YYYY-MM-DD`.
+- Changing a table: edit `schema/<feature>.ts` → `npm run db:generate` → review the SQL →
+  `npm run db:migrate`. Commit the schema change and the migration together.
+- Seed: add one idempotent seeder per feature to `seeders` in `seed.ts` (it never runs in
+  production).
+- Only `*.repository.drizzle.ts` adapters (and `core/database` itself) import `@/core/database` or
+  `drizzle-orm`; lint blocks it in services, entities, ports and the HTTP layer (§2).
 
 ### Notifications (`src/core/notification/`)
 
