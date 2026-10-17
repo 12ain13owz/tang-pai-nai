@@ -268,7 +268,11 @@ for one.
 - All calls go through the core API client and use **relative URLs under `/api`**. In production,
   Vercel rewrites `/api/*` on the web project to the API project, so the browser sees one origin.
   That keeps the refresh-token cookie first-party (`*.vercel.app` is a public suffix, so cross-project
-  cookies would be third-party and blocked). In dev, `ng serve` proxies `/api` to `http://localhost:3000`.
+  cookies would be third-party and blocked). In dev, `ng serve` proxies `/api` to `http://localhost:3000` and strips the
+  prefix (`proxy.conf.json`), the same mapping as the prod rewrite. So there is **no API base URL in
+  an environment file**; never hardcode `http://localhost:3000`.
+- The API sees requests coming from the proxy (dev) or Vercel (prod). Anything that needs the real
+  client IP (auth rate limits) must configure Express `trust proxy`; that lands with Auth.
 - Response envelope: `{ message, timestamp, data? }` — read `data`.
 - Access token lives **in memory only** (a signal in the auth store), never in `localStorage`. The
   refresh token is an httpOnly cookie the app can't read. On a 401, the interceptor calls
