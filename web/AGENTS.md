@@ -5,7 +5,7 @@ modifying a feature.
 
 If anything here conflicts with the actual code, the code wins — update this file in the same change.
 
-> **Project context:** this folder is the web app of **Tang Pai Nai (เงินไปไหน)**, a personal income /
+> **Project context:** this folder is the web app of **Tang Pai Nai (ตังค์ไปไหน)**, a personal income /
 > expense tracker modelled on Money Lover, for the owner and their family. _What_ to build and in what
 > order lives in [`ROADMAP.md`](../ROADMAP.md); what each feature does (data, rules, endpoints)
 > lives in [`docs/features/`](../docs/features/README.md). Read the feature doc before building its

@@ -12,7 +12,7 @@ Read this first, before `AGENTS.md`, when picking up work or planning a feature.
 
 ## Product
 
-**Tang Pai Nai (เงินไปไหน, "where did the money go?")** is a personal income / expense tracker. Its
+**Tang Pai Nai (ตังค์ไปไหน, "where did the money go?")** is a personal income / expense tracker. Its
 reference app is **Money Lover**, which the owner uses today; we keep what works there and drop the
 rest. It's for the owner and their family only: no public sign-up, no SEO, no monetisation. It feels
 like a native mobile app (installable PWA with a bottom tab bar).
@@ -93,7 +93,7 @@ Web only: an installable PWA skeleton that opens offline, before any data featur
 1. **PWA**: ✅ `@angular/pwa`. `ngsw-config.json` prefetches the app shell (HTML, all JS chunks
    including lazy pages, CSS, icons) and has **no `dataGroups`**, so API responses are never
    cached; `/api/**` is also excluded from navigation fallback. `public/manifest.webmanifest`:
-   `เงินไปไหน`, `standalone`, portrait, `any` + `maskable` icons (`public/icons/`), plus an
+   `ตังค์ไปไหน`, `standalone`, portrait, `any` + `maskable` icons (`public/icons/`), plus an
    `apple-touch-icon`. `core/pwa/app-update.service.ts` shows "มีเวอร์ชันใหม่ → โหลดใหม่" under the
    header on `VERSION_READY` (also on an unrecoverable SW state) and re-checks for a new version
    whenever the app comes back to the foreground. The SW is off in `ng serve`; test PWA behaviour

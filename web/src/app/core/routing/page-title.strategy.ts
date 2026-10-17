@@ -5,12 +5,12 @@ import type { RouterStateSnapshot } from '@angular/router'
 
 /**
  * Exposes the current route's `title` as a signal for the page header, and sets the document title
- * to "<page> · เงินไปไหน".
+ * to "<page> · ตังค์ไปไหน".
  */
 @Injectable({ providedIn: 'root' })
 export class PageTitleStrategy extends TitleStrategy {
   private title = inject(Title)
-  private readonly APP_NAME = 'เงินไปไหน'
+  private readonly APP_NAME = 'ตังค์ไปไหน'
 
   pageTitle = signal(this.APP_NAME)
 
