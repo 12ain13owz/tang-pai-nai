@@ -62,6 +62,20 @@ layout    ->  core, shared
   and prefer lifting shared logic into `core/` or `shared/`. This is enforced by ESLint.
 - `shared/` imports nothing from `core/`, `layout/` or `features/`.
 
+### App shell & PWA
+
+- `app.routes.ts` mounts `AppShell` (`layout/`) as the layout route for the tab pages: header (page
+  title from the route's `title`, online/offline pill, update banner), the page, and the fixed
+  bottom tab bar. Give every routed page a Thai `title`; `PageTitleStrategy` (`core/routing`) shows
+  it in the header. Full-screen flows that shouldn't show the bar (sign-in, PIN) go outside it.
+- App-wide device state lives in `core/` as signal services: `ThemeService` (`core/theme`),
+  `NetworkStatusService` (`core/network`), `KeyboardService` (`core/viewport`),
+  `AppUpdateService` + `DeviceStorageService` (`core/pwa`).
+- The service worker (`ngsw-config.json`) caches the **app shell only**. Never add `dataGroups`:
+  data comes from the local DB ([offline-sync](../docs/features/offline-sync.md) → Layers). It is
+  off in `ng serve`, so check PWA behaviour against `npm run build` output served with an SPA
+  fallback.
+
 ### Inside a feature
 
 ```
