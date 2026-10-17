@@ -8,14 +8,18 @@
 
 ## Purpose
 
-Lets the owner and their family sign in and stay signed in on their phones. They have two ways in:
+Lets the owner and their family sign in and stay signed in on their phones. They have three ways in:
 
 1. **Email** (default): enter an email, receive **one email** with a 6-digit code **and** a magic
    link, and use either one. Users who prefer passwords can **optionally set one**. After that they
    can sign in with email + password, and the code/link still works.
 2. **Google**: "Continue with Google" (OpenID Connect).
+3. **Phone OTP**: enter a Thai mobile number and receive a 6-digit code by SMS. This works only for a
+   number the user has already **added and verified** in Account → Security (rules 21–27). It
+   never creates an account.
 
-Both lead to the same user when the email matches (see rule 14).
+Email and Google lead to the same user when the email matches (see rule 14). Phone sign-in finds
+the user by their verified number.
 
 ## Out of scope
 
@@ -24,27 +28,33 @@ Both lead to the same user when the email matches (see rule 14).
 - MFA / passkeys. Passkeys (WebAuthn) are the natural next step and fit as another `user_identities`
   provider later.
 - Other OAuth providers (Apple, LINE, …). The identity table supports them, but they aren't built.
+- **Sign-up by phone**, and non-Thai numbers (only `+66` mobiles are accepted, rule 21).
 
 ## Data model
 
 Drizzle schema: `src/core/database/schema/auth.ts`. All ids are UUIDv7, and all timestamps are epoch ms.
 
 - **users** — `id`, `email` (unique, stored lowercase), `displayName`, `avatarUrl?`,
-  `emailVerifiedAt?`, `status` (`active` | `disabled`), `timezone` (default `Asia/Bangkok`),
-  `createdAt`, `updatedAt`. It holds **no password and no provider data.**
+  `emailVerifiedAt?`, `phone?` (E.164, unique when set), `phoneVerifiedAt?`, `status` (`active` |
+  `disabled`), `timezone` (default `Asia/Bangkok`), `createdAt`, `updatedAt`. It holds **no password
+  and no provider data.** `phone` is set only once verified (rule 25); until then the pending number
+  lives on the challenge.
 - **password_credentials** — `userId` (PK, FK), `passwordHash` (Argon2id, PHC string), `updatedAt`.
   A row exists only if the user has set a password.
 - **user_identities** — `id`, `userId`, `provider` (`google`), `providerSubject` (the OIDC `sub`),
   `emailAtLink`, `createdAt`, `lastUsedAt`. Unique on (`provider`, `providerSubject`). Always match on
   `sub`, never on email.
-- **email_challenges** — `id`, `email`, `codeHash`, `linkTokenHash`, `attempts`, `expiresAt`,
-  `consumedAt?`, `createdAt`. This is one row per "send me a code" request.
+- **otp_challenges** — `id`, `channel` (`email` | `sms`), `purpose` (`sign_in` | `verify_phone`),
+  `destination` (lowercased email or E.164 phone), `userId?` (set for `verify_phone`), `codeHash`,
+  `linkTokenHash?` (email only), `attempts`, `expiresAt`, `consumedAt?`, `createdAt`. One row per
+  "send me a code" request, on any channel. Index on (`channel`, `destination`, `createdAt`).
 - **sessions** — `id`, `userId`, `familyId`, `tokenHash`, `expiresAt`, `absoluteExpiresAt`,
   `revokedAt?`, `replacedById?`, `lastUsedAt`, `userAgent?`, `createdAt`. Each row is one refresh
   token. All rotations of one sign-in share a `familyId`.
 - **signup_allowlist** — `email` (PK), `invitedBy?`, `createdAt`. Seeded from env
   `SIGNUP_ALLOWLIST` (comma-separated) by the seed script.
-- **rate_limit_buckets** — `key` (e.g. `otp:email:<hash>`, `signin:ip:<hash>`), `count`,
+- **rate_limit_buckets** — `key` (e.g. `otp:email:<hash>`, `otp:sms:<hash>`, `sms:global:day`,
+  `signin:ip:<hash>`), `count`,
   `windowStart`. These counters are DB-backed because in-memory limits reset on every serverless
   instance.
 
@@ -157,6 +167,38 @@ Raw OTPs, link tokens and refresh tokens are **never stored**, only their hashes
     expiry or revocation. It replaces tripsurance's `setInterval`, which can't run on serverless.
     Until deploy, the same job runs locally as an npm script.
 
+**Phone OTP (third option)**
+
+SMS costs money per message and is a target for SMS-pumping fraud, so its limits are tighter than
+email's. It goes through `notifier` (`core/notification`) on the SMS channel. In dev the `console`
+SMS provider prints the code, so the whole flow is testable without an SMS account; the
+**ThaiBulkSMS** adapter is added when its account exists (ROADMAP #17).
+
+21. Phone numbers are trimmed and normalised to E.164 before any lookup (`081-234-5678` →
+    `+66812345678`). Only Thai mobile numbers are accepted (`+66` followed by 6, 8 or 9 and 8 more
+    digits); anything else is a `422`.
+22. `POST /auth/phone/start` `{ phone }` sends a 6-digit code (same generation and hashing as rule
+    4 and 18) **only if a user has that verified number and is active**. It **always** answers
+    `202` with the same body and similar timing; for an unknown number it sends nothing (so no SMS
+    is paid for) and sleeps instead, like rule 5.
+23. Limits: **resend cooldown 60 s** per number, **3 starts per number per hour**, **10 per IP per
+    hour**, and a **global cap of 100 SMS per day** (`SMS_DAILY_LIMIT`, env) across the app, which
+    caps the bill if the limits above are bypassed. Over a limit returns `429` with `Retry-After`;
+    hitting the global cap also logs a `warn`.
+24. `POST /auth/phone/verify` `{ phone, code }`: the code expires after **5 minutes**, allows **5
+    wrong attempts**, is compared in constant time, and is single-use, as in rule 7. Success
+    creates a session (rule 3 still applies to disabled users).
+25. **Adding a number** (Account → Security): `POST /auth/phone` `{ phone }` needs recent
+    authentication (rule 13), then sends a `verify_phone` code to that number. `POST
+/auth/phone/confirm` `{ code }` saves it as `users.phone` with `phoneVerifiedAt`. If another
+    user already holds that number, the confirm fails with a generic `409` (it reveals only what the
+    person proved they own). Changing the number repeats the flow; `DELETE /auth/phone` removes it
+    (recent auth). The start limits of rule 23 apply here too.
+26. The SMS text is short, Thai, and names the app and the expiry, e.g. `รหัสเข้าสู่ระบบ Tang Pai
+Nai: 123456 (หมดอายุใน 5 นาที) ห้ามบอกรหัสนี้กับผู้อื่น`. It never contains a link.
+27. Phone events are logged like rule 19 (sign-in success/failure with method `phone`, number
+    added/changed/removed) with the number **masked** (`+66*****5678`), never in full.
+
 ## Endpoints
 
 All live under `/auth`, on the public router. "Bearer" = needs `authenticate`.
@@ -168,6 +210,11 @@ All live under `/auth`, on the public router. "Bearer" = needs `authenticate`.
 | POST   | `/auth/password/sign-in` | —      | Email + password → user + access token; cookie                 |
 | PUT    | `/auth/password`         | Bearer | Set or change password (recent auth); revokes other sessions   |
 | DELETE | `/auth/password`         | Bearer | Remove password (recent auth)                                  |
+| POST   | `/auth/phone/start`      | —      | Send SMS code to a verified number (always `202`)              |
+| POST   | `/auth/phone/verify`     | —      | `{ phone, code }` → user + access token; cookie                |
+| POST   | `/auth/phone`            | Bearer | Add or change number (recent auth): send `verify_phone` code   |
+| POST   | `/auth/phone/confirm`    | Bearer | `{ code }` → save the number as verified                       |
+| DELETE | `/auth/phone`            | Bearer | Remove the number (recent auth)                                |
 | GET    | `/auth/google/start`     | —      | Redirect to Google (PKCE + state + nonce)                      |
 | GET    | `/auth/google/callback`  | —      | Finish Google sign-in; sets cookie; redirects to web           |
 | POST   | `/auth/refresh`          | cookie | Rotate refresh token → new access token                        |
@@ -181,12 +228,14 @@ Exact request/response shapes go in OpenAPI (`/docs`) once the endpoints are bui
 
 ## Web screens
 
-- **Sign-in**: an email field with a "Send code" button, a "Continue with Google" button, and a
-  "Sign in with password" link.
+- **Sign-in**: an email field with a "Send code" button, a "Continue with Google" button, a
+  "Sign in with password" link, and a "Sign in with phone number" link (phone field → the same
+  enter-code screen).
 - **Enter code**: 6 boxes (`inputmode="numeric"`, `autocomplete="one-time-code"` so the phone can
   auto-fill it), a resend timer, and a "check your email for the link" hint.
 - **Magic-link landing** `/auth/link` and **Google return** `/auth/callback`.
-- **Account → Security**: set/change/remove password, linked Google account, active sessions with
+- **Account → Security**: set/change/remove password, add/change/remove phone number, linked
+  Google account, active sessions with
   "sign out other devices".
 
 ## Interactions
@@ -215,6 +264,9 @@ Exact request/response shapes go in OpenAPI (`/docs`) once the endpoints are bui
 
 ## Open questions
 
+- **Phone sign-in later**: switch it on in production only once the ThaiBulkSMS adapter, sender
+  name and credit are in place. Until then `SMS_PROVIDER=disabled` makes `/auth/phone/*` answer
+  `503`, and the web hides the phone link.
 - **Allowlist management**: env-seeded only (proposal), or an "invite family member" screen later?
 - **Access token lifetime** of 10 min: fine with silent refresh. Raise it only if refresh traffic
   turns out to be a problem.

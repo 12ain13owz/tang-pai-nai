@@ -62,7 +62,7 @@ merging.
 | 1   | **Local dev workflow**     | ⬜  | ⬜  | **← next.** run both apps in the sandbox, `/api` dev proxy, dev mailer (Nodemailer), no API keys          |
 | 2   | Database foundation        | ⬜  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                |
 | 3   | App shell                  | —   | ⬜  | spartan/ui + shared form fields done; still: PWA (`@angular/pwa`), bottom tab bar, dark mode, empty pages |
-| 4   | Auth                       | ⬜  | ⬜  | email OTP / magic link (default), optional password, Google. [spec](docs/features/auth.md)                |
+| 4   | Auth                       | ⬜  | ⬜  | email OTP / magic link (default), optional password, Google, phone OTP. [spec](docs/features/auth.md)     |
 | 5   | Currency                   | ⬜  | ⬜  | master table, THB default. [spec](docs/features/currency.md)                                              |
 | 6   | Wallet                     | ⬜  | ⬜  | per-user accounts with a currency + balance. [spec](docs/features/wallet.md)                              |
 | 7   | Category                   | ⬜  | ⬜  | income/expense, 1 level of sub-categories, default set seeded per user. [spec](docs/features/category.md) |
@@ -207,7 +207,8 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 
 **Auth** (full spec: [docs/features/auth.md](docs/features/auth.md))
 
-- Two ways to sign in: **email** or **Google**. Email defaults to **passwordless** (one 6-digit OTP +
+- Three ways to sign in: **email**, **Google**, or **phone OTP** (SMS, only for a number already
+  verified on an existing account; no sign-up by phone). Email defaults to **passwordless** (one 6-digit OTP +
   magic link in the same email). A user may **optionally set a password** and then sign in with
   email + password.
 - **The `users` table holds no password.** Credentials live in their own tables
@@ -222,8 +223,9 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 
 - **Prod email provider** for OTP and magic links (decide at #17). Dev uses Nodemailer with no
   provider. Proposal: **Resend** (free tier, offers SMTP too, so it can stay a Nodemailer config).
-- **SMS provider + use**: what is SMS for (OTP by phone? reminders?) and which gateway (e.g.
-  ThaiBulkSMS, Twilio)? The channel exists; no feature uses it yet.
+- **SMS gateway account**: SMS is for phone-OTP sign-in (auth spec rules 21–27), gateway =
+  **ThaiBulkSMS**. Its adapter (`sms.thaibulksms.ts`) is written when the account and API key
+  exist; until then dev uses the `console` SMS provider.
 - **Family sharing model** (#16): shared wallets with members (owner / editor / viewer), or a
   "household" that owns wallets? Decide before #16, ideally before #6 if it changes the wallet table.
 - **Offline support**: queue new transactions while offline and sync later? Nice for travel. It's
