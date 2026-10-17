@@ -10,7 +10,8 @@ total.
 
 ## Out of scope
 
-- Sharing a wallet with family members (#16, design TBD).
+- The sharing UI (inviting members, roles screen) is #16. The `wallet_members` table and access
+  rules exist from this feature on (see [offline-sync.md](offline-sync.md) rules 13–16).
 - Savings goals and credit-card statement cycles (Money Lover has these; we can add them later if
   missed).
 - Bank sync.
@@ -22,14 +23,18 @@ total.
 - **wallets** — `id`, `userId`, `name`, `type` (`cash` | `bank` | `credit_card` | `e_wallet` |
   `other`), `currencyCode` (FK currencies), `initialBalance` (integer, minor units, may be
   negative), `icon`, `color`, `excludeFromTotal` (default `false`), `isArchived` (default
-  `false`), `sortOrder`, `createdAt`, `updatedAt`.
+  `false`), `sortOrder`, plus the sync columns (`createdAt`, `updatedAt`, `deletedAt?`, `changeSeq`,
+  `updatedBy`; see [offline-sync.md](offline-sync.md)). `userId` is the **owner**.
+- **wallet_members**: `walletId` (FK), `userId` (FK), `role` (`editor` | `viewer`), `addedAt`.
+  PK (`walletId`, `userId`). The owner isn't listed here. It stays empty until #16 adds the UI.
 
 **Balance isn't stored.** It's computed as `initialBalance + Σ income − Σ expense ± transfers` for
 the wallet. Add a cached column only if this gets slow.
 
 ## Business rules
 
-1. Every query is scoped to the signed-in user. Another user's wallet id returns `404`, never `403`.
+1. Every query is scoped to the signed-in user: wallets they own, plus wallets they're a member of
+   (by role). Any other wallet id returns `404`, never `403`.
 2. `name` is 1–50 chars after trimming, and unique per user among non-archived wallets
    (case-insensitive).
 3. `currencyCode` must be active when the wallet is created, and **can't change once the wallet has
@@ -37,7 +42,7 @@ the wallet. Add a cached column only if this gets slow.
 4. `initialBalance` is an integer within ±10¹⁵.
 5. A wallet with transactions can't be deleted, only **archived**. Archived wallets are hidden from
    pickers and from the total, but their history stays in reports. A wallet with no transactions can
-   be deleted.
+   be deleted (soft delete, `deletedAt`). Only the owner can archive or delete.
 6. The total balance ("ยอดรวม") sums non-archived wallets with `excludeFromTotal = false`, **grouped
    by currency**.
 7. A new user starts with one wallet: "เงินสด" (cash, THB, balance 0).
@@ -66,7 +71,7 @@ the wallet. Add a cached column only if this gets slow.
 - Transaction requires `walletId` and inherits the wallet's currency.
 - Reports and budgets can filter by wallet.
 
-## Open questions
+## Offline
 
-- If family sharing (#16) means "shared wallet", `wallets.userId` becomes the owner and a
-  `wallet_members` table is added. Nothing here blocks that.
+The owner's wallets live in the local database and change through sync. The endpoints above serve
+members of shared wallets (online) and tests. See [offline-sync.md](offline-sync.md).

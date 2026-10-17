@@ -265,6 +265,10 @@ for one.
 
 ## 4. API & session contract
 
+- **Offline-first.** Screens read and write the **local database**, not the API. Own data reaches
+  the server only through the sync outbox (`/sync/push` and `/sync/pull`). Direct API calls are for
+  auth, shared wallets you're a member of (online only), and sync itself. Read
+  [`offline-sync.md`](../docs/features/offline-sync.md) before building any data screen.
 - All calls go through the core API client and use **relative URLs under `/api`**. In production,
   Vercel rewrites `/api/*` on the web project to the API project, so the browser sees one origin.
   That keeps the refresh-token cookie first-party (`*.vercel.app` is a public suffix, so cross-project

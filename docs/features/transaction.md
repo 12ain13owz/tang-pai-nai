@@ -22,7 +22,9 @@ button.
 - **transactions** — `id`, `userId`, `walletId` (FK), `categoryId` (FK), `amount` (integer, minor
   units, **always > 0**), `occurredOn` (`YYYY-MM-DD`, the user's local date), `occurredAt?` (epoch
   ms, optional time of day), `note?` (≤ 500 chars), `excludeFromReport` (default `false`),
-  `createdAt`, `updatedAt`.
+  plus the sync columns (`id` generated on the device, `createdAt`, `updatedAt`, `deletedAt?`,
+  `changeSeq`, `updatedBy`; see [offline-sync.md](offline-sync.md)). `userId` is the user who
+  created it; access follows the wallet (owner or member).
 - Indexes: (`userId`, `occurredOn`), (`walletId`, `occurredOn`), (`categoryId`).
 
 The **sign isn't stored**. Income vs expense comes from the category's `type`, so changing the
@@ -38,8 +40,8 @@ category flips it. The currency comes from the wallet.
    in the user's timezone.
 4. Editing can change any field. Moving a transaction to a wallet with a **different currency** is
    refused (`422`), because the amount would be meaningless.
-5. Delete is a hard delete. The web app shows an "undo" snackbar that re-creates it from the cached
-   copy, so the API doesn't need soft-delete for that.
+5. Delete is a **soft delete** (`deletedAt`), so other devices learn about it through sync. "Undo"
+   clears `deletedAt` while the snackbar is open. Deleted rows are excluded everywhere.
 6. Month summary for (`month`, optional `walletId`): `income` = Σ amount of income-type, `expense` =
    Σ amount of expense-type, `net` = income − expense. All three exclude `excludeFromReport` rows and
    are **grouped by currency** when "all wallets" spans several currencies.
@@ -65,6 +67,12 @@ category flips it. The currency comes from the wallet.
   numeric keypad, then category, wallet (defaulting to the last used), date (today / yesterday /
   pick), and note. A "Save" button stays fixed above the keyboard.
 - **Transaction detail**: fields plus Edit and Delete (with undo).
+
+## Offline
+
+Owners read and write transactions in the local database, and sync carries them. Editors of a
+shared wallet may **add** offline but edit/delete online only. Conflict rules are in
+[offline-sync.md](offline-sync.md) rules 12–16.
 
 ## Interactions
 

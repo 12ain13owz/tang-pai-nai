@@ -18,7 +18,9 @@ of sub-categories ("อาหาร → กาแฟ"), the way Money Lover does
 `src/core/database/schema/category.ts`
 
 - **categories** — `id`, `userId`, `type` (`income` | `expense`), `parentId?` (FK categories),
-  `name`, `icon`, `color`, `isArchived` (default `false`), `sortOrder`, `createdAt`, `updatedAt`.
+  `name`, `icon`, `color`, `isArchived` (default `false`), `sortOrder`, plus the sync columns
+  (`createdAt`, `updatedAt`, `deletedAt?`, `changeSeq`, `updatedBy`; see
+  [offline-sync.md](offline-sync.md)).
 
 Names live in the DB because users edit them, unlike tripsurance's i18n-keyed master data. The
 default set is seeded in Thai.
