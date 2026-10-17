@@ -76,6 +76,8 @@ const dbClientGroup = [
   'typeorm/**',
   'drizzle-orm',
   'drizzle-orm/**',
+  '@libsql/client',
+  '@libsql/**',
   'knex',
   'mongoose',
   'mongodb',

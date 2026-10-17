@@ -19,6 +19,7 @@ export default defineConfig({
       LOG_LEVEL_ERROR_FILE: 'error',
       LOG_SILENT: 'true',
       SHUTDOWN_TIMEOUT_MS: '10000',
+      DATABASE_URL: ':memory:',
     },
   },
 })

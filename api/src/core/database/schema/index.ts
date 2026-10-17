@@ -1,0 +1,3 @@
+// Barrel of every table, one file per feature (`./<feature>.ts`). drizzle-kit and the client both
+// read the schema from here, so export each new feature file below.
+export {}
