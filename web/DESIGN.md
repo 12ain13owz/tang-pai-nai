@@ -48,31 +48,66 @@ choice that isn't decided yet is marked **Proposal** until the owner confirms it
 
 ## 3. Colour
 
-All colour comes from the theme tokens in `src/styles.css` (spartan `neutral` theme). Never use raw
-palette classes. That's what keeps dark mode working.
+All colour comes from theme tokens. Never use raw palette classes (`bg-slate-50`, `text-red-500`).
+Only tokens keep dark mode and the palettes below working.
 
-| Use                         | Token                                               |
-| --------------------------- | --------------------------------------------------- |
-| Page background / text      | `bg-background` / `text-foreground`                 |
-| Cards, sheets (surfaces)    | `bg-card` / `text-card-foreground`                  |
-| Secondary text, inactive    | `text-muted-foreground`                             |
-| Subtle fills (chips, pills) | `bg-muted`                                          |
-| Primary action (one/screen) | `bg-primary text-primary-foreground` (via `hlmBtn`) |
-| Error, offline, destructive | `text-destructive`, `bg-destructive/10`             |
-| Lines                       | `border-border`                                     |
-| Income / expense amounts    | `text-income` / `text-expense` (added in #6)        |
+### Palettes
 
-**Money tokens.** Added with the first screen that shows amounts (Wallet, #6):
-`--income` (green) and `--expense` (red), each with a light and a dark value that pass 4.5:1
-contrast on `--background`, exposed as `text-income` / `text-expense`. Don't reuse `destructive`
-for expenses: an expense isn't an error.
+The user picks a **palette** (ชุดสี) and, separately, a **mode** (light / dark / system), both on
+the account page. Every palette has a light and a dark version, so there are 8 looks. All of them
+share the layout below; only the colours change.
+
+| Id (`data-palette`)       | Thai label | Character                                                  |
+| ------------------------- | ---------- | ---------------------------------------------------------- |
+| `midnight-gold` (default) | น้ำเงินทอง | navy page, gold accent: calm like Indigo, bright like Gold |
+| `indigo-night`            | คราม       | cool indigo page and accent                                |
+| `gold-coin`               | ดำทอง      | warm black page, gold accent ("ตังค์" = coins)             |
+| `plum`                    | ม่วงพลัม   | deep plum page, orchid accent                              |
+
+- **One file per palette** in `src/styles/themes/<id>.css`, holding its light and dark tokens.
+  `styles.css` imports all of them (a few KB together), so switching is instant and works
+  offline. `midnight-gold` is the fallback on `:root` / `.dark` and must be imported first.
+- Tokens are scoped by attribute (`[data-palette='plum']`, `.dark [data-palette='plum']`), not
+  only on `<html>`, so any element with `data-palette` shows that palette. The picker's swatches
+  use this to preview each palette in the current mode.
+- `ThemeService` (`core/theme`) owns both choices (`tpn-theme`, `tpn-palette` in localStorage;
+  absent = default) and sets `.dark` + `data-palette` on `<html>` and the `theme-color` meta. The
+  inline script in `index.html` does the same before boot. **Adding a palette** = a new CSS file,
+  its import, an entry in `PALETTES` (id, Thai label, theme colours), and the id + colours in the
+  `index.html` script.
+- Every text/background pair in every palette must pass WCAG AA (4.5:1; 3:1 for the focus ring).
+  Check a new palette's numbers before adding it. The gold `primary` on a light page is the one
+  allowed exception (1.8:1 for the ➕ fill): the glyph on it is 9.6:1, and the ring uses the darker
+  `brand` gold.
+- **The app icon doesn't follow the palette** (it's fixed at install). It's the default's look:
+  navy, white wallet, gold ฿.
+
+### Tokens
+
+| Use                         | Token                                                              |
+| --------------------------- | ------------------------------------------------------------------ |
+| Page background / text      | `bg-background` / `text-foreground`                                |
+| Cards, sheets (surfaces)    | `bg-card` / `text-card-foreground`                                 |
+| Secondary text, inactive    | `text-muted-foreground`                                            |
+| Subtle fills (chips, pills) | `bg-muted`                                                         |
+| Primary action (one/screen) | `bg-primary text-primary-foreground` (via `hlmBtn`)                |
+| Brand text / icons (active) | `text-brand` (the accent, darkened where needed for text contrast) |
+| Error, offline, destructive | `text-destructive`, `bg-destructive/10`                            |
+| Lines                       | `border-border`                                                    |
+| Income / expense amounts    | `text-income` / `text-expense`                                     |
+
+**Money and status colours are the same green / red in every palette**, so their meaning never
+changes with the look. `--income` / `--expense` pass 4.5:1 on both `--background` and `--card`.
+Don't reuse `destructive` for expenses: an expense isn't an error.
 
 **User colours** (wallet and category `color`) arrive as data and are the only raw colours allowed.
 Use them for the icon circle's background, with a white or black glyph picked for contrast. Never
 use them for text on the page background.
 
-**No brand accent.** The UI stays neutral (black primary in light, white in dark). The green of the
-app icon's ฿ is the only brand colour, and the UI doesn't use it.
+**The accent is for "you are here" and "do this", nothing else**: the ➕, the one primary button,
+the active tab, the selected option, the focus ring. Don't use it for decoration, headings or
+amounts. That keeps it meaningful, and it's what makes the app look like itself rather than Money
+Lover's black and green.
 
 ## 4. Typography
 
@@ -139,7 +174,9 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   code, sync) put a spinner in the button that started them and disable it. Use skeletons only for
   online-only lists (shared wallets as a member).
 - **Status**: the header's right side holds the connection pill today and the sync status from #4a.
-  Status changes are announced politely (`role="status"`).
+  A small dot plus the word, never the dot alone: online = green dot (`bg-income`) and muted
+  "ออนไลน์"; offline = red dot in a red-tinted pill, "ออฟไลน์" in `text-destructive`. Status changes
+  are announced politely (`role="status"`).
 
 ## 7. Icons
 
@@ -169,13 +206,14 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 
 - Light, dark, or follow the system (default). The choice is on the account page. `ThemeService`
   sets `.dark` on `<html>`.
-- **Dark = near-black page, lighter grey surfaces, white text.** The page (`--background`,
-  `#0a0a0a`) is the darkest layer. Cards and sheets (`--card`, about `#1c1c1c`) sit one step
-  lighter, and chips/pills (`--muted`) one more. In the dark, elevation reads as "lighter", because
-  shadows don't show, the same as iOS and Material. A near-black page also saves battery on OLED
-  phones. The owner chose this over "grey page, black cards".
-- Tokens handle almost everything. Check each new screen in **both** themes at 375 × 812 before the
-  PR, paying most attention to user colours, shadows (nearly invisible in dark) and borders.
+- **Dark = very dark page, lighter surfaces, white text**, tinted by the palette (navy for the
+  default). The page (`--background`, L 0.16) is the darkest layer. Cards and sheets (`--card`,
+  L 0.22) sit one step lighter, and chips/pills (`--muted`, L 0.29) one more. In the dark,
+  elevation reads as "lighter" because shadows don't show, the same as iOS and Material. A very
+  dark page also saves battery on OLED phones. The owner chose this over "grey page, black cards".
+- Tokens handle almost everything. Check each new screen in light and dark at 375 × 812 with the
+  default palette, and flip through the other palettes on the account page before the PR. Pay most
+  attention to user colours, shadows (nearly invisible in dark) and borders.
 
 ## 10. Accessibility
 
@@ -214,7 +252,8 @@ WCAG 2.2 AA, as in `AGENTS.md`:
 
 ## 12. Before opening a PR with UI changes
 
-1. Screenshot the screen at **375 × 812, in light and dark**, and look at it.
+1. Screenshot the screen at **375 × 812, in light and dark** (default palette), and look at it.
+   Then switch through the other palettes once on a phone-sized window.
 2. Check touch targets, safe areas (header and tab bar), and that the keyboard doesn't cover the
    focused field or the Save button.
 3. Check the screen offline if it reads local data. It must still render.
