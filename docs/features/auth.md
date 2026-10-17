@@ -262,6 +262,14 @@ Exact request/response shapes go in OpenAPI (`/docs`) once the endpoints are bui
 | Forgot/reset-password token flow             | Sign in with email code, then set a password                 | One fewer token type to secure                       |
 | `setInterval` cleanup                        | Vercel Cron                                                  | Serverless                                           |
 
+## Offline & trusted devices
+
+Signing in is always online. What happens on the device afterwards (the trusted-device choice, PIN
+lock, local-data wipe on a revoked or expired session or on sign-out) is specified in
+[offline-sync.md](offline-sync.md) rules 1–7. The server side here doesn't change: `/auth/refresh`
+answering "revoked" vs "expired" distinctly (both `401`, with a different `code` in the body) is what
+lets the web app decide whether to wipe or keep local data.
+
 ## Open questions
 
 - **Phone sign-in later**: switch it on in production only once the ThaiBulkSMS adapter, sender

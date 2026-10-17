@@ -61,10 +61,11 @@ merging.
 | 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                   |
 | 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys               |
 | 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                |
-| 3   | **App shell**              | —   | ⬜  | **← next.** spartan/ui + form fields done; still: PWA (`@angular/pwa`), bottom tab bar, dark mode, pages  |
+| 3   | **App shell**              | —   | ⬜  | **← next.** PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                |
 | 4   | Auth                       | ⬜  | ⬜  | email OTP / magic link (default), optional password, Google, phone OTP. [spec](docs/features/auth.md)     |
+| 4a  | Offline sync foundation    | ⬜  | ⬜  | encrypted local DB, PIN lock, outbox, `/sync/push` + `/sync/pull`. [spec](docs/features/offline-sync.md)  |
 | 5   | Currency                   | ⬜  | ⬜  | master table, THB default. [spec](docs/features/currency.md)                                              |
-| 6   | Wallet                     | ⬜  | ⬜  | per-user accounts with a currency + balance. [spec](docs/features/wallet.md)                              |
+| 6   | Wallet                     | ⬜  | ⬜  | accounts with a currency + balance; `wallet_members` table from day one. [spec](docs/features/wallet.md)  |
 | 7   | Category                   | ⬜  | ⬜  | income/expense, 1 level of sub-categories, default set seeded per user. [spec](docs/features/category.md) |
 | 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)             |
 | 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                   |
@@ -74,16 +75,39 @@ merging.
 | 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                 |
 | 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                        |
 | 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                           |
-| 16  | Family sharing             | ⬜  | ⬜  | shared wallets between family members — design TBD (see backlog)                                          |
+| 16  | Family sharing             | ⬜  | ⬜  | share a wallet as editor/viewer; rules decided in [offline-sync](docs/features/offline-sync.md) 13–16     |
 | 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys      |
 
 ✅ done · ⬜ not started · — not applicable
 
-Each row gets its `docs/features/<feature>.md` before work starts. Rows 0–8 are the MVP. After #8 the
-app can replace Money Lover for daily use. Until #17, everything runs **locally only** (see locked
+Each row gets its `docs/features/<feature>.md` before work starts. Rows 0–8 (with 4a) are the MVP.
+After #8 the app can replace Money Lover for daily use. Until #17, everything runs **locally only** (see locked
 decision "Local-first").
 
 ---
+
+## Next up: App shell (#3)
+
+Web only. Goal: an installable PWA skeleton that opens offline, before any data feature exists.
+
+1. **PWA**: `ng add @angular/pwa` (service worker + manifest). Cache the app shell only, with no API
+   data caching (data comes from the local DB in #4a, see
+   [offline-sync](docs/features/offline-sync.md) → Layers). Thai app name `เงินไปไหน`, icons,
+   `theme-color`, `display: standalone`. An "update available → reload" prompt when a new version is
+   deployed.
+2. **Storage persistence helper**: a small service that calls `navigator.storage.persist()` and
+   reports whether the app runs installed (`display-mode: standalone`). #4a uses it for the trust
+   prompt.
+3. **Bottom tab bar** (Money Lover layout): ธุรกรรม (transactions), บัญชี/กระเป๋า (wallets), centre
+   **➕**, รายงาน (reports), บัญชีผู้ใช้ (account). Routed, lazy-loaded, empty placeholder pages,
+   safe-area insets, and the bar hides when the keyboard is open.
+4. **Dark mode**: follow the system by default, with a manual override (light / dark / system) kept in
+   `localStorage`.
+5. **Online/offline indicator** placeholder in the header (`navigator.onLine` + events). It becomes
+   the sync status in #4a.
+6. **Done when**: `npm run build` produces a service worker; served from the production build, the app
+   installs, and after one visit it **reloads with the network off** (Playwright, offline context)
+   and shows the tab bar. It's checked at 375×812 in light and dark.
 
 ## Done: Local dev workflow (#1)
 
@@ -207,10 +231,30 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   so they aren't stored.
 - **A wallet has exactly one currency.** Its transactions inherit it. There is no FX conversion in
   the MVP, and totals across currencies are shown per currency.
-- **Every user-owned row carries `userId`**, and every query is scoped by it. One user never sees
-  another's data until family sharing (#16) defines how.
+- **Every user-owned row carries `userId`** (its owner), and every query is scoped by it. The one
+  exception is a wallet shared through `wallet_members`: members reach that wallet and its
+  transactions by their role ([offline-sync](docs/features/offline-sync.md) rules 13–16).
 - **IDs are UUIDv7 strings** (time-sortable). Timestamps are stored as integer epoch ms. Calendar
   dates of transactions are stored as `YYYY-MM-DD` in the user's timezone (default `Asia/Bangkok`).
+
+**Offline-first** (full spec: [docs/features/offline-sync.md](docs/features/offline-sync.md))
+
+- **Works fully offline on trusted devices.** The web app reads and writes an **encrypted local
+  database**; changes go to an outbox and sync with the server when online (push, then pull). The
+  server is the meeting point and the authority, not the screen's data source.
+- **Synced rows are sync-ready**: the device generates the UUIDv7 `id`; `updatedAt`; **soft delete**
+  via `deletedAt` (tombstones); a server-assigned `changeSeq` as the pull cursor.
+- **Balances and totals are always computed** from transactions, never stored.
+- **Trusted device + PIN**: offline storage only when the user marks the device as trusted at
+  sign-in. A 6-digit PIN unlocks it and wraps the key that encrypts the local DB. The app locks on
+  open and after 5 min. 5 wrong PINs, a revoked session, or a different user signing in **wipe** the
+  local data. Untrusted devices work online only.
+- **Conflicts**: the later edit wins between the same user's devices; in a shared wallet **the
+  owner always wins**; delete beats edit; the losing version is kept in `change_history` and the
+  loser is told.
+- **Shared wallets**: owner = full offline. Editor = view/edit/delete **online only**, but may
+  **add** transactions offline. Viewer = online, read only. `wallet_members` exists from #6; the
+  sharing UI is #16.
 
 **Auth** (full spec: [docs/features/auth.md](docs/features/auth.md))
 
@@ -233,10 +277,11 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 - **SMS gateway account**: SMS is for phone-OTP sign-in (auth spec rules 21–27), gateway =
   **ThaiBulkSMS**. Its adapter (`sms.thaibulksms.ts`) is written when the account and API key
   exist; until then dev uses the `console` SMS provider.
-- **Family sharing model** (#16): shared wallets with members (owner / editor / viewer), or a
-  "household" that owns wallets? Decide before #16, ideally before #6 if it changes the wallet table.
-- **Offline support**: queue new transactions while offline and sync later? Nice for travel. It's
-  out of scope for the MVP; the PWA only caches the app shell.
+- **Local DB library** (#4a): proposal = SQLite WASM in memory + one encrypted snapshot in OPFS;
+  alternative Dexie. Confirm with a spike. See [offline-sync](docs/features/offline-sync.md) → Open
+  questions.
+- **Shared wallet categories** (#16): when an editor adds to the owner's wallet, they pick from the
+  **owner's** categories (proposal), so the owner's reports stay consistent.
 - **FX / multi-currency reports**: convert to THB with daily rates. Out of scope until a non-THB
   currency is actually used.
 - **Import from Money Lover** (CSV export → our transactions). Decide after #8.
