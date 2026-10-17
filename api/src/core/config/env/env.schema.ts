@@ -32,6 +32,15 @@ export const envSchema: z.ZodType<EnvConfig> = z
       .union([z.literal('').transform(() => undefined), z.url({ protocol: /^smtps?$/ })])
       .optional(),
     SMS_PROVIDER: z.enum(SmsProviderName).default(SmsProviderName.CONSOLE),
+    // `file:./data/local.db` (dev), `:memory:` (tests) or `libsql://…turso.io` (prod, + auth token).
+    DATABASE_URL: z
+      .string()
+      .trim()
+      .regex(/^(file:|libsql:\/\/|https?:\/\/|:memory:$)/, ERRORS.invalidField('DATABASE_URL'))
+      .default('file:./data/local.db'),
+    DATABASE_AUTH_TOKEN: z
+      .union([z.literal('').transform(() => undefined), z.string().trim().min(1)])
+      .optional(),
   })
   .superRefine((env, ctx) => {
     if (env.EMAIL_PROVIDER === EmailProviderName.SMTP && !env.SMTP_URL) {

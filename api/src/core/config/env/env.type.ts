@@ -15,4 +15,6 @@ export type EnvConfig = {
   EMAIL_FROM: string
   SMTP_URL?: string
   SMS_PROVIDER: SmsProviderName
+  DATABASE_URL: string
+  DATABASE_AUTH_TOKEN?: string
 }

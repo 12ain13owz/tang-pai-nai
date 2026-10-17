@@ -8,6 +8,13 @@ export const LOG = {
   SERVER: {
     listening: (baseUrl: string) => `Server listening at ${baseUrl}`,
   },
+  DATABASE: {
+    migrated: '[Database] ✅ Migrations applied',
+    noMigrations: '[Database] No migrations yet (run `npm run db:generate` after adding a table)',
+    seeded: (name: string) => `[Database] Seeded ${name}`,
+    seedDone: (count: number) => `[Database] ✅ Seed finished (${count} seeders)`,
+    seedSkippedInProduction: '[Database] Seed skipped: never runs in production',
+  },
   NOTIFICATION: {
     sent: (channel: string, provider: string) => `[Notification] Sent ${channel} via ${provider}`,
   },
