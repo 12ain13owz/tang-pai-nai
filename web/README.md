@@ -22,6 +22,10 @@ npm install
 npm start          # http://localhost:4200
 ```
 
+Run the API too (`cd ../api && npm run dev`). `ng serve` proxies `/api/*` to `http://localhost:3000`
+and strips `/api` (`proxy.conf.json`), so app code calls relative `/api/...` URLs and never needs an
+API base URL. Production does the same with a Vercel rewrite.
+
 ## Scripts
 
 | Script               | What it does                                 |

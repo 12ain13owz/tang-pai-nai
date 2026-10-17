@@ -19,3 +19,6 @@ has its own CI workflow.
 cd api && npm install && npm run setup-env && npm run dev   # http://localhost:3000
 cd web && npm install && npm start                          # http://localhost:4200
 ```
+
+Open the web app at `http://localhost:4200`. It reaches the API through the dev proxy at
+`/api/*` (`web/proxy.conf.json`), so both must be running. Use Node 24 (`.nvmrc`).
