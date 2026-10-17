@@ -2,12 +2,37 @@
 <html lang="th">
   <head>
     <meta charset="utf-8" />
-    <title>เงินไปไหน</title>
+    <title>ตังค์ไปไหน</title>
     <base href="/" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="บันทึกรายรับรายจ่ายของครอบครัว" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="ตังค์ไปไหน" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <script>
+      // Apply the saved theme before Angular boots, so a dark-mode user never sees a white flash.
+      // Keep the key and values in sync with core/theme/theme.service.ts.
+      ;(function () {
+        var pref = 'system'
+        try {
+          pref = localStorage.getItem('tpn-theme') || 'system'
+        } catch (e) {}
+        var dark =
+          pref === 'dark' ||
+          (pref !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.classList.toggle('dark', dark)
+        document
+          .querySelector('meta[name="theme-color"]')
+          .setAttribute('content', dark ? '#0a0a0a' : '#ffffff')
+      })()
+    </script>
   </head>
   <body>
     <app-root></app-root>
+    <noscript>กรุณาเปิดใช้งาน JavaScript เพื่อใช้แอปนี้</noscript>
   </body>
 </html>

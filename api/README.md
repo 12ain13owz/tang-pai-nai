@@ -1,6 +1,6 @@
 # Tang Pai Nai — API
 
-**Tang Pai Nai (เงินไปไหน)** is a personal income / expense tracker inspired by Money Lover. This folder
+**Tang Pai Nai (ตังค์ไปไหน)** is a personal income / expense tracker inspired by Money Lover. This folder
 is its REST API; the Angular PWA lives in [`../web`](../web).
 
 - What we build and in what order: [`ROADMAP.md`](../ROADMAP.md)

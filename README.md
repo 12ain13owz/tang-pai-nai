@@ -1,4 +1,4 @@
-# Tang Pai Nai (เงินไปไหน)
+# Tang Pai Nai (ตังค์ไปไหน)
 
 Personal income / expense tracker for the family, inspired by Money Lover. It's an installable
 mobile-first PWA backed by a small REST API.

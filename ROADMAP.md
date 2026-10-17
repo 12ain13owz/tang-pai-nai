@@ -12,7 +12,7 @@ Read this first, before `AGENTS.md`, when picking up work or planning a feature.
 
 ## Product
 
-**Tang Pai Nai (เงินไปไหน, "where did the money go?")** is a personal income / expense tracker. Its
+**Tang Pai Nai (ตังค์ไปไหน, "where did the money go?")** is a personal income / expense tracker. Its
 reference app is **Money Lover**, which the owner uses today; we keep what works there and drop the
 rest. It's for the owner and their family only: no public sign-up, no SEO, no monetisation. It feels
 like a native mobile app (installable PWA with a bottom tab bar).
@@ -61,8 +61,8 @@ merging.
 | 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                   |
 | 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys               |
 | 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                |
-| 3   | **App shell**              | —   | ⬜  | **← next.** PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                |
-| 4   | Auth                       | ⬜  | ⬜  | email OTP / magic link (default), optional password, Google, phone OTP. [spec](docs/features/auth.md)     |
+| 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                            |
+| 4   | **Auth**                   | ⬜  | ⬜  | **← next.** email OTP / magic link, optional password, Google, phone OTP. [spec](docs/features/auth.md)   |
 | 4a  | Offline sync foundation    | ⬜  | ⬜  | encrypted local DB, PIN lock, outbox, `/sync/push` + `/sync/pull`. [spec](docs/features/offline-sync.md)  |
 | 5   | Currency                   | ⬜  | ⬜  | master table, THB default. [spec](docs/features/currency.md)                                              |
 | 6   | Wallet                     | ⬜  | ⬜  | accounts with a currency + balance; `wallet_members` table from day one. [spec](docs/features/wallet.md)  |
@@ -86,28 +86,38 @@ decision "Local-first").
 
 ---
 
-## Next up: App shell (#3)
+## Done: App shell (#3)
 
-Web only. Goal: an installable PWA skeleton that opens offline, before any data feature exists.
+Web only: an installable PWA skeleton that opens offline, before any data feature exists.
 
-1. **PWA**: `ng add @angular/pwa` (service worker + manifest). Cache the app shell only, with no API
-   data caching (data comes from the local DB in #4a, see
-   [offline-sync](docs/features/offline-sync.md) → Layers). Thai app name `เงินไปไหน`, icons,
-   `theme-color`, `display: standalone`. An "update available → reload" prompt when a new version is
-   deployed.
-2. **Storage persistence helper**: a small service that calls `navigator.storage.persist()` and
-   reports whether the app runs installed (`display-mode: standalone`). #4a uses it for the trust
-   prompt.
-3. **Bottom tab bar** (Money Lover layout): ธุรกรรม (transactions), บัญชี/กระเป๋า (wallets), centre
-   **➕**, รายงาน (reports), บัญชีผู้ใช้ (account). Routed, lazy-loaded, empty placeholder pages,
-   safe-area insets, and the bar hides when the keyboard is open.
-4. **Dark mode**: follow the system by default, with a manual override (light / dark / system) kept in
-   `localStorage`.
-5. **Online/offline indicator** placeholder in the header (`navigator.onLine` + events). It becomes
-   the sync status in #4a.
-6. **Done when**: `npm run build` produces a service worker; served from the production build, the app
-   installs, and after one visit it **reloads with the network off** (Playwright, offline context)
-   and shows the tab bar. It's checked at 375×812 in light and dark.
+1. **PWA**: ✅ `@angular/pwa`. `ngsw-config.json` prefetches the app shell (HTML, all JS chunks
+   including lazy pages, CSS, icons) and has **no `dataGroups`**, so API responses are never
+   cached; `/api/**` is also excluded from navigation fallback. `public/manifest.webmanifest`:
+   `ตังค์ไปไหน`, `standalone`, portrait, `any` + `maskable` icons (`public/icons/`), plus an
+   `apple-touch-icon`. `core/pwa/app-update.service.ts` shows "มีเวอร์ชันใหม่ → โหลดใหม่" under the
+   header on `VERSION_READY` (also on an unrecoverable SW state) and re-checks for a new version
+   whenever the app comes back to the foreground. The SW is off in `ng serve`; test PWA behaviour
+   on `npm run build` output.
+2. **Storage persistence helper**: ✅ `core/pwa/device-storage.service.ts`: `persist()`,
+   `isPersisted`, `isInstalled` (`display-mode: standalone` or iOS `navigator.standalone`). Nothing
+   calls `persist()` yet: #4a does, at the trust prompt. The account page shows both values.
+3. **Bottom tab bar**: ✅ `layout/` (`AppShell` is the layout route; header + page + fixed bar).
+   ธุรกรรม / กระเป๋า / raised ➕ (→ `/transactions/new`) / รายงาน / บัญชีผู้ใช้, each a lazy feature
+   route with an empty page. Safe-area insets on header and bar; `core/viewport/keyboard.service.ts`
+   hides the bar when the visual viewport shrinks by > 150px (on-screen keyboard).
+4. **Dark mode**: ✅ `core/theme/theme.service.ts`, key `tpn-theme` (absent = system). An inline
+   script in `index.html` applies it before boot (no white flash) and sets `theme-color`. The picker
+   lives on the account page.
+5. **Online/offline indicator**: ✅ `core/network` + `layout/network-status.ts` in the header. It
+   becomes the sync status in #4a.
+6. **Checked**: `npm run build` emits `ngsw-worker.js`. Served from `dist/` with an SPA fallback,
+   Playwright (375×812, light and dark) opened the app once, went offline, reloaded and saw the tab
+   bar and "ออฟไลน์", and opened lazy tabs offline. It also checked the theme override survives a
+   reload, the bar hides with a shrunk visual viewport, and the update banner appears after a new
+   build is deployed and reloads into it.
+
+Known behaviour: Angular's SW only announces a new version to pages it served, so the very first
+visit (before the SW controlled the page) sees the update on its next reload, not as a banner.
 
 ## Done: Local dev workflow (#1)
 

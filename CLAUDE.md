@@ -1,4 +1,4 @@
-# Tang Pai Nai (เงินไปไหน)
+# Tang Pai Nai (ตังค์ไปไหน)
 
 Personal / family income-expense tracker modelled on Money Lover. One repo, two independent apps:
 
