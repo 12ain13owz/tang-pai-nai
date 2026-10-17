@@ -19,7 +19,9 @@ import type { SelectOption } from '@/shared/types'
 
       <section class="flex flex-col gap-3" aria-labelledby="device-heading">
         <h2 id="device-heading" class="text-sm font-medium text-muted-foreground">อุปกรณ์นี้</h2>
-        <dl class="divide-y divide-border rounded-xl border border-border text-sm">
+        <dl
+          class="divide-y divide-border rounded-xl border border-border bg-card text-sm text-card-foreground"
+        >
           <div class="flex items-center justify-between gap-4 px-4 py-3">
             <dt>ติดตั้งเป็นแอป</dt>
             <dd class="text-muted-foreground">
