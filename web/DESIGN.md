@@ -57,12 +57,14 @@ The user picks a **palette** (ชุดสี) and, separately, a **mode** (ligh
 the account page. Every palette has a light and a dark version, so there are 8 looks. All of them
 share the layout below; only the colours change.
 
-| Id (`data-palette`)       | Thai label | Character                                                  |
-| ------------------------- | ---------- | ---------------------------------------------------------- |
-| `midnight-gold` (default) | น้ำเงินทอง | navy page, gold accent: calm like Indigo, bright like Gold |
-| `indigo-night`            | คราม       | cool indigo page and accent                                |
-| `gold-coin`               | ดำทอง      | warm black page, gold accent ("ตังค์" = coins)             |
-| `plum`                    | ม่วงพลัม   | deep plum page, orchid accent                              |
+| Id (`data-palette`)       | Name (every language) | Character                                                  |
+| ------------------------- | --------------------- | ---------------------------------------------------------- |
+| `midnight-gold` (default) | Midnight Gold         | navy page, gold accent: calm like Indigo, bright like Gold |
+| `indigo-night`            | Indigo Night          | cool indigo page and accent                                |
+| `gold-coin`               | Gold Coin             | warm black page, gold accent ("ตังค์" = coins)             |
+| `plum`                    | Plum                  | deep plum page, orchid accent                              |
+
+Palette names are names, not descriptions, so they stay English in both languages (§11).
 
 - **One file per palette** in `src/styles/themes/<id>.css`, holding its light and dark tokens.
   `styles.css` imports all of them (a few KB together), so switching is instant and works
@@ -73,7 +75,7 @@ share the layout below; only the colours change.
 - `ThemeService` (`core/theme`) owns both choices (`tpn-theme`, `tpn-palette` in localStorage;
   absent = default) and sets `.dark` + `data-palette` on `<html>` and the `theme-color` meta. The
   inline script in `index.html` does the same before boot. **Adding a palette** = a new CSS file,
-  its import, an entry in `PALETTES` (id, Thai label, theme colours), and the id + colours in the
+  its import, an entry in `PALETTES` (id, English name, theme colours), and the id + colours in the
   `index.html` script.
 - Every text/background pair in every palette must pass WCAG AA (4.5:1; 3:1 for the focus ring).
   Check a new palette's numbers before adding it. The gold `primary` on a light page is the one
@@ -134,19 +136,21 @@ Lover's black and green.
 
 ## 5. Money and dates
 
-- **Amounts** are integer minor units in data. Format them only with `Intl.NumberFormat('th-TH', …)`
+- **Formats follow the UI language**: Thai uses `th-TH`, English uses `en-GB` (day-month order,
+  like Thai). Both show ฿ for baht (`currencyDisplay: 'narrowSymbol'`).
+- **Amounts** are integer minor units in data. Format them only with `Intl.NumberFormat(locale, …)`
   and the currency's digits (see `AGENTS.md` → Money & dates). Always use `tabular-nums`, and
   right-align amounts in lists.
 - **Direction is shown by sign and colour together**, never by colour alone (colour-blind users,
   dark mode): expense `-฿120.00` in expense colour, income `+฿25,000.00` in income colour.
   Transfers (#9) are neutral, with no sign colour.
 - **Totals in different currencies** are shown one line per currency, never added together.
-- **Dates**: relative words for recent days (วันนี้, เมื่อวาน), then a short Thai date such as
-  `จ. 14 ต.ค.`. Day headers in the transaction list show the date on the left and the day total on
+- **Dates**: relative words for recent days (วันนี้ / Today, เมื่อวาน / Yesterday), then a short
+  date such as `จ. 14 ต.ค.` / `Mon 14 Oct`. Day headers in the transaction list show the date on the left and the day total on
   the right.
-- **Era: พ.ศ.** Wherever a year is shown, use the Buddhist era (พ.ศ. 2569), which is the default of
-  `Intl.DateTimeFormat('th-TH')`. Never switch to ค.ศ. Stored dates stay ISO / `YYYY-MM-DD`
-  (Gregorian); the era is display only.
+- **Era: พ.ศ. in Thai.** In the Thai UI every year is Buddhist era (พ.ศ. 2569), the default of
+  `Intl.DateTimeFormat('th-TH')`; never ค.ศ. The English UI shows the Gregorian year (2026).
+  Stored dates stay ISO / `YYYY-MM-DD` (Gregorian); the era is display only.
 
 ## 6. Components and patterns
 
@@ -229,33 +233,48 @@ WCAG 2.2 AA, as in `AGENTS.md`:
 
 ## 11. Writing (UI text)
 
-- **Thai, short, friendly, and neutral in politeness.** No ครับ/ค่ะ (the user may be anyone in the
+- **Two languages: Thai (default) and English**, switched on the account page with no reload. Every
+  string exists in both (`core/i18n/th.json`, `en.json`; how in `AGENTS.md` → UI text). Write the
+  Thai first, then an English line that says the same thing naturally. It doesn't have to be a
+  literal translation.
+- **Keep English where Thai would sound odd.** Names and terms with no natural Thai form stay in
+  English in both languages, rather than a forced translation: palette names (Midnight Gold, …),
+  PWA, PIN, OTP, email. The app name stays ตังค์ไปไหน in both. Language names are shown in their
+  own language (ไทย, English), and the language label carries both ("ภาษา (Language)"), so
+  someone stuck in the wrong language can still find the switch.
+- **Thai: short, friendly, and neutral in politeness.** No ครับ/ค่ะ (the user may be anyone in the
   family) and no stiff official register. Prefer `บันทึกแล้ว` over `ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว`.
-- **Buttons are verbs**: บันทึก, ยกเลิก, ลบ, เพิ่มกระเป๋าเงิน, ส่งรหัส, โหลดใหม่.
+- **English: plain and short, sentence case** ("Add wallet", not "Add Wallet"), no exclamation
+  marks.
+- **Buttons are verbs**: บันทึก / Save, ยกเลิก / Cancel, ลบ / Delete, เพิ่มกระเป๋าเงิน / Add wallet,
+  โหลดใหม่ / Reload.
 - **Errors say what happened and what to do**: `ส่งรหัสไม่สำเร็จ ลองใหม่อีกครั้ง`, not just
   `เกิดข้อผิดพลาด`.
 - **Glossary**: use these words everywhere, so the same thing is never called two names.
 
-  | Concept          | Thai                                | Note                                        |
-  | ---------------- | ----------------------------------- | ------------------------------------------- |
-  | Transaction      | ธุรกรรม                             |                                             |
-  | Wallet           | กระเป๋าเงิน                         | Tab bar label shortens to กระเป๋า           |
-  | Category         | หมวดหมู่                            |                                             |
-  | Income / expense | รายรับ / รายจ่าย                    |                                             |
-  | Balance          | คงเหลือ (summary), ยอดเงิน (wallet) |                                             |
-  | Transfer         | โอนเงิน                             | #9                                          |
-  | Budget           | งบประมาณ                            | #11                                         |
-  | Report           | รายงาน                              |                                             |
-  | Account (user)   | บัญชีผู้ใช้                         | Not บัญชี alone (could mean a bank account) |
-  | Online / offline | ออนไลน์ / ออฟไลน์                   |                                             |
-  | Undo             | เลิกทำ                              |                                             |
+  | Concept          | Thai                                | English          | Note                                        |
+  | ---------------- | ----------------------------------- | ---------------- | ------------------------------------------- |
+  | Transaction      | ธุรกรรม                             | Transaction      |                                             |
+  | Wallet           | กระเป๋าเงิน                         | Wallet           | Thai tab bar label shortens to กระเป๋า      |
+  | Category         | หมวดหมู่                            | Category         |                                             |
+  | Income / expense | รายรับ / รายจ่าย                    | Income / Expense |                                             |
+  | Balance          | คงเหลือ (summary), ยอดเงิน (wallet) | Balance          |                                             |
+  | Transfer         | โอนเงิน                             | Transfer         | #9                                          |
+  | Budget           | งบประมาณ                            | Budget           | #11                                         |
+  | Report           | รายงาน                              | Report           |                                             |
+  | Account (user)   | บัญชีผู้ใช้                         | Account          | Not บัญชี alone (could mean a bank account) |
+  | Online / offline | ออนไลน์ / ออฟไลน์                   | Online / Offline |                                             |
+  | Undo             | เลิกทำ                              | Undo             |                                             |
+  | Palette / mode   | ชุดสี / โหมดสี                      | Palette / Mode   | Palette names themselves stay English       |
 
 ## 12. Before opening a PR with UI changes
 
 1. Screenshot the screen at **375 × 812, in light and dark** (default palette), and look at it.
    Then switch through the other palettes once on a phone-sized window.
-2. Check touch targets, safe areas (header and tab bar), and that the keyboard doesn't cover the
+2. Switch to **English** and check that nothing overflows (English labels are often longer) and
+   no raw key (`wallets.emptyHeading`) shows anywhere.
+3. Check touch targets, safe areas (header and tab bar), and that the keyboard doesn't cover the
    focused field or the Save button.
-3. Check the screen offline if it reads local data. It must still render.
-4. Use only tokens, lucide icons, spartan controls and glossary words, with no new one-off patterns.
+4. Check the screen offline if it reads local data. It must still render.
+5. Use only tokens, translation keys, lucide icons, spartan controls and glossary words, with no new one-off patterns.
    If you need a new pattern, add it here in the same PR.

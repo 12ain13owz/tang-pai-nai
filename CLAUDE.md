@@ -20,8 +20,9 @@ decisions), then the feature's doc in `docs/features/`, then the `AGENTS.md` of 
 - Before calling a change done, run that app's checks: `npm run fix`, `npm run typecheck`,
   `npm test`, and in `web/` also `npm run build`. CI (`.github/workflows/api.yml` / `web.yml`) runs
   the same checks.
-- Reply to the user in Thai. Code, comments, commit messages and docs are in English, except
-  user-facing UI text, which is Thai.
+- Reply to the user in Thai. Code, comments, commit messages and docs are in English. User-facing
+  UI text exists in Thai (default) and English, as translation keys in `web/src/app/core/i18n/`
+  (`web/AGENTS.md` → UI text).
 
 ## Git
 

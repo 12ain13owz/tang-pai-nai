@@ -9,7 +9,7 @@ If anything here conflicts with the actual code, the code wins — update this f
 > expense tracker modelled on Money Lover, for the owner and their family. _What_ to build and in what
 > order lives in [`ROADMAP.md`](../ROADMAP.md); what each feature does (data, rules, endpoints)
 > lives in [`docs/features/`](../docs/features/README.md). Read the feature doc before building its
-> screens. How screens look and read (layout, colour, type, patterns, Thai wording) lives in
+> screens. How screens look and read (layout, colour, type, patterns, wording) lives in
 > [`DESIGN.md`](DESIGN.md). This file only covers _how_ to write the code here. Run every npm command
 > from this folder (`cd web`).
 
@@ -67,11 +67,12 @@ layout    ->  core, shared
 
 - `app.routes.ts` mounts `AppShell` (`layout/`) as the layout route for the tab pages: header (page
   title from the route's `title`, online/offline pill, update banner), the page, and the fixed
-  bottom tab bar. Give every routed page a Thai `title`; `PageTitleStrategy` (`core/routing`) shows
-  it in the header. Full-screen flows that shouldn't show the bar (sign-in, PIN) go outside it.
+  bottom tab bar. Give every routed page a `title` that is a **translation key** (`title.wallets`);
+  `PageTitleStrategy` (`core/routing`) translates it for the header and the document title.
+  Full-screen flows that shouldn't show the bar (sign-in, PIN) go outside it.
 - App-wide device state lives in `core/` as signal services: `ThemeService` (`core/theme`),
-  `NetworkStatusService` (`core/network`), `KeyboardService` (`core/viewport`),
-  `AppUpdateService` + `DeviceStorageService` (`core/pwa`).
+  `LanguageService` (`core/i18n`), `NetworkStatusService` (`core/network`), `KeyboardService`
+  (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`).
 - The service worker (`ngsw-config.json`) caches the **app shell only**. Never add `dataGroups`:
   data comes from the local DB ([offline-sync](../docs/features/offline-sync.md) → Layers). It is
   off in `ng serve`, so check PWA behaviour against `npm run build` output served with an SPA
@@ -204,24 +205,34 @@ initialValue })`.
   no `id` input. Add a new `*-field` here (flat file, inline template, `HlmFieldImports` +
   `fieldErrorMessage`) when a control type repeats, e.g. an amount field for money.
 
-- **Validation messages**: Angular's built-in `Validators.*` already show a Thai default message
-  (`field-error.ts`). For a custom message, wrap the validator:
-  `withMessage(Validators.required, 'กรุณาใส่ชื่อกระเป๋าเงิน')`. A custom validator returns its message
-  as the error value (`{ sameAsEmail: 'รหัสผ่านต้องไม่ซ้ำกับอีเมล' }`). Errors appear once a field is
-  touched, or for all fields on submit.
+- **Validation messages**: Angular's built-in `Validators.*` already show a translated default
+  message (`field-error.ts` → `form.*` keys). For a custom message, wrap the validator with a
+  **translation key**: `withMessage(Validators.required, 'wallets.nameRequired')`. A custom
+  validator returns its key as the error value (`{ sameAsEmail: 'auth.passwordSameAsEmail' }`).
+  Messages are translated at display time, so they follow a language switch. Errors appear once a
+  field is touched, or for all fields on submit.
 - **Form component shape:**
 
   ```ts
   @Component({
     selector: 'app-wallet-form',
-    imports: [FORM_IMPORTS, InputField, SelectField, SwitchField, HlmButton],
+    imports: [FORM_IMPORTS, TranslocoPipe, InputField, SelectField, SwitchField, HlmButton],
     template: `
       @let f = form.controls;
       <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="onSubmit()">
-        <app-input-field [control]="f.name" label="ชื่อกระเป๋าเงิน" />
-        <app-select-field [control]="f.type" label="ประเภท" [options]="typeOptions" />
-        <app-switch-field [control]="f.excludeFromTotal" label="ไม่รวมในยอดรวม" />
-        <button hlmBtn type="submit" [disabled]="isProcessing()">บันทึก</button>
+        <app-input-field [control]="f.name" [label]="'wallets.name' | transloco" />
+        <app-select-field
+          [control]="f.type"
+          [label]="'wallets.type' | transloco"
+          [options]="typeOptions()"
+        />
+        <app-switch-field
+          [control]="f.excludeFromTotal"
+          [label]="'wallets.excludeFromTotal' | transloco"
+        />
+        <button hlmBtn type="submit" [disabled]="isProcessing()">
+          {{ 'common.save' | transloco }}
+        </button>
       </form>
     `,
   })
@@ -233,7 +244,10 @@ initialValue })`.
     submitted = output<WalletFormValue>()
 
     form: WalletFormGroup = this.nnfb.group({
-      name: ['', [Validators.required, Validators.maxLength(50)]],
+      name: [
+        '',
+        [withMessage(Validators.required, 'wallets.nameRequired'), Validators.maxLength(50)],
+      ],
       type: this.nnfb.control<WalletType | ''>('', Validators.required),
       excludeFromTotal: [false],
     })
@@ -270,14 +284,31 @@ are on, so don't disable them.
 
 - Amounts arrive from the API as **integers in minor units** (satang for THB) together with a currency
   code. Never do float maths on amounts. Format them for display only, with `Intl.NumberFormat`
-  (locale `th-TH`, the currency's minor-unit digits).
-- Dates: the API sends ISO strings. Display them in Thai with `Intl.DateTimeFormat('th-TH')`, or a
-  shared pipe once one exists.
+  using `LanguageService.locale()` (`th-TH` / `en-GB`), the currency's minor-unit digits and
+  `currencyDisplay: 'narrowSymbol'` (so English shows ฿, not "THB").
+- Dates: the API sends ISO strings. Display them with `Intl.DateTimeFormat(locale())`: Thai gets the
+  Buddhist era (พ.ศ.), English the Gregorian year. Use a shared pipe once one exists.
 
-### UI text
+### UI text: Thai + English (Transloco)
 
-The UI is in **Thai**. Write strings inline in templates for now. No i18n layer until the roadmap asks
-for one.
+- The UI ships in **Thai (default) and English**, switched at runtime with no reload
+  (`@jsverse/transloco`, set up by `provideI18n()` in `core/i18n`). There is no SSR, so there are
+  no per-language builds or URLs.
+- **Never write UI text inline.** Every string is a key in `core/i18n/th.json` **and**
+  `core/i18n/en.json`, grouped by feature (`wallets.emptyHeading`, `form.required`). Add both
+  languages in the same change; `translations.spec.ts` fails if the key sets differ or a value is
+  empty. Wording rules and the glossary are in `DESIGN.md` §11.
+- In templates use the pipe: `{{ 'wallets.emptyHeading' | transloco }}`,
+  `[label]="'wallets.name' | transloco"`, `[attr.aria-label]="'nav.add' | transloco"`. Params use
+  `{{ name }}` in the JSON: `'form.minlength' | transloco: { requiredLength: 8 }`.
+- In TypeScript (option labels, toasts), translate inside a `computed()` that first reads
+  `languageService.language()`, so the text updates on a switch (see `themeOptions` in
+  `features/account/pages/account-page/account-page.ts`).
+- Translations are bundled as lazy chunks (not fetched JSON), so the service worker prefetches them
+  and both languages work offline. `LanguageService` loads the saved language before the first
+  render and loads a new one before switching, so keys never flash on screen.
+- Not translated: the app name ตังค์ไปไหน, palette names (Midnight Gold, …), language names (each
+  in its own language) and user data (wallet / category names).
 
 ## 4. API & session contract
 
@@ -303,8 +334,8 @@ for one.
 ## 5. Definition of done
 
 1. Build the screen(s) against the feature doc and [`DESIGN.md`](DESIGN.md).
-2. Try it on a phone-sized viewport (375×812), in light and dark, and go through the checklist in
-   `DESIGN.md` §12.
+2. Try it on a phone-sized viewport (375×812), in light and dark and in Thai and English, and go
+   through the checklist in `DESIGN.md` §12.
 3. Run:
 
 ```bash
