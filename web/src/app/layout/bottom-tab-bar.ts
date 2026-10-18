@@ -1,5 +1,6 @@
 import { Component } from '@angular/core'
 import { RouterLink, RouterLinkActive } from '@angular/router'
+import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
   lucideChartPie,
@@ -11,6 +12,7 @@ import {
 
 interface Tab {
   path: string
+  /** Translation key. */
   label: string
   icon: string
   exact: boolean
@@ -19,13 +21,13 @@ interface Tab {
 /** Money Lover style bar: two tabs, a raised ➕ (add transaction), two tabs. */
 @Component({
   selector: 'app-bottom-tab-bar',
-  imports: [RouterLink, RouterLinkActive, NgIcon],
+  imports: [TranslocoPipe, RouterLink, RouterLinkActive, NgIcon],
   providers: [
     provideIcons({ lucideChartPie, lucideCircleUser, lucidePlus, lucideReceiptText, lucideWallet }),
   ],
   template: `
     <nav
-      aria-label="เมนูหลัก"
+      [attr.aria-label]="'nav.main' | transloco"
       class="mx-auto grid h-16 max-w-[480px] grid-cols-5 items-stretch border-t border-border bg-background"
     >
       @for (tab of tabs; track tab.path) {
@@ -33,7 +35,7 @@ interface Tab {
           <div class="flex items-center justify-center">
             <a
               routerLink="/transactions/new"
-              aria-label="เพิ่มธุรกรรม"
+              [attr.aria-label]="'nav.add' | transloco"
               class="-mt-6 flex size-14 items-center justify-center rounded-full bg-primary text-2xl text-primary-foreground shadow-lg ring-4 ring-background focus-visible:ring-ring focus-visible:outline-none"
             >
               <ng-icon name="lucidePlus" aria-hidden="true" />
@@ -52,7 +54,7 @@ interface Tab {
           >
             <ng-icon [name]="tab.icon" aria-hidden="true" />
           </span>
-          {{ tab.label }}
+          {{ tab.label | transloco }}
         </a>
       }
     </nav>
@@ -62,9 +64,9 @@ export class BottomTabBar {
   /** The ➕ sits between the 2nd and 3rd tab. */
   protected readonly tabs: readonly Tab[] = [
     // exact, so the ➕ page (/transactions/new) doesn't light up this tab
-    { path: '/transactions', label: 'ธุรกรรม', icon: 'lucideReceiptText', exact: true },
-    { path: '/wallets', label: 'กระเป๋า', icon: 'lucideWallet', exact: false },
-    { path: '/reports', label: 'รายงาน', icon: 'lucideChartPie', exact: false },
-    { path: '/account', label: 'บัญชีผู้ใช้', icon: 'lucideCircleUser', exact: false },
+    { path: '/transactions', label: 'nav.transactions', icon: 'lucideReceiptText', exact: true },
+    { path: '/wallets', label: 'nav.wallets', icon: 'lucideWallet', exact: false },
+    { path: '/reports', label: 'nav.reports', icon: 'lucideChartPie', exact: false },
+    { path: '/account', label: 'nav.account', icon: 'lucideCircleUser', exact: false },
   ]
 }

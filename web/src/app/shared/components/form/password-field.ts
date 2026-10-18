@@ -1,6 +1,7 @@
 import { Component, input, signal, viewChild } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
 import type { FormControl } from '@angular/forms'
+import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideEye, lucideEyeOff } from '@ng-icons/lucide'
 import { BrnField } from '@spartan-ng/brain/field'
@@ -10,7 +11,7 @@ import { fieldErrorMessage } from './field-error'
 
 @Component({
   selector: 'app-password-field',
-  imports: [ReactiveFormsModule, HlmFieldImports, HlmInput, NgIcon],
+  imports: [TranslocoPipe, ReactiveFormsModule, HlmFieldImports, HlmInput, NgIcon],
   providers: [provideIcons({ lucideEye, lucideEyeOff })],
   template: `
     <div hlmField>
@@ -26,7 +27,7 @@ import { fieldErrorMessage } from './field-error'
         <button
           type="button"
           class="absolute inset-y-0 end-0 flex w-11 items-center justify-center text-muted-foreground"
-          [attr.aria-label]="visible() ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'"
+          [attr.aria-label]="(visible() ? 'form.hidePassword' : 'form.showPassword') | transloco"
           [attr.aria-pressed]="visible()"
           (click)="toggleVisible()"
         >

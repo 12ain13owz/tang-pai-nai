@@ -14,8 +14,9 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link rel="manifest" href="manifest.webmanifest" />
     <script>
-      // Apply the saved mode and palette before Angular boots, so there's no flash of the wrong
-      // theme. Keep keys, palette ids and colours in sync with core/theme/theme.service.ts.
+      // Apply the saved mode, palette and language before Angular boots, so there's no flash of
+      // the wrong theme. Keep keys, palette ids and colours in sync with core/theme/theme.service.ts
+      // and core/i18n/language.service.ts.
       ;(function () {
         var colors = {
           'midnight-gold': ['#f4f7fc', '#070d1a'],
@@ -25,9 +26,11 @@
         }
         var pref = 'system'
         var palette = 'midnight-gold'
+        var lang = 'th'
         try {
           pref = localStorage.getItem('tpn-theme') || 'system'
           palette = localStorage.getItem('tpn-palette') || 'midnight-gold'
+          lang = localStorage.getItem('tpn-lang') === 'en' ? 'en' : 'th'
         } catch (e) {}
         if (!colors[palette]) {
           palette = 'midnight-gold'
@@ -38,6 +41,7 @@
         var root = document.documentElement
         root.classList.toggle('dark', dark)
         root.setAttribute('data-palette', palette)
+        root.setAttribute('lang', lang)
         document
           .querySelector('meta[name="theme-color"]')
           .setAttribute('content', colors[palette][dark ? 1 : 0])

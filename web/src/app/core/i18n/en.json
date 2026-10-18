@@ -1,0 +1,63 @@
+{
+  "app": { "name": "ตังค์ไปไหน" },
+  "nav": {
+    "main": "Main menu",
+    "transactions": "Transactions",
+    "wallets": "Wallets",
+    "add": "Add transaction",
+    "reports": "Reports",
+    "account": "Account"
+  },
+  "title": {
+    "transactions": "Transactions",
+    "transactionNew": "Add transaction",
+    "wallets": "Wallets",
+    "reports": "Reports",
+    "account": "Account"
+  },
+  "status": { "online": "Online", "offline": "Offline" },
+  "update": { "ready": "A new version is ready", "reload": "Reload" },
+  "transactions": {
+    "emptyHeading": "No transactions yet",
+    "emptyText": "Income and expenses you record will show up here",
+    "newHeading": "Add transaction",
+    "newText": "The income / expense form is coming soon"
+  },
+  "wallets": {
+    "emptyHeading": "No wallets yet",
+    "emptyText": "Cash, bank accounts and cards will show up here"
+  },
+  "reports": {
+    "emptyHeading": "No reports yet",
+    "emptyText": "Monthly income and expense summaries will show up here"
+  },
+  "account": {
+    "appearance": "Appearance",
+    "language": "Language (ภาษา)",
+    "mode": "Mode",
+    "modeSystem": "System",
+    "modeLight": "Light",
+    "modeDark": "Dark",
+    "palette": "Palette",
+    "device": "This device",
+    "installed": "Installed as an app",
+    "installedYes": "Installed",
+    "installedNo": "In the browser",
+    "persistent": "Persistent storage",
+    "persistentOn": "On",
+    "persistentOff": "Off",
+    "persistentUnknown": "Not supported"
+  },
+  "form": {
+    "invalid": "This value isn't valid",
+    "required": "This field is required",
+    "email": "Enter a valid email address",
+    "minlength": "Use at least {{ requiredLength }} characters",
+    "maxlength": "Use at most {{ requiredLength }} characters",
+    "min": "Must be at least {{ min }}",
+    "max": "Must be at most {{ max }}",
+    "pattern": "This format isn't valid",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
+  }
+}

@@ -1,6 +1,7 @@
 import { Component, input } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
 import type { FormControl } from '@angular/forms'
+import { TranslocoPipe } from '@jsverse/transloco'
 import type { Palette, PaletteId } from '@/core/theme'
 
 /**
@@ -9,10 +10,10 @@ import type { Palette, PaletteId } from '@/core/theme'
  */
 @Component({
   selector: 'app-palette-picker',
-  imports: [ReactiveFormsModule],
+  imports: [TranslocoPipe, ReactiveFormsModule],
   template: `
     <fieldset>
-      <legend class="mb-3 text-sm font-medium">ชุดสี</legend>
+      <legend class="mb-3 text-sm font-medium">{{ 'account.palette' | transloco }}</legend>
       <div class="grid grid-cols-4 gap-2">
         @for (palette of palettes(); track palette.id) {
           <label
