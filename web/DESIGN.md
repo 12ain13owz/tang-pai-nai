@@ -49,12 +49,12 @@ choice that isn't decided yet is marked **Proposal** until the owner confirms it
 ## 3. Colour
 
 All colour comes from theme tokens. Never use raw palette classes (`bg-slate-50`, `text-red-500`).
-Only tokens keep dark mode and the palettes below working.
+Only tokens keep dark mode and the themes below working.
 
-### Palettes
+### Themes
 
-The user picks a **palette** (ชุดสี) and, separately, a **mode** (light / dark / system), both on
-the account page. Every palette has a light and a dark version, so there are 8 looks. All of them
+The user picks a **theme** (ธีม) and, separately, a **mode** (light / dark / system), both on the
+account page. Every theme has a light and a dark version, so there are 8 looks. All of them
 share the layout below; only the colours change.
 
 | Id (`data-palette`)       | Name (every language) | Character                                                  |
@@ -64,24 +64,27 @@ share the layout below; only the colours change.
 | `gold-coin`               | Gold Coin             | warm black page, gold accent ("ตังค์" = coins)             |
 | `plum`                    | Plum                  | deep plum page, orchid accent                              |
 
-Palette names are names, not descriptions, so they stay English in both languages (§11).
+Theme names are names, not descriptions, so they stay English in both languages (§11).
 
-- **One file per palette** in `src/styles/themes/<id>.css`, holding its light and dark tokens.
+**In code a theme is called a _palette_** (`data-palette`, `PALETTES`, `PaletteId`, `tpn-palette`),
+because `ThemeService` covers both the mode and the palette. Users only ever see "theme" / "ธีม".
+
+- **One file per theme** in `src/styles/themes/<id>.css`, holding its light and dark tokens.
   `styles.css` imports all of them (a few KB together), so switching is instant and works
   offline. `midnight-gold` is the fallback on `:root` / `.dark` and must be imported first.
 - Tokens are scoped by attribute (`[data-palette='plum']`, `.dark [data-palette='plum']`), not
   only on `<html>`, so any element with `data-palette` shows that palette. The picker's swatches
-  use this to preview each palette in the current mode.
+  use this to preview each theme in the current mode.
 - `ThemeService` (`core/theme`) owns both choices (`tpn-theme`, `tpn-palette` in localStorage;
   absent = default) and sets `.dark` + `data-palette` on `<html>` and the `theme-color` meta. The
-  inline script in `index.html` does the same before boot. **Adding a palette** = a new CSS file,
+  inline script in `index.html` does the same before boot. **Adding a theme** = a new CSS file,
   its import, an entry in `PALETTES` (id, English name, theme colours), and the id + colours in the
   `index.html` script.
-- Every text/background pair in every palette must pass WCAG AA (4.5:1; 3:1 for the focus ring).
-  Check a new palette's numbers before adding it. The gold `primary` on a light page is the one
+- Every text/background pair in every theme must pass WCAG AA (4.5:1; 3:1 for the focus ring).
+  Check a new theme's numbers before adding it. The gold `primary` on a light page is the one
   allowed exception (1.8:1 for the ➕ fill): the glyph on it is 9.6:1, and the ring uses the darker
   `brand` gold.
-- **The app icon doesn't follow the palette** (it's fixed at install). It's the default's look:
+- **The app icon doesn't follow the theme** (it's fixed at install). It's the default's look:
   navy, white wallet, gold ฿.
 
 ### Tokens
@@ -98,7 +101,7 @@ Palette names are names, not descriptions, so they stay English in both language
 | Lines                       | `border-border`                                                    |
 | Income / expense amounts    | `text-income` / `text-expense`                                     |
 
-**Money and status colours are the same green / red in every palette**, so their meaning never
+**Money and status colours are the same green / red in every theme**, so their meaning never
 changes with the look. `--income` / `--expense` pass 4.5:1 on both `--background` and `--card`.
 Don't reuse `destructive` for expenses: an expense isn't an error.
 
@@ -210,13 +213,13 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 
 - Light, dark, or follow the system (default). The choice is on the account page. `ThemeService`
   sets `.dark` on `<html>`.
-- **Dark = very dark page, lighter surfaces, white text**, tinted by the palette (navy for the
+- **Dark = very dark page, lighter surfaces, white text**, tinted by the theme (navy for the
   default). The page (`--background`, L 0.16) is the darkest layer. Cards and sheets (`--card`,
   L 0.22) sit one step lighter, and chips/pills (`--muted`, L 0.29) one more. In the dark,
   elevation reads as "lighter" because shadows don't show, the same as iOS and Material. A very
   dark page also saves battery on OLED phones. The owner chose this over "grey page, black cards".
 - Tokens handle almost everything. Check each new screen in light and dark at 375 × 812 with the
-  default palette, and flip through the other palettes on the account page before the PR. Pay most
+  default theme, and flip through the other themes on the account page before the PR. Pay most
   attention to user colours, shadows (nearly invisible in dark) and borders.
 
 ## 10. Accessibility
@@ -238,7 +241,7 @@ WCAG 2.2 AA, as in `AGENTS.md`:
   Thai first, then an English line that says the same thing naturally. It doesn't have to be a
   literal translation.
 - **Keep English where Thai would sound odd.** Names and terms with no natural Thai form stay in
-  English in both languages, rather than a forced translation: palette names (Midnight Gold, …),
+  English in both languages, rather than a forced translation: theme names (Midnight Gold, …),
   PWA, PIN, OTP, email. The app name stays ตังค์ไปไหน in both. Language names are shown in their
   own language (ไทย, English), and the language label carries both ("ภาษา (Language)"), so
   someone stuck in the wrong language can still find the switch.
@@ -265,12 +268,12 @@ WCAG 2.2 AA, as in `AGENTS.md`:
   | Account (user)   | บัญชีผู้ใช้                         | Account          | Not บัญชี alone (could mean a bank account) |
   | Online / offline | ออนไลน์ / ออฟไลน์                   | Online / Offline |                                             |
   | Undo             | เลิกทำ                              | Undo             |                                             |
-  | Palette / mode   | ชุดสี / โหมดสี                      | Palette / Mode   | Palette names themselves stay English       |
+  | Theme / mode     | ธีม / โหมดสี                        | Theme / Mode     | Theme names themselves stay English         |
 
 ## 12. Before opening a PR with UI changes
 
-1. Screenshot the screen at **375 × 812, in light and dark** (default palette), and look at it.
-   Then switch through the other palettes once on a phone-sized window.
+1. Screenshot the screen at **375 × 812, in light and dark** (default theme), and look at it.
+   Then switch through the other themes once on a phone-sized window.
 2. Switch to **English** and check that nothing overflows (English labels are often longer) and
    no raw key (`wallets.emptyHeading`) shows anywhere.
 3. Check touch targets, safe areas (header and tab bar), and that the keyboard doesn't cover the

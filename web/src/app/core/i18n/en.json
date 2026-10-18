@@ -38,7 +38,7 @@
     "modeSystem": "System",
     "modeLight": "Light",
     "modeDark": "Dark",
-    "palette": "Palette",
+    "theme": "Theme",
     "device": "This device",
     "installed": "Installed as an app",
     "installedYes": "Installed",

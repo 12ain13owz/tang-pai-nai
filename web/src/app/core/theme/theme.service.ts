@@ -6,7 +6,7 @@ export type PaletteId = 'midnight-gold' | 'indigo-night' | 'gold-coin' | 'plum'
 
 export interface Palette {
   id: PaletteId
-  /** Shown as-is in every language: palette names are brand-like and stay English. */
+  /** Shown as-is in every language: theme names are brand-like and stay English. */
   label: string
   /** The palette's `--background`, light and dark, for the browser's `theme-color`. */
   themeColor: { light: string; dark: string }

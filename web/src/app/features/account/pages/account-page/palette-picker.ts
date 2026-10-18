@@ -5,7 +5,7 @@ import { TranslocoPipe } from '@jsverse/transloco'
 import type { Palette, PaletteId } from '@/core/theme'
 
 /**
- * Colour palette chooser: native radios (arrow keys, screen readers) drawn as swatches. Each swatch
+ * Theme chooser (called a palette in code, see DESIGN.md §3): native radios (arrow keys, screen readers) drawn as swatches. Each swatch
  * sets `data-palette`, so it shows that palette's own background and accent in the current mode.
  */
 @Component({
@@ -13,7 +13,7 @@ import type { Palette, PaletteId } from '@/core/theme'
   imports: [TranslocoPipe, ReactiveFormsModule],
   template: `
     <fieldset>
-      <legend class="mb-3 text-sm font-medium">{{ 'account.palette' | transloco }}</legend>
+      <legend class="mb-3 text-sm font-medium">{{ 'account.theme' | transloco }}</legend>
       <div class="grid grid-cols-4 gap-2">
         @for (palette of palettes(); track palette.id) {
           <label

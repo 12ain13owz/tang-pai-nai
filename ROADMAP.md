@@ -220,8 +220,8 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 - **UI in Thai and English**, Thai by default, switched at runtime with no reload (Transloco;
   there's no SSR/SEO, so no per-language builds). Translations are bundled so both work offline.
   Formats follow the language: Thai shows พ.ศ., English the Gregorian year. Names that read oddly
-  in Thai stay English (palette names). Details: `web/AGENTS.md` → UI text, `web/DESIGN.md` §11.
-- **Look: selectable palettes.** Midnight Gold (navy + gold) by default, plus Indigo Night, Gold
+  in Thai stay English (theme names). Details: `web/AGENTS.md` → UI text, `web/DESIGN.md` §11.
+- **Look: selectable themes.** Midnight Gold (navy + gold) by default, plus Indigo Night, Gold
   Coin and Plum, each with light and dark; Noto Sans Thai (loopless) self-hosted. See
   `web/DESIGN.md` §3–4.
 - **Same origin via rewrite.** The web project rewrites `/api/*` to the API project, so the browser
