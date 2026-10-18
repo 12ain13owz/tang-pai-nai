@@ -6,7 +6,7 @@ export type PaletteId = 'midnight-gold' | 'indigo-night' | 'gold-coin' | 'plum'
 
 export interface Palette {
   id: PaletteId
-  /** Thai name shown in the picker. Docs use the English id (Midnight Gold, …). */
+  /** Shown as-is in every language: palette names are brand-like and stay English. */
   label: string
   /** The palette's `--background`, light and dark, for the browser's `theme-color`. */
   themeColor: { light: string; dark: string }
@@ -16,10 +16,14 @@ const PREFERENCES: readonly ThemePreference[] = ['light', 'dark', 'system']
 
 /** Each palette's tokens live in `src/styles/themes/<id>.css`. The first one is the default. */
 export const PALETTES: readonly Palette[] = [
-  { id: 'midnight-gold', label: 'น้ำเงินทอง', themeColor: { light: '#f4f7fc', dark: '#070d1a' } },
-  { id: 'indigo-night', label: 'คราม', themeColor: { light: '#f5f7fc', dark: '#080d1a' } },
-  { id: 'gold-coin', label: 'ดำทอง', themeColor: { light: '#faf6f1', dark: '#110c08' } },
-  { id: 'plum', label: 'ม่วงพลัม', themeColor: { light: '#f9f5fa', dark: '#110a15' } },
+  {
+    id: 'midnight-gold',
+    label: 'Midnight Gold',
+    themeColor: { light: '#f4f7fc', dark: '#070d1a' },
+  },
+  { id: 'indigo-night', label: 'Indigo Night', themeColor: { light: '#f5f7fc', dark: '#080d1a' } },
+  { id: 'gold-coin', label: 'Gold Coin', themeColor: { light: '#faf6f1', dark: '#110c08' } },
+  { id: 'plum', label: 'Plum', themeColor: { light: '#f9f5fa', dark: '#110a15' } },
 ]
 
 const DEFAULT_PALETTE = PALETTES[0]
