@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common'
-import { Component, inject, input, output } from '@angular/core'
+import { Component, inject, input, linkedSignal, output } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, Validators } from '@angular/forms'
 import { TranslocoPipe } from '@jsverse/transloco'
@@ -144,7 +144,7 @@ const CODE_LENGTH = 6
     </section>
 
     <ng-template #errorLine>
-      @if (error(); as message) {
+      @if (shownError(); as message) {
         <p role="alert" class="text-sm text-destructive">
           {{ message.key | transloco: message.params }}
         </p>
@@ -162,6 +162,11 @@ export class ReauthStep {
   secondsLeft = input(0)
   isProcessing = input(false)
   error = input<UiMessage | null>(null)
+  /**
+   * The last server answer, until the user edits the field: from then on only the field's own
+   * message (if any) shows, never both at once.
+   */
+  protected shownError = linkedSignal(() => this.error())
 
   passwordSubmitted = output<string>()
   codeSubmitted = output<string>()
@@ -178,8 +183,12 @@ export class ReauthStep {
   })
 
   constructor() {
+    this.passwordForm.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.shownError.set(null))
     // The last digit (typed, pasted or auto-filled) submits, as on the sign-in code screen.
     this.codeForm.valueChanges.pipe(takeUntilDestroyed()).subscribe(({ code }) => {
+      this.shownError.set(null)
       if (code?.length === CODE_LENGTH) {
         this.submitCode()
       }

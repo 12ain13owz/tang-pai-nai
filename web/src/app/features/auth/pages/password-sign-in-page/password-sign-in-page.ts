@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, Validators } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
@@ -97,6 +98,11 @@ export class PasswordSignInPage {
     password: ['', withMessage(Validators.required, 'auth.passwordRequired')],
   })
 
+  constructor() {
+    // A server error describes the last submit; editing the form leaves only field messages.
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.error.set(null))
+  }
+
   protected async onSubmit(): Promise<void> {
     if (this.form.invalid || this.isProcessing()) {
       return
@@ -109,8 +115,8 @@ export class PasswordSignInPage {
       this.authFlowStore.clear()
       await this.router.navigateByUrl(this.returnUrl, { replaceUrl: true })
     } catch (error) {
+      // The field keeps what was typed, so only the server's message shows (not "required" too).
       this.error.set(authErrorMessage(toApiError(error), 'auth.verifyFailed'))
-      this.form.controls.password.reset('')
     } finally {
       this.isProcessing.set(false)
     }

@@ -205,6 +205,8 @@ export class PasswordPage {
     this.form.controls.newPassword.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.form.controls.confirmPassword.updateValueAndValidity())
+    // A server error describes the last submit; editing the form leaves only field messages.
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.error.set(null))
   }
 
   protected async onSubmit(): Promise<void> {
