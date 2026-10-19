@@ -1,23 +1,35 @@
 import { NgOptimizedImage } from '@angular/common'
-import { Component, effect, inject, signal } from '@angular/core'
+import { Component, computed, effect, inject, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, Validators } from '@angular/forms'
-import { ActivatedRoute, Router } from '@angular/router'
+import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
+import { NgIcon, provideIcons } from '@ng-icons/core'
+import { lucideKeyRound } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { toApiError } from '@/core/api'
-import { AuthService, AuthStore, safeReturnUrl } from '@/core/auth'
+import { AuthService, AuthStore, safeReturnUrl, authErrorMessage } from '@/core/auth'
+import type { UiMessage } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
-import { authErrorMessage } from '@/features/auth/auth-error'
-import type { UiMessage } from '@/features/auth/auth-error'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
 import type { EmailFormGroup } from '@/features/auth/auth-form.type'
 import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
 
 @Component({
   selector: 'app-sign-in-page',
-  imports: [FORM_IMPORTS, TranslocoPipe, NgOptimizedImage, InputField, HlmButton, HlmSpinner],
+  imports: [
+    FORM_IMPORTS,
+    TranslocoPipe,
+    NgOptimizedImage,
+    RouterLink,
+    NgIcon,
+    InputField,
+    HlmButton,
+    HlmSpinner,
+  ],
+  providers: [provideIcons({ lucideKeyRound })],
   template: `
     <div class="flex flex-1 flex-col gap-6">
       <div class="flex flex-col items-center gap-3 pt-4 text-center">
@@ -68,6 +80,19 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
           {{ 'auth.newAccountHint' | transloco }}
         </p>
       </form>
+
+      <div class="mt-auto flex justify-center">
+        <a
+          hlmBtn
+          variant="ghost"
+          class="h-11"
+          routerLink="/auth/password"
+          [queryParams]="passwordQueryParams()"
+        >
+          <ng-icon name="lucideKeyRound" aria-hidden="true" />
+          {{ 'auth.usePassword' | transloco }}
+        </a>
+      </div>
     </div>
   `,
 })
@@ -92,6 +117,15 @@ export class SignInPage {
       [withMessage(Validators.required, 'auth.emailRequired'), Validators.email],
     ],
   })
+
+  private email = toSignal(this.form.controls.email.valueChanges, {
+    initialValue: this.form.controls.email.value,
+  })
+  // Carries the email typed so far, so it needn't be typed twice.
+  protected passwordQueryParams = computed(() => ({
+    returnUrl: this.returnUrl === '/' ? null : this.returnUrl,
+    email: this.email().trim().toLowerCase() || null,
+  }))
 
   constructor() {
     // Opened offline: once the network is back, retry the silent refresh and walk straight in.

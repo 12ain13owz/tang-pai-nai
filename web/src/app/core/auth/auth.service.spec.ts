@@ -14,6 +14,7 @@ const session = (accessToken = 'access-1'): AuthSession => ({
     displayName: 'mom',
     avatarUrl: null,
     timezone: 'Asia/Bangkok',
+    hasPassword: false,
   },
 })
 

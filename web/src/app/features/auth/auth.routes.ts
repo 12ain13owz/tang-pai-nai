@@ -30,6 +30,15 @@ export default [
           import('./pages/enter-code-page/enter-code-page').then((m) => m.EnterCodePage),
       },
       {
+        path: 'password',
+        title: 'title.passwordSignIn',
+        canActivate: [guestGuard],
+        loadComponent: async () =>
+          import('./pages/password-sign-in-page/password-sign-in-page').then(
+            (m) => m.PasswordSignInPage
+          ),
+      },
+      {
         // Not guest-only: a link opened while signed in signs in as that email.
         path: 'link',
         title: 'title.signIn',

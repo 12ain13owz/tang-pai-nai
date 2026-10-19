@@ -5,6 +5,8 @@ export interface AuthUser {
   displayName: string
   avatarUrl: string | null
   timezone: string
+  /** Whether a password is set (the user can then sign in with it). */
+  hasPassword: boolean
 }
 
 /** `data` of sign-in and `/auth/refresh`. The refresh token only lives in the httpOnly cookie. */
@@ -30,3 +32,11 @@ export type AuthErrorCode =
   | 'SESSION_REVOKED'
   | 'USER_DISABLED'
   | 'RATE_LIMITED'
+  | 'INVALID_CREDENTIALS'
+  | 'CURRENT_PASSWORD_INVALID'
+  | 'REAUTH_REQUIRED'
+  | 'PASSWORD_TOO_SHORT'
+  | 'PASSWORD_TOO_LONG'
+  | 'PASSWORD_TOO_WEAK'
+  | 'PASSWORD_MATCHES_EMAIL'
+  | 'PASSWORD_BREACHED'

@@ -329,7 +329,7 @@ are on, so don't disable them.
   auth, shared wallets you're a member of (online only), and sync itself. Read
   [`offline-sync.md`](../docs/features/offline-sync.md) before building any data screen.
 - **All calls go through `ApiClient`** (`@/core/api`): `api.get<T>('/wallets')`,
-  `api.post<T>('/auth/email/start', body)`. Paths are relative to **`/api`**. In production,
+  `api.post<T>('/auth/email/start', body)`, `api.put` / `api.delete` (a body is allowed). Paths are relative to **`/api`**. In production,
   Vercel rewrites `/api/*` on the web project to the API project, so the browser sees one origin.
   That keeps the refresh-token cookie first-party (`*.vercel.app` is a public suffix, so
   cross-project cookies would be third-party and blocked). In dev, `ng serve` proxies `/api` to
@@ -357,9 +357,17 @@ are on, so don't disable them.
     `unreachable` (not signed out), and the sign-in page retries once the network is back.
   - Sign-out: `AuthService.signOut()` then navigate to sign-in. #4a adds wiping the local DB
     ([offline-sync](../docs/features/offline-sync.md) rule 7).
+  - Password (4.2): `AuthService.signInWithPassword()`, `setPassword()`, `removePassword()`,
+    `startReauth()` / `verifyReauth()`. `AuthUser.hasPassword` says whether one is set. Routes that
+    change credentials may answer `403 REAUTH_REQUIRED`: show the confirm step (current password or
+    a step-up code, `features/account/components/reauth-step.ts`) and send the same request again.
+    `passwordPolicyValidator` (`@/core/auth`) mirrors the API's policy for instant feedback.
 - **Auth error codes** the screens switch on: `OTP_INVALID`, `OTP_LOCKED`, `OTP_EXPIRED`,
-  `SESSION_EXPIRED`, `SESSION_REVOKED`, `USER_DISABLED`, `RATE_LIMITED` (with `Retry-After`).
-  `features/auth/auth-error.ts` maps them to translation keys.
+  `SESSION_EXPIRED`, `SESSION_REVOKED`, `USER_DISABLED`, `RATE_LIMITED` (with `Retry-After`),
+  `INVALID_CREDENTIALS`, `CURRENT_PASSWORD_INVALID`, `REAUTH_REQUIRED`, `PASSWORD_TOO_SHORT`,
+  `PASSWORD_TOO_LONG`, `PASSWORD_TOO_WEAK`, `PASSWORD_MATCHES_EMAIL`, `PASSWORD_BREACHED`.
+  `authErrorMessage` (`core/auth/auth-error.ts`, shared by the auth and account features) maps
+  them to translation keys.
 - **Testing**: `provideHttpClient(withInterceptors([authInterceptor]))` +
   `provideHttpClientTesting()`; flush envelopes from `HttpTestingController`. A spec that renders
   the shell sets a session on `AuthStore` first (see `app.spec.ts`).
