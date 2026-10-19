@@ -1,0 +1,63 @@
+{
+  "app": { "name": "ตังค์ไปไหน" },
+  "nav": {
+    "main": "เมนูหลัก",
+    "transactions": "ธุรกรรม",
+    "wallets": "กระเป๋า",
+    "add": "เพิ่มธุรกรรม",
+    "reports": "รายงาน",
+    "account": "บัญชีผู้ใช้"
+  },
+  "title": {
+    "transactions": "ธุรกรรม",
+    "transactionNew": "เพิ่มธุรกรรม",
+    "wallets": "กระเป๋าเงิน",
+    "reports": "รายงาน",
+    "account": "บัญชีผู้ใช้"
+  },
+  "status": { "online": "ออนไลน์", "offline": "ออฟไลน์" },
+  "update": { "ready": "มีเวอร์ชันใหม่พร้อมใช้งาน", "reload": "โหลดใหม่" },
+  "transactions": {
+    "emptyHeading": "ยังไม่มีธุรกรรม",
+    "emptyText": "รายรับรายจ่ายที่บันทึกจะแสดงที่นี่",
+    "newHeading": "เพิ่มธุรกรรม",
+    "newText": "ฟอร์มบันทึกรายรับรายจ่ายจะมาในเร็ว ๆ นี้"
+  },
+  "wallets": {
+    "emptyHeading": "ยังไม่มีกระเป๋าเงิน",
+    "emptyText": "เงินสด บัญชีธนาคาร และบัตรต่าง ๆ จะแสดงที่นี่"
+  },
+  "reports": {
+    "emptyHeading": "ยังไม่มีรายงาน",
+    "emptyText": "สรุปรายรับรายจ่ายรายเดือนจะแสดงที่นี่"
+  },
+  "account": {
+    "appearance": "การแสดงผล",
+    "language": "ภาษา (Language)",
+    "mode": "โหมดสี",
+    "modeSystem": "ตามระบบ",
+    "modeLight": "สว่าง",
+    "modeDark": "มืด",
+    "theme": "ธีม",
+    "device": "อุปกรณ์นี้",
+    "installed": "ติดตั้งเป็นแอป",
+    "installedYes": "ติดตั้งแล้ว",
+    "installedNo": "เปิดในเบราว์เซอร์",
+    "persistent": "พื้นที่จัดเก็บถาวร",
+    "persistentOn": "เปิดอยู่",
+    "persistentOff": "ยังไม่เปิด",
+    "persistentUnknown": "ไม่รองรับ"
+  },
+  "form": {
+    "invalid": "ข้อมูลไม่ถูกต้อง",
+    "required": "กรุณากรอกข้อมูลนี้",
+    "email": "รูปแบบอีเมลไม่ถูกต้อง",
+    "minlength": "ต้องมีอย่างน้อย {{ requiredLength }} ตัวอักษร",
+    "maxlength": "ต้องไม่เกิน {{ requiredLength }} ตัวอักษร",
+    "min": "ต้องไม่น้อยกว่า {{ min }}",
+    "max": "ต้องไม่เกิน {{ max }}",
+    "pattern": "รูปแบบไม่ถูกต้อง",
+    "showPassword": "แสดงรหัสผ่าน",
+    "hidePassword": "ซ่อนรหัสผ่าน"
+  }
+}

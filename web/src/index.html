@@ -6,7 +6,7 @@
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content="บันทึกรายรับรายจ่ายของครอบครัว" />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="#f4f7fc" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="ตังค์ไปไหน" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -14,20 +14,37 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link rel="manifest" href="manifest.webmanifest" />
     <script>
-      // Apply the saved theme before Angular boots, so a dark-mode user never sees a white flash.
-      // Keep the key and values in sync with core/theme/theme.service.ts.
+      // Apply the saved mode, palette and language before Angular boots, so there's no flash of
+      // the wrong theme. Keep keys, palette ids and colours in sync with core/theme/theme.service.ts
+      // and core/i18n/language.service.ts.
       ;(function () {
+        var colors = {
+          'midnight-gold': ['#f4f7fc', '#070d1a'],
+          'indigo-night': ['#f5f7fc', '#080d1a'],
+          'gold-coin': ['#faf6f1', '#110c08'],
+          plum: ['#f9f5fa', '#110a15'],
+        }
         var pref = 'system'
+        var palette = 'midnight-gold'
+        var lang = 'th'
         try {
           pref = localStorage.getItem('tpn-theme') || 'system'
+          palette = localStorage.getItem('tpn-palette') || 'midnight-gold'
+          lang = localStorage.getItem('tpn-lang') === 'en' ? 'en' : 'th'
         } catch (e) {}
+        if (!colors[palette]) {
+          palette = 'midnight-gold'
+        }
         var dark =
           pref === 'dark' ||
           (pref !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-        document.documentElement.classList.toggle('dark', dark)
+        var root = document.documentElement
+        root.classList.toggle('dark', dark)
+        root.setAttribute('data-palette', palette)
+        root.setAttribute('lang', lang)
         document
           .querySelector('meta[name="theme-color"]')
-          .setAttribute('content', dark ? '#0a0a0a' : '#ffffff')
+          .setAttribute('content', colors[palette][dark ? 1 : 0])
       })()
     </script>
   </head>

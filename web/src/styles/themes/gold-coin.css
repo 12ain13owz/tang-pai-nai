@@ -1,0 +1,51 @@
+/* Gold Coin: warm black, gold accent. Every text/background pair passes WCAG AA (DESIGN.md §3). */
+/* Scoped by attribute, not :root only, so a swatch with data-palette previews it anywhere. */
+
+[data-palette='gold-coin'] {
+  --background: oklch(0.975 0.008 80);
+  --foreground: oklch(0.2 0.03 80);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.03 80);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.03 80);
+  --primary: oklch(0.8 0.15 80);
+  --primary-foreground: oklch(0.2 0.03 70);
+  --secondary: oklch(0.94 0.016 80);
+  --secondary-foreground: oklch(0.2 0.03 80);
+  --muted: oklch(0.94 0.016 80);
+  --muted-foreground: oklch(0.48 0.03 80);
+  --accent: oklch(0.94 0.016 80);
+  --accent-foreground: oklch(0.2 0.03 80);
+  --destructive: oklch(0.55 0.22 27);
+  --border: oklch(0.91 0.016 80);
+  --input: oklch(0.88 0.016 80);
+  --ring: oklch(0.53 0.12 75);
+  --brand: oklch(0.53 0.12 75);
+  --income: oklch(0.52 0.14 155);
+  --expense: oklch(0.55 0.2 25);
+}
+
+.dark [data-palette='gold-coin'],
+.dark[data-palette='gold-coin'] {
+  --background: oklch(0.16 0.012 70);
+  --foreground: oklch(0.97 0.01 70);
+  --card: oklch(0.22 0.017 70);
+  --card-foreground: oklch(0.97 0.01 70);
+  --popover: oklch(0.22 0.017 70);
+  --popover-foreground: oklch(0.97 0.01 70);
+  --primary: oklch(0.82 0.15 82);
+  --primary-foreground: oklch(0.2 0.03 70);
+  --secondary: oklch(0.29 0.022 70);
+  --secondary-foreground: oklch(0.97 0.01 70);
+  --muted: oklch(0.29 0.022 70);
+  --muted-foreground: oklch(0.75 0.022 70);
+  --accent: oklch(0.29 0.022 70);
+  --accent-foreground: oklch(0.97 0.01 70);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.82 0.15 82);
+  --brand: oklch(0.82 0.15 82);
+  --income: oklch(0.78 0.16 155);
+  --expense: oklch(0.72 0.17 22);
+}

@@ -217,6 +217,13 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 - **Web = Angular**, client-side only (no SSR/SEO needed for a private app). **UI = Tailwind v4 +
   spartan/ui**, shipped as an installable **PWA** (not Ionic, not Capacitor). It behaves like a
   mobile app: bottom tab bar, bottom sheets, safe areas.
+- **UI in Thai and English**, Thai by default, switched at runtime with no reload (Transloco;
+  there's no SSR/SEO, so no per-language builds). Translations are bundled so both work offline.
+  Formats follow the language: Thai shows พ.ศ., English the Gregorian year. Names that read oddly
+  in Thai stay English (theme names). Details: `web/AGENTS.md` → UI text, `web/DESIGN.md` §11.
+- **Look: selectable themes.** Midnight Gold (navy + gold) by default, plus Indigo Night, Gold
+  Coin and Plum, each with light and dark; Noto Sans Thai (loopless) self-hosted. See
+  `web/DESIGN.md` §3–4.
 - **Same origin via rewrite.** The web project rewrites `/api/*` to the API project, so the browser
   only ever talks to the web origin. That keeps the refresh cookie first-party. `*.vercel.app` is on
   the Public Suffix List, so two `*.vercel.app` projects are cross-site to each other, and a
