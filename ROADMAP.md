@@ -100,7 +100,7 @@ together. The endpoints table in the spec says which part each route belongs to.
 | Part | What                                                                                      | Status |
 | ---- | ----------------------------------------------------------------------------------------- | ------ |
 | 4.1  | Email code + magic link, open sign-up, sessions (refresh rotation), sign-out, `/auth/me`  | ✅     |
-| 4.2  | Optional password (Argon2id, breach check), recent-auth rule                              | ⬜     |
+| 4.2  | Optional password (Argon2id, breach check), recent-auth rule + step-up code               | 🚧     |
 | 4.3  | Google sign-in (OIDC + PKCE)                                                              | ⬜     |
 | 4.4  | Phone OTP, Account → Security (password, phone, linked Google, sessions, sign out others) | ⬜     |
 
@@ -131,6 +131,25 @@ together. The endpoints table in the spec says which part each route belongs to.
   starts/hour) is shared by everything you test locally; empty `rate_limit_buckets` in
   `api/data/local.db` if you hit it. Opening the built app offline with a session (start-up
   refresh unreachable) was only checked in `ng serve`, where there's no service worker.
+
+4.2 plan (🚧):
+
+- **Decided at the start of 4.2**: password = 8–128 characters with lower + upper + digit + other
+  (owner's choice over NIST's 15+, spec rule 11), plus the HIBP breach check
+  (`PASSWORD_BREACH_CHECK=hibp|off`, `HIBP_API_URL` for a local stand-in; fail open after 3 s) and
+  "not the email". Recent auth = `authTime` ≤ 10 min, the current password, or a **step-up code**
+  (`/auth/reauth/start` + `/verify`, code-only mail, updates `authTime` of the current family).
+  The password screen is `/account/password`, opened from a short "Security" section on the
+  account page until 4.4.
+- **API**: table `password_credentials` (Argon2id PHC string via `@node-rs/argon2`, m = 19 MiB,
+  t = 2, p = 1, rehash on sign-in when the parameters change), `otp_challenges.purpose` gains
+  `reauth`. Endpoints `POST /auth/password/sign-in`, `PUT` / `DELETE /auth/password`,
+  `POST /auth/reauth/start` / `verify`; `hasPassword` on every `user`. Failure limits 5 per email
+  and 30 per IP per 15 min; `PUT` revokes every other session family.
+- **Web**: "Sign in with password" link + `/auth/password` page; account → Security row →
+  `/account/password` (set / change / remove, re-auth step in place).
+- **Not in 4.2**: Google, phone, sessions list / sign out others (4.4), mail on password change
+  (backlog), trusted device / PIN (#4a).
 
 ## Done: App shell (#3)
 
@@ -340,6 +359,8 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   (Replaced the earlier invite-only allowlist.)
 - The rules follow current OWASP guidance (ASVS 5.0, Authentication / Password Storage / Session
   Management / OAuth 2.0 cheat sheets) and NIST SP 800-63B-4. Specifics are in the spec.
+  **One deliberate exception**: the password policy is 8+ characters with all four character
+  classes (owner's choice, spec rule 11), not NIST's 15+ without composition rules.
 
 ---
 
