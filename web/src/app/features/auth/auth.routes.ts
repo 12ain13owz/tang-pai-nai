@@ -45,6 +45,15 @@ export default [
         loadComponent: async () =>
           import('./pages/magic-link-page/magic-link-page').then((m) => m.MagicLinkPage),
       },
+      {
+        // Back from Google (rule 14). Not guest-only, like the magic link.
+        path: 'callback',
+        title: 'title.signIn',
+        loadComponent: async () =>
+          import('./pages/google-callback-page/google-callback-page').then(
+            (m) => m.GoogleCallbackPage
+          ),
+      },
     ],
   },
 ] satisfies Routes

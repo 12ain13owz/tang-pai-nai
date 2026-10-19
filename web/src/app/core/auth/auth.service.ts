@@ -2,20 +2,48 @@ import { DOCUMENT, inject, Service } from '@angular/core'
 import { ApiClient, isUnreachable, toApiError } from '@/core/api'
 import { skipAuthRefresh } from './auth.context'
 import { AuthStore } from './auth.store'
-import type { AuthSession, AuthStatus, AuthUser } from './auth.type'
+import type { AuthProviders, AuthSession, AuthStatus, AuthUser } from './auth.type'
 
 /** Shared by every tab, so two tabs never rotate the same refresh token at once. */
 const REFRESH_LOCK = 'tpn-auth-refresh'
 
-/** The auth endpoints (docs/features/auth.md, parts 4.1–4.2) and the session they produce. */
+const NO_PROVIDERS: AuthProviders = { google: false }
+
+/** The auth endpoints (docs/features/auth.md, parts 4.1–4.3) and the session they produce. */
 @Service()
 export class AuthService {
   private api = inject(ApiClient)
   private authStore = inject(AuthStore)
-  private locks = inject(DOCUMENT).defaultView?.navigator.locks
+  private window = inject(DOCUMENT).defaultView
+  private locks = this.window?.navigator.locks
 
   private refreshing: Promise<void> | null = null
   private restoring: Promise<AuthStatus> | null = null
+  private providersRequest: Promise<AuthProviders> | null = null
+
+  /**
+   * Which extra ways to sign in are on (`GET /auth/providers`), asked once per app start. When
+   * the API can't be reached everything extra counts as off, and the next call asks again.
+   */
+  async providers(): Promise<AuthProviders> {
+    this.providersRequest ??= this.api
+      .get<AuthProviders>('/auth/providers', { context: skipAuthRefresh() })
+      .then((response) => response.data ?? NO_PROVIDERS)
+      .catch(() => {
+        this.providersRequest = null
+        return NO_PROVIDERS
+      })
+    return this.providersRequest
+  }
+
+  /**
+   * Rule 14: leaves the app for Google. It's a full-page navigation, not an API call: the API
+   * answers with redirects and comes back to `/auth/callback`.
+   */
+  startGoogle(returnUrl: string): void {
+    const query = returnUrl === '/' ? '' : `?returnUrl=${encodeURIComponent(returnUrl)}`
+    this.window?.location.assign(`/api/auth/google/start${query}`)
+  }
 
   async startEmail(email: string, lang: string): Promise<void> {
     await this.api.post('/auth/email/start', { email, lang }, { context: skipAuthRefresh() })

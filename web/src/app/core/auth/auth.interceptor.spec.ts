@@ -14,6 +14,7 @@ const user = {
   avatarUrl: null,
   timezone: 'Asia/Bangkok',
   hasPassword: false,
+  identities: [],
 }
 const refreshed = {
   message: 'ok',

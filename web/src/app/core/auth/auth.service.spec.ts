@@ -15,6 +15,7 @@ const session = (accessToken = 'access-1'): AuthSession => ({
     avatarUrl: null,
     timezone: 'Asia/Bangkok',
     hasPassword: false,
+    identities: [],
   },
 })
 
