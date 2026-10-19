@@ -10,12 +10,24 @@ servers:
 tags:
   - name: Health
     description: Service health checks
+  - name: Auth
+    description: Email code / magic-link sign-in and sessions (docs/features/auth.md)
   - name: Todo
     description: Reference CRUD feature (in-memory, resets on restart)
 
 paths:
   /health:
     $ref: './paths/health/health.yaml'
+  /auth/email/start:
+    $ref: './paths/auth/email-start.yaml'
+  /auth/email/verify:
+    $ref: './paths/auth/email-verify.yaml'
+  /auth/refresh:
+    $ref: './paths/auth/refresh.yaml'
+  /auth/sign-out:
+    $ref: './paths/auth/sign-out.yaml'
+  /auth/me:
+    $ref: './paths/auth/me.yaml'
   /todos:
     $ref: './paths/todo/todos.yaml'
   /todos/{id}:
@@ -24,6 +36,17 @@ paths:
     $ref: './paths/todo/todo-toggle.yaml'
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token from sign-in or refresh (10 minutes)
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-rt
+      description: Opaque refresh token, set by the API; never readable by the web app
   schemas:
     HealthResponse:
       $ref: './components/models/health.schema.yaml'
@@ -33,8 +56,14 @@ components:
       $ref: './components/models/todo.schema.yaml'
     CreateTodoRequest:
       $ref: './components/models/todo-create.schema.yaml'
+    AuthUser:
+      $ref: './components/models/auth-user.schema.yaml'
+    AuthSessionResponse:
+      $ref: './components/models/auth-session-response.schema.yaml'
   responses:
     SuccessResponse:
       $ref: './components/responses/success.response.yaml'
     ErrorResponse:
       $ref: './components/responses/error.response.yaml'
+    TooManyRequests:
+      $ref: './components/responses/too-many-requests.response.yaml'

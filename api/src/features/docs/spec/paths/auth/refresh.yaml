@@ -1,0 +1,32 @@
+post:
+  tags:
+    - Auth
+  summary: Rotate the refresh cookie for a new access token
+  description: >-
+    Revokes the presented refresh token and issues a new one in the same session family (30 days
+    idle, 180 days absolute). A token that was already rotated is treated as theft and revokes
+    the whole family. Requires `Origin` to be the web app's origin.
+  operationId: refresh
+  security:
+    - refreshCookie: []
+  responses:
+    '200':
+      description: Rotated; sets a new `__Host-rt` cookie
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/auth-session-response.schema.yaml'
+    '401':
+      description: >-
+        `SESSION_EXPIRED` (no or unknown cookie, idle or absolute expiry) or `SESSION_REVOKED`
+        (signed out or reuse detected). The cookie is cleared.
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '403':
+      description: Missing or foreign `Origin`, or `USER_DISABLED`
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

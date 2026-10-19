@@ -4,6 +4,12 @@ properties:
     type: string
     description: A human-readable message describing the error
     example: Todo not found
+  code:
+    type: string
+    description: >-
+      Machine-readable reason, when the client should react to it. Auth: OTP_INVALID,
+      OTP_LOCKED, OTP_EXPIRED, SESSION_EXPIRED, SESSION_REVOKED, USER_DISABLED, RATE_LIMITED.
+    example: OTP_EXPIRED
   timestamp:
     type: string
     format: date-time

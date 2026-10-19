@@ -1,0 +1,42 @@
+post:
+  tags:
+    - Auth
+  summary: Sign in with the code or the magic-link token
+  description: >-
+    Creates the user on their first sign-in (open sign-up unless `SIGNUP_ENABLED=false`) and a
+    new session. 5 wrong codes lock the challenge. Limit: 30 verifies per IP per 15 minutes.
+  operationId: emailVerify
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/auth-email-verify.schema.yaml'
+  responses:
+    '200':
+      description: Signed in; sets the `__Host-rt` refresh cookie
+      headers:
+        Set-Cookie:
+          schema:
+            type: string
+            example: __Host-rt=…; Path=/; Expires=…; HttpOnly; Secure; SameSite=Strict
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/auth-session-response.schema.yaml'
+    '400':
+      description: '`OTP_INVALID` (wrong code), `OTP_LOCKED` (5 wrong) or `OTP_EXPIRED`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '403':
+      description: '`USER_DISABLED`, after the code was checked'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '422':
+      $ref: '../../components/responses/error.response.yaml'
+    '429':
+      $ref: '../../components/responses/too-many-requests.response.yaml'

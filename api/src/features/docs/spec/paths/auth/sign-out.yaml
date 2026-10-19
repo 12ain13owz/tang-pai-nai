@@ -1,0 +1,19 @@
+post:
+  tags:
+    - Auth
+  summary: Sign out this device
+  description: >-
+    Revokes the session family of the presented cookie and clears it. Succeeds without a cookie
+    too. Requires `Origin` to be the web app's origin.
+  operationId: signOut
+  security:
+    - refreshCookie: []
+  responses:
+    '200':
+      description: Signed out; the cookie is cleared
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/message-response.schema.yaml'
+    '403':
+      $ref: '../../components/responses/error.response.yaml'

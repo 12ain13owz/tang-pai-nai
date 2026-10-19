@@ -1,0 +1,21 @@
+type: object
+required: [id, email, displayName, avatarUrl, timezone]
+properties:
+  id:
+    type: string
+    description: UUIDv7
+    example: 01929b6e-5c3a-7c2e-9f1a-3b4c5d6e7f80
+  email:
+    type: string
+    format: email
+    example: mom@example.com
+  displayName:
+    type: string
+    description: The email's local part until the user changes it
+    example: mom
+  avatarUrl:
+    type: [string, 'null']
+    example: null
+  timezone:
+    type: string
+    example: Asia/Bangkok

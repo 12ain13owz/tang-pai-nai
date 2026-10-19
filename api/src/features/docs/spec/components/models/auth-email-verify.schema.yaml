@@ -1,0 +1,21 @@
+oneOf:
+  - type: object
+    title: Code
+    required: [email, code]
+    properties:
+      email:
+        type: string
+        format: email
+        example: mom@example.com
+      code:
+        type: string
+        pattern: '^\d{6}$'
+        example: '123456'
+  - type: object
+    title: Magic link
+    required: [token]
+    properties:
+      token:
+        type: string
+        pattern: '^[\w-]{43}$'
+        description: From the link's URL fragment (`/auth/link#token=…`)

@@ -1,0 +1,13 @@
+type: object
+required: [email]
+properties:
+  email:
+    type: string
+    format: email
+    description: Trimmed and lowercased before use
+    example: mom@example.com
+  lang:
+    type: string
+    enum: [th, en]
+    default: th
+    description: The app's current UI language; the email is written in it

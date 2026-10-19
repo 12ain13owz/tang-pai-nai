@@ -1,0 +1,11 @@
+description: A rate limit was hit (code `RATE_LIMITED`)
+headers:
+  Retry-After:
+    description: Seconds to wait before trying again
+    schema:
+      type: integer
+      example: 60
+content:
+  application/json:
+    schema:
+      $ref: '../models/error.schema.yaml'
