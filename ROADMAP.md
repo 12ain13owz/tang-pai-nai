@@ -70,27 +70,27 @@ merging.
 
 ## Status
 
-| #   | Feature / phase            | API | Web | Notes                                                                                                                     |
-| --- | -------------------------- | --- | --- | ------------------------------------------------------------------------------------------------------------------------- |
-| 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                   |
-| 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                               |
-| 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                |
-| 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                            |
-| 4   | **Auth**                   | 🚧  | 🚧  | **← in progress.** 4.1 ✅ email code + link, sessions; 4.2 ✅ password; 4.3–4.4 ⬜ (below). [spec](docs/features/auth.md) |
-| 4a  | Offline sync foundation    | ⬜  | ⬜  | encrypted local DB, PIN lock, outbox, `/sync/push` + `/sync/pull`. [spec](docs/features/offline-sync.md)                  |
-| 5   | Currency                   | ⬜  | ⬜  | master table, THB default. [spec](docs/features/currency.md)                                                              |
-| 6   | Wallet                     | ⬜  | ⬜  | accounts with a currency + balance; `wallet_members` table from day one. [spec](docs/features/wallet.md)                  |
-| 7   | Category                   | ⬜  | ⬜  | income/expense, 1 level of sub-categories, default set seeded per user. [spec](docs/features/category.md)                 |
-| 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                             |
-| 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                   |
-| 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                |
-| 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                        |
-| 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                            |
-| 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                                 |
-| 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                        |
-| 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                                           |
-| 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                    |
-| 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                      |
+| #   | Feature / phase            | API | Web | Notes                                                                                                            |
+| --- | -------------------------- | --- | --- | ---------------------------------------------------------------------------------------------------------------- |
+| 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                          |
+| 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                      |
+| 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                       |
+| 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                   |
+| 4   | **Auth**                   | 🚧  | 🚧  | **← in progress.** 4.1 ✅ email, sessions; 4.2 ✅ password; 4.3 🚧 Google; 4.4 ⬜. [spec](docs/features/auth.md) |
+| 4a  | Offline sync foundation    | ⬜  | ⬜  | encrypted local DB, PIN lock, outbox, `/sync/push` + `/sync/pull`. [spec](docs/features/offline-sync.md)         |
+| 5   | Currency                   | ⬜  | ⬜  | master table, THB default. [spec](docs/features/currency.md)                                                     |
+| 6   | Wallet                     | ⬜  | ⬜  | accounts with a currency + balance; `wallet_members` table from day one. [spec](docs/features/wallet.md)         |
+| 7   | Category                   | ⬜  | ⬜  | income/expense, 1 level of sub-categories, default set seeded per user. [spec](docs/features/category.md)        |
+| 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                    |
+| 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                          |
+| 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                       |
+| 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                               |
+| 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                   |
+| 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                        |
+| 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                               |
+| 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                                  |
+| 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog           |
+| 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys             |
 
 ✅ done · 🚧 in progress · ⬜ not started · — not applicable
 
@@ -109,7 +109,7 @@ together. The endpoints table in the spec says which part each route belongs to.
 | ---- | ----------------------------------------------------------------------------------------- | ------ |
 | 4.1  | Email code + magic link, open sign-up, sessions (refresh rotation), sign-out, `/auth/me`  | ✅     |
 | 4.2  | Optional password (Argon2id, breach check), recent-auth rule + step-up code               | ✅     |
-| 4.3  | Google sign-in (OIDC + PKCE)                                                              | ⬜     |
+| 4.3  | Google sign-in (OIDC + PKCE)                                                              | 🚧     |
 | 4.4  | Phone OTP, Account → Security (password, phone, linked Google, sessions, sign out others) | ⬜     |
 
 4.1 in detail (✅ done):
@@ -172,6 +172,22 @@ together. The endpoints table in the spec says which part each route belongs to.
 - **Known**: the step-up mail shares the sign-in mail's 60 s cooldown (spec rule 13), which only
   shows when a test ages a session by hand. The policy is checked in the browser too, so a change
   to `PASSWORD_POLICY` goes in both `api/…/auth.const.ts` and `web/…/core/auth/password-policy.ts`.
+
+4.3 in detail (🚧 in progress):
+
+- **Decided at the start of 4.3** (spec rule 14): tested in the sandbox against a **local OIDC
+  stand-in** (`npm run dev:oidc` in `api/`, its issuer set by `GOOGLE_ISSUER`); an existing user
+  with the same verified email is **linked automatically** and the web shows a one-time notice;
+  Google's name and picture are used **only when the user is created** (linking only fills an
+  empty avatar); callback errors show on the web's `/auth/callback` page (`?error=<reason>`);
+  the button sits under the email form after an "or" divider; the account page gets a read-only
+  "Google · linked" row; the web asks `GET /auth/providers` whether Google is on.
+- **API**: table `user_identities`; `GET /auth/providers`, `GET /auth/google/start`,
+  `GET /auth/google/callback`; `identities` on every `user`. New env: `GOOGLE_CLIENT_ID`,
+  `GOOGLE_CLIENT_SECRET`, `GOOGLE_ISSUER`.
+- **Web**: "Continue with Google" on sign-in, `/auth/callback`, the account page row.
+- **Not in 4.3**: linking Google while signed in, unlinking (4.4), mail on linking (backlog "Mail
+  on credential change").
 
 ## Done: App shell (#3)
 
