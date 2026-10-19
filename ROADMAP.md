@@ -40,7 +40,13 @@ repo, one PR can change spec, API and web together.
 
 ## How we build a feature
 
-**Vertical slices, one feature at a time.** Finish a feature end-to-end before starting the next:
+**Vertical slices, one feature at a time.** Finish a feature end-to-end before starting the next.
+
+**One feature (or one part of it, e.g. Auth 4.3) = one new Claude session = one branch = one PR.**
+Start a fresh session for each instead of continuing an old one. The new session knows nothing of
+earlier chats: it learns only from the repo (this file, the feature's spec, the `AGENTS.md` files
+and `DESIGN.md`). So a session ends by writing down everything the next one needs (step 4), and a
+decision agreed in chat but not in the repo is lost.
 
 0. **Feature doc**. Write or refine `docs/features/<feature>.md` (template in that folder's
    `README.md`), agree on it, and commit it on its own (`docs(<feature>): ...`). It is the shared spec
@@ -52,8 +58,10 @@ repo, one PR can change spec, API and web together.
    the web) and the owner confirms the behavior, write the tests for both apps as the last commits
    of the PR (see `api/AGENTS.md` §1 Testing). Not earlier: tests against code that is still
    changing just get rewritten.
-4. **Update this file**. Move the feature to ✅ and note any new decision or deferred item, including
-   tests left pending for a feature that is still experimental.
+4. **Update this file** (the hand-off to the next session). Move the feature to ✅ and note any new
+   decision, deferred item or known issue, including tests left pending for a feature that is
+   still experimental. Rules that apply beyond the feature go where they belong (`AGENTS.md`,
+   `DESIGN.md`), not only in the PR or the chat.
 
 Small, separate commits per step. Each PR gets a Vercel preview URL, so check it on a phone before
 merging.
