@@ -1,6 +1,7 @@
 # Auth
 
-> Status: Spec — being built in parts (4.1–4.4, see [ROADMAP](../../ROADMAP.md#next-up-auth-4)).
+> Status: **4.1 built** (email code + magic link, sessions, sign-out, `/auth/me`); 4.2–4.4 are spec
+> (see [ROADMAP](../../ROADMAP.md#next-up-auth-4)).
 > Code lives in `src/features/auth/`, token helpers in
 > `src/core/security/`, the `authenticate` middleware in `src/core/middleware/`.
 > Reference implementation to adapt: `tripsurance-be/src/features/auth/` (refresh rotation, sessions,

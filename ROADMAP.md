@@ -68,7 +68,7 @@ merging.
 | 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys               |
 | 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                |
 | 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                            |
-| 4   | **Auth**                   | 🚧  | 🚧  | **← in progress**, in 4 parts (see below). [spec](docs/features/auth.md)                                  |
+| 4   | **Auth**                   | 🚧  | 🚧  | **← in progress.** 4.1 ✅ email code + link, sessions; 4.2–4.4 ⬜ (below). [spec](docs/features/auth.md)  |
 | 4a  | Offline sync foundation    | ⬜  | ⬜  | encrypted local DB, PIN lock, outbox, `/sync/push` + `/sync/pull`. [spec](docs/features/offline-sync.md)  |
 | 5   | Currency                   | ⬜  | ⬜  | master table, THB default. [spec](docs/features/currency.md)                                              |
 | 6   | Wallet                     | ⬜  | ⬜  | accounts with a currency + balance; `wallet_members` table from day one. [spec](docs/features/wallet.md)  |
@@ -99,12 +99,12 @@ together. The endpoints table in the spec says which part each route belongs to.
 
 | Part | What                                                                                      | Status |
 | ---- | ----------------------------------------------------------------------------------------- | ------ |
-| 4.1  | Email code + magic link, open sign-up, sessions (refresh rotation), sign-out, `/auth/me`  | 🚧     |
+| 4.1  | Email code + magic link, open sign-up, sessions (refresh rotation), sign-out, `/auth/me`  | ✅     |
 | 4.2  | Optional password (Argon2id, breach check), recent-auth rule                              | ⬜     |
 | 4.3  | Google sign-in (OIDC + PKCE)                                                              | ⬜     |
 | 4.4  | Phone OTP, Account → Security (password, phone, linked Google, sessions, sign out others) | ⬜     |
 
-4.1 in detail:
+4.1 in detail (✅ done):
 
 - **API**: tables `users`, `otp_challenges`, `sessions` (with `authTime`), `rate_limit_buckets`
   (`user_identities` comes with 4.3, `password_credentials` with 4.2). Endpoints
@@ -121,6 +121,16 @@ together. The endpoints table in the spec says which part each route belongs to.
   wrong, expired, reused codes and limits), Playwright at 375×812 (light/dark, th/en), then tests +
   OpenAPI once the owner confirms the behaviour.
 - **Not in 4.1**: password, Google, phone, trusted device / PIN / local DB (#4a), invitations (#16).
+- **Checked**: curl against the dev API (mail read from stdout) for the happy path and every
+  error path, limit and the closed-sign-up / daily-cap configs; Playwright at 375×812 in th/en ×
+  light/dark for code and link sign-in, reload (silent refresh), sign-out, three tabs refreshing
+  at once, and the interceptor's refresh-and-retry. Tests: API 147 (service on an in-memory repo,
+  HTTP, Drizzle adapter on SQLite, core security/errors), web 40 (auth service, interceptor,
+  guards, error messages).
+- **Known**: through `ng serve`'s proxy every browser is `127.0.0.1`, so the per-IP limit (20
+  starts/hour) is shared by everything you test locally; empty `rate_limit_buckets` in
+  `api/data/local.db` if you hit it. Opening the built app offline with a session (start-up
+  refresh unreachable) was only checked in `ng serve`, where there's no service worker.
 
 ## Done: App shell (#3)
 
@@ -211,6 +221,13 @@ Deferred: do this only when the owner asks. Kept here so the work is ready to pi
      bundle (`includeFiles`) or bundle the spec at build time.
    - `express-rate-limit`'s in-memory store resets per instance. Keep it as a coarse global guard;
      security-critical limits (auth) are DB-backed (see auth spec).
+   - Auth env per environment: fresh `JWT_SECRET` / `OTP_PEPPER` (never the dev ones),
+     `WEB_ORIGIN` = the web project's URL, `TRUST_PROXY_HOPS` matching Vercel's proxy chain.
+     Rate limits trust `X-Forwarded-For`, so the API must only be reachable through the web
+     project's rewrite (or the hop count must strip a client-sent header); check this before
+     launch.
+   - Auth cleanup (rule 20): add `POST /internal/cron/auth-cleanup` behind `CRON_SECRET` calling
+     the same `authService.cleanup()` as `npm run auth:cleanup`, scheduled daily.
    - Graceful shutdown hooks don't run on serverless. That's harmless, but don't rely on them there.
 3. **Web on Vercel**: static Angular build + SPA fallback + **rewrite `/api/:path*` → API project**
    (see locked decision "Same origin via rewrite"). Dev: `proxy.conf.json` to `localhost:3000`.
