@@ -142,3 +142,102 @@ describe('deleteExpired', () => {
     })
   })
 })
+
+describe('password hashes', () => {
+  it('creates, replaces, reads and deletes the one row of a user', async () => {
+    const user = await repo.createUser({ email: 'a@example.com', displayName: 'a' })
+
+    expect(await repo.findPasswordHash(user.id)).toBeNull()
+    await repo.savePasswordHash(user.id, '$argon2id$one', AT)
+    await repo.savePasswordHash(user.id, '$argon2id$two', later(1))
+    expect(await repo.findPasswordHash(user.id)).toBe('$argon2id$two')
+    expect(await repo.deletePasswordHash(user.id)).toBe(true)
+    expect(await repo.deletePasswordHash(user.id)).toBe(false)
+    expect(await repo.findPasswordHash(user.id)).toBeNull()
+  })
+})
+
+describe('challenge purposes', () => {
+  it('keeps sign-in and step-up challenges of one email apart', async () => {
+    const user = await repo.createUser({ email: 'a@example.com', displayName: 'a' })
+    const signIn = await newChallenge()
+    const reauth = await repo.createChallenge({
+      purpose: 'reauth',
+      destination: 'a@example.com',
+      userId: user.id,
+      codeHash: 'r',
+      linkTokenHash: null,
+      expiresAt: later(600_000),
+    })
+
+    await repo.expireOpenChallenges('a@example.com', 'reauth', later(1))
+
+    expect((await repo.findLatestChallenge('a@example.com', 'sign_in'))?.expiresAt).toEqual(
+      signIn.expiresAt
+    )
+    expect(await repo.findLatestChallenge('a@example.com', 'reauth')).toMatchObject({
+      id: reauth.id,
+      purpose: 'reauth',
+      userId: user.id,
+      expiresAt: later(1),
+    })
+  })
+})
+
+describe('session families', () => {
+  it('finds the newest session of a family that is not revoked', async () => {
+    await newSession({ id: 's1', familyId: 'f1', tokenHash: 't1' })
+    await repo.markSessionRotated('s1', 's2', AT)
+    await newSession({ id: 's2', familyId: 'f1', tokenHash: 't2' })
+
+    expect((await repo.findActiveSession('f1'))?.id).toBe('s2')
+    await repo.revokeFamily('f1', AT)
+    expect(await repo.findActiveSession('f1')).toBeNull()
+  })
+
+  it('moves authTime only on the family’s sessions that are not revoked', async () => {
+    await newSession({ id: 's1', familyId: 'f1', tokenHash: 't1' })
+    await repo.markSessionRotated('s1', 's2', AT)
+    await newSession({ id: 's2', familyId: 'f1', tokenHash: 't2' })
+
+    await repo.setFamilyAuthTime('f1', later(5000))
+
+    expect((await repo.findSessionByTokenHash('t1'))?.authTime).toEqual(AT)
+    expect((await repo.findSessionByTokenHash('t2'))?.authTime).toEqual(later(5000))
+  })
+
+  it('revokes every other family of the user and nobody else’s', async () => {
+    await newSession({ id: 's1', familyId: 'keep', tokenHash: 't1' })
+    await newSession({ id: 's2', familyId: 'other', tokenHash: 't2' })
+    const stranger = await repo.createUser({ email: 'b@example.com', displayName: 'b' })
+    await repo.createSession({
+      id: 's3',
+      familyId: 'theirs',
+      tokenHash: 't3',
+      userId: stranger.id,
+      expiresAt: later(1000),
+      absoluteExpiresAt: later(2000),
+      authTime: AT,
+      lastUsedAt: AT,
+      userAgent: null,
+    })
+    const user = await repo.findUserByEmail('a@example.com')
+
+    expect(await repo.revokeOtherFamilies(user?.id ?? '', 'keep', later(1))).toBe(1)
+    expect((await repo.findSessionByTokenHash('t1'))?.revokedAt).toBeNull()
+    expect((await repo.findSessionByTokenHash('t2'))?.revokedAt).toEqual(later(1))
+    expect((await repo.findSessionByTokenHash('t3'))?.revokedAt).toBeNull()
+  })
+})
+
+describe('peekRateLimit', () => {
+  it('reads the running window without counting, and nothing once it ended', async () => {
+    expect(await repo.peekRateLimit('k', 60_000, AT)).toBeNull()
+    await repo.hitRateLimit('k', 60_000, AT)
+    await repo.hitRateLimit('k', 60_000, AT)
+
+    expect(await repo.peekRateLimit('k', 60_000, later(1))).toEqual({ count: 2, windowStart: AT })
+    expect(await repo.peekRateLimit('k', 60_000, later(1))).toEqual({ count: 2, windowStart: AT })
+    expect(await repo.peekRateLimit('k', 60_000, later(60_000))).toBeNull()
+  })
+})
