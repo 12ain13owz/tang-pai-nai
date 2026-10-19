@@ -1,0 +1,7 @@
+type: object
+properties:
+  lang:
+    type: string
+    enum: [th, en]
+    default: th
+    description: The app's current UI language; the email is written in it. The body may be omitted.

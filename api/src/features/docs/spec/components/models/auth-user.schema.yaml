@@ -1,5 +1,5 @@
 type: object
-required: [id, email, displayName, avatarUrl, timezone]
+required: [id, email, displayName, avatarUrl, timezone, hasPassword]
 properties:
   id:
     type: string
@@ -19,3 +19,7 @@ properties:
   timezone:
     type: string
     example: Asia/Bangkok
+  hasPassword:
+    type: boolean
+    description: Whether the user has set a password (and can sign in with it)
+    example: false

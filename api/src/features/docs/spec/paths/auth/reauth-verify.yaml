@@ -1,0 +1,38 @@
+post:
+  tags:
+    - Auth
+  summary: Confirm a step-up code
+  description: >-
+    A right code sets the current session family's `authTime` to now, so the next 10 minutes count
+    as recent authentication. It creates no session. 5 wrong codes lock the challenge. Limit: 30
+    verifies per IP per 15 minutes (shared with `/auth/email/verify`).
+  operationId: reauthVerify
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/auth-reauth-verify.schema.yaml'
+  responses:
+    '200':
+      description: Identity confirmed
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/message-response.schema.yaml'
+    '400':
+      description: '`OTP_INVALID`, `OTP_LOCKED` or `OTP_EXPIRED` (also a code for another user)'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '403':
+      $ref: '../../components/responses/error.response.yaml'
+    '422':
+      $ref: '../../components/responses/error.response.yaml'
+    '429':
+      $ref: '../../components/responses/too-many-requests.response.yaml'
