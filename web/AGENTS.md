@@ -31,8 +31,12 @@ centre the same layout (max width ~480px). The full design guide is [`DESIGN.md`
 
 ### Testing
 
-Same policy as the API: **do not write tests while building a feature unless the developer asks.**
-When asked, put `<name>.spec.ts` beside the file under test (Vitest via `ng test`, globals enabled).
+Same policy as the API (`../api/AGENTS.md` §1 Testing): **feature first, tests once it's settled.**
+Build the screens, check them in the browser (§5), and once the developer confirms the behavior,
+write the tests as the last commit(s) of the same PR. Existing tests must keep passing; update them
+in the same PR when a behavior change is intended. Put `<name>.spec.ts` beside the file under test
+(Vitest via `ng test`, globals enabled). Guard-rail specs such as `core/i18n/translations.spec.ts`
+(both languages have the same keys) apply at all times.
 
 ## 2. Folder structure
 
@@ -336,7 +340,8 @@ are on, so don't disable them.
 1. Build the screen(s) against the feature doc and [`DESIGN.md`](DESIGN.md).
 2. Try it on a phone-sized viewport (375×812), in light and dark and in Thai and English, and go
    through the checklist in `DESIGN.md` §12.
-3. Run:
+3. Once the developer confirms the behavior, write the tests (§1 Testing).
+4. Run:
 
 ```bash
 npm run fix
