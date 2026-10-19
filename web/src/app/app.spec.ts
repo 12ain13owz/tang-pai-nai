@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing'
 import { provideRouter, Router, TitleStrategy } from '@angular/router'
 import { provideServiceWorker } from '@angular/service-worker'
 import { TranslocoTestingModule } from '@jsverse/transloco'
+import { AuthStore } from '@/core/auth'
 import th from '@/core/i18n/th.json'
 import { PageTitleStrategy } from '@/core/routing'
 import { App } from './app'
@@ -27,6 +28,18 @@ describe('App', () => {
   })
 
   it('renders the shell with the bottom tab bar', async () => {
+    // The shell sits behind the auth guard.
+    TestBed.inject(AuthStore).setSession({
+      accessToken: 'token',
+      expiresIn: 600,
+      user: {
+        id: 'u1',
+        email: 'me@example.com',
+        displayName: 'me',
+        avatarUrl: null,
+        timezone: 'Asia/Bangkok',
+      },
+    })
     const fixture = TestBed.createComponent(App)
     await TestBed.inject(Router).navigateByUrl('/')
     await fixture.whenStable()

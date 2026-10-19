@@ -1,5 +1,7 @@
 {
-  "app": { "name": "ตังค์ไปไหน" },
+  "app": {
+    "name": "ตังค์ไปไหน"
+  },
   "nav": {
     "main": "Main menu",
     "transactions": "Transactions",
@@ -13,10 +15,18 @@
     "transactionNew": "Add transaction",
     "wallets": "Wallets",
     "reports": "Reports",
-    "account": "Account"
+    "account": "Account",
+    "signIn": "Sign in",
+    "enterCode": "Enter code"
   },
-  "status": { "online": "Online", "offline": "Offline" },
-  "update": { "ready": "A new version is ready", "reload": "Reload" },
+  "status": {
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "update": {
+    "ready": "A new version is ready",
+    "reload": "Reload"
+  },
   "transactions": {
     "emptyHeading": "No transactions yet",
     "emptyText": "Income and expenses you record will show up here",
@@ -46,7 +56,46 @@
     "persistent": "Persistent storage",
     "persistentOn": "On",
     "persistentOff": "Off",
-    "persistentUnknown": "Not supported"
+    "persistentUnknown": "Not supported",
+    "signedInAs": "Signed in as",
+    "signOut": "Sign out",
+    "signingOut": "Signing out",
+    "signOutFailed": "Couldn't sign out. Try again"
+  },
+  "auth": {
+    "signInHeading": "Sign in",
+    "signInText": "Enter your email and we'll send you a sign-in code and link",
+    "email": "Email",
+    "emailRequired": "Enter your email",
+    "sendCode": "Send code",
+    "sending": "Sending code",
+    "newAccountHint": "New here? Use the same form and we'll create your account",
+    "offline": "You're offline. Sign-in needs an internet connection",
+    "unreachable": "Couldn't connect. Check your internet and try again",
+    "sendFailed": "Couldn't send the code. Try again",
+    "waitSeconds": "Too many requests. Try again in {{ count }} s",
+    "waitMinutes": "Too many requests. Try again in {{ count }} min",
+    "waitHours": "Too many requests. Try again in {{ count }} h",
+    "changeEmail": "Change email",
+    "codeHeading": "Enter the code from your email",
+    "codeSentTo": "We sent a 6-digit code to",
+    "code": "6-digit code",
+    "signIn": "Sign in",
+    "signingIn": "Signing you in",
+    "linkHint": "Or tap the link in the email on this device, no code needed",
+    "resend": "Send a new code",
+    "resendIn": "Send a new code in {{ seconds }} s",
+    "resent": "New code sent. Check your email again",
+    "codeInvalid": "That code isn't right. Try again",
+    "codeLocked": "Too many wrong codes. Send a new code",
+    "codeExpired": "This code has expired or was already used. Send a new code",
+    "userDisabled": "This account is disabled",
+    "verifyFailed": "Couldn't sign in. Try again",
+    "linkFailedHeading": "This link no longer works",
+    "linkExpired": "This link has expired or was already used. Request a new one from the sign-in page",
+    "linkFailed": "Couldn't sign in with this link. Request a new code from the sign-in page",
+    "linkMissing": "The link is incomplete. Open it from the email again",
+    "backToSignIn": "Back to sign in"
   },
   "form": {
     "invalid": "This value isn't valid",
