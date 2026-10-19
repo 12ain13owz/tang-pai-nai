@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Notification } from '@/core/notification'
-import { createAccessTokens } from '@/core/security'
+import { createAccessTokens, skipBreachCheck } from '@/core/security'
 import { NotificationChannel } from '@/shared/types'
 import { AUTH_LIMITS, AuthErrorCode } from './auth.const'
 import { createMemoryAuthRepository } from './auth.repository.memory'
@@ -52,6 +52,7 @@ const setup = ({ seed, config, repo, clock = { now: START } }: SetupOptions = {}
     authRepo,
     notifier: { send },
     accessTokens,
+    breachChecker: skipBreachCheck,
     config: {
       webOrigin: 'http://web.test',
       signupEnabled: true,

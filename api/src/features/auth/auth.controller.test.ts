@@ -4,7 +4,7 @@ import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 import { errorHandler } from '@/core/error'
 import type { Notification } from '@/core/notification'
-import { accessTokens } from '@/core/security'
+import { accessTokens, skipBreachCheck } from '@/core/security'
 import { HttpStatus } from '@/shared/constants'
 import { NotificationChannel } from '@/shared/types'
 import type { AppResponse } from '@/shared/types'
@@ -31,6 +31,7 @@ const buildApp = () => {
       },
     },
     accessTokens,
+    breachChecker: skipBreachCheck,
     config: { webOrigin: WEB, signupEnabled: true, emailDailyLimit: 100, startMinDurationMs: 0 },
   })
   const app: Express = express()

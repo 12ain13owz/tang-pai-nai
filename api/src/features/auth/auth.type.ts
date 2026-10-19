@@ -5,6 +5,8 @@ export interface AuthUserData {
   displayName: string
   avatarUrl: string | null
   timezone: string
+  /** Whether the user has set a password (it can then sign in with one). */
+  hasPassword: boolean
 }
 
 /** `data` of sign-in and refresh. The refresh token only travels in the cookie. */

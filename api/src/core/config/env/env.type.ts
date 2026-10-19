@@ -1,5 +1,10 @@
 import type { LogLevel } from '@/shared/constants'
-import type { AppEnv, EmailProviderName, SmsProviderName } from '@/shared/types'
+import type {
+  AppEnv,
+  EmailProviderName,
+  PasswordBreachCheck,
+  SmsProviderName,
+} from '@/shared/types'
 
 export type EnvConfig = {
   PORT: number
@@ -23,4 +28,6 @@ export type EnvConfig = {
   OTP_PEPPER: string
   SIGNUP_ENABLED: boolean
   EMAIL_DAILY_LIMIT: number
+  PASSWORD_BREACH_CHECK: PasswordBreachCheck
+  HIBP_API_URL: string
 }

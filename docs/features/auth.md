@@ -170,8 +170,8 @@ Raw OTPs, link tokens and refresh tokens are **never stored**, only their hashes
       sets it; a refresh keeps it);
     - `currentPassword` is correct (only for a user who has one). A wrong one is `400`
       `CURRENT_PASSWORD_INVALID` and counts toward the per-email limit of rule 12;
-    - a **step-up code**: `POST /auth/reauth/start` (Bearer, no body) mails a **code only** (no
-      link) to the user's own email; `POST /auth/reauth/verify` `{ code }` checks it like rule 7
+    - a **step-up code**: `POST /auth/reauth/start` (Bearer, `{ lang }` as in rule 4) mails a
+      **code only** (no link) to the user's own email; `POST /auth/reauth/verify` `{ code }` checks it like rule 7
       (10 min, 5 wrong attempts, single use, `OTP_*` codes) and sets `authTime` = now on the current
       session family. It creates no session. Start shares the limits of rule 6 (cooldown, per
       email, per IP, daily cap), verify the per-IP limit of rule 7.

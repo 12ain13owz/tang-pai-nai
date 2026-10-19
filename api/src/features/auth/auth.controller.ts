@@ -2,8 +2,16 @@ import { AppError } from '@/core/error'
 import { ERRORS, ErrorSeverity, HttpStatus } from '@/shared/constants'
 import { createResponse } from '@/shared/utils'
 import { AUTH_LIMITS, AUTH_MESSAGE, REFRESH_COOKIE } from './auth.const'
-import type { ClientContext, SignInResult, User } from './auth.entity'
-import type { EmailStartInput, EmailVerifyInput } from './auth.schema'
+import type { Caller, ClientContext, SignInResult, UserProfile } from './auth.entity'
+import type {
+  EmailStartInput,
+  EmailVerifyInput,
+  PasswordRemoveInput,
+  PasswordSetInput,
+  PasswordSignInInput,
+  ReauthStartInput,
+  ReauthVerifyInput,
+} from './auth.schema'
 import type { AuthService } from './auth.service'
 import type { AuthSessionData, AuthUserData } from './auth.type'
 import type { CookieOptions, NextFunction, Request, Response } from 'express'
@@ -16,13 +24,22 @@ const COOKIE_OPTIONS: CookieOptions = {
   path: '/',
 }
 
-const toUserData = (user: User): AuthUserData => ({
+const toUserData = (user: UserProfile): AuthUserData => ({
   id: user.id,
   email: user.email,
   displayName: user.displayName,
   avatarUrl: user.avatarUrl,
   timezone: user.timezone,
+  hasPassword: user.hasPassword,
 })
+
+/** `req.auth`, set by `authenticate` in front of every Bearer route. */
+const callerOf = <P, B>(req: Request<P, unknown, B>): Caller => {
+  if (!req.auth) {
+    throw new AppError(ERRORS.UNAUTHORIZED, HttpStatus.UNAUTHORIZED, ErrorSeverity.WARN)
+  }
+  return req.auth
+}
 
 const clientOf = <P, B>(req: Request<P, unknown, B>): ClientContext => ({
   ip: req.ip,
@@ -73,6 +90,77 @@ export const createAuthController = (authService: AuthService) => {
     }
   }
 
+  const passwordSignIn = async (
+    req: Request<unknown, unknown, PasswordSignInInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { email, password } = req.body
+      const result = await authService.signInWithPassword(email, password, clientOf(req))
+      sendSession(res, AUTH_MESSAGE.SIGNED_IN, result)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  const passwordSet = async (
+    req: Request<unknown, unknown, PasswordSetInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const user = await authService.setPassword(callerOf(req), req.body, clientOf(req))
+      const response = createResponse(AUTH_MESSAGE.PASSWORD_SAVED, toUserData(user))
+      res.status(HttpStatus.OK).json(response)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  const passwordRemove = async (
+    req: Request<unknown, unknown, PasswordRemoveInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { currentPassword } = req.body
+      const user = await authService.removePassword(callerOf(req), currentPassword, clientOf(req))
+      const response = createResponse(AUTH_MESSAGE.PASSWORD_REMOVED, toUserData(user))
+      res.status(HttpStatus.OK).json(response)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  const reauthStart = async (
+    req: Request<unknown, unknown, ReauthStartInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      await authService.startReauth(callerOf(req), req.body.lang, clientOf(req))
+      const response = createResponse(AUTH_MESSAGE.REAUTH_CODE_SENT)
+      res.status(HttpStatus.ACCEPTED).json(response)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  const reauthVerify = async (
+    req: Request<unknown, unknown, ReauthVerifyInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      await authService.verifyReauth(callerOf(req), req.body.code, clientOf(req))
+      const response = createResponse(AUTH_MESSAGE.REAUTHENTICATED)
+      res.status(HttpStatus.OK).json(response)
+    } catch (error) {
+      next(error)
+    }
+  }
+
   const refresh = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await authService.refresh(refreshTokenOf(req), clientOf(req))
@@ -99,10 +187,7 @@ export const createAuthController = (authService: AuthService) => {
 
   const me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      if (!req.auth) {
-        throw new AppError(ERRORS.UNAUTHORIZED, HttpStatus.UNAUTHORIZED, ErrorSeverity.WARN)
-      }
-      const user = await authService.getMe(req.auth.userId)
+      const user = await authService.getMe(callerOf(req).userId)
       const data: AuthUserData = toUserData(user)
       const response = createResponse(AUTH_MESSAGE.SIGNED_IN, data)
       res.status(HttpStatus.OK).json(response)
@@ -111,7 +196,18 @@ export const createAuthController = (authService: AuthService) => {
     }
   }
 
-  return { emailStart, emailVerify, refresh, signOut, me }
+  return {
+    emailStart,
+    emailVerify,
+    passwordSignIn,
+    passwordSet,
+    passwordRemove,
+    reauthStart,
+    reauthVerify,
+    refresh,
+    signOut,
+    me,
+  }
 }
 
 export type AuthController = ReturnType<typeof createAuthController>

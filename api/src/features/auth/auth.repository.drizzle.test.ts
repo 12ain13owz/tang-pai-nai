@@ -32,7 +32,9 @@ afterEach(() => {
 
 const newChallenge = async (destination = 'a@example.com', expiresAt = later(600_000)) =>
   repo.createChallenge({
+    purpose: 'sign_in',
     destination,
+    userId: null,
     codeHash: 'c',
     linkTokenHash: `l-${Math.random()}`,
     expiresAt,
@@ -79,10 +81,12 @@ describe('challenges', () => {
     const latest = await newChallenge()
     await repo.consumeChallenge(old.id, AT)
 
-    await repo.expireOpenChallenges('a@example.com', later(1))
+    await repo.expireOpenChallenges('a@example.com', 'sign_in', later(1))
 
-    expect((await repo.findLatestChallenge('a@example.com'))?.id).toBe(latest.id)
-    expect((await repo.findLatestChallenge('a@example.com'))?.expiresAt).toEqual(later(1))
+    expect((await repo.findLatestChallenge('a@example.com', 'sign_in'))?.id).toBe(latest.id)
+    expect((await repo.findLatestChallenge('a@example.com', 'sign_in'))?.expiresAt).toEqual(
+      later(1)
+    )
   })
 
   it('consumes a challenge once and counts failed attempts', async () => {
