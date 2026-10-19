@@ -7,6 +7,7 @@ import importPlugin from 'eslint-plugin-import-x'
 import unusedImports from 'eslint-plugin-unused-imports'
 import tseslint from 'typescript-eslint'
 import { defineConfig } from 'eslint/config'
+import { readdirSync } from 'node:fs'
 
 // Import order mirrors api/eslint.config.mjs (builtin+external → @/ internal →
 // relative → type), with @angular/** and rxjs hoisted to the top of the external group.
@@ -45,6 +46,30 @@ const relativeParent = {
 
 // Every `no-restricted-imports` config below must include these (later configs replace, not merge).
 const importBoundaries = [featureBoundary, relativeParent]
+
+// Inside a feature, a page in `pages/<page>/` imports the feature's own files (`<feature>.store.ts`,
+// …) by `@/features/<feature>/...`, since `../` is banned. So each feature gets the boundary with
+// its own folder carved out; other features stay reachable only through their `index.ts`.
+const featureNames = readdirSync(new URL('./src/app/features', import.meta.url), {
+  withFileTypes: true,
+})
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+
+const ownFeatureConfigs = featureNames.map((name) => ({
+  files: [`src/app/features/${name}/**/*.ts`],
+  rules: {
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          { ...featureBoundary, group: ['@/features/*/*', `!@/features/${name}/**`] },
+          relativeParent,
+        ],
+      },
+    ],
+  },
+}))
 
 export default defineConfig(
   // ── Ignores ───────────────────────────────────────────────────────────────
@@ -112,6 +137,8 @@ export default defineConfig(
 
       // ── TypeScript strictness ───────────────────────────────────────────────
       '@typescript-eslint/no-explicit-any': 'error',
+      // Static methods have no `this`, so `withMessage(Validators.required, …)` is safe.
+      '@typescript-eslint/unbound-method': ['error', { ignoreStatic: true }],
       '@typescript-eslint/no-non-null-assertion': 'warn',
       '@typescript-eslint/no-unnecessary-condition': 'warn',
       '@typescript-eslint/promise-function-async': 'warn',
@@ -174,6 +201,9 @@ export default defineConfig(
       '@angular-eslint/template/label-has-associated-control': 'off',
     },
   },
+
+  // ── A feature may import its own internals (see ownFeatureConfigs) ───────────
+  ...ownFeatureConfigs,
 
   // ── Tests (relaxed for mocks/fixtures — mirrors the API) ────────────────────
   {

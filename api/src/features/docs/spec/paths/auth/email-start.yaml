@@ -1,0 +1,28 @@
+post:
+  tags:
+    - Auth
+  summary: Send a sign-in code and magic link
+  description: >-
+    Mails one 6-digit code and one magic link (both valid 10 minutes, single use) and replaces
+    any earlier open code for that email. Always answers `202` with the same body and a minimum
+    duration, whether or not the email has an account (none is sent for an unknown email when
+    sign-up is closed). Limits: 60 s cooldown and 5 per hour per email, 20 per hour per IP, and a
+    global daily cap.
+  operationId: emailStart
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/auth-email-start.schema.yaml'
+  responses:
+    '202':
+      description: Accepted (identical for every email)
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/message-response.schema.yaml'
+    '422':
+      $ref: '../../components/responses/error.response.yaml'
+    '429':
+      $ref: '../../components/responses/too-many-requests.response.yaml'

@@ -1,7 +1,13 @@
-import { Component, computed, inject } from '@angular/core'
+import { Component, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder } from '@angular/forms'
+import { Router } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
+import { NgIcon, provideIcons } from '@ng-icons/core'
+import { lucideLogOut } from '@ng-icons/lucide'
+import { HlmButton } from '@spartan-ng/helm/button'
+import { HlmSpinner } from '@spartan-ng/helm/spinner'
+import { AuthService, AuthStore, SIGN_IN_URL } from '@/core/auth'
 import { LANGUAGES, LanguageService } from '@/core/i18n'
 import type { Language } from '@/core/i18n'
 import { DeviceStorageService } from '@/core/pwa'
@@ -13,9 +19,22 @@ import { PalettePicker } from './palette-picker'
 
 @Component({
   selector: 'app-account-page',
-  imports: [TranslocoPipe, SelectField, PalettePicker],
+  imports: [TranslocoPipe, SelectField, PalettePicker, NgIcon, HlmButton, HlmSpinner],
+  providers: [provideIcons({ lucideLogOut })],
   template: `
     <div class="flex flex-col gap-6 p-4">
+      @if (authStore.user(); as user) {
+        <section class="flex flex-col gap-3" aria-labelledby="profile-heading">
+          <h2 id="profile-heading" class="text-sm font-medium text-muted-foreground">
+            {{ 'account.signedInAs' | transloco }}
+          </h2>
+          <div class="rounded-xl border border-border bg-card px-4 py-3 text-card-foreground">
+            <p class="text-base font-medium break-all">{{ user.displayName }}</p>
+            <p class="text-sm break-all text-muted-foreground">{{ user.email }}</p>
+          </div>
+        </section>
+      }
+
       <section class="flex flex-col gap-3" aria-labelledby="appearance-heading">
         <h2 id="appearance-heading" class="text-sm font-medium text-muted-foreground">
           {{ 'account.appearance' | transloco }}
@@ -69,6 +88,29 @@ import { PalettePicker } from './palette-picker'
           </div>
         </dl>
       </section>
+
+      <section class="flex flex-col gap-3">
+        <button
+          hlmBtn
+          variant="outline"
+          type="button"
+          class="h-11 w-full text-base"
+          [disabled]="isSigningOut()"
+          (click)="signOut()"
+        >
+          @if (isSigningOut()) {
+            <hlm-spinner [aria-label]="'account.signingOut' | transloco" />
+          } @else {
+            <ng-icon name="lucideLogOut" aria-hidden="true" />
+          }
+          {{ 'account.signOut' | transloco }}
+        </button>
+        @if (signOutFailed()) {
+          <p role="alert" class="text-center text-sm text-destructive">
+            {{ 'account.signOutFailed' | transloco }}
+          </p>
+        }
+      </section>
     </div>
   `,
 })
@@ -78,6 +120,12 @@ export class AccountPage {
   private themeService = inject(ThemeService)
   private languageService = inject(LanguageService)
   protected deviceStorageService = inject(DeviceStorageService)
+  private router = inject(Router)
+  private authService = inject(AuthService)
+  protected authStore = inject(AuthStore)
+
+  protected isSigningOut = signal(false)
+  protected signOutFailed = signal(false)
 
   protected readonly palettes = PALETTES
   // Language names are shown in their own language, so they never need translating.
@@ -98,6 +146,9 @@ export class AccountPage {
   protected paletteControl = this.nnfb.control<PaletteId>(this.themeService.palette().id)
 
   constructor() {
+    // Fresh profile; the one from sign-in is shown meanwhile, and offline it simply stays.
+    this.authService.loadMe().catch(() => undefined)
+
     this.languageControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((language) => {
       if (language) {
         this.languageService.setLanguage(language).catch((error: unknown) => {
@@ -113,5 +164,18 @@ export class AccountPage {
     this.paletteControl.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe((id) => this.themeService.setPalette(id))
+  }
+
+  protected async signOut(): Promise<void> {
+    this.isSigningOut.set(true)
+    this.signOutFailed.set(false)
+    try {
+      await this.authService.signOut()
+      await this.router.navigateByUrl(SIGN_IN_URL, { replaceUrl: true })
+    } catch {
+      this.signOutFailed.set(true)
+    } finally {
+      this.isSigningOut.set(false)
+    }
   }
 }

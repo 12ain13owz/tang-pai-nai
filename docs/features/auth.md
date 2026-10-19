@@ -1,6 +1,8 @@
 # Auth
 
-> Status: Spec — not built yet. Code will live in `src/features/auth/`, token helpers in
+> Status: **4.1 built** (email code + magic link, sessions, sign-out, `/auth/me`); 4.2–4.4 are spec
+> (see [ROADMAP](../../ROADMAP.md#next-up-auth-4)).
+> Code lives in `src/features/auth/`, token helpers in
 > `src/core/security/`, the `authenticate` middleware in `src/core/middleware/`.
 > Reference implementation to adapt: `tripsurance-be/src/features/auth/` (refresh rotation, sessions,
 > httpOnly cookie, dummy-hash timing guard). The differences are listed under
@@ -8,7 +10,9 @@
 
 ## Purpose
 
-Lets the owner and their family sign in and stay signed in on their phones. They have three ways in:
+Lets people sign up and stay signed in on their phones. **Anyone can create an account** with an
+email they can read (rule 1). The owner brings family in by **inviting** them to a shared wallet
+(#16), not through a special sign-up path. There are three ways in:
 
 1. **Email** (default): enter an email, receive **one email** with a 6-digit code **and** a magic
    link, and use either one. Users who prefer passwords can **optionally set one**. After that they
@@ -23,7 +27,8 @@ the user by their verified number.
 
 ## Out of scope
 
-- **Public sign-up.** Only allowlisted emails can create an account (rule 1).
+- **Invitations** to a shared wallet: specified with Family sharing (#16). Auth's only part is that
+  a pending invitation is matched on the **verified** email once its owner signs in.
 - Roles / admin panel. Every user is equal and owns only their own data.
 - MFA / passkeys. Passkeys (WebAuthn) are the natural next step and fit as another `user_identities`
   provider later.
@@ -49,12 +54,11 @@ Drizzle schema: `src/core/database/schema/auth.ts`. All ids are UUIDv7, and all 
   `linkTokenHash?` (email only), `attempts`, `expiresAt`, `consumedAt?`, `createdAt`. One row per
   "send me a code" request, on any channel. Index on (`channel`, `destination`, `createdAt`).
 - **sessions** — `id`, `userId`, `familyId`, `tokenHash`, `expiresAt`, `absoluteExpiresAt`,
+  `authTime` (when the credential was last checked; copied on rotation, used by rule 13),
   `revokedAt?`, `replacedById?`, `lastUsedAt`, `userAgent?`, `createdAt`. Each row is one refresh
   token. All rotations of one sign-in share a `familyId`.
-- **signup_allowlist** — `email` (PK), `invitedBy?`, `createdAt`. Seeded from env
-  `SIGNUP_ALLOWLIST` (comma-separated) by the seed script.
-- **rate_limit_buckets** — `key` (e.g. `otp:email:<hash>`, `otp:sms:<hash>`, `sms:global:day`,
-  `signin:ip:<hash>`), `count`,
+- **rate_limit_buckets** — `key` (e.g. `otp:email:<hash>`, `otp:ip:<hash>`, `verify:ip:<hash>`,
+  `email:global:day`, `otp:sms:<hash>`, `sms:global:day`, `signin:ip:<hash>`), `count`,
   `windowStart`. These counters are DB-backed because in-memory limits reset on every serverless
   instance.
 
@@ -67,9 +71,10 @@ Raw OTPs, link tokens and refresh tokens are **never stored**, only their hashes
   is ≥ 32 random bytes, from env. It's returned in the response body, and the web app keeps it **in
   memory only**.
 - **Refresh token**: **opaque** 32 random bytes (base64url), not a JWT. It's sent only as the
-  httpOnly cookie **`__Host-rt`** (`Secure`, `Path=/`, no `Domain`, `SameSite=Strict`). That works
-  because the browser sees one origin through the `/api` rewrite (ROADMAP → "Same origin via
-  rewrite"). The DB stores it as SHA-256.
+  httpOnly cookie **`__Host-rt`** (`Secure`, `Path=/`, no `Domain`, `SameSite=Strict`), in every
+  environment. That works because the browser sees one origin through the `/api` rewrite (ROADMAP →
+  "Same origin via rewrite"). `http://localhost` counts as secure, but a phone on a LAN IP over
+  plain http does not, so test on a phone with an https preview (#17). The DB stores it as SHA-256.
   - Idle lifetime **30 days**, sliding: every refresh issues a new token with a fresh 30-day
     expiry, capped by the session's **absolute lifetime of 180 days**. After that the user signs in
     again.
@@ -78,38 +83,50 @@ Raw OTPs, link tokens and refresh tokens are **never stored**, only their hashes
   it as theft and **revoke the whole family** (every session row with that `familyId`).
 - **Session** = the newest non-revoked, non-expired row of a family. `GET /auth/sessions` lists one
   entry per family.
+- Sign-in and `/auth/refresh` both answer `{ accessToken, expiresIn, user }`, so a reload needs one
+  call to get back in. A failed refresh is `401` with a `code` in the body: `SESSION_REVOKED`
+  (signed out, revoked, or reuse detected) or `SESSION_EXPIRED` (no cookie, unknown token, idle or
+  absolute expiry). See [Offline & trusted devices](#offline--trusted-devices).
 
 ## Business rules
 
 **Sign-up & identity**
 
-1. A new user is created only if their email is on `signup_allowlist`. A non-allowlisted email gets
-   exactly the same response as an allowlisted one (rule 5 / Google: a generic "not invited" page).
-   Nothing reveals whether an email is invited or registered.
+1. **Open sign-up**: the first successful email verify (or Google sign-in) for an unknown email
+   creates the user, so only someone who can read that inbox gets an account. Env
+   `SIGNUP_ENABLED=false` closes sign-up (a kill switch against abuse): existing users still sign
+   in, unknown emails get the same `202` but no mail (rule 5), and Google shows a generic "sign-up
+   is closed" page. Nothing reveals whether an email is registered.
 2. Emails are trimmed, lowercased and validated (`z.email()`) before any lookup.
 3. A disabled user (`status = disabled`) can't sign in or refresh. This returns `403` _after_ the
    credential check, so it doesn't reveal account status to someone who doesn't hold the credential.
 
 **Email code / magic link (default)**
 
-4. `POST /auth/email/start` creates a challenge with a **6-digit code** (`crypto.randomInt`, so
-   uniformly random) and a **32-byte link token**, invalidates the email's earlier open challenges,
-   and sends one email containing both. Both expire after **10 minutes**.
-5. It **always** answers `202` with the same body and roughly constant time (do the work, or sleep a
-   similar amount, for unknown or non-allowlisted emails), so it can't be used to enumerate accounts.
+4. `POST /auth/email/start` `{ email, lang }` creates a challenge with a **6-digit code**
+   (`crypto.randomInt`, so uniformly random) and a **32-byte link token**, invalidates the email's
+   earlier open challenges, and sends one email containing both. Both expire after **10 minutes**.
+   `lang` (`th` | `en`, default `th`) is the app's current UI language; the email is written in it.
+5. It **always** answers `202` with the same body. The challenge row is created even when no mail
+   is sent (sign-up closed and the email unknown), so verify behaves the same for every email, and
+   every start takes at least a fixed minimum time, so timing doesn't tell the cases apart either.
 6. Limits: **resend cooldown 60 s** per email, **5 starts per email per hour**, **20 per IP per
-   hour**. Over the limit returns `429` with `Retry-After`. That's still generic and doesn't reveal
-   the email's state.
+   hour**, and a **global cap on emails per day** (`EMAIL_DAILY_LIMIT`, default 100, the free tier
+   of the planned mail provider), which caps the damage if someone uses us to mail-bomb strangers.
+   Over a limit returns `429` with `Retry-After` (generic; hitting the global cap also logs a
+   `warn`).
 7. `POST /auth/email/verify` accepts `{ email, code }` **or** `{ token }`. A challenge allows **5
    wrong code attempts**, then it is dead and the user must start again. Comparisons are
    constant-time (`timingSafeEqual`). A challenge is **single-use**: `consumedAt` is set in the same
-   transaction that creates the session.
+   transaction that creates the session. Failures are `400` with a `code`: `OTP_INVALID` (wrong
+   code, attempts left), `OTP_LOCKED` (5 wrong attempts), `OTP_EXPIRED` (expired, used, replaced by
+   a newer one, or none; also any unknown link token). Limit: **30 verifies per IP per 15 min**.
 8. **Magic link = no side effect on GET.** The email links to the web app (`/auth/link#token=…`).
    The page reads the token from the URL fragment, which never reaches server logs or the `Referer`
    header, and **POSTs** it to `/auth/email/verify`. That way mail scanners that pre-fetch links
    can't consume the token.
 9. A successful verify sets `emailVerifiedAt` and creates a session (new user → create the user
-   first, if rule 1 allows).
+   first, if rule 1 allows, with the email's local part as `displayName`).
 
 **Password (optional)**
 
@@ -153,7 +170,10 @@ Raw OTPs, link tokens and refresh tokens are **never stored**, only their hashes
 15. **401 means only "access token missing/invalid/expired"** on authenticated routes. The web app
     refreshes once on 401, then retries. Business-rule failures use 400/403/404/422.
 16. `/auth/refresh` and `/auth/sign-out` read the cookie, so they also require the request's `Origin`
-    to equal the web origin (CSRF defence in depth on top of `SameSite=Strict`).
+    to equal the web origin (`WEB_ORIGIN`, which also builds the magic link), as CSRF defence in
+    depth on top of `SameSite=Strict`. A missing or different `Origin` is `403`. Rate limits key on
+    the client IP, so Express `trust proxy` is set to the number of proxies in front of the API
+    (`TRUST_PROXY_HOPS`: the dev proxy or the Vercel rewrite).
 17. Sign-out revokes the current session family and clears the cookie. "Sign out other devices"
     revokes every other family.
 18. Never log, return or store raw secrets: passwords, codes, link tokens, refresh tokens. Logs carry
@@ -203,34 +223,38 @@ Nai: 123456 (หมดอายุใน 5 นาที) ห้ามบอก�
 
 All live under `/auth`, on the public router. "Bearer" = needs `authenticate`.
 
-| Method | Path                     | Auth   | What                                                           |
-| ------ | ------------------------ | ------ | -------------------------------------------------------------- |
-| POST   | `/auth/email/start`      | —      | Send code + magic link (always `202`)                          |
-| POST   | `/auth/email/verify`     | —      | `{ email, code }` or `{ token }` → user + access token; cookie |
-| POST   | `/auth/password/sign-in` | —      | Email + password → user + access token; cookie                 |
-| PUT    | `/auth/password`         | Bearer | Set or change password (recent auth); revokes other sessions   |
-| DELETE | `/auth/password`         | Bearer | Remove password (recent auth)                                  |
-| POST   | `/auth/phone/start`      | —      | Send SMS code to a verified number (always `202`)              |
-| POST   | `/auth/phone/verify`     | —      | `{ phone, code }` → user + access token; cookie                |
-| POST   | `/auth/phone`            | Bearer | Add or change number (recent auth): send `verify_phone` code   |
-| POST   | `/auth/phone/confirm`    | Bearer | `{ code }` → save the number as verified                       |
-| DELETE | `/auth/phone`            | Bearer | Remove the number (recent auth)                                |
-| GET    | `/auth/google/start`     | —      | Redirect to Google (PKCE + state + nonce)                      |
-| GET    | `/auth/google/callback`  | —      | Finish Google sign-in; sets cookie; redirects to web           |
-| POST   | `/auth/refresh`          | cookie | Rotate refresh token → new access token                        |
-| POST   | `/auth/sign-out`         | cookie | Revoke current session; clear cookie                           |
-| GET    | `/auth/me`               | Bearer | Current user + `hasPassword` + linked providers                |
-| GET    | `/auth/sessions`         | Bearer | Active sessions (one per family), current one flagged          |
-| DELETE | `/auth/sessions/:id`     | Bearer | Revoke one session family                                      |
-| DELETE | `/auth/sessions`         | Bearer | Revoke all other session families                              |
+| Method | Path                     | Auth   | What                                                           | Part |
+| ------ | ------------------------ | ------ | -------------------------------------------------------------- | ---- |
+| POST   | `/auth/email/start`      | —      | Send code + magic link (always `202`)                          | 4.1  |
+| POST   | `/auth/email/verify`     | —      | `{ email, code }` or `{ token }` → user + access token; cookie | 4.1  |
+| POST   | `/auth/password/sign-in` | —      | Email + password → user + access token; cookie                 | 4.2  |
+| PUT    | `/auth/password`         | Bearer | Set or change password (recent auth); revokes other sessions   | 4.2  |
+| DELETE | `/auth/password`         | Bearer | Remove password (recent auth)                                  | 4.2  |
+| POST   | `/auth/phone/start`      | —      | Send SMS code to a verified number (always `202`)              | 4.4  |
+| POST   | `/auth/phone/verify`     | —      | `{ phone, code }` → user + access token; cookie                | 4.4  |
+| POST   | `/auth/phone`            | Bearer | Add or change number (recent auth): send `verify_phone` code   | 4.4  |
+| POST   | `/auth/phone/confirm`    | Bearer | `{ code }` → save the number as verified                       | 4.4  |
+| DELETE | `/auth/phone`            | Bearer | Remove the number (recent auth)                                | 4.4  |
+| GET    | `/auth/google/start`     | —      | Redirect to Google (PKCE + state + nonce)                      | 4.3  |
+| GET    | `/auth/google/callback`  | —      | Finish Google sign-in; sets cookie; redirects to web           | 4.3  |
+| POST   | `/auth/refresh`          | cookie | Rotate refresh token → new access token                        | 4.1  |
+| POST   | `/auth/sign-out`         | cookie | Revoke current session; clear cookie                           | 4.1  |
+| GET    | `/auth/me`               | Bearer | Current user + `hasPassword` + linked providers                | 4.1  |
+| GET    | `/auth/sessions`         | Bearer | Active sessions (one per family), current one flagged          | 4.4  |
+| DELETE | `/auth/sessions/:id`     | Bearer | Revoke one session family                                      | 4.4  |
+| DELETE | `/auth/sessions`         | Bearer | Revoke all other session families                              | 4.4  |
 
 Exact request/response shapes go in OpenAPI (`/docs`) once the endpoints are built.
 
 ## Web screens
 
+All of these sit outside the app shell (no tab bar) and carry a language switch, because someone
+who isn't signed in can't reach the account page.
+
 - **Sign-in**: an email field with a "Send code" button, a "Continue with Google" button, a
   "Sign in with password" link, and a "Sign in with phone number" link (phone field → the same
-  enter-code screen).
+  enter-code screen). Each extra way appears with its part (4.2–4.4). Offline, it says sign-in
+  needs a connection and retries the silent refresh by itself once back online.
 - **Enter code**: 6 boxes (`inputmode="numeric"`, `autocomplete="one-time-code"` so the phone can
   auto-fill it), a resend timer, and a "check your email for the link" hint.
 - **Magic-link landing** `/auth/link` and **Google return** `/auth/callback`.
@@ -240,6 +264,11 @@ Exact request/response shapes go in OpenAPI (`/docs`) once the endpoints are bui
 
 ## Interactions
 
+- **App start**: the web app calls `/auth/refresh` once (the access token lives in memory only, so a
+  reload starts without one). Success → into the app; failure → sign-in. A guard keeps every
+  in-app route behind a signed-in user.
+- **Invitations** (#16): sign-in attaches pending wallet invitations addressed to the verified
+  email. Their rules (one pending invite per wallet and email, expiry, daily cap) live with #16.
 - Every user-owned feature (wallet, category, transaction, …) sits behind `authenticate` and scopes
   every query by `req.user.id`.
 - Category: a new user gets the default category set seeded on creation (see `category.md`).
@@ -275,7 +304,6 @@ lets the web app decide whether to wipe or keep local data.
 - **Phone sign-in later**: switch it on in production only once the ThaiBulkSMS adapter, sender
   name and credit are in place. Until then `SMS_PROVIDER=disabled` makes `/auth/phone/*` answer
   `503`, and the web hides the phone link.
-- **Allowlist management**: env-seeded only (proposal), or an "invite family member" screen later?
 - **Access token lifetime** of 10 min: fine with silent refresh. Raise it only if refresh traffic
   turns out to be a problem.
 - **Password minimum 15** follows NIST for single-factor passwords. If family members find that

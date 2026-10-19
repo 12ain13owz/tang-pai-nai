@@ -74,6 +74,9 @@ layout    ->  core, shared
   bottom tab bar. Give every routed page a `title` that is a **translation key** (`title.wallets`);
   `PageTitleStrategy` (`core/routing`) translates it for the header and the document title.
   Full-screen flows that shouldn't show the bar (sign-in, PIN) go outside it.
+- The sign-in flow (`features/auth`, under `/auth/*`) is mounted before the shell with its own
+  `AuthLayout` (app name + language switch). The shell route carries `authGuard`
+  (`canActivate` + `canActivateChild`), so every tab needs a signed-in user.
 - App-wide device state lives in `core/` as signal services: `ThemeService` (`core/theme`),
   `LanguageService` (`core/i18n`), `NetworkStatusService` (`core/network`), `KeyboardService`
   (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`).
@@ -97,6 +100,11 @@ features/transactions/
 ```
 
 Skip files you don't need. Keep the naming when you add them.
+
+A page in `pages/<page>/` imports its feature's own files by alias
+(`@/features/auth/auth-flow.store`), since `../` is banned. Lint allows `@/features/<name>/...`
+only from inside that same feature (`ownFeatureConfigs` in `eslint.config.mjs`); other features
+still go through `@/features/<name>`.
 
 Barrels (`index.ts`) are **single level**. A folder's `index.ts` re-exports only the files directly
 inside it, never another barrel. Import from the folder that holds the file
@@ -320,20 +328,41 @@ are on, so don't disable them.
   the server only through the sync outbox (`/sync/push` and `/sync/pull`). Direct API calls are for
   auth, shared wallets you're a member of (online only), and sync itself. Read
   [`offline-sync.md`](../docs/features/offline-sync.md) before building any data screen.
-- All calls go through the core API client and use **relative URLs under `/api`**. In production,
+- **All calls go through `ApiClient`** (`@/core/api`): `api.get<T>('/wallets')`,
+  `api.post<T>('/auth/email/start', body)`. Paths are relative to **`/api`**. In production,
   Vercel rewrites `/api/*` on the web project to the API project, so the browser sees one origin.
-  That keeps the refresh-token cookie first-party (`*.vercel.app` is a public suffix, so cross-project
-  cookies would be third-party and blocked). In dev, `ng serve` proxies `/api` to `http://localhost:3000` and strips the
-  prefix (`proxy.conf.json`), the same mapping as the prod rewrite. So there is **no API base URL in
-  an environment file**; never hardcode `http://localhost:3000`.
-- The API sees requests coming from the proxy (dev) or Vercel (prod). Anything that needs the real
-  client IP (auth rate limits) must configure Express `trust proxy`; that lands with Auth.
-- Response envelope: `{ message, timestamp, data? }` — read `data`.
-- Access token lives **in memory only** (a signal in the auth store), never in `localStorage`. The
-  refresh token is an httpOnly cookie the app can't read. On a 401, the interceptor calls
-  `/api/auth/refresh` once, then retries; if refresh fails, it goes to sign-in.
-- Details land with the Auth feature (see [`docs/features/auth.md`](../docs/features/auth.md)). Update this
-  section then.
+  That keeps the refresh-token cookie first-party (`*.vercel.app` is a public suffix, so
+  cross-project cookies would be third-party and blocked). In dev, `ng serve` proxies `/api` to
+  `http://localhost:3000` and strips the prefix (`proxy.conf.json`), the same mapping as the prod
+  rewrite. So there is **no API base URL in an environment file**; never hardcode
+  `http://localhost:3000`, and never call `HttpClient` directly from a feature.
+- **Response envelope**: `{ message, timestamp, data?, code? }` (`ApiResponse<T>`): read `data`.
+  On failure, `toApiError(error)` gives `{ status, code?, message?, retryAfterSeconds? }`;
+  `isUnreachable()` is true for no network (status 0) or a proxy answering for a dead API
+  (502–504 without a body). Pick UI text from `code`, never from the English `message`.
+- **Session** (`@/core/auth`, spec: [`auth.md`](../docs/features/auth.md), API side:
+  `../api/AGENTS.md` §4):
+  - `AuthStore` holds the access token, user and `status` (`unknown` → `signedIn` /
+    `signedOut` / `unreachable`) as signals. The access token lives **in memory only**, never in
+    any storage. The refresh token is the httpOnly `__Host-rt` cookie the app can't read.
+  - `authInterceptor` adds `Authorization: Bearer` to `/api` calls. On a `401` it calls
+    `AuthService.refresh()` once and retries; if the refresh is refused it clears the store and
+    goes to `/auth/sign-in?returnUrl=…`. Auth calls themselves pass `skipAuthRefresh()` as the
+    request context so they're never retried.
+  - `AuthService.refresh()` is shared by concurrent callers and runs inside a Web Lock
+    (`tpn-auth-refresh`), so two tabs never present the same refresh token (the API treats a
+    reused token as theft and signs every device of that sign-in out).
+  - App start: `authGuard` / `guestGuard` call `AuthService.restore()`, one silent refresh. A
+    reload therefore costs one `/auth/refresh`. When the API is unreachable the status is
+    `unreachable` (not signed out), and the sign-in page retries once the network is back.
+  - Sign-out: `AuthService.signOut()` then navigate to sign-in. #4a adds wiping the local DB
+    ([offline-sync](../docs/features/offline-sync.md) rule 7).
+- **Auth error codes** the screens switch on: `OTP_INVALID`, `OTP_LOCKED`, `OTP_EXPIRED`,
+  `SESSION_EXPIRED`, `SESSION_REVOKED`, `USER_DISABLED`, `RATE_LIMITED` (with `Retry-After`).
+  `features/auth/auth-error.ts` maps them to translation keys.
+- **Testing**: `provideHttpClient(withInterceptors([authInterceptor]))` +
+  `provideHttpClientTesting()`; flush envelopes from `HttpTestingController`. A spec that renders
+  the shell sets a session on `AuthStore` first (see `app.spec.ts`).
 
 ## 5. Definition of done
 

@@ -10,7 +10,8 @@ If anything here conflicts with the actual code, the code wins — update this f
 > [`docs/features/`](../docs/features/README.md). This file only covers _how_ to write the code.
 > Run every npm command from this folder (`cd api`).
 > Sections below that say "not wired up yet" describe the starter baseline — the roadmap decides when
-> each one is built (the database is wired up in ROADMAP #2; auth comes in #4).
+> each one is built (the database is wired up in ROADMAP #2; email sign-in and sessions in #4.1,
+> see §4 "API & session contract").
 
 ---
 
@@ -22,7 +23,6 @@ Folders are split **by feature**, and each feature is layered **Clean Architectu
 
 Not wired up yet — add inside the existing structure when a consuming project needs it, don't pre-build it speculatively:
 
-- **Auth** — none (`req.user`, JWT, sessions, etc. don't exist).
 - **i18n / structured messages** — `AppError`/`createResponse` take a plain `string` message. Do not introduce a `{ key, message, params }` message shape or an i18n layer speculatively; that's a real requirement of specific downstream products, not a default this starter should carry.
 
 ### Testing
@@ -62,8 +62,9 @@ src/
     database/    # Drizzle + libsql client, shared columns, schema/ (one file per feature), migrate + seed
     error/       # AppError, domain errors, error logger, error middleware, wrapUnexpected
     logger/      # Winston setup
-    middleware/  # custom Express middleware (validate)
+    middleware/  # custom Express middleware (validate, authenticate, requireOrigin, request logger)
     notification/ # outgoing email + SMS: notifier, provider ports, adapters, provider registry
+    security/    # random tokens/codes, hashing, constant-time compare, access tokens (JWT)
     server/      # bootstrap + graceful shutdown (onShutdown hooks)
   features/      # Business features. One folder per feature. May import core + shared.
   shared/        # Pure building blocks (constants, types, utils). No feature/business logic.
@@ -290,6 +291,9 @@ Import `env` from `@/core/config`, never from `./env/env`. Add env-dependent mid
   | `ConflictError(message, metadata?)`  | uniqueness / state conflict (duplicate title…) | 409    | WARN     |
   | `UnauthorizedError(message, meta?)`  | credentials/token invalid                      | 401    | WARN     |
   | `BusinessRuleError(message, meta?)`  | input is well-formed but breaks a domain rule  | 422    | WARN     |
+  | `BadRequestError(message, meta?)`    | a request the rules refuse (wrong / dead code) | 400    | WARN     |
+  | `ForbiddenError(message, meta?)`     | authenticated, but not allowed (disabled user) | 403    | WARN     |
+  | `TooManyRequestsError(msg, retryS)`  | a rate limit was hit; sends `Retry-After`      | 429    | WARN     |
 
   ```ts
   throw new NotFoundError('Todo', { id }).withOperation('getTodo')
@@ -297,6 +301,11 @@ Import `env` from `@/core/config`, never from `./env/env`. Add env-dependent mid
   ```
 
   They extend `AppError`, so builder methods, `errorHandler`, and logging work unchanged. If none fits, add a new class in `core/error/domain-error.ts` rather than reaching for `HttpStatus` in a service.
+
+- When the client must react to _which_ failure happened (not just show the message), chain
+  `.withCode('OTP_EXPIRED')`. `errorHandler` sends it beside the message as
+  `{ message, code, timestamp }`. Codes are UPPER_SNAKE strings kept in the feature's const file
+  (e.g. `AuthErrorCode`) and listed in the feature spec, since the web app switches on them.
 
 - Outside the business layer (middleware, `core/`, a controller-only feature like `health`), `throw new AppError(message, status, severity)` directly and chain context. Either way, errors reach `next(error)` and the global `errorHandler` (`core/error/error.middleware.ts`, wired in `app.ts`) formats them (full details in development, message-only in production).
 - Wrap every call into an external dependency (DB/ORM, third-party SDK, HTTP client) in `wrapUnexpected` (`@/core/error`). `errorHandler` hides `data` in production but still sends `message`, so a raw driver error (SQL text, hostnames, constraint names) would reach the client. `wrapUnexpected` rethrows any non-`AppError` as a generic `500` `AppError` and keeps the original as `metadata.cause` for the logs. An `AppError` thrown inside passes through unchanged:
@@ -315,9 +324,57 @@ Import `env` from `@/core/config`, never from `./env/env`. Add env-dependent mid
 ```ts
 throw new AppError(ERRORS.UNAUTHORIZED, HttpStatus.UNAUTHORIZED, ErrorSeverity.WARN)
   .withOperation('login') // logical operation name
-  .withEndpoint(req) // method, url, params, query, body
+  .withEndpoint(req) // method, url, params, query, body (secret fields redacted)
   .withMetadata({ email }) // extra structured context (no secrets/passwords)
+  .withCode('SESSION_EXPIRED') // machine-readable reason sent to the client
 ```
+
+### API & session contract
+
+How the API authenticates calls (spec: [`docs/features/auth.md`](../docs/features/auth.md), code:
+`src/features/auth/`, shapes in OpenAPI). The web side of the same contract is
+`../web/AGENTS.md` §4.
+
+- **Access token**: HS256 JWT (`core/security`, HS256 pinned on verify), 10 minutes, returned in
+  the body of sign-in and `/auth/refresh` as `{ accessToken, expiresIn, user }`. Clients send it as
+  `Authorization: Bearer <jwt>`.
+- **Refresh token**: opaque, only ever in the `__Host-rt` cookie (HttpOnly, Secure,
+  SameSite=Strict, Path=/), stored as SHA-256. Rotated on every `/auth/refresh`; a reused token
+  revokes its whole session family. `/auth/refresh` and `/auth/sign-out` are the only routes that
+  read it, and they sit behind `requireOrigin(env.WEB_ORIGIN)`.
+- **Protecting a route**: put `authenticate` (`@/core/middleware`) in front of the handler in
+  `*.routes.ts`. It sets `req.auth = { userId, sessionFamilyId }` or answers `401`. The controller
+  passes `req.auth.userId` to the service, and every query of user-owned data is scoped by it.
+- **Status codes**: `401` means only "access token missing / invalid / expired" (the web app
+  refreshes once and retries on it), or a dead refresh cookie on `/auth/refresh`
+  (`SESSION_EXPIRED` / `SESSION_REVOKED`). Everything else uses 400/403/404/409/422/429 with a
+  `code` where the client needs one.
+- **Rate limits that matter for security** live in the DB (`rate_limit_buckets`, through the
+  feature's repository, `hitRateLimit`), because serverless instances don't share memory. The
+  global `express-rate-limit` is only a coarse guard. Limits key on `req.ip`, which is the client
+  thanks to `trust proxy` = `TRUST_PROXY_HOPS`.
+- **Secrets never leave the process**: codes, link tokens, refresh tokens and passwords are
+  stored as hashes only (codes as HMAC with `OTP_PEPPER`), never logged, never put in error
+  metadata. `AppError.withEndpoint` redacts the body fields in `SECRET_FIELDS`
+  (`core/error/app-error.ts`); add a field there when a new secret field appears in a request.
+- **Env** (all in `.env.example`; `npm run setup-env` generates the two secrets):
+
+  | Env                 | What                                                           | Default                 |
+  | ------------------- | -------------------------------------------------------------- | ----------------------- |
+  | `WEB_ORIGIN`        | the web app's origin: magic links + the only accepted `Origin` | `http://localhost:4200` |
+  | `TRUST_PROXY_HOPS`  | proxies in front of the API (dev proxy / Vercel rewrite)       | `1`                     |
+  | `JWT_SECRET`        | access-token key, ≥ 32 chars                                   | — (required)            |
+  | `OTP_PEPPER`        | HMAC key for codes, ≥ 32 chars                                 | — (required)            |
+  | `SIGNUP_ENABLED`    | `false` closes sign-up; existing users still sign in           | `true`                  |
+  | `EMAIL_DAILY_LIMIT` | global cap on sign-in emails per day                           | `100`                   |
+
+- **Cleanup**: `npm run auth:cleanup` deletes challenges, sessions and buckets that ended over 7
+  days ago (a Vercel Cron endpoint replaces it at deploy, #17).
+- **Testing auth**: services use `createMemoryAuthRepository()`; HTTP tests build an app with
+  `express.json()` + `cookieParser()` + the router and pass the shared `accessTokens` from
+  `@/core/security` to the service, because `authenticate` verifies with that instance. The
+  Drizzle adapter is tested on a temporary SQLite file with the committed migrations
+  (`:memory:` gives each transaction its own empty database). See `src/features/auth/*.test.ts`.
 
 ## 5. Controller pattern (copy this shape)
 
@@ -599,6 +656,8 @@ Third-party middleware (`cors`, `helmet`, `express-rate-limit`) is configured as
 | ------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `validate.ts`       | `validate(ValidatedShape)` | Parses `params` -> `query` -> `body` with the Zod schema given for each (all optional). On success it replaces that segment with the parsed data. On the first failure it calls `next()` with a `422` `AppError` that joins all issue messages, with `metadata.source` set to the failing segment. |
 | `request-logger.ts` | `requestLogger`            | `morgan` access log routed through the Winston `logger` at `http` level, so it follows the same transports, levels, and `LOG_SILENT` as every other log line.                                                                                                                                      |
+| `authenticate.ts`   | `authenticate`             | Verifies `Authorization: Bearer <jwt>` and sets `req.auth` (`AuthContext` in `authenticate.type.ts`); anything else is a `401`. See §4 "API & session contract".                                                                                                                                   |
+| `require-origin.ts` | `requireOrigin(origin)`    | `403` unless the `Origin` header equals `origin`. In front of every route that acts on a cookie (CSRF defence in depth).                                                                                                                                                                           |
 
 Adding more:
 
@@ -643,7 +702,7 @@ only complete once all four stages pass and the router is mounted in `src/routes
 - DON'T leak ORM/driver types through a repository port; map rows to entities in the adapter.
 - DON'T throw `NotFoundError` from a repository adapter; return `null`/`false` and let the service decide (§2).
 - DON'T put secrets (passwords, tokens) into `AppError` metadata or logs.
-- DON'T add a database, auth, or i18n message keys speculatively — this is a starter; add them when a real feature needs them (see §1). `todo` is a reference feature. A consuming project may delete it once it has its own layered feature to copy from, and should point the `todo` references in this file at that feature in the same change.
+- DON'T add i18n message keys or other infrastructure speculatively; add it when a real feature needs it (see §1). Database and auth exist now (§2, §4). `todo` is a reference feature. A consuming project may delete it once it has its own layered feature to copy from, and should point the `todo` references in this file at that feature in the same change.
 
 ## 10. Commit messages
 

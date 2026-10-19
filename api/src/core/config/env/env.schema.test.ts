@@ -10,6 +10,8 @@ const validEnv = {
   LOG_LEVEL_FILE: 'info',
   LOG_LEVEL_ERROR_FILE: 'error',
   SHUTDOWN_TIMEOUT_MS: '10000',
+  JWT_SECRET: 'x'.repeat(32),
+  OTP_PEPPER: 'y'.repeat(32),
 }
 
 describe('envSchema', () => {

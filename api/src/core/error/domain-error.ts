@@ -32,6 +32,29 @@ export class UnauthorizedError extends DomainError {
   }
 }
 
+export class BadRequestError extends DomainError {
+  constructor(message: string, metadata?: ErrorMetadata) {
+    super(message, HttpStatus.BAD_REQUEST, metadata)
+  }
+}
+
+export class ForbiddenError extends DomainError {
+  constructor(message: string, metadata?: ErrorMetadata) {
+    super(message, HttpStatus.FORBIDDEN, metadata)
+  }
+}
+
+/** A rate limit was hit. `errorHandler` sends `retryAfterSeconds` as the `Retry-After` header. */
+export class TooManyRequestsError extends DomainError {
+  constructor(
+    message: string,
+    public retryAfterSeconds: number,
+    metadata?: ErrorMetadata
+  ) {
+    super(message, HttpStatus.TOO_MANY_REQUESTS, metadata)
+  }
+}
+
 export class BusinessRuleError extends DomainError {
   constructor(message: string, metadata?: ErrorMetadata) {
     super(message, HttpStatus.UNPROCESSABLE_ENTITY, metadata)

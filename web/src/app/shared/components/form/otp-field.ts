@@ -12,10 +12,12 @@ import { fieldErrorMessage } from './field-error'
   selector: 'app-otp-field',
   imports: [ReactiveFormsModule, HlmFieldImports, BrnInputOtp, HlmInputOtpImports],
   template: `
-    <div hlmField class="items-center">
-      <label hlmFieldLabel>{{ label() }}</label>
+    <div hlmField>
+      <label hlmFieldLabel class="justify-center">{{ label() }}</label>
+      <!-- Centred, with 48px slots and large digits: easier to read and tap than the defaults. -->
       <brn-input-otp
         hlmInputOtp
+        class="justify-center"
         inputMode="numeric"
         inputAutocomplete="one-time-code"
         [length]="length()"
@@ -23,11 +25,11 @@ import { fieldErrorMessage } from './field-error'
       >
         <div hlmInputOtpGroup>
           @for (slot of slots(); track $index) {
-            <hlm-input-otp-slot [index]="$index" />
+            <hlm-input-otp-slot class="size-12 text-xl font-medium tabular-nums" [index]="$index" />
           }
         </div>
       </brn-input-otp>
-      <hlm-field-error>{{ error() }}</hlm-field-error>
+      <hlm-field-error class="text-center">{{ error() }}</hlm-field-error>
     </div>
   `,
 })

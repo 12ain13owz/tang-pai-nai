@@ -18,6 +18,18 @@ export const LOG = {
   NOTIFICATION: {
     sent: (channel: string, provider: string) => `[Notification] Sent ${channel} via ${provider}`,
   },
+  // Auth events (auth spec rule 19). Metadata carries ids only, never codes or tokens.
+  AUTH: {
+    codeRequested: '[Auth] Sign-in code requested',
+    userCreated: '[Auth] User created',
+    signedIn: (method: string) => `[Auth] Signed in with ${method}`,
+    signInFailed: (method: string) => `[Auth] Sign-in with ${method} failed`,
+    refreshReuse: '[Auth] ⚠️ Refresh token reused: session family revoked',
+    signedOut: '[Auth] Signed out',
+    emailDailyLimit: (limit: number) => `[Auth] ⚠️ Daily email cap (${limit}) reached`,
+    cleanedUp: (challenges: number, sessions: number, buckets: number) =>
+      `[Auth] Cleanup removed ${challenges} challenges, ${sessions} sessions, ${buckets} rate-limit buckets`,
+  },
 }
 
 // API response pools. Flat on purpose: UPPER_CASE = fixed text, camelCase = builder.

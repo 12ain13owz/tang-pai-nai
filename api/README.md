@@ -84,7 +84,10 @@ SHUTDOWN_TIMEOUT_MS="10000"
 - `npm run lint`: check with ESLint without changing files
 - `npm run typecheck`: type-check with `tsc --noEmit`
 - `npm run clean`: remove the `dist` directory
-- `npm run setup-env`: generate `.env.dev` and `.env.prod` from `.env.example`
+- `npm run setup-env`: generate `.env.dev` and `.env.prod` from `.env.example`, with random
+  `JWT_SECRET` / `OTP_PEPPER` (also added to existing env files that lack them)
+- `npm run auth:cleanup`: delete auth challenges, sessions and rate-limit buckets that ended over
+  7 days ago
 - `npm test`: run the test suite once (Vitest)
 - `npm run test:watch`: run the test suite in watch mode
 
@@ -92,6 +95,8 @@ SHUTDOWN_TIMEOUT_MS="10000"
 
 - `GET /health`: health check (liveness probe for load balancers, orchestrators, and uptime monitors)
 - `GET /docs`: API documentation page
+- `/auth`: email code / magic-link sign-in, refresh, sign-out, `GET /auth/me`
+  ([spec](../docs/features/auth.md), shapes in `/docs`)
 - `/todos`: reference CRUD feature (in-memory, data resets on restart)
 
 | Method   | Path                | Success | Errors                               |

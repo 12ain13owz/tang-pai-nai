@@ -38,7 +38,9 @@ choice that isn't decided yet is marked **Proposal** until the owner confirms it
   | Bottom tab bar | 64px (`h-16`) + `safe-area-inset-bottom` | Hidden while the on-screen keyboard is open |
 
 - **Outside the shell** (no tab bar): sign-in, enter code, trust prompt, PIN lock. These are
-  full-screen flows with their own simple header (back button or none).
+  full-screen flows with their own simple header: the app name on the left and the
+  **ไทย | English** switch on the right (the account page isn't reachable before sign-in), and a
+  ghost back button with a label inside the page when there's a step to go back to.
 - **Spacing**: page padding `p-4`. Sections are `gap-6` apart; items inside a section are `gap-3`.
   Use Tailwind's scale only, never arbitrary pixel values, except for safe-area `env()` values.
 - **Section heading**: `text-sm font-medium text-muted-foreground`, above a group of rows or fields.
@@ -180,6 +182,11 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - **Loading**: local reads are instant, so show no spinner for them. Network actions (sign-in, send
   code, sync) put a spinner in the button that started them and disable it. Use skeletons only for
   online-only lists (shared wallets as a member).
+- **Errors from the server** (a wrong code, a rate limit, no connection) show as one line,
+  `role="alert"`, `text-sm text-destructive`, right under the field or above the button they're
+  about. Field-level validation stays in the field (`*-field` wrappers). An "only works online"
+  notice is a tinted block (`rounded-xl bg-destructive/10 text-destructive`), and the action it
+  blocks is disabled.
 - **Status**: the header's right side holds the connection pill today and the sync status from #4a.
   A small dot plus the word, never the dot alone: online = green dot (`bg-income`) and muted
   "ออนไลน์"; offline = red dot in a red-tinted pill, "ออฟไลน์" in `text-destructive`. Status changes

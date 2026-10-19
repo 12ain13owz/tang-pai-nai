@@ -17,4 +17,10 @@ export type EnvConfig = {
   SMS_PROVIDER: SmsProviderName
   DATABASE_URL: string
   DATABASE_AUTH_TOKEN?: string
+  WEB_ORIGIN: string
+  TRUST_PROXY_HOPS: number
+  JWT_SECRET: string
+  OTP_PEPPER: string
+  SIGNUP_ENABLED: boolean
+  EMAIL_DAILY_LIMIT: number
 }

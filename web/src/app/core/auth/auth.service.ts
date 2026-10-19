@@ -1,0 +1,103 @@
+import { DOCUMENT, inject, Service } from '@angular/core'
+import { ApiClient, isUnreachable, toApiError } from '@/core/api'
+import { skipAuthRefresh } from './auth.context'
+import { AuthStore } from './auth.store'
+import type { AuthSession, AuthStatus, AuthUser } from './auth.type'
+
+/** Shared by every tab, so two tabs never rotate the same refresh token at once. */
+const REFRESH_LOCK = 'tpn-auth-refresh'
+
+/** The auth endpoints (docs/features/auth.md, part 4.1) and the session they produce. */
+@Service()
+export class AuthService {
+  private api = inject(ApiClient)
+  private authStore = inject(AuthStore)
+  private locks = inject(DOCUMENT).defaultView?.navigator.locks
+
+  private refreshing: Promise<void> | null = null
+  private restoring: Promise<AuthStatus> | null = null
+
+  async startEmail(email: string, lang: string): Promise<void> {
+    await this.api.post('/auth/email/start', { email, lang }, { context: skipAuthRefresh() })
+  }
+
+  async verifyCode(email: string, code: string): Promise<void> {
+    await this.verify({ email, code })
+  }
+
+  async verifyLink(token: string): Promise<void> {
+    await this.verify({ token })
+  }
+
+  /**
+   * Rotates the refresh cookie for a new access token. Calls in flight share one request, and a
+   * Web Lock queues other tabs behind it: the browser updates the cookie before the next tab sends
+   * it, so the server never sees one token twice (which it treats as theft).
+   */
+  async refresh(): Promise<void> {
+    this.refreshing ??= this.runRefresh().finally(() => {
+      this.refreshing = null
+    })
+    return this.refreshing
+  }
+
+  /** The start-up check: one silent refresh, answered from memory once it's settled. */
+  async restore(): Promise<AuthStatus> {
+    const status = this.authStore.status()
+    if (status === 'signedIn' || status === 'signedOut') {
+      return status
+    }
+    this.restoring ??= this.refresh()
+      .then(() => this.authStore.status())
+      .catch(() => this.authStore.status())
+      .finally(() => {
+        this.restoring = null
+      })
+    return this.restoring
+  }
+
+  /** Re-reads the signed-in user (`GET /auth/me`, an ordinary authenticated call). */
+  async loadMe(): Promise<void> {
+    const response = await this.api.get<AuthUser>('/auth/me')
+    if (response.data) {
+      this.authStore.user.set(response.data)
+    }
+  }
+
+  async signOut(): Promise<void> {
+    await this.api.post('/auth/sign-out', {}, { context: skipAuthRefresh() })
+    this.authStore.clear()
+  }
+
+  private async verify(body: { email: string; code: string } | { token: string }): Promise<void> {
+    const response = await this.api.post<AuthSession>('/auth/email/verify', body, {
+      context: skipAuthRefresh(),
+    })
+    if (response.data) {
+      this.authStore.setSession(response.data)
+    }
+  }
+
+  private async runRefresh(): Promise<void> {
+    const request = async () =>
+      this.api.post<AuthSession>('/auth/refresh', {}, { context: skipAuthRefresh() })
+    try {
+      const response = this.locks
+        ? await this.locks.request(REFRESH_LOCK, request)
+        : await request()
+      if (response.data) {
+        this.authStore.setSession(response.data)
+      }
+    } catch (error) {
+      if (isUnreachable(toApiError(error))) {
+        // Keep whatever we had: the session may still be fine once the network is back.
+        if (!this.authStore.isSignedIn()) {
+          this.authStore.status.set('unreachable')
+        }
+      } else {
+        this.authStore.clear()
+      }
+      throw error
+    }
+  }
+}

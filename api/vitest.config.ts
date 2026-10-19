@@ -20,6 +20,9 @@ export default defineConfig({
       LOG_SILENT: 'true',
       SHUTDOWN_TIMEOUT_MS: '10000',
       DATABASE_URL: ':memory:',
+      WEB_ORIGIN: 'http://localhost:4200',
+      JWT_SECRET: 'test-jwt-secret-test-jwt-secret-0000',
+      OTP_PEPPER: 'test-otp-pepper-test-otp-pepper-0000',
     },
   },
 })

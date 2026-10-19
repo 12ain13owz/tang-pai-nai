@@ -1,0 +1,26 @@
+type: object
+required: [message, timestamp, data]
+description: >-
+  Sign-in or refresh. The refresh token is never in the body: it is set as the
+  `__Host-rt` cookie (HttpOnly, Secure, SameSite=Strict, Path=/).
+properties:
+  message:
+    type: string
+    example: Signed in
+  timestamp:
+    type: string
+    format: date-time
+    example: '2026-01-01T00:00:00.000Z'
+  data:
+    type: object
+    required: [accessToken, expiresIn, user]
+    properties:
+      accessToken:
+        type: string
+        description: HS256 JWT. Keep it in memory only; send it as `Authorization Bearer`.
+      expiresIn:
+        type: integer
+        description: Seconds until the access token expires
+        example: 600
+      user:
+        $ref: './auth-user.schema.yaml'
