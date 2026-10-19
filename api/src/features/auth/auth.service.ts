@@ -134,6 +134,8 @@ export const createAuthService = ({
     lang: MailLanguage,
     client: ClientContext
   ): Promise<void> => {
+    // Real elapsed time for the minimum duration; `now()` is the business clock (tests move it).
+    const startedAt = Date.now()
     const at = now()
     const emailKey = sha256(email)
 
@@ -182,7 +184,7 @@ export const createAuthService = ({
     }
     logger.info(LOG.AUTH.codeRequested, { challengeId: challenge.id, sent: shouldSend })
 
-    const remainingMs = at.getTime() + config.startMinDurationMs - Date.now()
+    const remainingMs = startedAt + config.startMinDurationMs - Date.now()
     if (remainingMs > 0) {
       await sleep(remainingMs)
     }
