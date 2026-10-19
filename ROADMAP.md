@@ -404,6 +404,12 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   to keep the table small. Invites expire after **14 days** (purged by the auth cleanup job), each
   user may send **10 per day**, and invite mails count toward `EMAIL_DAILY_LIMIT`. The mail holds
   only the inviter's name and the wallet name, no free text, so it can't carry phishing.
+- **GitGuardian check is red on auth PRs** (from 4.2): its GitHub App flags the made-up passwords
+  in `*.test.ts` / `*.spec.ts` and the `PASSWORD_BREACH_CHECK` setting name as "Generic Password".
+  They are false positives, and the check isn't required, so PRs merge anyway; don't chase it in a
+  feature session. The app ignores `.gitguardian.yaml` (that file only helps a local ggshield).
+  Fix once someone has dashboard access: mark the incidents as false positives and exclude test
+  files in the workspace settings.
 - **Mail on credential change** (from 4.2): ASVS asks to tell the user when a password is set,
   changed or removed. Proposal: one short mail, added with 4.4's Security page.
 - **Open sign-up obligations**: before strangers use the app, add account deletion (with its
