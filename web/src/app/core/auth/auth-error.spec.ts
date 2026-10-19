@@ -6,6 +6,13 @@ describe('authErrorMessage', () => {
     ['OTP_LOCKED', 'auth.codeLocked'],
     ['OTP_EXPIRED', 'auth.codeExpired'],
     ['USER_DISABLED', 'auth.userDisabled'],
+    ['INVALID_CREDENTIALS', 'auth.invalidCredentials'],
+    ['CURRENT_PASSWORD_INVALID', 'auth.currentPasswordInvalid'],
+    ['PASSWORD_TOO_SHORT', 'auth.passwordTooShort'],
+    ['PASSWORD_TOO_LONG', 'auth.passwordTooLong'],
+    ['PASSWORD_TOO_WEAK', 'auth.passwordWeak'],
+    ['PASSWORD_MATCHES_EMAIL', 'auth.passwordSameAsEmail'],
+    ['PASSWORD_BREACHED', 'auth.passwordBreached'],
   ])('maps %s to %s', (code, key) => {
     expect(authErrorMessage({ status: 400, code }, 'fallback')).toEqual({ key })
   })
