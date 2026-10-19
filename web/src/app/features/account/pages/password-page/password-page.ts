@@ -92,7 +92,7 @@ const matchesNewPassword: ValidatorFn = (control) => {
             autocomplete="new-password"
           />
           @if (error(); as message) {
-            <p role="alert" class="text-sm text-destructive">
+            <p role="alert" class="-mt-2 text-sm text-destructive">
               {{ message.key | transloco: message.params }}
             </p>
           }

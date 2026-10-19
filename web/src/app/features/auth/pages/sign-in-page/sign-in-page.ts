@@ -61,7 +61,7 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
           placeholder="name@example.com"
         />
         @if (error(); as message) {
-          <p role="alert" class="text-sm text-destructive">
+          <p role="alert" class="-mt-2 text-sm text-destructive">
             {{ message.key | transloco: message.params }}
           </p>
         }

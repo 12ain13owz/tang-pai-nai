@@ -53,7 +53,7 @@ import { FORM_IMPORTS, InputField, PasswordField, withMessage } from '@/shared/c
           autocomplete="current-password"
         />
         @if (error(); as message) {
-          <p role="alert" class="text-sm text-destructive">
+          <p role="alert" class="-mt-2 text-sm text-destructive">
             {{ message.key | transloco: message.params }}
           </p>
         }

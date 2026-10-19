@@ -145,7 +145,7 @@ const CODE_LENGTH = 6
 
     <ng-template #errorLine>
       @if (shownError(); as message) {
-        <p role="alert" class="text-sm text-destructive">
+        <p role="alert" class="-mt-2 text-sm text-destructive">
           {{ message.key | transloco: message.params }}
         </p>
       }

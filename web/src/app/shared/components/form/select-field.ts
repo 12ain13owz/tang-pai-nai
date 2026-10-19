@@ -28,9 +28,9 @@ import { fieldErrorMessage } from './field-error'
         }
       </hlm-native-select>
       @if (hint()) {
-        <p hlmFieldDescription>{{ hint() }}</p>
+        <p hlmFieldDescription class="-mt-2">{{ hint() }}</p>
       }
-      <hlm-field-error>{{ error() }}</hlm-field-error>
+      <hlm-field-error class="-mt-2">{{ error() }}</hlm-field-error>
     </div>
   `,
 })
