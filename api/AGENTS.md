@@ -29,9 +29,14 @@ Not wired up yet — add inside the existing structure when a consuming project 
 
 Test runner: **Vitest** (`npm test` / `npm run test:watch`, config in `vitest.config.ts`).
 
-**Do not write tests while building or changing a feature. Write tests only when the developer explicitly asks for them** — e.g. "add tests for X". Don't infer this from context (a feature "looking done" is not a request). Writing tests against code the developer hasn't asked to lock down yet means rewriting them on every behavior change, which costs more tokens than writing them once, on request, against settled code.
+**Feature first, tests once it's settled.** Don't write tests while a feature is still being built or reshaped: tests against moving code get rewritten on every behavior change. Write them as the **last step of the feature's PR**, after manual testing (§8) passes and the developer has confirmed the behavior, so they lock down settled code before it merges. In short:
 
-When tests are requested, follow this standard so output stays consistent across the codebase:
+- **New feature**: build it → manual test → developer confirms → write tests (+ OpenAPI doc, §8) → PR. The tests land in the same PR, as its last commit(s), not in a later one.
+- **Changing a feature that has tests**: existing tests must keep passing. When the behavior change is intended, update those tests in the same PR; never delete or skip a test just to get green.
+- **Still experimental** (the developer says the behavior isn't decided): skip the tests for now and note them as pending in `ROADMAP.md`, so they aren't forgotten.
+- Guard-rail tests that don't depend on feature behavior (config checks, invariants) can be written at any time.
+
+When writing tests, follow this standard so output stays consistent across the codebase:
 
 - **Placement & naming** — `<name>.test.ts` beside the file under test (e.g. `error-logger.ts` -> `error-logger.test.ts`), mirroring the production layering. No separate `test/` or `__tests__/` folder.
 - **Structure** — one `describe` per exported function/class; one `it` per behavior. Name `it` blocks after the observable outcome ("returns undefined when stack has no frames"), not implementation steps or generic labels ("test 1", "works").
@@ -607,8 +612,8 @@ A feature moves through these stages, in order:
 
 1. **Implement** the feature per the shapes in §5–6.
 2. **Manual test** the endpoint (e.g. via Postman) — happy path + main error paths.
-3. Once manual testing confirms the behavior is correct, **write tests** (§1) and the
-   **OpenAPI doc** (§6 step 11) together, in the same follow-up change.
+3. Once manual testing confirms the behavior and the developer agrees it's settled, **write tests**
+   (§1) and the **OpenAPI doc** (§6 step 11) together, as the last commits of the same PR.
 4. Run:
 
 ```bash
@@ -619,8 +624,8 @@ npm test           # run whenever test files exist for the touched code (see §1
 
 CI (`.github/workflows/api.yml` at the repo root) runs `lint`, `typecheck`, and `test` on every PR to `main` and every push to `main`, so a change that skips these locally will fail there.
 
-It's fine to land stage 1 as its own commit before stages 2–3 are finished — just don't
-call the feature "done" (or open it for review/PR) until docs + tests land. A feature is
+It's fine to land stage 1 as its own commit before stages 2–3 are finished, and to open the PR
+early for review, but don't call the feature "done" (or ask for merge) until docs + tests land. A feature is
 only complete once all four stages pass and the router is mounted in `src/routes.ts`.
 
 ## 9. Quick do / don't

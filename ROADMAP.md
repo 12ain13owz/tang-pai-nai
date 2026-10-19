@@ -47,7 +47,12 @@ repo, one PR can change spec, API and web together.
 1. **API**. Drizzle schema + migration + seed, then the feature (entity → repository port → service →
    Drizzle adapter → schema/controller/routes), following `AGENTS.md` §6 and §8.
 2. **Web**. Screens under `src/app/features/<feature>/`, following the web repo's `AGENTS.md`.
-3. **Update this file**. Move the feature to ✅ and note any new decision or deferred item.
+3. **Tests**. Once the feature works end to end (manual checks: `curl` for the API, Playwright for
+   the web) and the owner confirms the behavior, write the tests for both apps as the last commits
+   of the PR (see `api/AGENTS.md` §1 Testing). Not earlier: tests against code that is still
+   changing just get rewritten.
+4. **Update this file**. Move the feature to ✅ and note any new decision or deferred item, including
+   tests left pending for a feature that is still experimental.
 
 Small, separate commits per step. Each PR gets a Vercel preview URL, so check it on a phone before
 merging.
