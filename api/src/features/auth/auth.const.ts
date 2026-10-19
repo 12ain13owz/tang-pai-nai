@@ -25,6 +25,22 @@ export const AUTH_LIMITS = {
   RECENT_AUTH_MS: 10 * MINUTE,
   /** Rule 11: HIBP answers slower than this count as unreachable (fail open). */
   BREACH_CHECK_TIMEOUT_MS: 3000,
+  /** Rule 14: the Google round trip (state, nonce, PKCE verifier in a cookie). */
+  GOOGLE_FLOW_TTL_MS: 10 * MINUTE,
+  /** Discovery, JWKS and token requests to Google slower than this fail. */
+  GOOGLE_TIMEOUT_MS: 5000,
+  GOOGLE_CLOCK_TOLERANCE_S: 60,
+  /** A Google `name` longer than this is cut when it becomes the display name. */
+  DISPLAY_NAME_MAX: 100,
+} as const
+
+/** Rule 14: what we ask Google for. */
+export const GOOGLE_OIDC = {
+  SCOPE: 'openid email profile',
+  /** Lets someone with several Google accounts pick one. */
+  PROMPT: 'select_account',
+  /** Behind the web's `/api` rewrite (dev proxy in dev), like every other route. */
+  CALLBACK_PATH: '/api/auth/google/callback',
 } as const
 
 /** Rule 11, the owner's choice (8+, four character classes). The web mirrors these numbers. */
@@ -52,6 +68,14 @@ export enum AuthErrorCode {
   PASSWORD_TOO_WEAK = 'PASSWORD_TOO_WEAK',
   PASSWORD_MATCHES_EMAIL = 'PASSWORD_MATCHES_EMAIL',
   PASSWORD_BREACHED = 'PASSWORD_BREACHED',
+  /** Google sign-in (rule 14): the user said no at Google. */
+  GOOGLE_CANCELLED = 'GOOGLE_CANCELLED',
+  /** State, cookie, code exchange or ID token check failed. */
+  GOOGLE_FAILED = 'GOOGLE_FAILED',
+  /** No identity yet and Google doesn't vouch for the email. */
+  EMAIL_UNVERIFIED = 'EMAIL_UNVERIFIED',
+  /** Rule 1: a new account was needed and `SIGNUP_ENABLED=false`. */
+  SIGNUP_CLOSED = 'SIGNUP_CLOSED',
 }
 
 export const AUTH_MESSAGE = {
@@ -78,7 +102,16 @@ export const AUTH_MESSAGE = {
     'The password needs a lowercase letter, an uppercase letter, a digit and a symbol',
   PASSWORD_MATCHES_EMAIL: 'The password must not be your email',
   PASSWORD_BREACHED: 'This password has appeared in a data breach. Choose another one',
+  PROVIDERS: 'Sign-in providers',
+  GOOGLE: 'Google sign-in',
+  GOOGLE_CANCELLED: 'Google sign-in was cancelled',
+  GOOGLE_FAILED: 'Google sign-in failed. Try again',
+  EMAIL_UNVERIFIED: 'Google has not verified this email',
+  SIGNUP_CLOSED: 'Sign-up is closed',
 }
+
+/** Name of the cookie that carries the Google round trip (rule 14). */
+export const GOOGLE_FLOW_COOKIE = '__Host-goidc'
 
 /** Name of the refresh-token cookie (`__Host-`: Secure, Path=/, no Domain). */
 export const REFRESH_COOKIE = '__Host-rt'

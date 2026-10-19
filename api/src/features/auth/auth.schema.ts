@@ -52,6 +52,18 @@ const passwordRemoveBody = z
 const reauthStartBody = z.object({ lang }).default({ lang: 'th' })
 const reauthVerifyBody = z.object({ code })
 
+// Google sends the browser to these (rule 14), so a bad value never fails validation: it's
+// dropped, and the callback then redirects to the web app's error page instead of showing JSON.
+const queryValue = (max: number) => z.string().max(max).optional().catch(undefined)
+
+const googleStartQuery = z.object({ returnUrl: queryValue(2048) })
+
+const googleCallbackQuery = z.object({
+  code: queryValue(2048),
+  state: queryValue(256),
+  error: queryValue(256),
+})
+
 export const authSchema = {
   emailStart: { body: startBody },
   emailVerify: { body: verifyBody },
@@ -60,6 +72,8 @@ export const authSchema = {
   passwordRemove: { body: passwordRemoveBody },
   reauthStart: { body: reauthStartBody },
   reauthVerify: { body: reauthVerifyBody },
+  googleStart: { query: googleStartQuery },
+  googleCallback: { query: googleCallbackQuery },
 } as const
 
 export type EmailStartInput = z.infer<typeof startBody>
@@ -69,3 +83,5 @@ export type PasswordSetInput = z.infer<typeof passwordSetBody>
 export type PasswordRemoveInput = z.infer<typeof passwordRemoveBody>
 export type ReauthStartInput = z.infer<typeof reauthStartBody>
 export type ReauthVerifyInput = z.infer<typeof reauthVerifyBody>
+export type GoogleStartQuery = z.infer<typeof googleStartQuery>
+export type GoogleCallbackQuery = z.infer<typeof googleCallbackQuery>

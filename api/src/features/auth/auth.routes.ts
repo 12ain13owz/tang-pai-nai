@@ -42,6 +42,10 @@ export const createAuthRouter = (authController: AuthController, webOrigin: stri
   router.post('/refresh', sameOrigin, authController.refresh)
   router.post('/sign-out', sameOrigin, authController.signOut)
   router.get('/me', authenticate, authController.me)
+  router.get('/providers', authController.providers)
+  // Top-level navigations (no Origin check): the browser comes and goes through Google (rule 14).
+  router.get('/google/start', validate(authSchema.googleStart), authController.googleStart)
+  router.get('/google/callback', validate(authSchema.googleCallback), authController.googleCallback)
 
   return router
 }

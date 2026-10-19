@@ -1,14 +1,15 @@
-import { and, desc, eq, gt, isNull, lt, ne, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, isNull, lt, ne, or, sql } from 'drizzle-orm'
 import type { Database } from '@/core/database'
 import {
   otpChallenges,
   passwordCredentials,
   rateLimitBuckets,
   sessions,
+  userIdentities,
   users,
 } from '@/core/database/schema/auth'
 import { wrapUnexpected } from '@/core/error'
-import type { ChallengePurpose, OtpChallenge, Session, User } from './auth.entity'
+import type { ChallengePurpose, OtpChallenge, Session, User, UserIdentity } from './auth.entity'
 import type { AuthRepository } from './auth.repository'
 
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0]
@@ -44,6 +45,8 @@ const toChallenge = (row: ChallengeRow): OtpChallenge => ({
 })
 
 const toSession = (row: typeof sessions.$inferSelect): Session => ({ ...row })
+
+const toIdentity = (row: typeof userIdentities.$inferSelect): UserIdentity => ({ ...row })
 
 const emailChallenge = (destination: string, purpose: ChallengePurpose) =>
   and(
@@ -89,6 +92,47 @@ export const createDrizzleAuthRepository = (db: Executor): AuthRepository => {
           .returning()
         const row = rows.at(0)
         return row ? toUser(row) : null
+      }),
+
+    fillAvatarIfEmpty: async (userId, avatarUrl) =>
+      run('fillAvatarIfEmpty', async () => {
+        await db
+          .update(users)
+          .set({ avatarUrl })
+          .where(and(eq(users.id, userId), isNull(users.avatarUrl)))
+        const row = await db.query.users.findFirst({ where: eq(users.id, userId) })
+        return row ? toUser(row) : null
+      }),
+
+    findIdentity: async (provider, providerSubject) =>
+      run('findIdentity', async () => {
+        const row = await db.query.userIdentities.findFirst({
+          where: and(
+            eq(userIdentities.provider, provider),
+            eq(userIdentities.providerSubject, providerSubject)
+          ),
+        })
+        return row ? toIdentity(row) : null
+      }),
+
+    listIdentities: async (userId) =>
+      run('listIdentities', async () => {
+        const rows = await db.query.userIdentities.findMany({
+          where: eq(userIdentities.userId, userId),
+          orderBy: [asc(userIdentities.createdAt), asc(userIdentities.id)],
+        })
+        return rows.map(toIdentity)
+      }),
+
+    createIdentity: async (data) =>
+      run('createIdentity', async () => {
+        const [row] = await db.insert(userIdentities).values(data).returning()
+        return toIdentity(row)
+      }),
+
+    touchIdentity: async (id, at) =>
+      run('touchIdentity', async () => {
+        await db.update(userIdentities).set({ lastUsedAt: at }).where(eq(userIdentities.id, id))
       }),
 
     findPasswordHash: async (userId) =>

@@ -30,4 +30,7 @@ export type EnvConfig = {
   EMAIL_DAILY_LIMIT: number
   PASSWORD_BREACH_CHECK: PasswordBreachCheck
   HIBP_API_URL: string
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
+  GOOGLE_ISSUER: string
 }

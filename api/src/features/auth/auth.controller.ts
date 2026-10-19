@@ -1,11 +1,19 @@
-import { AppError } from '@/core/error'
+import { AppError, ErrorLogger } from '@/core/error'
 import { ERRORS, ErrorSeverity, HttpStatus } from '@/shared/constants'
 import { createResponse } from '@/shared/utils'
-import { AUTH_LIMITS, AUTH_MESSAGE, REFRESH_COOKIE } from './auth.const'
+import {
+  AUTH_LIMITS,
+  AUTH_MESSAGE,
+  AuthErrorCode,
+  GOOGLE_FLOW_COOKIE,
+  REFRESH_COOKIE,
+} from './auth.const'
 import type { Caller, ClientContext, SignInResult, UserProfile } from './auth.entity'
 import type {
   EmailStartInput,
   EmailVerifyInput,
+  GoogleCallbackQuery,
+  GoogleStartQuery,
   PasswordRemoveInput,
   PasswordSetInput,
   PasswordSignInInput,
@@ -13,7 +21,7 @@ import type {
   ReauthVerifyInput,
 } from './auth.schema'
 import type { AuthService } from './auth.service'
-import type { AuthSessionData, AuthUserData } from './auth.type'
+import type { AuthProvidersData, AuthSessionData, AuthUserData } from './auth.type'
 import type { CookieOptions, NextFunction, Request, Response } from 'express'
 
 // `__Host-` requires Secure, Path=/ and no Domain (auth spec → Tokens & session).
@@ -24,6 +32,23 @@ const COOKIE_OPTIONS: CookieOptions = {
   path: '/',
 }
 
+// The Google round-trip cookie must come back on Google's cross-site redirect, so it's Lax.
+const GOOGLE_FLOW_COOKIE_OPTIONS: CookieOptions = {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'lax',
+  path: '/',
+}
+
+/** `/auth/callback?error=<reason>` on the web app (auth spec rule 14). */
+const GOOGLE_FAILURE_REASONS = new Map<string, string>([
+  [AuthErrorCode.GOOGLE_CANCELLED, 'cancelled'],
+  [AuthErrorCode.EMAIL_UNVERIFIED, 'email_unverified'],
+  [AuthErrorCode.SIGNUP_CLOSED, 'signup_closed'],
+  [AuthErrorCode.USER_DISABLED, 'disabled'],
+  [AuthErrorCode.RATE_LIMITED, 'rate_limited'],
+])
+
 const toUserData = (user: UserProfile): AuthUserData => ({
   id: user.id,
   email: user.email,
@@ -31,6 +56,11 @@ const toUserData = (user: UserProfile): AuthUserData => ({
   avatarUrl: user.avatarUrl,
   timezone: user.timezone,
   hasPassword: user.hasPassword,
+  identities: user.identities.map((identity) => ({
+    provider: identity.provider,
+    email: identity.email,
+    linkedAt: identity.linkedAt.toISOString(),
+  })),
 })
 
 /** `req.auth`, set by `authenticate` in front of every Bearer route. */
@@ -53,11 +83,30 @@ const refreshTokenOf = (req: Request): string | undefined => {
   return typeof value === 'string' && value !== '' ? value : undefined
 }
 
-export const createAuthController = (authService: AuthService) => {
+export interface AuthControllerConfig {
+  /** Where Google sign-in sends the browser back to (`/auth/callback`). */
+  webOrigin: string
+}
+
+export const createAuthController = (authService: AuthService, config: AuthControllerConfig) => {
+  const setRefreshCookie = (res: Response, { refreshToken, refreshExpiresAt }: SignInResult) => {
+    res.cookie(REFRESH_COOKIE, refreshToken, { ...COOKIE_OPTIONS, expires: refreshExpiresAt })
+  }
+
+  const webCallbackUrl = (params: Record<string, string | null>): string => {
+    const url = new URL('/auth/callback', config.webOrigin)
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== null) {
+        url.searchParams.set(key, value)
+      }
+    }
+    return url.toString()
+  }
+
   // Strips the raw refresh token out of the body: it only ever travels in the cookie.
   const sendSession = (res: Response, message: string, result: SignInResult): void => {
-    const { refreshToken, refreshExpiresAt, accessToken, expiresIn, user } = result
-    res.cookie(REFRESH_COOKIE, refreshToken, { ...COOKIE_OPTIONS, expires: refreshExpiresAt })
+    const { accessToken, expiresIn, user } = result
+    setRefreshCookie(res, result)
     const data: AuthSessionData = { accessToken, expiresIn, user: toUserData(user) }
     const response = createResponse(message, data)
     res.status(HttpStatus.OK).json(response)
@@ -185,6 +234,80 @@ export const createAuthController = (authService: AuthService) => {
     }
   }
 
+  const providers = (_req: Request, res: Response): void => {
+    const data: AuthProvidersData = { google: authService.googleEnabled }
+    res.status(HttpStatus.OK).json(createResponse(AUTH_MESSAGE.PROVIDERS, data))
+  }
+
+  /** Rule 14: a top-level navigation from the web app; answers with a redirect to Google. */
+  const googleStart = async (
+    req: Request<unknown, unknown, unknown, GoogleStartQuery>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    if (!authService.googleEnabled) {
+      next(
+        new AppError(ERRORS.notFound(AUTH_MESSAGE.GOOGLE), HttpStatus.NOT_FOUND, ErrorSeverity.WARN)
+      )
+      return
+    }
+    res.set('Cache-Control', 'no-store')
+    try {
+      const { authorizationUrl, flowToken } = await authService.startGoogleSignIn(
+        req.query.returnUrl ?? '/'
+      )
+      res.cookie(GOOGLE_FLOW_COOKIE, flowToken, {
+        ...GOOGLE_FLOW_COOKIE_OPTIONS,
+        maxAge: AUTH_LIMITS.GOOGLE_FLOW_TTL_MS,
+      })
+      res.redirect(HttpStatus.FOUND, authorizationUrl)
+    } catch (error) {
+      // Google unreachable (discovery): the browser is mid-navigation, so show the web's page.
+      ErrorLogger.log(error instanceof Error ? error : new Error(String(error)))
+      res.redirect(HttpStatus.FOUND, webCallbackUrl({ error: 'failed' }))
+    }
+  }
+
+  /** Rule 14: Google sends the browser here. Tokens never go into the redirect URL. */
+  const googleCallback = async (
+    req: Request<unknown, unknown, unknown, GoogleCallbackQuery>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    if (!authService.googleEnabled) {
+      next(
+        new AppError(ERRORS.notFound(AUTH_MESSAGE.GOOGLE), HttpStatus.NOT_FOUND, ErrorSeverity.WARN)
+      )
+      return
+    }
+    res.set('Cache-Control', 'no-store')
+    const cookies = req.cookies as Record<string, unknown> | undefined
+    // eslint-disable-next-line security/detect-object-injection -- a constant key
+    const flowCookie = cookies?.[GOOGLE_FLOW_COOKIE]
+    // One use: whatever happens next, the round trip is over.
+    res.clearCookie(GOOGLE_FLOW_COOKIE, GOOGLE_FLOW_COOKIE_OPTIONS)
+    try {
+      const { code, state, error } = req.query
+      const result = await authService.finishGoogleSignIn(
+        { code, state, error },
+        typeof flowCookie === 'string' ? flowCookie : undefined,
+        clientOf(req)
+      )
+      setRefreshCookie(res, result)
+      const returnUrl = result.returnUrl === '/' ? null : result.returnUrl
+      const linked = result.linked ? 'google' : null
+      res.redirect(HttpStatus.FOUND, webCallbackUrl({ returnUrl, linked }))
+    } catch (error) {
+      const code = error instanceof AppError ? error.code : undefined
+      const reason = (code && GOOGLE_FAILURE_REASONS.get(code)) ?? 'failed'
+      // Domain failures are already logged by the service; anything else is unexpected.
+      if (!code) {
+        ErrorLogger.log(error instanceof Error ? error : new Error(String(error)))
+      }
+      res.redirect(HttpStatus.FOUND, webCallbackUrl({ error: reason }))
+    }
+  }
+
   const me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const user = await authService.getMe(callerOf(req).userId)
@@ -207,6 +330,9 @@ export const createAuthController = (authService: AuthService) => {
     refresh,
     signOut,
     me,
+    providers,
+    googleStart,
+    googleCallback,
   }
 }
 

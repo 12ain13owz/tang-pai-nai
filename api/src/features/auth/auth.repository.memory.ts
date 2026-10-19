@@ -1,11 +1,12 @@
 import { v7 as uuidv7 } from 'uuid'
-import type { OtpChallenge, RateLimitHit, Session, User } from './auth.entity'
+import type { OtpChallenge, RateLimitHit, Session, User, UserIdentity } from './auth.entity'
 import type { AuthRepository } from './auth.repository'
 
 export interface MemoryAuthState {
   users: User[]
   /** userId → Argon2id PHC string. */
   passwords: Map<string, string>
+  identities: UserIdentity[]
   challenges: OtpChallenge[]
   sessions: Session[]
   buckets: Map<string, RateLimitHit>
@@ -14,6 +15,7 @@ export interface MemoryAuthState {
 const emptyState = (): MemoryAuthState => ({
   users: [],
   passwords: new Map(),
+  identities: [],
   challenges: [],
   sessions: [],
   buckets: new Map(),
@@ -46,13 +48,13 @@ export const createMemoryAuthRepository = (
     findUserById: async (id) => state.users.find((user) => user.id === id) ?? null,
     findUserByEmail: async (email) => state.users.find((user) => user.email === email) ?? null,
 
-    createUser: async ({ email, displayName }) => {
+    createUser: async ({ email, displayName, avatarUrl = null }) => {
       const now = new Date()
       const user: User = {
         id: uuidv7(),
         email,
         displayName,
-        avatarUrl: null,
+        avatarUrl,
         emailVerifiedAt: null,
         status: 'active',
         timezone: 'Asia/Bangkok',
@@ -70,6 +72,41 @@ export const createMemoryAuthRepository = (
       }
       user.emailVerifiedAt = at
       return user
+    },
+
+    fillAvatarIfEmpty: async (userId, avatarUrl) => {
+      const user = state.users.find((candidate) => candidate.id === userId)
+      if (!user) {
+        return null
+      }
+      user.avatarUrl ??= avatarUrl
+      return user
+    },
+
+    findIdentity: async (provider, providerSubject) =>
+      state.identities.find(
+        (identity) =>
+          `${identity.provider}:${identity.providerSubject}` === `${provider}:${providerSubject}`
+      ) ?? null,
+    listIdentities: async (userId) =>
+      state.identities.filter((identity) => identity.userId === userId),
+    createIdentity: async (data) => {
+      const key = `${data.provider}:${data.providerSubject}`
+      const taken = state.identities.some(
+        (identity) => `${identity.provider}:${identity.providerSubject}` === key
+      )
+      if (taken) {
+        throw new Error('UNIQUE constraint failed: user_identities.provider_subject')
+      }
+      const identity: UserIdentity = { ...data, id: uuidv7(), createdAt: new Date() }
+      state.identities.push(identity)
+      return identity
+    },
+    touchIdentity: async (id, at) => {
+      const identity = state.identities.find((candidate) => candidate.id === id)
+      if (identity) {
+        identity.lastUsedAt = at
+      }
     },
 
     findPasswordHash: async (userId) => state.passwords.get(userId) ?? null,

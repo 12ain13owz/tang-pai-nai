@@ -3,8 +3,7 @@ import { v7 as uuidv7 } from 'uuid'
 import { epochMs, id, timestamps } from '@/core/database/columns'
 
 // Auth tables (docs/features/auth.md → Data model). Raw codes, link tokens and refresh tokens are
-// never stored, only their hashes; passwords only as Argon2id PHC strings. `user_identities`
-// (4.3) is added with its part.
+// never stored, only their hashes; passwords only as Argon2id PHC strings.
 
 const createdAt = () =>
   epochMs()
@@ -34,6 +33,26 @@ export const passwordCredentials = sqliteTable('password_credentials', {
   passwordHash: text().notNull(),
   updatedAt: epochMs().notNull(),
 })
+
+// Sign-in through an outside provider (4.3: Google). Matched on `sub`, never on email (rule 14).
+export const userIdentities = sqliteTable(
+  'user_identities',
+  {
+    id: id(),
+    userId: text()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    provider: text({ enum: ['google'] }).notNull(),
+    providerSubject: text().notNull(),
+    emailAtLink: text().notNull(),
+    createdAt: createdAt(),
+    lastUsedAt: epochMs().notNull(),
+  },
+  (table) => [
+    uniqueIndex('user_identities_provider_subject_idx').on(table.provider, table.providerSubject),
+    index('user_identities_user_idx').on(table.userId),
+  ]
+)
 
 export const otpChallenges = sqliteTable(
   'otp_challenges',
