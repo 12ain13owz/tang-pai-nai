@@ -14,8 +14,9 @@ Read this first, before `AGENTS.md`, when picking up work or planning a feature.
 
 **Tang Pai Nai (ตังค์ไปไหน, "where did the money go?")** is a personal income / expense tracker. Its
 reference app is **Money Lover**, which the owner uses today; we keep what works there and drop the
-rest. It's for the owner and their family only: no public sign-up, no SEO, no monetisation. It feels
-like a native mobile app (installable PWA with a bottom tab bar).
+rest. It's built for the owner and their family: anyone may sign up, and family members are brought
+in by invitation to a shared wallet. No SEO, no monetisation. It feels like a native mobile app
+(installable PWA with a bottom tab bar).
 
 ## Repo layout
 
@@ -67,7 +68,7 @@ merging.
 | 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys               |
 | 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                |
 | 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                            |
-| 4   | **Auth**                   | ⬜  | ⬜  | **← next.** email OTP / magic link, optional password, Google, phone OTP. [spec](docs/features/auth.md)   |
+| 4   | **Auth**                   | 🚧  | 🚧  | **← in progress**, in 4 parts (see below). [spec](docs/features/auth.md)                                  |
 | 4a  | Offline sync foundation    | ⬜  | ⬜  | encrypted local DB, PIN lock, outbox, `/sync/push` + `/sync/pull`. [spec](docs/features/offline-sync.md)  |
 | 5   | Currency                   | ⬜  | ⬜  | master table, THB default. [spec](docs/features/currency.md)                                              |
 | 6   | Wallet                     | ⬜  | ⬜  | accounts with a currency + balance; `wallet_members` table from day one. [spec](docs/features/wallet.md)  |
@@ -80,16 +81,46 @@ merging.
 | 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                 |
 | 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                        |
 | 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                           |
-| 16  | Family sharing             | ⬜  | ⬜  | share a wallet as editor/viewer; rules decided in [offline-sync](docs/features/offline-sync.md) 13–16     |
+| 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog    |
 | 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys      |
 
-✅ done · ⬜ not started · — not applicable
+✅ done · 🚧 in progress · ⬜ not started · — not applicable
 
 Each row gets its `docs/features/<feature>.md` before work starts. Rows 0–8 (with 4a) are the MVP.
 After #8 the app can replace Money Lover for daily use. Until #17, everything runs **locally only** (see locked
 decision "Local-first").
 
 ---
+
+## Next up: Auth (#4)
+
+Spec: [docs/features/auth.md](docs/features/auth.md). Built in four parts, one PR each, API and web
+together. The endpoints table in the spec says which part each route belongs to.
+
+| Part | What                                                                                      | Status |
+| ---- | ----------------------------------------------------------------------------------------- | ------ |
+| 4.1  | Email code + magic link, open sign-up, sessions (refresh rotation), sign-out, `/auth/me`  | 🚧     |
+| 4.2  | Optional password (Argon2id, breach check), recent-auth rule                              | ⬜     |
+| 4.3  | Google sign-in (OIDC + PKCE)                                                              | ⬜     |
+| 4.4  | Phone OTP, Account → Security (password, phone, linked Google, sessions, sign out others) | ⬜     |
+
+4.1 in detail:
+
+- **API**: tables `users`, `otp_challenges`, `sessions` (with `authTime`), `rate_limit_buckets`
+  (`user_identities` comes with 4.3, `password_credentials` with 4.2). Endpoints
+  `POST /auth/email/start`, `POST /auth/email/verify`, `POST /auth/refresh`, `POST /auth/sign-out`,
+  `GET /auth/me`. `authenticate` middleware, `trust proxy`, `__Host-rt` cookie, Origin check,
+  DB-backed limits, mail through `notifier` in the UI language. New env: `JWT_SECRET`,
+  `OTP_PEPPER` (random values from `setup-env`), `WEB_ORIGIN`, `TRUST_PROXY_HOPS`,
+  `SIGNUP_ENABLED`, `EMAIL_DAILY_LIMIT`. Cleanup (rule 20) as the npm script `auth:cleanup`; its
+  cron endpoint waits for #17.
+- **Web**: sign-in, enter-code (`app-otp-field`) and magic-link (`/auth/link`) pages outside the
+  shell; auth store (access token in memory), API client + interceptor (refresh once on 401, then
+  sign-in), auth guard, silent refresh at start, sign-out on the account page.
+- **Checks**: curl in the sandbox (start → code from stdout → verify → refresh → sign-out, plus
+  wrong, expired, reused codes and limits), Playwright at 375×812 (light/dark, th/en), then tests +
+  OpenAPI once the owner confirms the behaviour.
+- **Not in 4.1**: password, Google, phone, trusted device / PIN / local DB (#4a), invitations (#16).
 
 ## Done: App shell (#3)
 
@@ -286,7 +317,10 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   email + password.
 - **The `users` table holds no password.** Credentials live in their own tables
   (`password_credentials`, `user_identities`).
-- Sign-up is **invite-only** (an allowlist of family emails), with no public registration.
+- **Open sign-up**: anyone who can read their email can create an account. `SIGNUP_ENABLED=false`
+  closes sign-up as a kill switch; a global daily email cap (`EMAIL_DAILY_LIMIT`) limits abuse.
+  Family members join by **invitation** to a shared wallet (#16), matched on their verified email.
+  (Replaced the earlier invite-only allowlist.)
 - The rules follow current OWASP guidance (ASVS 5.0, Authentication / Password Storage / Session
   Management / OAuth 2.0 cheat sheets) and NIST SP 800-63B-4. Specifics are in the spec.
 
@@ -302,6 +336,16 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 - **Local DB library** (#4a): proposal = SQLite WASM in memory + one encrypted snapshot in OPFS;
   alternative Dexie. Confirm with a spike. See [offline-sync](docs/features/offline-sync.md) → Open
   questions.
+- **Invitations** (#16), proposal: the owner invites an email as editor/viewer. An existing user
+  sees the invite in the app; anyone else gets an email whose link opens sign-in with the email
+  filled in, and the invite attaches once that email is verified (matched on the verified email,
+  never on the link, so a forwarded mail grants nothing). At most **one pending invite per wallet
+  and email** (re-sending reuses the row, with a cooldown) and none for someone already a member,
+  to keep the table small. Invites expire after **14 days** (purged by the auth cleanup job), each
+  user may send **10 per day**, and invite mails count toward `EMAIL_DAILY_LIMIT`. The mail holds
+  only the inviter's name and the wallet name, no free text, so it can't carry phishing.
+- **Open sign-up obligations**: before strangers use the app, add account deletion (with its
+  data) and a short privacy notice (PDPA).
 - **Shared wallet categories** (#16): when an editor adds to the owner's wallet, they pick from the
   **owner's** categories (proposal), so the owner's reports stay consistent.
 - **FX / multi-currency reports**: convert to THB with daily rates. Out of scope until a non-THB
