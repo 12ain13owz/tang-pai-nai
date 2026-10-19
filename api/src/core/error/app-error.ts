@@ -2,7 +2,20 @@ import { ErrorSeverity, HttpStatus } from '@/shared/constants'
 import type { EndpointContext, ErrorContext } from './error.type'
 import type { Request } from 'express'
 
+// Body fields that hold a secret (auth spec rule 18). Their values never reach a log line or a dev
+// error response, even when a request fails validation.
+const SECRET_FIELDS = new Set(['code', 'token', 'password', 'currentPassword', 'newPassword'])
+const REDACTED = '[redacted]'
+
+const redactSecrets = (body: Record<string, unknown>): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(body).map(([key, value]) => [key, SECRET_FIELDS.has(key) ? REDACTED : value])
+  )
+
 export class AppError extends Error {
+  /** Machine-readable reason for the client (e.g. `OTP_EXPIRED`), sent beside `message`. */
+  code?: string
+
   constructor(
     message: string,
     public status: HttpStatus = HttpStatus.INTERNAL_SERVER_ERROR,
@@ -30,7 +43,7 @@ export class AppError extends Error {
 
     const body = req.body as Record<string, unknown>
     if (req.body && Object.keys(body).length > 0) {
-      endpoint.body = { ...body }
+      endpoint.body = redactSecrets(body)
     }
 
     this.context.endpoint = endpoint
@@ -39,6 +52,11 @@ export class AppError extends Error {
 
   withOperation(operation: string): this {
     this.context.operation = operation
+    return this
+  }
+
+  withCode(code: string): this {
+    this.code = code
     return this
   }
 

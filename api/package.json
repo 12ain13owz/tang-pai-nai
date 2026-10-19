@@ -18,6 +18,7 @@
     "db:migrate": "tsx --env-file-if-exists=.env.dev src/core/database/migrate.ts",
     "db:seed": "tsx --env-file-if-exists=.env.dev src/core/database/seed.ts",
     "db:studio": "node --env-file-if-exists=.env.dev node_modules/drizzle-kit/bin.cjs studio",
+    "auth:cleanup": "tsx --env-file-if-exists=.env.dev src/features/auth/auth.cleanup.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -35,6 +36,7 @@
     "db:migrate": "Applies pending migrations to DATABASE_URL (loads .env.dev).",
     "db:seed": "Inserts dev data (idempotent; skipped in production).",
     "db:studio": "Opens Drizzle Studio to browse the database (loads .env.dev).",
+    "auth:cleanup": "Deletes auth challenges, sessions and rate-limit buckets that ended over 7 days ago (loads .env.dev).",
     "test": "Runs the test suite once (Vitest).",
     "test:watch": "Runs the test suite in watch mode (Vitest)."
   },
@@ -53,12 +55,14 @@
     "@libsql/client": "^0.18.0",
     "@scalar/express-api-reference": "^0.10.12",
     "chalk": "^6.0.1",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dayjs": "^1.11.21",
     "drizzle-orm": "^0.45.4",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.1",
     "helmet": "^8.3.0",
+    "jose": "^6.2.12",
     "morgan": "^1.11.0",
     "nodemailer": "^10.1.2",
     "uuid": "^14.0.3",
@@ -68,6 +72,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/morgan": "^1.9.10",

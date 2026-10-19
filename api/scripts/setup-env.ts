@@ -1,4 +1,5 @@
 import chalk from 'chalk'
+import { randomBytes } from 'node:crypto'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,6 +11,39 @@ const envExamplePath = join(rootDir, '.env.example')
 const envDevPath = join(rootDir, '.env.dev')
 const envProdPath = join(rootDir, '.env.prod')
 
+// Secrets the app generates for itself (not keys from an outside service). Each env file gets its
+// own random values.
+const GENERATED_SECRETS = ['JWT_SECRET', 'OTP_PEPPER']
+
+const randomSecret = (): string => randomBytes(32).toString('base64url')
+
+const generatedSecrets = (): Record<string, string> =>
+  Object.fromEntries(GENERATED_SECRETS.map((key) => [key, randomSecret()]))
+
+// An env file made before a secret existed gets it added (or filled in when empty), so an
+// existing setup keeps working after an upgrade. Other values are left alone.
+function fillMissingSecrets(targetPath: string): void {
+  let content = readFileSync(targetPath, 'utf-8')
+  const added: string[] = []
+
+  for (const key of GENERATED_SECRETS) {
+    const line = new RegExp(`^${key}=(.*)$`, 'm').exec(content)
+    const value = line?.[1].replace(/^"|"$/g, '').trim()
+    if (value) {
+      continue
+    }
+    content = line
+      ? content.replace(line[0], `${key}="${randomSecret()}"`)
+      : `${content.trimEnd()}\n${key}="${randomSecret()}"\n`
+    added.push(key)
+  }
+
+  if (added.length > 0) {
+    writeFileSync(targetPath, content)
+    console.log(chalk.green(`Added ${added.join(', ')} to ${basename(targetPath)}`))
+  }
+}
+
 function createEnvFile(
   sourcePath: string,
   targetPath: string,
@@ -17,6 +51,7 @@ function createEnvFile(
 ): boolean {
   if (existsSync(targetPath)) {
     console.log(chalk.yellow(`Warning: ${basename(targetPath)} already exists. Skipping creation.`))
+    fillMissingSecrets(targetPath)
     return false
   }
 
@@ -39,8 +74,8 @@ function setupEnv(): void {
   }
 
   try {
-    createEnvFile(envExamplePath, envDevPath, { NODE_ENV: 'development' })
-    createEnvFile(envExamplePath, envProdPath, { NODE_ENV: 'production' })
+    createEnvFile(envExamplePath, envDevPath, { NODE_ENV: 'development', ...generatedSecrets() })
+    createEnvFile(envExamplePath, envProdPath, { NODE_ENV: 'production', ...generatedSecrets() })
 
     console.log(chalk.cyan('\nPlease edit .env.dev and .env.prod with your configuration values.'))
     console.log(chalk.cyan('You can use any text editor (e.g., nano, vim, or VS Code).'))

@@ -4,6 +4,7 @@ import { ERRORS, ErrorSeverity, HttpStatus } from '@/shared/constants'
 import { AppEnv } from '@/shared/types'
 import { createResponse } from '@/shared/utils'
 import { AppError } from './app-error'
+import { TooManyRequestsError } from './domain-error'
 import { ErrorLogger } from './error-logger'
 import type { NextFunction, Request, Response } from 'express'
 
@@ -44,8 +45,12 @@ export const errorHandler = async (
           }
         : undefined
 
-    const response = createResponse(message, data)
+    const code = isAppError ? normalized.code : undefined
+    const response = { ...createResponse(message, data), code }
 
+    if (normalized instanceof TooManyRequestsError) {
+      res.set('Retry-After', String(normalized.retryAfterSeconds))
+    }
     res.status(status).json(response)
   } catch (error) {
     logger.error(error)
