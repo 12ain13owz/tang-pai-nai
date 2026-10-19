@@ -38,6 +38,7 @@ describe('App', () => {
         displayName: 'me',
         avatarUrl: null,
         timezone: 'Asia/Bangkok',
+        hasPassword: false,
       },
     })
     const fixture = TestBed.createComponent(App)

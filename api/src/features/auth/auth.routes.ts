@@ -10,6 +10,35 @@ export const createAuthRouter = (authController: AuthController, webOrigin: stri
 
   router.post('/email/start', validate(authSchema.emailStart), authController.emailStart)
   router.post('/email/verify', validate(authSchema.emailVerify), authController.emailVerify)
+  router.post(
+    '/password/sign-in',
+    validate(authSchema.passwordSignIn),
+    authController.passwordSignIn
+  )
+  router.put(
+    '/password',
+    authenticate,
+    validate(authSchema.passwordSet),
+    authController.passwordSet
+  )
+  router.delete(
+    '/password',
+    authenticate,
+    validate(authSchema.passwordRemove),
+    authController.passwordRemove
+  )
+  router.post(
+    '/reauth/start',
+    authenticate,
+    validate(authSchema.reauthStart),
+    authController.reauthStart
+  )
+  router.post(
+    '/reauth/verify',
+    authenticate,
+    validate(authSchema.reauthVerify),
+    authController.reauthVerify
+  )
   router.post('/refresh', sameOrigin, authController.refresh)
   router.post('/sign-out', sameOrigin, authController.signOut)
   router.get('/me', authenticate, authController.me)

@@ -1,8 +1,14 @@
-import { and, desc, eq, gt, isNull, lt, or, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, isNull, lt, ne, or, sql } from 'drizzle-orm'
 import type { Database } from '@/core/database'
-import { otpChallenges, rateLimitBuckets, sessions, users } from '@/core/database/schema/auth'
+import {
+  otpChallenges,
+  passwordCredentials,
+  rateLimitBuckets,
+  sessions,
+  users,
+} from '@/core/database/schema/auth'
 import { wrapUnexpected } from '@/core/error'
-import type { OtpChallenge, Session, User } from './auth.entity'
+import type { ChallengePurpose, OtpChallenge, Session, User } from './auth.entity'
 import type { AuthRepository } from './auth.repository'
 
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0]
@@ -23,9 +29,12 @@ const toUser = (row: UserRow): User => ({
   updatedAt: row.updatedAt,
 })
 
+// The table also has `sms` / `verify_phone` rows (4.4); this feature only reads email ones.
 const toChallenge = (row: ChallengeRow): OtpChallenge => ({
   id: row.id,
+  purpose: row.purpose === 'reauth' ? 'reauth' : 'sign_in',
   destination: row.destination,
+  userId: row.userId,
   codeHash: row.codeHash,
   linkTokenHash: row.linkTokenHash,
   attempts: row.attempts,
@@ -36,10 +45,10 @@ const toChallenge = (row: ChallengeRow): OtpChallenge => ({
 
 const toSession = (row: typeof sessions.$inferSelect): Session => ({ ...row })
 
-const emailSignIn = (destination: string) =>
+const emailChallenge = (destination: string, purpose: ChallengePurpose) =>
   and(
     eq(otpChallenges.channel, 'email'),
-    eq(otpChallenges.purpose, 'sign_in'),
+    eq(otpChallenges.purpose, purpose),
     eq(otpChallenges.destination, destination)
   )
 
@@ -82,33 +91,61 @@ export const createDrizzleAuthRepository = (db: Executor): AuthRepository => {
         return row ? toUser(row) : null
       }),
 
+    findPasswordHash: async (userId) =>
+      run('findPasswordHash', async () => {
+        const row = await db.query.passwordCredentials.findFirst({
+          where: eq(passwordCredentials.userId, userId),
+        })
+        return row?.passwordHash ?? null
+      }),
+
+    savePasswordHash: async (userId, passwordHash, at) =>
+      run('savePasswordHash', async () => {
+        await db
+          .insert(passwordCredentials)
+          .values({ userId, passwordHash, updatedAt: at })
+          .onConflictDoUpdate({
+            target: passwordCredentials.userId,
+            set: { passwordHash, updatedAt: at },
+          })
+      }),
+
+    deletePasswordHash: async (userId) =>
+      run('deletePasswordHash', async () => {
+        const rows = await db
+          .delete(passwordCredentials)
+          .where(eq(passwordCredentials.userId, userId))
+          .returning({ userId: passwordCredentials.userId })
+        return rows.length > 0
+      }),
+
     createChallenge: async (data) =>
       run('createChallenge', async () => {
         const [row] = await db
           .insert(otpChallenges)
-          .values({ ...data, channel: 'email', purpose: 'sign_in' })
+          .values({ ...data, channel: 'email' })
           .returning()
         return toChallenge(row)
       }),
 
-    expireOpenChallenges: async (destination, at) =>
+    expireOpenChallenges: async (destination, purpose, at) =>
       run('expireOpenChallenges', async () => {
         await db
           .update(otpChallenges)
           .set({ expiresAt: at })
           .where(
             and(
-              emailSignIn(destination),
+              emailChallenge(destination, purpose),
               isNull(otpChallenges.consumedAt),
               gt(otpChallenges.expiresAt, at)
             )
           )
       }),
 
-    findLatestChallenge: async (destination) =>
+    findLatestChallenge: async (destination, purpose) =>
       run('findLatestChallenge', async () => {
         const row = await db.query.otpChallenges.findFirst({
-          where: emailSignIn(destination),
+          where: emailChallenge(destination, purpose),
           orderBy: [desc(otpChallenges.createdAt), desc(otpChallenges.id)],
         })
         return row ? toChallenge(row) : null
@@ -174,6 +211,39 @@ export const createDrizzleAuthRepository = (db: Executor): AuthRepository => {
         return rows.length
       }),
 
+    findActiveSession: async (familyId) =>
+      run('findActiveSession', async () => {
+        const row = await db.query.sessions.findFirst({
+          where: and(eq(sessions.familyId, familyId), isNull(sessions.revokedAt)),
+          orderBy: [desc(sessions.createdAt), desc(sessions.id)],
+        })
+        return row ? toSession(row) : null
+      }),
+
+    setFamilyAuthTime: async (familyId, at) =>
+      run('setFamilyAuthTime', async () => {
+        await db
+          .update(sessions)
+          .set({ authTime: at })
+          .where(and(eq(sessions.familyId, familyId), isNull(sessions.revokedAt)))
+      }),
+
+    revokeOtherFamilies: async (userId, keepFamilyId, at) =>
+      run('revokeOtherFamilies', async () => {
+        const rows = await db
+          .update(sessions)
+          .set({ revokedAt: at })
+          .where(
+            and(
+              eq(sessions.userId, userId),
+              ne(sessions.familyId, keepFamilyId),
+              isNull(sessions.revokedAt)
+            )
+          )
+          .returning({ id: sessions.id })
+        return rows.length
+      }),
+
     // One upsert, so concurrent hits can't both read the same count.
     hitRateLimit: async (key, windowMs, at) =>
       run('hitRateLimit', async () => {
@@ -190,6 +260,15 @@ export const createDrizzleAuthRepository = (db: Executor): AuthRepository => {
           })
           .returning()
         return { count: row.count, windowStart: row.windowStart }
+      }),
+
+    peekRateLimit: async (key, windowMs, at) =>
+      run('peekRateLimit', async () => {
+        const row = await db.query.rateLimitBuckets.findFirst({
+          where: eq(rateLimitBuckets.key, key),
+        })
+        const running = row && row.windowStart.getTime() > at.getTime() - windowMs
+        return running ? { count: row.count, windowStart: row.windowStart } : null
       }),
 
     // Buckets carry no window length, so one older than the longest window (a day) is stale.

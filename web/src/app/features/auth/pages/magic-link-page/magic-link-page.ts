@@ -8,9 +8,8 @@ import { lucideLink2Off } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { toApiError } from '@/core/api'
-import { AuthService } from '@/core/auth'
-import { authErrorMessage } from '@/features/auth/auth-error'
-import type { UiMessage } from '@/features/auth/auth-error'
+import { AuthService, authErrorMessage } from '@/core/auth'
+import type { UiMessage } from '@/core/auth'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
 
 const TOKEN_PATTERN = /^[\w-]{43}$/

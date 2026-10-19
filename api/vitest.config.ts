@@ -23,6 +23,7 @@ export default defineConfig({
       WEB_ORIGIN: 'http://localhost:4200',
       JWT_SECRET: 'test-jwt-secret-test-jwt-secret-0000',
       OTP_PEPPER: 'test-otp-pepper-test-otp-pepper-0000',
+      PASSWORD_BREACH_CHECK: 'off',
     },
   },
 })

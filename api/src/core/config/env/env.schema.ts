@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { ERRORS, LOG_LEVELS } from '@/shared/constants'
 import type { LogLevel } from '@/shared/constants'
-import { AppEnv, EmailProviderName, SmsProviderName } from '@/shared/types'
+import { AppEnv, EmailProviderName, PasswordBreachCheck, SmsProviderName } from '@/shared/types'
 import type { EnvConfig } from './env.type'
 
 const logLevel = Object.keys(LOG_LEVELS) as LogLevel[]
@@ -54,6 +54,12 @@ export const envSchema: z.ZodType<EnvConfig> = z
     OTP_PEPPER: z.string().min(32, ERRORS.minLength('OTP_PEPPER', 32)),
     SIGNUP_ENABLED: z.stringbool().default(true),
     EMAIL_DAILY_LIMIT: z.coerce.number().int().positive().max(100_000).default(100),
+    // Breach check of new passwords (auth rule 11). The URL can point at a local stand-in.
+    PASSWORD_BREACH_CHECK: z.enum(PasswordBreachCheck).default(PasswordBreachCheck.HIBP),
+    HIBP_API_URL: z
+      .url({ protocol: /^https?$/ })
+      .default('https://api.pwnedpasswords.com')
+      .transform((value) => value.replace(/\/+$/, '')),
   })
   .superRefine((env, ctx) => {
     if (env.EMAIL_PROVIDER === EmailProviderName.SMTP && !env.SMTP_URL) {

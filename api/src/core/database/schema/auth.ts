@@ -3,8 +3,8 @@ import { v7 as uuidv7 } from 'uuid'
 import { epochMs, id, timestamps } from '@/core/database/columns'
 
 // Auth tables (docs/features/auth.md → Data model). Raw codes, link tokens and refresh tokens are
-// never stored, only their hashes. `password_credentials` (4.2) and `user_identities` (4.3) are
-// added with their parts.
+// never stored, only their hashes; passwords only as Argon2id PHC strings. `user_identities`
+// (4.3) is added with its part.
 
 const createdAt = () =>
   epochMs()
@@ -26,12 +26,21 @@ export const users = sqliteTable('users', {
   ...timestamps,
 })
 
+// A row exists only while the user has a password (rule 10).
+export const passwordCredentials = sqliteTable('password_credentials', {
+  userId: text()
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  passwordHash: text().notNull(),
+  updatedAt: epochMs().notNull(),
+})
+
 export const otpChallenges = sqliteTable(
   'otp_challenges',
   {
     id: id(),
     channel: text({ enum: ['email', 'sms'] }).notNull(),
-    purpose: text({ enum: ['sign_in', 'verify_phone'] }).notNull(),
+    purpose: text({ enum: ['sign_in', 'reauth', 'verify_phone'] }).notNull(),
     destination: text().notNull(),
     userId: text().references(() => users.id, { onDelete: 'cascade' }),
     codeHash: text().notNull(),

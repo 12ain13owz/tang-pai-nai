@@ -9,3 +9,9 @@ export interface CodeFormControls {
   code: FormControl<string>
 }
 export type CodeFormGroup = FormGroup<CodeFormControls>
+
+export interface PasswordSignInFormControls {
+  email: FormControl<string>
+  password: FormControl<string>
+}
+export type PasswordSignInFormGroup = FormGroup<PasswordSignInFormControls>

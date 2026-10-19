@@ -14,6 +14,7 @@ const session = (accessToken = 'access-1'): AuthSession => ({
     displayName: 'mom',
     avatarUrl: null,
     timezone: 'Asia/Bangkok',
+    hasPassword: false,
   },
 })
 
@@ -125,5 +126,62 @@ describe('AuthService', () => {
     http.expectOne('/api/auth/me').flush(envelope({ ...session().user, displayName: 'Mom' }))
     await done
     expect(store.user()?.displayName).toBe('Mom')
+  })
+
+  it('signs in with a password like a verified code', async () => {
+    const done = service.signInWithPassword('mom@example.com', 'Gr33n Mango Tree')
+
+    const req = http.expectOne('/api/auth/password/sign-in')
+    expect(req.request.body).toEqual({ email: 'mom@example.com', password: 'Gr33n Mango Tree' })
+    req.flush(envelope(session('access-pw')))
+    await done
+    expect(store.status()).toBe('signedIn')
+    expect(store.accessToken()).toBe('access-pw')
+  })
+
+  it('sends the current password only when given, and keeps the returned user', async () => {
+    store.setSession(session())
+    const first = service.setPassword('Blue.Sky.2026')
+    const set = http.expectOne('/api/auth/password')
+    expect(set.request.method).toBe('PUT')
+    expect(set.request.body).toEqual({ newPassword: 'Blue.Sky.2026' })
+    set.flush(envelope({ ...session().user, hasPassword: true }))
+    await first
+    expect(store.user()?.hasPassword).toBe(true)
+
+    const second = service.setPassword('Blue.Sky.2027', 'Blue.Sky.2026')
+    const change = http.expectOne('/api/auth/password')
+    expect(change.request.body).toEqual({
+      newPassword: 'Blue.Sky.2027',
+      currentPassword: 'Blue.Sky.2026',
+    })
+    change.flush(envelope({ ...session().user, hasPassword: true }))
+    await second
+  })
+
+  it('removes the password with a DELETE that may carry the current password', async () => {
+    store.setSession({ ...session(), user: { ...session().user, hasPassword: true } })
+    const done = service.removePassword('Blue.Sky.2026')
+
+    const req = http.expectOne('/api/auth/password')
+    expect(req.request.method).toBe('DELETE')
+    expect(req.request.body).toEqual({ currentPassword: 'Blue.Sky.2026' })
+    req.flush(envelope(session().user))
+    await done
+    expect(store.user()?.hasPassword).toBe(false)
+  })
+
+  it('asks for and confirms a step-up code', async () => {
+    const start = service.startReauth('en')
+    const startReq = http.expectOne('/api/auth/reauth/start')
+    expect(startReq.request.body).toEqual({ lang: 'en' })
+    startReq.flush(envelope(), { status: 202, statusText: 'Accepted' })
+    await start
+
+    const verify = service.verifyReauth('123456')
+    const verifyReq = http.expectOne('/api/auth/reauth/verify')
+    expect(verifyReq.request.body).toEqual({ code: '123456' })
+    verifyReq.flush(envelope())
+    await verify
   })
 })

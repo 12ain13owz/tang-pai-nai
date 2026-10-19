@@ -1,10 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder } from '@angular/forms'
-import { Router } from '@angular/router'
+import { Router, RouterLink } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideLogOut } from '@ng-icons/lucide'
+import { lucideChevronRight, lucideLogOut } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { AuthService, AuthStore, SIGN_IN_URL } from '@/core/auth'
@@ -19,8 +19,8 @@ import { PalettePicker } from './palette-picker'
 
 @Component({
   selector: 'app-account-page',
-  imports: [TranslocoPipe, SelectField, PalettePicker, NgIcon, HlmButton, HlmSpinner],
-  providers: [provideIcons({ lucideLogOut })],
+  imports: [TranslocoPipe, RouterLink, SelectField, PalettePicker, NgIcon, HlmButton, HlmSpinner],
+  providers: [provideIcons({ lucideLogOut, lucideChevronRight })],
   template: `
     <div class="flex flex-col gap-6 p-4">
       @if (authStore.user(); as user) {
@@ -32,6 +32,23 @@ import { PalettePicker } from './palette-picker'
             <p class="text-base font-medium break-all">{{ user.displayName }}</p>
             <p class="text-sm break-all text-muted-foreground">{{ user.email }}</p>
           </div>
+        </section>
+
+        <!-- 4.4 moves this row into Account → Security. -->
+        <section class="flex flex-col gap-3" aria-labelledby="security-heading">
+          <h2 id="security-heading" class="text-sm font-medium text-muted-foreground">
+            {{ 'account.security' | transloco }}
+          </h2>
+          <a
+            routerLink="/account/password"
+            class="flex min-h-14 items-center justify-between gap-4 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground"
+          >
+            <span class="text-base">{{ 'account.password' | transloco }}</span>
+            <span class="flex items-center gap-1 text-sm text-muted-foreground">
+              {{ (user.hasPassword ? 'account.passwordSet' : 'account.passwordUnset') | transloco }}
+              <ng-icon name="lucideChevronRight" size="20" aria-hidden="true" />
+            </span>
+          </a>
         </section>
       }
 

@@ -11,7 +11,7 @@ tags:
   - name: Health
     description: Service health checks
   - name: Auth
-    description: Email code / magic-link sign-in and sessions (docs/features/auth.md)
+    description: Email code / magic-link / password sign-in and sessions (docs/features/auth.md)
   - name: Todo
     description: Reference CRUD feature (in-memory, resets on restart)
 
@@ -22,6 +22,14 @@ paths:
     $ref: './paths/auth/email-start.yaml'
   /auth/email/verify:
     $ref: './paths/auth/email-verify.yaml'
+  /auth/password/sign-in:
+    $ref: './paths/auth/password-sign-in.yaml'
+  /auth/password:
+    $ref: './paths/auth/password.yaml'
+  /auth/reauth/start:
+    $ref: './paths/auth/reauth-start.yaml'
+  /auth/reauth/verify:
+    $ref: './paths/auth/reauth-verify.yaml'
   /auth/refresh:
     $ref: './paths/auth/refresh.yaml'
   /auth/sign-out:

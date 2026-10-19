@@ -29,7 +29,7 @@ import { fieldErrorMessage } from './field-error'
           }
         </div>
       </brn-input-otp>
-      <hlm-field-error class="text-center">{{ error() }}</hlm-field-error>
+      <hlm-field-error class="-mt-2 text-center">{{ error() }}</hlm-field-error>
     </div>
   `,
 })

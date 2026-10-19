@@ -13,6 +13,7 @@ const user = {
   displayName: 'mom',
   avatarUrl: null,
   timezone: 'Asia/Bangkok',
+  hasPassword: false,
 }
 const refreshed = {
   message: 'ok',

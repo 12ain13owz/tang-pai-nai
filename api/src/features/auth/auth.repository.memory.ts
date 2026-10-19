@@ -4,6 +4,8 @@ import type { AuthRepository } from './auth.repository'
 
 export interface MemoryAuthState {
   users: User[]
+  /** userId → Argon2id PHC string. */
+  passwords: Map<string, string>
   challenges: OtpChallenge[]
   sessions: Session[]
   buckets: Map<string, RateLimitHit>
@@ -11,6 +13,7 @@ export interface MemoryAuthState {
 
 const emptyState = (): MemoryAuthState => ({
   users: [],
+  passwords: new Map(),
   challenges: [],
   sessions: [],
   buckets: new Map(),
@@ -69,6 +72,12 @@ export const createMemoryAuthRepository = (
       return user
     },
 
+    findPasswordHash: async (userId) => state.passwords.get(userId) ?? null,
+    savePasswordHash: async (userId, passwordHash) => {
+      state.passwords.set(userId, passwordHash)
+    },
+    deletePasswordHash: async (userId) => state.passwords.delete(userId),
+
     createChallenge: async (data) => {
       const challenge: OtpChallenge = {
         ...data,
@@ -81,18 +90,22 @@ export const createMemoryAuthRepository = (
       return challenge
     },
 
-    expireOpenChallenges: async (destination, at) => {
+    expireOpenChallenges: async (destination, purpose, at) => {
       for (const challenge of state.challenges) {
         const open = !challenge.consumedAt && challenge.expiresAt.getTime() > at.getTime()
-        if (challenge.destination === destination && open) {
+        const same = challenge.destination === destination && challenge.purpose === purpose
+        if (same && open) {
           challenge.expiresAt = at
         }
       }
     },
 
     // Newest first; ties keep insertion order, like ordering by the time-sortable id.
-    findLatestChallenge: async (destination) =>
-      state.challenges.filter((challenge) => challenge.destination === destination).at(-1) ?? null,
+    findLatestChallenge: async (destination, purpose) =>
+      state.challenges
+        .filter((challenge) => challenge.destination === destination)
+        .filter((challenge) => challenge.purpose === purpose)
+        .at(-1) ?? null,
 
     findChallengeByLinkTokenHash: async (linkTokenHash) =>
       state.challenges.find((challenge) => challenge.linkTokenHash === linkTokenHash) ?? null,
@@ -148,6 +161,36 @@ export const createMemoryAuthRepository = (
         session.revokedAt = at
       }
       return active.length
+    },
+
+    findActiveSession: async (familyId) =>
+      state.sessions
+        .filter((session) => session.familyId === familyId && !session.revokedAt)
+        .at(-1) ?? null,
+
+    setFamilyAuthTime: async (familyId, at) => {
+      for (const session of state.sessions) {
+        if (session.familyId === familyId && !session.revokedAt) {
+          session.authTime = at
+        }
+      }
+    },
+
+    revokeOtherFamilies: async (userId, keepFamilyId, at) => {
+      const others = state.sessions.filter(
+        (session) =>
+          session.userId === userId && session.familyId !== keepFamilyId && !session.revokedAt
+      )
+      for (const session of others) {
+        session.revokedAt = at
+      }
+      return others.length
+    },
+
+    peekRateLimit: async (key, windowMs, at) => {
+      const bucket = state.buckets.get(key)
+      const running = bucket && bucket.windowStart.getTime() > at.getTime() - windowMs
+      return running ? { ...bucket } : null
     },
 
     hitRateLimit: async (key, windowMs, at) => {

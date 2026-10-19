@@ -28,4 +28,22 @@ export class ApiClient {
   ): Promise<ApiResponse<T>> {
     return firstValueFrom(this.http.post<ApiResponse<T>>(this.PREFIX + path, body, options))
   }
+
+  async put<T>(
+    path: string,
+    body: unknown = {},
+    options: ApiRequestOptions = {}
+  ): Promise<ApiResponse<T>> {
+    return firstValueFrom(this.http.put<ApiResponse<T>>(this.PREFIX + path, body, options))
+  }
+
+  async delete<T>(
+    path: string,
+    body: unknown = {},
+    options: ApiRequestOptions = {}
+  ): Promise<ApiResponse<T>> {
+    return firstValueFrom(
+      this.http.delete<ApiResponse<T>>(this.PREFIX + path, { ...options, body })
+    )
+  }
 }

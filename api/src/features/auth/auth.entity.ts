@@ -17,10 +17,19 @@ export interface User {
 
 export type NewUser = Pick<User, 'email' | 'displayName'>
 
-/** One "send me a code" request. 4.1 only uses the email channel for sign-in. */
+/** A user as responses show them: whether a password is set comes from its own table. */
+export type UserProfile = User & { hasPassword: boolean }
+
+/** `sign_in`: code + link to sign in. `reauth`: code only, for a signed-in user (rule 13). */
+export type ChallengePurpose = 'sign_in' | 'reauth'
+
+/** One "send me a code" request, on the email channel. */
 export interface OtpChallenge {
   id: string
+  purpose: ChallengePurpose
   destination: string
+  /** Set for `reauth`: the only user who may use the code. */
+  userId: string | null
   codeHash: string
   linkTokenHash: string | null
   attempts: number
@@ -31,7 +40,7 @@ export interface OtpChallenge {
 
 export type NewOtpChallenge = Pick<
   OtpChallenge,
-  'destination' | 'codeHash' | 'linkTokenHash' | 'expiresAt'
+  'purpose' | 'destination' | 'userId' | 'codeHash' | 'linkTokenHash' | 'expiresAt'
 >
 
 /** One refresh token. Every rotation of one sign-in shares `familyId`. */
@@ -86,9 +95,21 @@ export interface ClientContext {
 
 /** A new or rotated session. `refreshToken` is raw: it only ever goes into the cookie. */
 export interface SignInResult {
-  user: User
+  user: UserProfile
   accessToken: string
   expiresIn: number
   refreshToken: string
   refreshExpiresAt: Date
+}
+
+/** The caller of an authenticated route (`req.auth`). */
+export interface Caller {
+  userId: string
+  sessionFamilyId: string
+}
+
+/** `PUT /auth/password`. `currentPassword` is one way to prove recent auth (rule 13). */
+export interface PasswordChange {
+  newPassword: string
+  currentPassword?: string
 }

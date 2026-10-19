@@ -1,6 +1,7 @@
 # Auth
 
-> Status: **4.1 built** (email code + magic link, sessions, sign-out, `/auth/me`); 4.2–4.4 are spec
+> Status: **4.1 built** (email code + magic link, sessions, sign-out, `/auth/me`); **4.2 built**
+> (optional password, recent auth, step-up code); 4.3–4.4 are spec
 > (see [ROADMAP](../../ROADMAP.md#next-up-auth-4)).
 > Code lives in `src/features/auth/`, token helpers in
 > `src/core/security/`, the `authenticate` middleware in `src/core/middleware/`.
@@ -49,8 +50,9 @@ Drizzle schema: `src/core/database/schema/auth.ts`. All ids are UUIDv7, and all 
 - **user_identities** — `id`, `userId`, `provider` (`google`), `providerSubject` (the OIDC `sub`),
   `emailAtLink`, `createdAt`, `lastUsedAt`. Unique on (`provider`, `providerSubject`). Always match on
   `sub`, never on email.
-- **otp_challenges** — `id`, `channel` (`email` | `sms`), `purpose` (`sign_in` | `verify_phone`),
-  `destination` (lowercased email or E.164 phone), `userId?` (set for `verify_phone`), `codeHash`,
+- **otp_challenges** — `id`, `channel` (`email` | `sms`), `purpose` (`sign_in` | `reauth` |
+  `verify_phone`), `destination` (lowercased email or E.164 phone), `userId?` (set for `reauth`
+  and `verify_phone`), `codeHash`,
   `linkTokenHash?` (email only), `attempts`, `expiresAt`, `consumedAt?`, `createdAt`. One row per
   "send me a code" request, on any channel. Index on (`channel`, `destination`, `createdAt`).
 - **sessions** — `id`, `userId`, `familyId`, `tokenHash`, `expiresAt`, `absoluteExpiresAt`,
@@ -58,7 +60,8 @@ Drizzle schema: `src/core/database/schema/auth.ts`. All ids are UUIDv7, and all 
   `revokedAt?`, `replacedById?`, `lastUsedAt`, `userAgent?`, `createdAt`. Each row is one refresh
   token. All rotations of one sign-in share a `familyId`.
 - **rate_limit_buckets** — `key` (e.g. `otp:email:<hash>`, `otp:ip:<hash>`, `verify:ip:<hash>`,
-  `email:global:day`, `otp:sms:<hash>`, `sms:global:day`, `signin:ip:<hash>`), `count`,
+  `email:global:day`, `otp:sms:<hash>`, `sms:global:day`, `pw:email:<hash>`, `pw:ip:<hash>`),
+  `count`,
   `windowStart`. These counters are DB-backed because in-memory limits reset on every serverless
   instance.
 
@@ -133,25 +136,52 @@ Raw OTPs, link tokens and refresh tokens are **never stored**, only their hashes
 10. Passwords are hashed with **Argon2id** (`@node-rs/argon2`, prebuilt so it works on Vercel)
     using at least the OWASP baseline **m = 19 MiB, t = 2, p = 1**. Store the PHC string so the
     parameters can be raised later, and rehash on the next successful sign-in when they change.
-11. Password policy (NIST SP 800-63B-4 / ASVS 5.0):
-    - **Minimum 15 characters** (a single-factor password; passphrases encouraged), **maximum
-      128**. All Unicode is allowed, including spaces, and nothing is truncated.
-    - **No composition rules** (no "must contain a symbol") and **no periodic expiry**.
+11. Password policy. **The owner chose this deliberately** (4.2): it departs from NIST SP
+    800-63B-4 / ASVS 5.0, which ask for 15+ characters and no composition rules, because family
+    members are used to the familiar "8 characters, mixed" rule. The email code stays available, so
+    nobody needs a password. Changing the numbers is one constant (`PASSWORD_POLICY`) on each side.
+    - **Minimum 8 characters, maximum 128**, counted in Unicode code points. All Unicode is
+      allowed, including spaces, and nothing is truncated or normalised.
+    - **Must contain** at least one lowercase letter (`\p{Ll}`), one uppercase letter (`\p{Lu}`),
+      one digit (`\p{Nd}`) and one other character (anything that isn't a letter or digit, so a
+      space or `!` counts). **No periodic expiry.**
     - Reject passwords that appear in known breaches. Use the HIBP k-anonymity range API (only the
-      first 5 chars of the SHA-1 are sent). If HIBP is unreachable, **fail open** and log a warning,
-      so an outage doesn't block users.
-    - Reject passwords equal to the email or the email's local part.
-12. `POST /auth/password/sign-in` returns the same error ("Invalid email or password") for unknown
-    email, wrong password, or a user who has no password set. It runs a dummy Argon2 verify when there
-    is no hash, so timing doesn't reveal which. Rate limits: **5 failures per email per 15 min**
-    (then `429`), and **30 per IP per 15 min**. Limits slow attackers down but don't lock the account
-    hard, so an attacker can't lock a family member out. The email code always remains available.
-13. `PUT /auth/password` (set or change) needs **recent authentication**: the session's last
-    credential check was ≤ 10 min ago (`authTime`, kept on the session family), **or** the current
-    password in the body. On success, it revokes **all other** session families. `DELETE
-/auth/password` removes the password under the same recent-auth rule. "Forgot password" is
-    simply: sign in with an email code, then set a new password. There is no separate reset-token
-    flow.
+      first 5 chars of the SHA-1 are sent, with `Add-Padding`). Env `PASSWORD_BREACH_CHECK`
+      (`hibp` | `off`, default `hibp`) switches it, and `HIBP_API_URL` (default
+      `https://api.pwnedpasswords.com`) can point it at a local stand-in for testing. If HIBP is
+      unreachable or slower than **3 s**, **fail open** and log a warning, so an outage doesn't
+      block users.
+    - Reject passwords equal to the email or the email's local part (case-insensitive).
+    - A refused password is `422` with a `code`: `PASSWORD_TOO_SHORT`, `PASSWORD_TOO_LONG`,
+      `PASSWORD_TOO_WEAK` (a missing character class), `PASSWORD_MATCHES_EMAIL`,
+      `PASSWORD_BREACHED`. The web checks the first four before sending.
+12. `POST /auth/password/sign-in` `{ email, password }` returns the same `400`
+    `INVALID_CREDENTIALS` ("Invalid email or password") for unknown email, wrong password, or a user
+    who has no password set. It runs a dummy Argon2 verify when there is no hash, so timing doesn't
+    reveal which. Rate limits count **failures**: **5 per email per 15 min** and **30 per IP per 15
+    min**; once either is reached, every attempt is `429` (with `Retry-After`) until the window
+    ends, before any password is checked. A successful sign-in doesn't reset them. Limits slow
+    attackers down but don't lock the account hard, so an attacker can't lock a family member out.
+    The email code always remains available. The policy of rule 11 is not checked at sign-in (a
+    stored password stays valid if the policy changes).
+13. `PUT /auth/password` `{ newPassword, currentPassword? }` (set or change) needs **recent
+    authentication**, any one of:
+    - the session family's `authTime` is ≤ **10 min** ago (signing in with a code, link or password
+      sets it; a refresh keeps it);
+    - `currentPassword` is correct (only for a user who has one). A wrong one is `400`
+      `CURRENT_PASSWORD_INVALID` and counts toward the per-email limit of rule 12;
+    - a **step-up code**: `POST /auth/reauth/start` (Bearer, `{ lang }` as in rule 4) mails a
+      **code only** (no link) to the user's own email; `POST /auth/reauth/verify` `{ code }` checks it like rule 7
+      (10 min, 5 wrong attempts, single use, `OTP_*` codes) and sets `authTime` = now on the current
+      session family. It creates no session. Start shares the limits of rule 6 (cooldown, per
+      email, per IP, daily cap), verify the per-IP limit of rule 7.
+
+    Without any of these the answer is `403` `REAUTH_REQUIRED`; the web then asks for the current
+    password or a step-up code and retries. On success, `PUT` revokes **all other** session
+    families and answers the user. `DELETE /auth/password` `{ currentPassword? }` removes the
+    password under the same recent-auth rule (other sessions stay; it is a no-op `200` when no
+    password is set). "Forgot password" is simply: sign in with an email code, then set a new
+    password within 10 min. There is no separate reset-token flow.
 
 **Google (OIDC)**
 
@@ -230,6 +260,8 @@ All live under `/auth`, on the public router. "Bearer" = needs `authenticate`.
 | POST   | `/auth/password/sign-in` | —      | Email + password → user + access token; cookie                 | 4.2  |
 | PUT    | `/auth/password`         | Bearer | Set or change password (recent auth); revokes other sessions   | 4.2  |
 | DELETE | `/auth/password`         | Bearer | Remove password (recent auth)                                  | 4.2  |
+| POST   | `/auth/reauth/start`     | Bearer | Mail a step-up code to the user's own email (rule 13)          | 4.2  |
+| POST   | `/auth/reauth/verify`    | Bearer | `{ code }` → `authTime` = now on the current session family    | 4.2  |
 | POST   | `/auth/phone/start`      | —      | Send SMS code to a verified number (always `202`)              | 4.4  |
 | POST   | `/auth/phone/verify`     | —      | `{ phone, code }` → user + access token; cookie                | 4.4  |
 | POST   | `/auth/phone`            | Bearer | Add or change number (recent auth): send `verify_phone` code   | 4.4  |
@@ -239,12 +271,13 @@ All live under `/auth`, on the public router. "Bearer" = needs `authenticate`.
 | GET    | `/auth/google/callback`  | —      | Finish Google sign-in; sets cookie; redirects to web           | 4.3  |
 | POST   | `/auth/refresh`          | cookie | Rotate refresh token → new access token                        | 4.1  |
 | POST   | `/auth/sign-out`         | cookie | Revoke current session; clear cookie                           | 4.1  |
-| GET    | `/auth/me`               | Bearer | Current user + `hasPassword` + linked providers                | 4.1  |
+| GET    | `/auth/me`               | Bearer | Current user + `hasPassword` (4.2) + linked providers (4.3)    | 4.1  |
 | GET    | `/auth/sessions`         | Bearer | Active sessions (one per family), current one flagged          | 4.4  |
 | DELETE | `/auth/sessions/:id`     | Bearer | Revoke one session family                                      | 4.4  |
 | DELETE | `/auth/sessions`         | Bearer | Revoke all other session families                              | 4.4  |
 
-Exact request/response shapes go in OpenAPI (`/docs`) once the endpoints are built.
+Exact request/response shapes go in OpenAPI (`/docs`) once the endpoints are built. Every `user`
+in a response (sign-in, refresh, `/auth/me`, `PUT /auth/password`) carries `hasPassword`.
 
 ## Web screens
 
@@ -258,7 +291,14 @@ who isn't signed in can't reach the account page.
 - **Enter code**: 6 boxes (`inputmode="numeric"`, `autocomplete="one-time-code"` so the phone can
   auto-fill it), a resend timer, and a "check your email for the link" hint.
 - **Magic-link landing** `/auth/link` and **Google return** `/auth/callback`.
-- **Account → Security**: set/change/remove password, add/change/remove phone number, linked
+- **Sign in with password** `/auth/password`: email + password (`app-password-field`), a link back
+  to the email code. Reached from the sign-in page's "Sign in with password" link.
+- **Password** `/account/password` (4.2, inside the shell): set / change / remove. Until 4.4's
+  Security page exists, the account page has a short "Security" section with one row (password ·
+  set / not set) that opens it; 4.4 moves that row into Account → Security unchanged. A `403
+REAUTH_REQUIRED` opens a confirm step in place: the current password (if one is set) or a
+  step-up code to the user's email (`app-otp-field`), then the action is retried.
+- **Account → Security** (4.4): set/change/remove password, add/change/remove phone number, linked
   Google account, active sessions with
   "sign out other devices".
 
@@ -283,7 +323,7 @@ who isn't signed in can't reach the account page.
 | tripsurance-be                               | Here                                                         | Why                                                  |
 | -------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
 | `User.password` column (bcrypt, cost 10)     | `password_credentials` table, Argon2id                       | User holds no secrets; OWASP's preferred algorithm   |
-| Password: 8+ chars, upper/lower/digit/symbol | 15+ chars, no composition rules, breach check                | NIST SP 800-63B-4 / ASVS 5.0                         |
+| Password: 8+ chars, upper/lower/digit/symbol | Same rule, plus a breach check and "not the email"           | Owner's choice (rule 11); breach check per OWASP     |
 | Refresh token is a JWT                       | Opaque random token                                          | Nothing to decode; it's only ever looked up by hash  |
 | Rotation rejects a reused token              | Reuse **revokes the whole family**                           | Stops the thief as well as the replay                |
 | `SameSite=Lax` + shared `COOKIE_DOMAIN`      | `__Host-` cookie, `SameSite=Strict`, same origin via rewrite | `*.vercel.app` is a public suffix                    |
@@ -306,5 +346,8 @@ lets the web app decide whether to wipe or keep local data.
   `503`, and the web hides the phone link.
 - **Access token lifetime** of 10 min: fine with silent refresh. Raise it only if refresh traffic
   turns out to be a problem.
-- **Password minimum 15** follows NIST for single-factor passwords. If family members find that
-  annoying, 12 is the fallback, but the email code is always there, so 15 is proposed.
+- **Password policy**: decided in 4.2 as 8+ characters with all four character classes (rule 11),
+  the owner's choice over NIST's 15+ without composition rules. Revisit if the app opens to
+  strangers.
+- **Notify on password change**: ASVS asks for a mail when a credential changes. Not in 4.2;
+  proposal: one short mail on set / change / remove, added with 4.4's Security page.

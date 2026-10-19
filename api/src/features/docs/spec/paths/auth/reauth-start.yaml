@@ -1,0 +1,33 @@
+post:
+  tags:
+    - Auth
+  summary: Mail a step-up code to the signed-in user
+  description: >-
+    Sends a 6-digit code (no link, valid 10 minutes, single use) to the user's own email, for
+    `PUT`/`DELETE /auth/password` when the last credential check is older than 10 minutes. Shares
+    the limits of `/auth/email/start` (60 s cooldown and 5 per hour per email, 20 per hour per IP,
+    the daily cap).
+  operationId: reauthStart
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/auth-reauth-start.schema.yaml'
+  responses:
+    '202':
+      description: The code is on its way
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/message-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '403':
+      $ref: '../../components/responses/error.response.yaml'
+    '422':
+      $ref: '../../components/responses/error.response.yaml'
+    '429':
+      $ref: '../../components/responses/too-many-requests.response.yaml'

@@ -8,10 +8,9 @@ import { lucideArrowLeft } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { toApiError } from '@/core/api'
-import { AuthService, safeReturnUrl } from '@/core/auth'
+import { AuthService, safeReturnUrl, authErrorMessage } from '@/core/auth'
+import type { UiMessage } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
-import { authErrorMessage } from '@/features/auth/auth-error'
-import type { UiMessage } from '@/features/auth/auth-error'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
 import type { CodeFormGroup } from '@/features/auth/auth-form.type'
 import { FORM_IMPORTS, OtpField } from '@/shared/components/form'
@@ -40,7 +39,7 @@ const CODE_LENGTH = 6
       <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="onSubmit()">
         <app-otp-field [control]="form.controls.code" [label]="'auth.code' | transloco" />
         @if (error(); as message) {
-          <p role="alert" class="text-center text-sm text-destructive">
+          <p role="alert" class="-mt-2 text-center text-sm text-destructive">
             {{ message.key | transloco: message.params }}
           </p>
         }

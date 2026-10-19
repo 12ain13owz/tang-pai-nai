@@ -165,7 +165,8 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   for secondary actions, `ghost` for header and toolbar icons, `destructive` for delete. Icon-only
   buttons always have an `aria-label`.
 - **Forms**: always the shared `*-field` wrappers (`AGENTS.md` → Forms). Fields stack vertically,
-  full width, `gap-4`. In a sheet, the Save button stays fixed at the bottom, above the keyboard.
+  full width, `gap-4`. Inside a field the label sits 12px above the input, and the hint and the
+  error 4px under it, so a message reads as part of its field. In a sheet, the Save button stays fixed at the bottom, above the keyboard.
 - **Create / edit / pick = bottom sheet** (spartan `drawer`), never a centred dialog. Use a
   full-height sheet for the transaction form and a content-height sheet for pickers and small forms.
   Dismiss by swiping down or tapping the backdrop. If the sheet holds unsaved input, ask first.
@@ -184,7 +185,8 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   online-only lists (shared wallets as a member).
 - **Errors from the server** (a wrong code, a rate limit, no connection) show as one line,
   `role="alert"`, `text-sm text-destructive`, right under the field or above the button they're
-  about. Field-level validation stays in the field (`*-field` wrappers). An "only works online"
+  about (`-mt-2` under a field, so it sits 8px below it, not the form's 16px). One message at a
+  time: a server error clears once the user edits the form. Field-level validation stays in the field (`*-field` wrappers). An "only works online"
   notice is a tinted block (`rounded-xl bg-destructive/10 text-destructive`), and the action it
   blocks is disabled.
 - **Status**: the header's right side holds the connection pill today and the sync status from #4a.

@@ -17,3 +17,5 @@ export const hashCode = createKeyedHasher(env.OTP_PEPPER)
 export { createAccessTokens } from './access-token'
 export type { AccessTokenClaims, AccessTokens } from './access-token'
 export * from './secret'
+export * from './password'
+export * from './breached-password'

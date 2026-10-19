@@ -1,0 +1,8 @@
+# GitGuardian secret scanning (ggshield config v2). Test files hold made-up passwords and codes
+# on purpose (auth specs need values that look real), so they are not scanned. Real secrets live
+# only in the untracked api/.env.* files.
+version: 2
+secret:
+  ignored_paths:
+    - "**/*.test.ts"
+    - "**/*.spec.ts"

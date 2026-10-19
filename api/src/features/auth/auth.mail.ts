@@ -38,3 +38,37 @@ export const buildSignInMail = ({ code, link, lang, expiresInMinutes }: SignInMa
           'ห้ามบอกรหัสนี้กับผู้อื่น ถ้าคุณไม่ได้ขอรหัสนี้ ไม่ต้องทำอะไร',
         ].join('\n'),
       }
+
+interface ReauthMail {
+  code: string
+  lang: MailLanguage
+  expiresInMinutes: number
+}
+
+/** Step-up code for a signed-in user (rule 13). No link: it must be typed where it was asked. */
+export const buildReauthMail = ({ code, lang, expiresInMinutes }: ReauthMail) =>
+  lang === 'en'
+    ? {
+        subject: `${code} is your Tang Pai Nai confirmation code`,
+        text: [
+          `Use this code to confirm it's you before changing your sign-in settings in`,
+          `ตังค์ไปไหน (Tang Pai Nai):`,
+          '',
+          `    ${code}`,
+          '',
+          `The code expires in ${expiresInMinutes} minutes and works once.`,
+          `Don't share this code with anyone. If you didn't ask for it, ignore this email:`,
+          `nothing changes without the code.`,
+        ].join('\n'),
+      }
+    : {
+        subject: `${code} คือรหัสยืนยันตัวตน ตังค์ไปไหน`,
+        text: [
+          'มีการขอยืนยันตัวตนในแอป ตังค์ไปไหน เพื่อแก้ไขการตั้งค่าการเข้าสู่ระบบ รหัสของคุณคือ',
+          '',
+          `    ${code}`,
+          '',
+          `รหัสหมดอายุใน ${expiresInMinutes} นาที และใช้ได้ครั้งเดียว`,
+          'ห้ามบอกรหัสนี้กับผู้อื่น ถ้าคุณไม่ได้ขอรหัสนี้ ไม่ต้องทำอะไร ไม่มีอะไรเปลี่ยนถ้าไม่มีรหัสนี้',
+        ].join('\n'),
+      }

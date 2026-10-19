@@ -7,7 +7,7 @@ import type { AuthSession, AuthStatus, AuthUser } from './auth.type'
 /** Shared by every tab, so two tabs never rotate the same refresh token at once. */
 const REFRESH_LOCK = 'tpn-auth-refresh'
 
-/** The auth endpoints (docs/features/auth.md, part 4.1) and the session they produce. */
+/** The auth endpoints (docs/features/auth.md, parts 4.1–4.2) and the session they produce. */
 @Service()
 export class AuthService {
   private api = inject(ApiClient)
@@ -27,6 +27,49 @@ export class AuthService {
 
   async verifyLink(token: string): Promise<void> {
     await this.verify({ token })
+  }
+
+  /** Rule 12: email + password → a session, like a verified code. */
+  async signInWithPassword(email: string, password: string): Promise<void> {
+    const response = await this.api.post<AuthSession>(
+      '/auth/password/sign-in',
+      { email, password },
+      { context: skipAuthRefresh() }
+    )
+    if (response.data) {
+      this.authStore.setSession(response.data)
+    }
+  }
+
+  /**
+   * Rule 13: set or change the password. Needs recent auth: a fresh sign-in, `currentPassword`,
+   * or a step-up code first (`403 REAUTH_REQUIRED` otherwise). The API signs out other devices.
+   */
+  async setPassword(newPassword: string, currentPassword?: string): Promise<void> {
+    const body = currentPassword === undefined ? { newPassword } : { newPassword, currentPassword }
+    const response = await this.api.put<AuthUser>('/auth/password', body)
+    if (response.data) {
+      this.authStore.user.set(response.data)
+    }
+  }
+
+  /** Rule 13: remove the password, under the same recent-auth rule. */
+  async removePassword(currentPassword?: string): Promise<void> {
+    const body = currentPassword === undefined ? {} : { currentPassword }
+    const response = await this.api.delete<AuthUser>('/auth/password', body)
+    if (response.data) {
+      this.authStore.user.set(response.data)
+    }
+  }
+
+  /** Mails a step-up code to the signed-in user's own email. */
+  async startReauth(lang: string): Promise<void> {
+    await this.api.post('/auth/reauth/start', { lang })
+  }
+
+  /** A right step-up code counts as a fresh credential check for this session. */
+  async verifyReauth(code: string): Promise<void> {
+    await this.api.post('/auth/reauth/verify', { code })
   }
 
   /**

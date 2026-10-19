@@ -25,6 +25,13 @@ const CODE_MESSAGES = new Map<string, string>([
   ['OTP_LOCKED', 'auth.codeLocked'],
   ['OTP_EXPIRED', 'auth.codeExpired'],
   ['USER_DISABLED', 'auth.userDisabled'],
+  ['INVALID_CREDENTIALS', 'auth.invalidCredentials'],
+  ['CURRENT_PASSWORD_INVALID', 'auth.currentPasswordInvalid'],
+  ['PASSWORD_TOO_SHORT', 'auth.passwordTooShort'],
+  ['PASSWORD_TOO_LONG', 'auth.passwordTooLong'],
+  ['PASSWORD_TOO_WEAK', 'auth.passwordWeak'],
+  ['PASSWORD_MATCHES_EMAIL', 'auth.passwordSameAsEmail'],
+  ['PASSWORD_BREACHED', 'auth.passwordBreached'],
 ])
 
 /** What to tell the user about a failed auth call; `fallback` covers anything unexpected. */

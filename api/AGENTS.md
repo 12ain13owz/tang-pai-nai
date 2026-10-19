@@ -345,6 +345,13 @@ How the API authenticates calls (spec: [`docs/features/auth.md`](../docs/feature
 - **Protecting a route**: put `authenticate` (`@/core/middleware`) in front of the handler in
   `*.routes.ts`. It sets `req.auth = { userId, sessionFamilyId }` or answers `401`. The controller
   passes `req.auth.userId` to the service, and every query of user-owned data is scoped by it.
+- **Passwords** (optional, 4.2): Argon2id PHC strings in `password_credentials`
+  (`core/security/password.ts`: `hashPassword`, `verifyPassword`, `passwordNeedsRehash`,
+  `verifyDummyPassword` for the timing guard). Every `user` in a response carries `hasPassword`.
+- **Recent auth** (spec rule 13): routes that change credentials (`PUT` / `DELETE
+/auth/password`, later phone and sessions) check the caller's **session**, not just the JWT:
+  `authTime` ≤ 10 min, or the current password, or a step-up code (`/auth/reauth/start` +
+  `/verify`, which sets `authTime` on the family). Otherwise `403 REAUTH_REQUIRED`.
 - **Status codes**: `401` means only "access token missing / invalid / expired" (the web app
   refreshes once and retries on it), or a dead refresh cookie on `/auth/refresh`
   (`SESSION_EXPIRED` / `SESSION_REVOKED`). Everything else uses 400/403/404/409/422/429 with a
@@ -368,9 +375,14 @@ How the API authenticates calls (spec: [`docs/features/auth.md`](../docs/feature
   | `SIGNUP_ENABLED`    | `false` closes sign-up; existing users still sign in           | `true`                  |
   | `EMAIL_DAILY_LIMIT` | global cap on sign-in emails per day                           | `100`                   |
 
+| `PASSWORD_BREACH_CHECK` | `hibp` checks new passwords against HIBP, `off` skips it | `hibp` |
+| `HIBP_API_URL` | HIBP range API base; a local stand-in when testing | `https://api.pwnedpasswords.com` |
+
 - **Cleanup**: `npm run auth:cleanup` deletes challenges, sessions and buckets that ended over 7
   days ago (a Vercel Cron endpoint replaces it at deploy, #17).
-- **Testing auth**: services use `createMemoryAuthRepository()`; HTTP tests build an app with
+- **Testing auth**: services use `createMemoryAuthRepository()` and `breachChecker:
+skipBreachCheck` (tests never call HIBP; `vitest.config.ts` also sets
+  `PASSWORD_BREACH_CHECK=off`); HTTP tests build an app with
   `express.json()` + `cookieParser()` + the router and pass the shared `accessTokens` from
   `@/core/security` to the service, because `authenticate` verifies with that instance. The
   Drizzle adapter is tested on a temporary SQLite file with the committed migrations
