@@ -3,6 +3,7 @@ import { env } from '@/core/config'
 import { ERRORS, HttpStatus } from '@/shared/constants'
 import { AppEnv } from '@/shared/types'
 import { AppError } from './app-error'
+import { TooManyRequestsError } from './domain-error'
 import { errorHandler } from './error.middleware'
 import type { Response } from 'express'
 
@@ -11,10 +12,11 @@ const originalNodeEnv = env.NODE_ENV
 const makeRes = () => {
   const status = vi.fn()
   const json = vi.fn()
-  const res = { status, json } as unknown as Response
+  const set = vi.fn()
+  const res = { status, json, set } as unknown as Response
   status.mockReturnValue(res)
   json.mockReturnValue(res)
-  return { res, status, json }
+  return { res, status, json, set }
 }
 
 describe('errorHandler', () => {
@@ -78,5 +80,24 @@ describe('errorHandler', () => {
 
     const [payload] = json.mock.calls[0] as [{ data?: unknown }]
     expect(payload.data).toBeUndefined()
+  })
+
+  it('sends the error code beside the message', async () => {
+    const { res, json } = makeRes()
+    const error = new AppError('expired', HttpStatus.BAD_REQUEST).withCode('OTP_EXPIRED')
+
+    await errorHandler(error, {} as never, res, vi.fn())
+
+    const [payload] = json.mock.calls[0] as [{ message: string; code?: string }]
+    expect(payload).toMatchObject({ message: 'expired', code: 'OTP_EXPIRED' })
+  })
+
+  it('sets Retry-After for a rate-limit error', async () => {
+    const { res, status, set } = makeRes()
+
+    await errorHandler(new TooManyRequestsError('slow down', 42), {} as never, res, vi.fn())
+
+    expect(status).toHaveBeenCalledWith(HttpStatus.TOO_MANY_REQUESTS)
+    expect(set).toHaveBeenCalledWith('Retry-After', '42')
   })
 })

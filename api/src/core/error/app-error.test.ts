@@ -61,6 +61,26 @@ describe('AppError', () => {
       const error = new AppError('boom')
       expect(error.withEndpoint(makeReq())).toBe(error)
     })
+
+    it('redacts secret body fields so they never reach a log', () => {
+      const req = makeReq({ body: { email: 'a@b.c', code: '123456', token: 't', password: 'p' } })
+      const error = new AppError('boom').withEndpoint(req)
+
+      expect(error.context.endpoint?.body).toEqual({
+        email: 'a@b.c',
+        code: '[redacted]',
+        token: '[redacted]',
+        password: '[redacted]',
+      })
+    })
+  })
+
+  describe('withCode', () => {
+    it('sets the machine-readable code and is chainable', () => {
+      const error = new AppError('boom')
+      expect(error.withCode('OTP_EXPIRED')).toBe(error)
+      expect(error.code).toBe('OTP_EXPIRED')
+    })
   })
 
   describe('withOperation', () => {
