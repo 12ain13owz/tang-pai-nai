@@ -89,6 +89,8 @@ export const sessions = sqliteTable(
     expiresAt: epochMs().notNull(),
     absoluteExpiresAt: epochMs().notNull(),
     authTime: epochMs().notNull(),
+    // When the family was created (rule 28); copied on rotation like `authTime`.
+    signedInAt: epochMs().notNull(),
     revokedAt: epochMs(),
     replacedById: text(),
     lastUsedAt: epochMs().notNull(),

@@ -115,6 +115,14 @@ export const createDrizzleAuthRepository = (db: Executor): AuthRepository => {
         return row ? toIdentity(row) : null
       }),
 
+    findUserIdentity: async (userId, provider) =>
+      run('findUserIdentity', async () => {
+        const row = await db.query.userIdentities.findFirst({
+          where: and(eq(userIdentities.userId, userId), eq(userIdentities.provider, provider)),
+        })
+        return row ? toIdentity(row) : null
+      }),
+
     listIdentities: async (userId) =>
       run('listIdentities', async () => {
         const rows = await db.query.userIdentities.findMany({
@@ -128,6 +136,15 @@ export const createDrizzleAuthRepository = (db: Executor): AuthRepository => {
       run('createIdentity', async () => {
         const [row] = await db.insert(userIdentities).values(data).returning()
         return toIdentity(row)
+      }),
+
+    deleteIdentity: async (userId, provider) =>
+      run('deleteIdentity', async () => {
+        const rows = await db
+          .delete(userIdentities)
+          .where(and(eq(userIdentities.userId, userId), eq(userIdentities.provider, provider)))
+          .returning({ id: userIdentities.id })
+        return rows.length > 0
       }),
 
     touchIdentity: async (id, at) =>
@@ -270,6 +287,20 @@ export const createDrizzleAuthRepository = (db: Executor): AuthRepository => {
           .update(sessions)
           .set({ authTime: at })
           .where(and(eq(sessions.familyId, familyId), isNull(sessions.revokedAt)))
+      }),
+
+    listActiveSessions: async (userId, at) =>
+      run('listActiveSessions', async () => {
+        const rows = await db.query.sessions.findMany({
+          where: and(
+            eq(sessions.userId, userId),
+            isNull(sessions.revokedAt),
+            gt(sessions.expiresAt, at),
+            gt(sessions.absoluteExpiresAt, at)
+          ),
+          orderBy: [desc(sessions.lastUsedAt), desc(sessions.id)],
+        })
+        return rows.map(toSession)
       }),
 
     revokeOtherFamilies: async (userId, keepFamilyId, at) =>

@@ -8,20 +8,34 @@ import {
   GOOGLE_FLOW_COOKIE,
   REFRESH_COOKIE,
 } from './auth.const'
-import type { Caller, ClientContext, SignInResult, UserProfile } from './auth.entity'
+import type {
+  Caller,
+  ClientContext,
+  SessionSummary,
+  SignInResult,
+  UserProfile,
+} from './auth.entity'
 import type {
   EmailStartInput,
   EmailVerifyInput,
   GoogleCallbackQuery,
   GoogleStartQuery,
-  PasswordRemoveInput,
   PasswordSetInput,
   PasswordSignInInput,
   ReauthStartInput,
   ReauthVerifyInput,
+  RecentAuthInput,
+  SessionParams,
 } from './auth.schema'
 import type { AuthService } from './auth.service'
-import type { AuthProvidersData, AuthSessionData, AuthUserData } from './auth.type'
+import type {
+  AuthDeviceSessionData,
+  AuthGoogleLinkData,
+  AuthProvidersData,
+  AuthSessionData,
+  AuthSessionsRevokedData,
+  AuthUserData,
+} from './auth.type'
 import type { CookieOptions, NextFunction, Request, Response } from 'express'
 
 // `__Host-` requires Secure, Path=/ and no Domain (auth spec → Tokens & session).
@@ -49,6 +63,15 @@ const GOOGLE_FAILURE_REASONS = new Map<string, string>([
   [AuthErrorCode.RATE_LIMITED, 'rate_limited'],
 ])
 
+/** `/account/security?error=<reason>` after linking Google (auth spec rule 29). */
+const GOOGLE_LINK_FAILURE_REASONS = new Map<string, string>([
+  [AuthErrorCode.GOOGLE_CANCELLED, 'cancelled'],
+  [AuthErrorCode.GOOGLE_IN_USE, 'google_in_use'],
+  [AuthErrorCode.IDENTITY_ALREADY_LINKED, 'already_linked'],
+  [AuthErrorCode.USER_DISABLED, 'disabled'],
+  [AuthErrorCode.RATE_LIMITED, 'rate_limited'],
+])
+
 const toUserData = (user: UserProfile): AuthUserData => ({
   id: user.id,
   email: user.email,
@@ -61,6 +84,14 @@ const toUserData = (user: UserProfile): AuthUserData => ({
     email: identity.email,
     linkedAt: identity.linkedAt.toISOString(),
   })),
+})
+
+const toDeviceSessionData = (session: SessionSummary): AuthDeviceSessionData => ({
+  id: session.familyId,
+  userAgent: session.userAgent,
+  signedInAt: session.signedInAt.toISOString(),
+  lastUsedAt: session.lastUsedAt.toISOString(),
+  current: session.current,
 })
 
 /** `req.auth`, set by `authenticate` in front of every Bearer route. */
@@ -93,14 +124,27 @@ export const createAuthController = (authService: AuthService, config: AuthContr
     res.cookie(REFRESH_COOKIE, refreshToken, { ...COOKIE_OPTIONS, expires: refreshExpiresAt })
   }
 
-  const webCallbackUrl = (params: Record<string, string | null>): string => {
-    const url = new URL('/auth/callback', config.webOrigin)
+  const webUrl = (path: string, params: Record<string, string | null>): string => {
+    const url = new URL(path, config.webOrigin)
     for (const [key, value] of Object.entries(params)) {
       if (value !== null) {
         url.searchParams.set(key, value)
       }
     }
     return url.toString()
+  }
+
+  const webCallbackUrl = (params: Record<string, string | null>): string =>
+    webUrl('/auth/callback', params)
+
+  const notFoundGoogle = () =>
+    new AppError(ERRORS.notFound(AUTH_MESSAGE.GOOGLE), HttpStatus.NOT_FOUND, ErrorSeverity.WARN)
+
+  const setGoogleFlowCookie = (res: Response, flowToken: string) => {
+    res.cookie(GOOGLE_FLOW_COOKIE, flowToken, {
+      ...GOOGLE_FLOW_COOKIE_OPTIONS,
+      maxAge: AUTH_LIMITS.GOOGLE_FLOW_TTL_MS,
+    })
   }
 
   // Strips the raw refresh token out of the body: it only ever travels in the cookie.
@@ -168,13 +212,18 @@ export const createAuthController = (authService: AuthService, config: AuthContr
   }
 
   const passwordRemove = async (
-    req: Request<unknown, unknown, PasswordRemoveInput>,
+    req: Request<unknown, unknown, RecentAuthInput>,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
-      const { currentPassword } = req.body
-      const user = await authService.removePassword(callerOf(req), currentPassword, clientOf(req))
+      const { currentPassword, lang } = req.body
+      const user = await authService.removePassword(
+        callerOf(req),
+        currentPassword,
+        clientOf(req),
+        lang
+      )
       const response = createResponse(AUTH_MESSAGE.PASSWORD_REMOVED, toUserData(user))
       res.status(HttpStatus.OK).json(response)
     } catch (error) {
@@ -246,20 +295,16 @@ export const createAuthController = (authService: AuthService, config: AuthContr
     next: NextFunction
   ): Promise<void> => {
     if (!authService.googleEnabled) {
-      next(
-        new AppError(ERRORS.notFound(AUTH_MESSAGE.GOOGLE), HttpStatus.NOT_FOUND, ErrorSeverity.WARN)
-      )
+      next(notFoundGoogle())
       return
     }
     res.set('Cache-Control', 'no-store')
     try {
       const { authorizationUrl, flowToken } = await authService.startGoogleSignIn(
-        req.query.returnUrl ?? '/'
+        req.query.returnUrl ?? '/',
+        req.query.lang
       )
-      res.cookie(GOOGLE_FLOW_COOKIE, flowToken, {
-        ...GOOGLE_FLOW_COOKIE_OPTIONS,
-        maxAge: AUTH_LIMITS.GOOGLE_FLOW_TTL_MS,
-      })
+      setGoogleFlowCookie(res, flowToken)
       res.redirect(HttpStatus.FOUND, authorizationUrl)
     } catch (error) {
       // Google unreachable (discovery): the browser is mid-navigation, so show the web's page.
@@ -268,43 +313,147 @@ export const createAuthController = (authService: AuthService, config: AuthContr
     }
   }
 
-  /** Rule 14: Google sends the browser here. Tokens never go into the redirect URL. */
+  /** The `?error=` reason for a failed callback; unexpected errors are logged here. */
+  const googleFailureReason = (error: unknown, reasons: Map<string, string>): string => {
+    const code = error instanceof AppError ? error.code : undefined
+    // Domain failures are already logged by the service; anything else is unexpected.
+    if (!code) {
+      ErrorLogger.log(error instanceof Error ? error : new Error(String(error)))
+    }
+    return (code && reasons.get(code)) ?? 'failed'
+  }
+
+  /**
+   * Rules 14 and 29: Google sends the browser here, for a sign-in or a link (the cookie says
+   * which). Tokens never go into the redirect URL.
+   */
   const googleCallback = async (
     req: Request<unknown, unknown, unknown, GoogleCallbackQuery>,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     if (!authService.googleEnabled) {
-      next(
-        new AppError(ERRORS.notFound(AUTH_MESSAGE.GOOGLE), HttpStatus.NOT_FOUND, ErrorSeverity.WARN)
-      )
+      next(notFoundGoogle())
       return
     }
     res.set('Cache-Control', 'no-store')
     const cookies = req.cookies as Record<string, unknown> | undefined
     // eslint-disable-next-line security/detect-object-injection -- a constant key
     const flowCookie = cookies?.[GOOGLE_FLOW_COOKIE]
+    const flowToken = typeof flowCookie === 'string' ? flowCookie : undefined
     // One use: whatever happens next, the round trip is over.
     res.clearCookie(GOOGLE_FLOW_COOKIE, GOOGLE_FLOW_COOKIE_OPTIONS)
+    const { code, state, error } = req.query
+
+    if ((await authService.googleFlowMode(flowToken)) === 'link') {
+      try {
+        const result = await authService.finishGoogleLink(
+          { code, state, error },
+          flowToken,
+          clientOf(req)
+        )
+        res.redirect(HttpStatus.FOUND, webUrl(result.returnUrl, { linked: 'google' }))
+      } catch (failure) {
+        const reason = googleFailureReason(failure, GOOGLE_LINK_FAILURE_REASONS)
+        const params = { error: reason === 'cancelled' ? null : reason }
+        res.redirect(HttpStatus.FOUND, webUrl(AUTH_LIMITS.GOOGLE_LINK_RETURN_PATH, params))
+      }
+      return
+    }
+
     try {
-      const { code, state, error } = req.query
       const result = await authService.finishGoogleSignIn(
         { code, state, error },
-        typeof flowCookie === 'string' ? flowCookie : undefined,
+        flowToken,
         clientOf(req)
       )
       setRefreshCookie(res, result)
       const returnUrl = result.returnUrl === '/' ? null : result.returnUrl
       const linked = result.linked ? 'google' : null
       res.redirect(HttpStatus.FOUND, webCallbackUrl({ returnUrl, linked }))
-    } catch (error) {
-      const code = error instanceof AppError ? error.code : undefined
-      const reason = (code && GOOGLE_FAILURE_REASONS.get(code)) ?? 'failed'
-      // Domain failures are already logged by the service; anything else is unexpected.
-      if (!code) {
-        ErrorLogger.log(error instanceof Error ? error : new Error(String(error)))
-      }
+    } catch (failure) {
+      const reason = googleFailureReason(failure, GOOGLE_FAILURE_REASONS)
       res.redirect(HttpStatus.FOUND, webCallbackUrl({ error: reason }))
+    }
+  }
+
+  /** Rule 29: an API call (recent auth); the web then navigates to `authorizationUrl`. */
+  const googleLink = async (
+    req: Request<unknown, unknown, RecentAuthInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { currentPassword, lang } = req.body
+      const { authorizationUrl, flowToken } = await authService.startGoogleLink(
+        callerOf(req),
+        currentPassword,
+        lang,
+        clientOf(req)
+      )
+      setGoogleFlowCookie(res, flowToken)
+      const data: AuthGoogleLinkData = { authorizationUrl }
+      res.status(HttpStatus.OK).json(createResponse(AUTH_MESSAGE.GOOGLE_LINK_STARTED, data))
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /** Rule 30. */
+  const googleUnlink = async (
+    req: Request<unknown, unknown, RecentAuthInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { currentPassword, lang } = req.body
+      const user = await authService.unlinkGoogle(
+        callerOf(req),
+        currentPassword,
+        lang,
+        clientOf(req)
+      )
+      res.status(HttpStatus.OK).json(createResponse(AUTH_MESSAGE.GOOGLE_UNLINKED, toUserData(user)))
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /** Rule 28. */
+  const sessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const list = await authService.listSessions(callerOf(req))
+      const data: AuthDeviceSessionData[] = list.map(toDeviceSessionData)
+      res.status(HttpStatus.OK).json(createResponse(AUTH_MESSAGE.SESSIONS, data))
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  const sessionRevoke = async (
+    req: Request<SessionParams>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      await authService.revokeSession(callerOf(req), req.params.id)
+      res.status(HttpStatus.OK).json(createResponse(AUTH_MESSAGE.SESSION_SIGNED_OUT))
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  const sessionsRevokeOthers = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const revoked = await authService.revokeOtherSessions(callerOf(req))
+      const data: AuthSessionsRevokedData = { revoked }
+      res.status(HttpStatus.OK).json(createResponse(AUTH_MESSAGE.OTHER_SESSIONS_SIGNED_OUT, data))
+    } catch (error) {
+      next(error)
     }
   }
 
@@ -333,6 +482,11 @@ export const createAuthController = (authService: AuthService, config: AuthContr
     providers,
     googleStart,
     googleCallback,
+    googleLink,
+    googleUnlink,
+    sessions,
+    sessionRevoke,
+    sessionsRevokeOthers,
   }
 }
 

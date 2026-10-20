@@ -27,6 +27,8 @@ export const AUTH_LIMITS = {
   BREACH_CHECK_TIMEOUT_MS: 3000,
   /** Rule 14: the Google round trip (state, nonce, PKCE verifier in a cookie). */
   GOOGLE_FLOW_TTL_MS: 10 * MINUTE,
+  /** Rule 29: where the web app shows the outcome of linking Google while signed in. */
+  GOOGLE_LINK_RETURN_PATH: '/account/security',
   /** Discovery, JWKS and token requests to Google slower than this fail. */
   GOOGLE_TIMEOUT_MS: 5000,
   GOOGLE_CLOCK_TOLERANCE_S: 60,
@@ -76,6 +78,12 @@ export enum AuthErrorCode {
   EMAIL_UNVERIFIED = 'EMAIL_UNVERIFIED',
   /** Rule 1: a new account was needed and `SIGNUP_ENABLED=false`. */
   SIGNUP_CLOSED = 'SIGNUP_CLOSED',
+  /** Rule 28: `DELETE /auth/sessions/:id` on the caller's own session (sign out instead). */
+  CURRENT_SESSION = 'CURRENT_SESSION',
+  /** Rule 29: the user already has a Google identity; unlink it first. */
+  IDENTITY_ALREADY_LINKED = 'IDENTITY_ALREADY_LINKED',
+  /** Rule 29: that Google account belongs to another user (accounts are never merged). */
+  GOOGLE_IN_USE = 'GOOGLE_IN_USE',
 }
 
 export const AUTH_MESSAGE = {
@@ -108,6 +116,15 @@ export const AUTH_MESSAGE = {
   GOOGLE_FAILED: 'Google sign-in failed. Try again',
   EMAIL_UNVERIFIED: 'Google has not verified this email',
   SIGNUP_CLOSED: 'Sign-up is closed',
+  SESSIONS: 'Active sessions',
+  SESSION_SIGNED_OUT: 'That device is signed out',
+  OTHER_SESSIONS_SIGNED_OUT: 'Other devices are signed out',
+  CURRENT_SESSION: 'This is the current session. Sign out instead',
+  SESSION: 'Session',
+  GOOGLE_LINK_STARTED: 'Continue at Google to link the account',
+  GOOGLE_UNLINKED: 'Google is no longer linked',
+  IDENTITY_ALREADY_LINKED: 'A Google account is already linked. Unlink it first',
+  GOOGLE_IN_USE: 'This Google account is linked to another account',
 }
 
 /** Name of the cookie that carries the Google round trip (rule 14). */

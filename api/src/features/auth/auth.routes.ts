@@ -46,6 +46,27 @@ export const createAuthRouter = (authController: AuthController, webOrigin: stri
   // Top-level navigations (no Origin check): the browser comes and goes through Google (rule 14).
   router.get('/google/start', validate(authSchema.googleStart), authController.googleStart)
   router.get('/google/callback', validate(authSchema.googleCallback), authController.googleCallback)
+  // Rules 29–30: linking is an API call that hands back Google's URL, not a navigation.
+  router.post(
+    '/google/link',
+    authenticate,
+    validate(authSchema.googleLink),
+    authController.googleLink
+  )
+  router.delete(
+    '/google/link',
+    authenticate,
+    validate(authSchema.googleUnlink),
+    authController.googleUnlink
+  )
+  router.get('/sessions', authenticate, authController.sessions)
+  router.delete('/sessions', authenticate, authController.sessionsRevokeOthers)
+  router.delete(
+    '/sessions/:id',
+    authenticate,
+    validate(authSchema.sessionRevoke),
+    authController.sessionRevoke
+  )
 
   return router
 }

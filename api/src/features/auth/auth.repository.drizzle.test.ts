@@ -54,6 +54,7 @@ const newSession = async (overrides: { id: string; familyId: string; tokenHash: 
     expiresAt: later(1000),
     absoluteExpiresAt: later(2000),
     authTime: AT,
+    signedInAt: AT,
     lastUsedAt: AT,
     userAgent: null,
   })
@@ -222,6 +223,7 @@ describe('session families', () => {
       expiresAt: later(1000),
       absoluteExpiresAt: later(2000),
       authTime: AT,
+      signedInAt: AT,
       lastUsedAt: AT,
       userAgent: null,
     })

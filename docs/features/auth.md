@@ -314,8 +314,8 @@ SMS provider prints the code, so the whole flow is testable without an SMS accou
       thrown out can sign in again. The caller's own session must still be active, as on every
       credential route. A revoked device's access token keeps working for its last ≤ 10 min, but
       its next refresh is `SESSION_REVOKED`.
-29. **Linking Google while signed in.** `POST /auth/google/link` (Bearer, `{ lang }`) needs
-    Google on (`404` otherwise) and recent auth (rule 13). A user has **at most one** Google
+29. **Linking Google while signed in.** `POST /auth/google/link` (Bearer,
+    `{ currentPassword?, lang }`) needs Google on (`404` otherwise) and recent auth (rule 13). A user has **at most one** Google
     identity: one already linked → `409` `IDENTITY_ALREADY_LINKED` (unlink first). It sets the
     `__Host-goidc` cookie as rule 14's start does, with `mode: link`, the caller's user id and
     session family, and answers `{ authorizationUrl }`; the web then navigates there.
@@ -328,8 +328,9 @@ SMS provider prints the code, so the whole flow is testable without an SMS accou
       **need not** match `users.email`, and `email_verified` isn't required: the user proved both
       accounts just now. An empty `avatarUrl` is filled, as in rule 14.
     - It creates **no session** and leaves the refresh cookie alone. It redirects to
-      `/account/security?linked=google`, or `/account/security?error=<reason>` (`cancelled` shows
-      nothing); never to `/auth/callback`.
+      `/account/security?linked=google`, or `/account/security?error=<reason>`: `google_in_use`,
+      `already_linked` (another Google was linked meanwhile), `disabled`, `rate_limited` or
+      `failed`; a cancel comes back with no `error`. Never to `/auth/callback`.
 30. **Unlinking Google.** `DELETE /auth/google/link` `{ currentPassword?, lang }` needs recent
     auth (rule 13), removes the identity and answers the user; a no-op `200` when none is linked.
     Sessions made with Google stay; the email code always remains a way in.
