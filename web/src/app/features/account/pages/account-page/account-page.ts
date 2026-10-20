@@ -13,13 +13,23 @@ import type { Language } from '@/core/i18n'
 import { DeviceStorageService } from '@/core/pwa'
 import { PALETTES, ThemeService } from '@/core/theme'
 import type { PaletteId, ThemePreference } from '@/core/theme'
+import { GoogleLogo } from '@/shared/components/brand'
 import { SelectField } from '@/shared/components/form'
 import type { SelectOption } from '@/shared/types'
 import { PalettePicker } from './palette-picker'
 
 @Component({
   selector: 'app-account-page',
-  imports: [TranslocoPipe, RouterLink, SelectField, PalettePicker, NgIcon, HlmButton, HlmSpinner],
+  imports: [
+    TranslocoPipe,
+    RouterLink,
+    SelectField,
+    PalettePicker,
+    NgIcon,
+    HlmButton,
+    HlmSpinner,
+    GoogleLogo,
+  ],
   providers: [provideIcons({ lucideLogOut, lucideChevronRight })],
   template: `
     <div class="flex flex-col gap-6 p-4">
@@ -49,6 +59,24 @@ import { PalettePicker } from './palette-picker'
               <ng-icon name="lucideChevronRight" size="20" aria-hidden="true" />
             </span>
           </a>
+          <!-- Read-only until 4.4 adds linking and unlinking. -->
+          @if (googleEnabled()) {
+            @let google = googleIdentity();
+            <div
+              class="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground"
+            >
+              <app-google-logo />
+              <span class="flex min-w-0 flex-1 flex-col">
+                <span class="text-base">{{ 'account.google' | transloco }}</span>
+                @if (google) {
+                  <span class="truncate text-sm text-muted-foreground">{{ google.email }}</span>
+                }
+              </span>
+              <span class="text-sm text-muted-foreground">
+                {{ (google ? 'account.googleLinked' : 'account.googleNotLinked') | transloco }}
+              </span>
+            </div>
+          }
         </section>
       }
 
@@ -142,6 +170,9 @@ export class AccountPage {
   protected authStore = inject(AuthStore)
 
   protected isSigningOut = signal(false)
+  protected googleEnabled = signal(false)
+  // Google is the only provider so far (rule 14); 4.4 adds the rest of Account › Security.
+  protected googleIdentity = computed(() => this.authStore.user()?.identities.at(0) ?? null)
   protected signOutFailed = signal(false)
 
   protected readonly palettes = PALETTES
@@ -165,6 +196,9 @@ export class AccountPage {
   constructor() {
     // Fresh profile; the one from sign-in is shown meanwhile, and offline it simply stays.
     this.authService.loadMe().catch(() => undefined)
+    void this.authService.providers().then((providers) => {
+      this.googleEnabled.set(providers.google)
+    })
 
     this.languageControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((language) => {
       if (language) {

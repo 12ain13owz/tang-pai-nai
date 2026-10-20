@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/libsql/migrator'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -5,6 +6,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { env } from '@/core/config'
 import { createDatabase } from '@/core/database/client'
+import { users } from '@/core/database/schema/auth'
 import { createDrizzleAuthRepository } from './auth.repository.drizzle'
 import type { AuthRepository } from './auth.repository'
 
@@ -16,12 +18,14 @@ const later = (ms: number) => new Date(AT.getTime() + ms)
 let dir: string
 let close: () => void
 let repo: AuthRepository
+let database: ReturnType<typeof createDatabase>['db']
 
 beforeEach(async () => {
   dir = mkdtempSync(join(tmpdir(), 'tpn-auth-'))
   const { client, db } = createDatabase({ ...env, DATABASE_URL: `file:${join(dir, 'test.db')}` })
   await migrate(db, { migrationsFolder: 'drizzle' })
   repo = createDrizzleAuthRepository(db)
+  database = db
   close = () => client.close()
 })
 
@@ -239,5 +243,85 @@ describe('peekRateLimit', () => {
     expect(await repo.peekRateLimit('k', 60_000, later(1))).toEqual({ count: 2, windowStart: AT })
     expect(await repo.peekRateLimit('k', 60_000, later(1))).toEqual({ count: 2, windowStart: AT })
     expect(await repo.peekRateLimit('k', 60_000, later(60_000))).toBeNull()
+  })
+})
+
+describe('identities', () => {
+  it('creates, finds by provider + sub, lists and touches an identity', async () => {
+    const user = await repo.createUser({ email: 'a@example.com', displayName: 'a' })
+
+    const created = await repo.createIdentity({
+      userId: user.id,
+      provider: 'google',
+      providerSubject: 'sub-1',
+      emailAtLink: 'a@gmail.com',
+      lastUsedAt: AT,
+    })
+    await repo.touchIdentity(created.id, later(5000))
+
+    expect(await repo.findIdentity('google', 'sub-2')).toBeNull()
+    expect(await repo.findIdentity('google', 'sub-1')).toMatchObject({
+      id: created.id,
+      userId: user.id,
+      emailAtLink: 'a@gmail.com',
+      lastUsedAt: later(5000),
+    })
+    expect(await repo.listIdentities(user.id)).toHaveLength(1)
+    expect(await repo.listIdentities('someone-else')).toEqual([])
+  })
+
+  it('refuses a second link of the same provider account', async () => {
+    const one = await repo.createUser({ email: 'a@example.com', displayName: 'a' })
+    const two = await repo.createUser({ email: 'b@example.com', displayName: 'b' })
+    const link = {
+      provider: 'google' as const,
+      providerSubject: 'sub-1',
+      emailAtLink: 'a@gmail.com',
+      lastUsedAt: AT,
+    }
+    await repo.createIdentity({ ...link, userId: one.id })
+
+    await expect(repo.createIdentity({ ...link, userId: two.id })).rejects.toMatchObject({
+      status: 500,
+    })
+  })
+
+  it('goes away with its user', async () => {
+    const user = await repo.createUser({ email: 'a@example.com', displayName: 'a' })
+    await repo.createIdentity({
+      userId: user.id,
+      provider: 'google',
+      providerSubject: 'sub-1',
+      emailAtLink: 'a@gmail.com',
+      lastUsedAt: AT,
+    })
+
+    await database.delete(users).where(eq(users.id, user.id))
+
+    expect(await repo.findIdentity('google', 'sub-1')).toBeNull()
+  })
+})
+
+describe('fillAvatarIfEmpty', () => {
+  it('sets a missing avatar and leaves one that is there', async () => {
+    const user = await repo.createUser({ email: 'a@example.com', displayName: 'a' })
+
+    expect(await repo.fillAvatarIfEmpty(user.id, 'https://x.test/1.png')).toMatchObject({
+      avatarUrl: 'https://x.test/1.png',
+    })
+    expect(await repo.fillAvatarIfEmpty(user.id, 'https://x.test/2.png')).toMatchObject({
+      avatarUrl: 'https://x.test/1.png',
+    })
+    expect(await repo.fillAvatarIfEmpty('missing', 'https://x.test/3.png')).toBeNull()
+  })
+
+  it('creates a user with an avatar when one is given', async () => {
+    const user = await repo.createUser({
+      email: 'a@example.com',
+      displayName: 'a',
+      avatarUrl: 'https://x.test/a.png',
+    })
+
+    expect(user.avatarUrl).toBe('https://x.test/a.png')
   })
 })

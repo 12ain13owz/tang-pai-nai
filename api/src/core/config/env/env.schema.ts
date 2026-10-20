@@ -6,6 +6,11 @@ import type { EnvConfig } from './env.type'
 
 const logLevel = Object.keys(LOG_LEVELS) as LogLevel[]
 
+// An empty value (`KEY=""` in .env.example) means "not set".
+const optionalSecret = z
+  .union([z.literal('').transform(() => undefined), z.string().trim().min(1)])
+  .optional()
+
 export const envSchema: z.ZodType<EnvConfig> = z
   .object({
     PORT: z.coerce.number().int().positive().max(65535),
@@ -60,6 +65,14 @@ export const envSchema: z.ZodType<EnvConfig> = z
       .url({ protocol: /^https?$/ })
       .default('https://api.pwnedpasswords.com')
       .transform((value) => value.replace(/\/+$/, '')),
+    // Google sign-in (auth rule 14) is off unless both are set. The issuer can point at the
+    // local stand-in (`npm run dev:oidc`).
+    GOOGLE_CLIENT_ID: optionalSecret,
+    GOOGLE_CLIENT_SECRET: optionalSecret,
+    GOOGLE_ISSUER: z
+      .url({ protocol: /^https?$/ })
+      .default('https://accounts.google.com')
+      .transform((value) => value.replace(/\/+$/, '')),
   })
   .superRefine((env, ctx) => {
     if (env.EMAIL_PROVIDER === EmailProviderName.SMTP && !env.SMTP_URL) {
@@ -68,6 +81,10 @@ export const envSchema: z.ZodType<EnvConfig> = z
         path: ['SMTP_URL'],
         message: ERRORS.requiredField('SMTP_URL'),
       })
+    }
+    if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET)) {
+      const missing = env.GOOGLE_CLIENT_ID ? 'GOOGLE_CLIENT_SECRET' : 'GOOGLE_CLIENT_ID'
+      ctx.addIssue({ code: 'custom', path: [missing], message: ERRORS.requiredField(missing) })
     }
     // Console providers print OTPs to stdout: dev only.
     if (env.NODE_ENV === AppEnv.PRODUCTION) {
@@ -80,6 +97,14 @@ export const envSchema: z.ZodType<EnvConfig> = z
       }
       if (env.SMS_PROVIDER === SmsProviderName.CONSOLE) {
         ctx.addIssue({ code: 'custom', path: ['SMS_PROVIDER'], message: ERRORS.devOnly('console') })
+      }
+      // A plain-http issuer is only the local stand-in.
+      if (!env.GOOGLE_ISSUER.startsWith('https://')) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['GOOGLE_ISSUER'],
+          message: ERRORS.devOnly('http issuer'),
+        })
       }
     }
   })

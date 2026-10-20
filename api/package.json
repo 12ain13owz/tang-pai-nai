@@ -19,6 +19,7 @@
     "db:seed": "tsx --env-file-if-exists=.env.dev src/core/database/seed.ts",
     "db:studio": "node --env-file-if-exists=.env.dev node_modules/drizzle-kit/bin.cjs studio",
     "auth:cleanup": "tsx --env-file-if-exists=.env.dev src/features/auth/auth.cleanup.ts",
+    "dev:oidc": "tsx scripts/dev-oidc.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -37,6 +38,7 @@
     "db:seed": "Inserts dev data (idempotent; skipped in production).",
     "db:studio": "Opens Drizzle Studio to browse the database (loads .env.dev).",
     "auth:cleanup": "Deletes auth challenges, sessions and rate-limit buckets that ended over 7 days ago (loads .env.dev).",
+    "dev:oidc": "Runs a local stand-in for Google's OpenID Connect provider on :4400 (dev and manual tests only).",
     "test": "Runs the test suite once (Vitest).",
     "test:watch": "Runs the test suite in watch mode (Vitest)."
   },

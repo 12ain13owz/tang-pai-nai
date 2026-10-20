@@ -43,7 +43,7 @@ const buildApp = () => {
   const app: Express = express()
   app.use(express.json())
   app.use(cookieParser())
-  app.use('/auth', createAuthRouter(createAuthController(authService), WEB))
+  app.use('/auth', createAuthRouter(createAuthController(authService, { webOrigin: WEB }), WEB))
   app.use(errorHandler)
   const lastCode = () => {
     const mail = sent.at(-1)

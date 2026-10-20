@@ -15,10 +15,40 @@ export interface User {
   updatedAt: Date
 }
 
-export type NewUser = Pick<User, 'email' | 'displayName'>
+export type NewUser = Pick<User, 'email' | 'displayName'> & Partial<Pick<User, 'avatarUrl'>>
 
-/** A user as responses show them: whether a password is set comes from its own table. */
-export type UserProfile = User & { hasPassword: boolean }
+/** Outside sign-in providers (rule 14). Only Google is built. */
+export type IdentityProvider = 'google'
+
+/** A link between a user and a provider account, matched on the provider's `sub`. */
+export interface UserIdentity {
+  id: string
+  userId: string
+  provider: IdentityProvider
+  providerSubject: string
+  /** The provider's email when the link was made. */
+  emailAtLink: string
+  createdAt: Date
+  lastUsedAt: Date
+}
+
+export type NewUserIdentity = Pick<
+  UserIdentity,
+  'userId' | 'provider' | 'providerSubject' | 'emailAtLink' | 'lastUsedAt'
+>
+
+/** A linked provider as responses show it. */
+export interface LinkedIdentity {
+  provider: IdentityProvider
+  email: string
+  linkedAt: Date
+}
+
+/**
+ * A user as responses show them: whether a password is set and which providers are linked come
+ * from their own tables.
+ */
+export type UserProfile = User & { hasPassword: boolean; identities: LinkedIdentity[] }
 
 /** `sign_in`: code + link to sign in. `reauth`: code only, for a signed-in user (rule 13). */
 export type ChallengePurpose = 'sign_in' | 'reauth'
@@ -106,6 +136,20 @@ export interface SignInResult {
 export interface Caller {
   userId: string
   sessionFamilyId: string
+}
+
+/** What Google sent back to `/auth/google/callback` (query string). */
+export interface GoogleCallback {
+  code?: string
+  state?: string
+  /** Set when the user refused or Google failed (`access_denied`, …). */
+  error?: string
+}
+
+/** A finished Google sign-in: the session, where to go, and whether an identity was just linked. */
+export interface GoogleSignInResult extends SignInResult {
+  returnUrl: string
+  linked: boolean
 }
 
 /** `PUT /auth/password`. `currentPassword` is one way to prove recent auth (rule 13). */

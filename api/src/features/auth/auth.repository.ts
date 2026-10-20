@@ -2,12 +2,15 @@ import type {
   ChallengePurpose,
   CleanupResult,
   NewOtpChallenge,
+  IdentityProvider,
   NewSession,
   NewUser,
+  NewUserIdentity,
   OtpChallenge,
   RateLimitHit,
   Session,
   User,
+  UserIdentity,
 } from './auth.entity'
 
 export interface AuthRepository {
@@ -18,6 +21,14 @@ export interface AuthRepository {
   findUserByEmail(email: string): Promise<User | null>
   createUser(data: NewUser): Promise<User>
   markEmailVerified(userId: string, at: Date): Promise<User | null>
+  /** Sets `avatarUrl` only while the user has none. */
+  fillAvatarIfEmpty(userId: string, avatarUrl: string): Promise<User | null>
+
+  findIdentity(provider: IdentityProvider, providerSubject: string): Promise<UserIdentity | null>
+  /** The user's linked identities, oldest first. */
+  listIdentities(userId: string): Promise<UserIdentity[]>
+  createIdentity(data: NewUserIdentity): Promise<UserIdentity>
+  touchIdentity(id: string, at: Date): Promise<void>
 
   /** The Argon2id PHC string, or `null` when the user has no password. */
   findPasswordHash(userId: string): Promise<string | null>

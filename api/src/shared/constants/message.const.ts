@@ -33,6 +33,7 @@ export const LOG = {
     passwordChanged: '[Auth] Password changed',
     passwordRemoved: '[Auth] Password removed',
     passwordRehashed: '[Auth] Password hash upgraded',
+    identityLinked: (provider: string) => `[Auth] ${provider} identity linked`,
     breachCheckUnavailable: '[Auth] ⚠️ Breached-password check unavailable: allowed (fail open)',
     emailDailyLimit: (limit: number) => `[Auth] ⚠️ Daily email cap (${limit}) reached`,
     cleanedUp: (challenges: number, sessions: number, buckets: number) =>

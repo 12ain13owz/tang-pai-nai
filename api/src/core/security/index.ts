@@ -19,3 +19,12 @@ export type { AccessTokenClaims, AccessTokens } from './access-token'
 export * from './secret'
 export * from './password'
 export * from './breached-password'
+export { createOidcClient, OidcError, pkceChallenge } from './oidc-client'
+export type {
+  AuthorizationRequest,
+  OidcClient,
+  OidcClientOptions,
+  OidcIdentity,
+} from './oidc-client'
+export { createSealedBox } from './sealed-box'
+export type { SealedBox } from './sealed-box'

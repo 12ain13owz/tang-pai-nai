@@ -1,0 +1,34 @@
+get:
+  tags:
+    - Auth
+  summary: Leave for Google (OIDC authorization code + PKCE)
+  description: >-
+    A top-level browser navigation, not an API call (auth spec rule 14). Makes a random `state`,
+    `nonce` and PKCE S256 verifier, seals them with `returnUrl` into the `__Host-goidc` cookie
+    (encrypted, httpOnly, Secure, SameSite=Lax, 10 minutes) and redirects to Google with
+    `scope=openid email profile` and `prompt=select_account`. If Google can't be reached it
+    redirects to the web app's `/auth/callback?error=failed` instead.
+  operationId: googleStart
+  security: []
+  parameters:
+    - name: returnUrl
+      in: query
+      required: false
+      description: An in-app path to land on afterwards; anything else becomes `/`
+      schema:
+        type: string
+        example: /wallets
+  responses:
+    '302':
+      description: To Google's authorization endpoint; sets `__Host-goidc`
+      headers:
+        Location:
+          schema:
+            type: string
+            format: uri
+    '404':
+      description: Google sign-in is off (no `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`)
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

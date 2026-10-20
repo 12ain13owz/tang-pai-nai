@@ -1,0 +1,14 @@
+get:
+  tags:
+    - Auth
+  summary: Which extra ways to sign in are switched on
+  description: The web app hides the "Continue with Google" button when `google` is false.
+  operationId: providers
+  security: []
+  responses:
+    '200':
+      description: The switches
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/auth-providers-response.schema.yaml'

@@ -15,6 +15,7 @@ import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
 import type { EmailFormGroup } from '@/features/auth/auth-form.type'
+import { GoogleLogo } from '@/shared/components/brand'
 import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
 
 @Component({
@@ -28,8 +29,11 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
     InputField,
     HlmButton,
     HlmSpinner,
+    GoogleLogo,
   ],
   providers: [provideIcons({ lucideKeyRound })],
+  // Coming back from Google with the browser's back button restores this page as it was left.
+  host: { '(window:pageshow)': 'isLeaving.set(false)' },
   template: `
     <div class="flex flex-1 flex-col gap-6">
       <div class="flex flex-col items-center gap-3 pt-4 text-center">
@@ -81,6 +85,31 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
         </p>
       </form>
 
+      @if (googleEnabled()) {
+        <div class="flex flex-col gap-4">
+          <div class="flex items-center gap-3 text-sm text-muted-foreground">
+            <span class="h-px flex-1 bg-border" aria-hidden="true"></span>
+            {{ 'auth.or' | transloco }}
+            <span class="h-px flex-1 bg-border" aria-hidden="true"></span>
+          </div>
+          <button
+            hlmBtn
+            variant="outline"
+            type="button"
+            class="h-11 w-full text-base"
+            [disabled]="isLeaving() || !networkStatusService.isOnline()"
+            (click)="continueWithGoogle()"
+          >
+            @if (isLeaving()) {
+              <hlm-spinner [aria-label]="'auth.goingToGoogle' | transloco" />
+            } @else {
+              <app-google-logo />
+            }
+            {{ 'auth.continueWithGoogle' | transloco }}
+          </button>
+        </div>
+      }
+
       <div class="mt-auto flex justify-center">
         <a
           hlmBtn
@@ -110,6 +139,10 @@ export class SignInPage {
 
   isProcessing = signal(false)
   protected error = signal<UiMessage | null>(null)
+  /** Hidden until the API says Google sign-in is on (it's off without its env, rule 14). */
+  protected googleEnabled = signal(false)
+  /** The browser is on its way to Google. */
+  protected isLeaving = signal(false)
 
   form: EmailFormGroup = this.nnfb.group({
     email: [
@@ -128,6 +161,14 @@ export class SignInPage {
   }))
 
   constructor() {
+    // Asked again once back online, in case the page opened offline.
+    effect(() => {
+      if (this.networkStatusService.isOnline()) {
+        void this.authService.providers().then((providers) => {
+          this.googleEnabled.set(providers.google)
+        })
+      }
+    })
     // Opened offline: once the network is back, retry the silent refresh and walk straight in.
     effect(() => {
       if (this.networkStatusService.isOnline() && this.authStore.status() === 'unreachable') {
@@ -138,6 +179,12 @@ export class SignInPage {
         })
       }
     })
+  }
+
+  protected continueWithGoogle(): void {
+    this.isLeaving.set(true)
+    this.error.set(null)
+    this.authService.startGoogle(this.returnUrl)
   }
 
   protected async onSubmit(): Promise<void> {

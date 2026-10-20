@@ -21,6 +21,7 @@ const user = (hasPassword: boolean): AuthUser => ({
   avatarUrl: null,
   timezone: 'Asia/Bangkok',
   hasPassword,
+  identities: [],
 })
 
 const envelope = (data?: unknown) => ({ message: 'ok', timestamp: '', data })

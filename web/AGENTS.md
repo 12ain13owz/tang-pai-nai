@@ -177,7 +177,10 @@ isProcessing = signal(false)
   it. To add a primitive, run `npx ng g @spartan-ng/cli:ui <name>` (e.g. `drawer`, `sonner`,
   `tabs`). It adds `@spartan-ng/helm/<name>` to `tsconfig.json`. Delete the `.nx/` cache folder it
   leaves behind.
-- Icons: `@ng-icons/lucide` via `NgIcon` + `provideIcons({ ... })` in the component.
+- Icons: `@ng-icons/lucide` via `NgIcon` + `provideIcons({ ... })` in the component. Brand
+  marks that must keep their own colours (Google's "G") live in `shared/components/brand`.
+- Toasts: one `<hlm-toaster>` in the app root (`app.ts`), lifted above the tab bar. Show one with
+  `toast.success(text)` from `@spartan-ng/brain/sonner`, translating the text when it's shown.
 
 ### Forms: Reactive Forms only, through shared fields
 
@@ -362,6 +365,12 @@ are on, so don't disable them.
     change credentials may answer `403 REAUTH_REQUIRED`: show the confirm step (current password or
     a step-up code, `features/account/components/reauth-step.ts`) and send the same request again.
     `passwordPolicyValidator` (`@/core/auth`) mirrors the API's policy for instant feedback.
+  - Google (4.3): `AuthService.providers()` (`GET /auth/providers`, asked once; off when
+    unreachable) decides whether "Continue with Google" shows. `startGoogle(returnUrl)` is a
+    **full-page navigation** to `/api/auth/google/start` (`googleStartUrl`), not an API call. The
+    API comes back to `/auth/callback` (`features/auth/pages/google-callback-page`), which calls
+    `refresh()` once: the URL never holds a token, only `returnUrl`, `linked=google` or
+    `error=<reason>` (`GoogleFailure`). `AuthUser.identities` lists linked providers.
 - **Auth error codes** the screens switch on: `OTP_INVALID`, `OTP_LOCKED`, `OTP_EXPIRED`,
   `SESSION_EXPIRED`, `SESSION_REVOKED`, `USER_DISABLED`, `RATE_LIMITED` (with `Retry-After`),
   `INVALID_CREDENTIALS`, `CURRENT_PASSWORD_INVALID`, `REAUTH_REQUIRED`, `PASSWORD_TOO_SHORT`,

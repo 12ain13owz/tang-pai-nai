@@ -7,7 +7,26 @@ export interface AuthUser {
   timezone: string
   /** Whether a password is set (the user can then sign in with it). */
   hasPassword: boolean
+  /** Linked sign-in providers (4.3), oldest first. */
+  identities: AuthIdentity[]
 }
+
+/** Mirrors `AuthIdentityData` in the API. */
+export interface AuthIdentity {
+  provider: 'google'
+  /** The provider's email when it was linked. */
+  email: string
+  linkedAt: string
+}
+
+/** `GET /auth/providers`: which extra ways to sign in the API has switched on. */
+export interface AuthProviders {
+  google: boolean
+}
+
+/** `/auth/callback?error=…` after Google sign-in (auth spec rule 14). */
+export type GoogleFailure =
+  'cancelled' | 'email_unverified' | 'signup_closed' | 'disabled' | 'rate_limited' | 'failed'
 
 /** `data` of sign-in and `/auth/refresh`. The refresh token only lives in the httpOnly cookie. */
 export interface AuthSession {

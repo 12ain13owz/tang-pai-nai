@@ -1,7 +1,7 @@
 # Auth
 
 > Status: **4.1 built** (email code + magic link, sessions, sign-out, `/auth/me`); **4.2 built**
-> (optional password, recent auth, step-up code); 4.3–4.4 are spec
+> (optional password, recent auth, step-up code); **4.3 built** (Google sign-in); 4.4 is spec
 > (see [ROADMAP](../../ROADMAP.md#next-up-auth-4)).
 > Code lives in `src/features/auth/`, token helpers in
 > `src/core/security/`, the `authenticate` middleware in `src/core/middleware/`.
@@ -47,9 +47,10 @@ Drizzle schema: `src/core/database/schema/auth.ts`. All ids are UUIDv7, and all 
   lives on the challenge.
 - **password_credentials** — `userId` (PK, FK), `passwordHash` (Argon2id, PHC string), `updatedAt`.
   A row exists only if the user has set a password.
-- **user_identities** — `id`, `userId`, `provider` (`google`), `providerSubject` (the OIDC `sub`),
-  `emailAtLink`, `createdAt`, `lastUsedAt`. Unique on (`provider`, `providerSubject`). Always match on
-  `sub`, never on email.
+- **user_identities** — `id`, `userId` (FK, cascade), `provider` (`google`), `providerSubject` (the
+  OIDC `sub`), `emailAtLink` (the provider's email when linked, shown on the account page),
+  `createdAt`, `lastUsedAt`. Unique on (`provider`, `providerSubject`), index on `userId`. Always
+  match on `sub`, never on email. A later change of the Google email doesn't touch `users.email`.
 - **otp_challenges** — `id`, `channel` (`email` | `sms`), `purpose` (`sign_in` | `reauth` |
   `verify_phone`), `destination` (lowercased email or E.164 phone), `userId?` (set for `reauth`
   and `verify_phone`), `codeHash`,
@@ -185,15 +186,41 @@ Raw OTPs, link tokens and refresh tokens are **never stored**, only their hashes
 
 **Google (OIDC)**
 
-14. Use the Authorization Code flow with **PKCE (S256)**, **`state`** and **`nonce`**. They're kept in
-    a short-lived (10 min), signed, httpOnly cookie for the round trip. The callback:
-    - checks `state` against the cookie, exchanges the code server-side, and validates the ID token:
-      signature (Google JWKS), `iss`, `aud` = our client id, `exp`, `nonce`;
-    - finds the user by (`google`, `sub`). If there isn't one: when `email_verified` is true and a
-      user with that email exists, **link** the identity to that user. Otherwise create the user (if
-      rule 1 allows). If `email_verified` is false, refuse;
-    - **never puts tokens in the redirect URL**. It sets the refresh cookie and redirects to
-      `/auth/callback` on the web app, which then calls `/auth/refresh` to get an access token.
+14. Use the Authorization Code flow with **PKCE (S256)**, **`state`** and **`nonce`** (decided at the
+    start of 4.3):
+    - **On/off**: Google is on only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are both set.
+      Otherwise `/auth/google/*` answer `404` and `GET /auth/providers` says `google: false`, so the
+      web hides the button (ROADMAP "Local-first"). `GOOGLE_ISSUER` (default
+      `https://accounts.google.com`) is read through its discovery document
+      (`/.well-known/openid-configuration`), so a local stand-in can replace Google in dev and tests
+      (`npm run dev:oidc`); a non-https issuer is refused when `NODE_ENV=production`.
+    - **Start** (`GET /auth/google/start?returnUrl=`): makes a random `state`, `nonce` and PKCE
+      verifier, keeps them with the `returnUrl` (an in-app path only, like the web's
+      `safeReturnUrl`) in the cookie **`__Host-goidc`**: an encrypted and signed JWE
+      (`jose`, key derived from `JWT_SECRET` with HKDF), httpOnly, Secure, Path=/,
+      **`SameSite=Lax`** (a Strict cookie isn't sent on the redirect back from Google), 10 min.
+      Then `302` to Google with `scope=openid email profile`, `prompt=select_account`. The redirect
+      URI is `WEB_ORIGIN` + `/api/auth/google/callback` (through the `/api` rewrite / dev proxy).
+    - **Callback**: reads and clears the cookie, checks `state` against it, exchanges the code
+      server-side (with the verifier and the client secret), and validates the ID token with
+      `jose`: signature against the issuer's JWKS, `iss`, `aud` = our client id, `exp` (60 s clock
+      tolerance), `nonce`. Its per-IP limit is the verify limit of rule 7.
+    - **Which user**: find by (`google`, `sub`); found → that user (updates `lastUsedAt`). Not
+      found: `email_verified` must be true, else refuse. A user with that email exists → **link
+      automatically** (log `identity linked`, rule 19) and the web shows a one-time notice. No
+      user → create one if rule 1 allows, with Google's `name` as `displayName` (else the email's
+      local part), `picture` as `avatarUrl`, and `emailVerifiedAt` = now.
+    - **Name and picture are taken once**: on creation only. Linking fills `avatarUrl` only when
+      it's empty; later sign-ins never overwrite what the user has.
+    - A disabled user (rule 3) is refused after all the checks above. A Google sign-in sets the new
+      session's `authTime` (it counts as recent auth, rule 13).
+    - **Never puts tokens in the redirect URL**. Success sets the refresh cookie and redirects to
+      `/auth/callback` on the web app (with `returnUrl`, and `linked=google` after an automatic
+      link), which calls `/auth/refresh` to get an access token. A failure redirects to
+      `/auth/callback?error=<reason>`: `cancelled` (the user said no at Google), `email_unverified`,
+      `signup_closed` (the generic "sign-up is closed" message of rule 1), `disabled`,
+      `rate_limited`, or `failed` (state or cookie missing / wrong, code exchange or token
+      validation failed; the details go to the log only).
 
 **Sessions & tokens**
 
@@ -210,8 +237,9 @@ Raw OTPs, link tokens and refresh tokens are **never stored**, only their hashes
     user ids, session ids and token **hashes** only. The OTP is hashed with **HMAC-SHA256 using a
     server secret** (`OTP_PEPPER`) rather than plain SHA-256, because a 6-digit code is trivial to
     brute-force offline from a plain hash.
-19. Every auth event is logged (sign-in success/failure + method, refresh reuse detected, password
-    set/changed/removed, identity linked) at `info`/`warn`, for later review.
+19. Every auth event is logged (sign-in success/failure + method — `email`, `password`, `google`
+    — refresh reuse detected, password set/changed/removed, identity linked) at `info`/`warn`, for
+    later review.
 20. Cleanup: a daily **Vercel Cron** job (`POST /internal/cron/auth-cleanup`, protected by
     `CRON_SECRET`) deletes challenges, sessions and rate-limit buckets more than 7 days past
     expiry or revocation. It replaces tripsurance's `setInterval`, which can't run on serverless.
@@ -267,17 +295,19 @@ All live under `/auth`, on the public router. "Bearer" = needs `authenticate`.
 | POST   | `/auth/phone`            | Bearer | Add or change number (recent auth): send `verify_phone` code   | 4.4  |
 | POST   | `/auth/phone/confirm`    | Bearer | `{ code }` → save the number as verified                       | 4.4  |
 | DELETE | `/auth/phone`            | Bearer | Remove the number (recent auth)                                | 4.4  |
+| GET    | `/auth/providers`        | —      | Which extra ways are on: `{ google }`                          | 4.3  |
 | GET    | `/auth/google/start`     | —      | Redirect to Google (PKCE + state + nonce)                      | 4.3  |
 | GET    | `/auth/google/callback`  | —      | Finish Google sign-in; sets cookie; redirects to web           | 4.3  |
 | POST   | `/auth/refresh`          | cookie | Rotate refresh token → new access token                        | 4.1  |
 | POST   | `/auth/sign-out`         | cookie | Revoke current session; clear cookie                           | 4.1  |
-| GET    | `/auth/me`               | Bearer | Current user + `hasPassword` (4.2) + linked providers (4.3)    | 4.1  |
+| GET    | `/auth/me`               | Bearer | Current user + `hasPassword` (4.2) + `identities` (4.3)        | 4.1  |
 | GET    | `/auth/sessions`         | Bearer | Active sessions (one per family), current one flagged          | 4.4  |
 | DELETE | `/auth/sessions/:id`     | Bearer | Revoke one session family                                      | 4.4  |
 | DELETE | `/auth/sessions`         | Bearer | Revoke all other session families                              | 4.4  |
 
 Exact request/response shapes go in OpenAPI (`/docs`) once the endpoints are built. Every `user`
-in a response (sign-in, refresh, `/auth/me`, `PUT /auth/password`) carries `hasPassword`.
+in a response (sign-in, refresh, `/auth/me`, `PUT /auth/password`) carries `hasPassword` and
+`identities` (4.3): `[{ provider: 'google', email, linkedAt }]`, empty when nothing is linked.
 
 ## Web screens
 
@@ -290,12 +320,22 @@ who isn't signed in can't reach the account page.
   needs a connection and retries the silent refresh by itself once back online.
 - **Enter code**: 6 boxes (`inputmode="numeric"`, `autocomplete="one-time-code"` so the phone can
   auto-fill it), a resend timer, and a "check your email for the link" hint.
-- **Magic-link landing** `/auth/link` and **Google return** `/auth/callback`.
+- **Sign-in, Google** (4.3): under the email form, a "or" divider and a full-width outline
+  "Continue with Google" button (44px, Google's multicolour "G" per its branding guidelines). It's
+  a plain navigation to `/api/auth/google/start?returnUrl=…`, hidden when `GET /auth/providers`
+  says `google: false` or can't be reached, and disabled offline.
+- **Magic-link landing** `/auth/link` and **Google return** `/auth/callback` (4.3). The return page
+  calls `/auth/refresh` (a spinner meanwhile) and goes to `returnUrl`; with `linked=google` it
+  shows a one-time toast "Google is now linked to your account". With `error=…` it shows an error
+  state like the magic-link page (icon, heading, one line, "Back to sign in"); `cancelled` goes
+  straight back to sign-in instead.
 - **Sign in with password** `/auth/password`: email + password (`app-password-field`), a link back
   to the email code. Reached from the sign-in page's "Sign in with password" link.
 - **Password** `/account/password` (4.2, inside the shell): set / change / remove. Until 4.4's
   Security page exists, the account page has a short "Security" section with one row (password ·
-  set / not set) that opens it; 4.4 moves that row into Account → Security unchanged. A `403
+  set / not set) that opens it; 4.4 moves that row into Account → Security unchanged. 4.3 adds a
+  read-only row under it: "Google · linked (email)" or "not linked", hidden while Google is off.
+  Linking from a signed-in account and unlinking come with 4.4. A `403
 REAUTH_REQUIRED` opens a confirm step in place: the current password (if one is set) or a
   step-up code to the user's email (`app-otp-field`), then the action is retried.
 - **Account → Security** (4.4): set/change/remove password, add/change/remove phone number, linked
@@ -349,5 +389,8 @@ lets the web app decide whether to wipe or keep local data.
 - **Password policy**: decided in 4.2 as 8+ characters with all four character classes (rule 11),
   the owner's choice over NIST's 15+ without composition rules. Revisit if the app opens to
   strangers.
+- **Google email ownership** (4.3): automatic linking trusts `email_verified`. Google is
+  authoritative for `@gmail.com` and for Workspace domains, which covers the family; revisit
+  (e.g. confirm with an email code before linking) if the app opens to strangers.
 - **Notify on password change**: ASVS asks for a mail when a credential changes. Not in 4.2;
   proposal: one short mail on set / change / remove, added with 4.4's Security page.
