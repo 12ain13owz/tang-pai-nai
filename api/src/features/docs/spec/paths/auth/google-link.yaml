@@ -1,0 +1,94 @@
+post:
+  tags:
+    - Auth
+  summary: Start linking Google to the signed-in account
+  description: >-
+    Needs Google on and recent authentication (auth spec rules 13 and 29). A user has at most one
+    Google identity. Sets the `__Host-goidc` round-trip cookie in link mode (it carries the
+    caller's user and session family) and answers Google's URL; the web app then navigates there.
+    `GET /auth/google/callback` finishes the link without creating a session and redirects to
+    `/account/security`. The Google email need not match the account's, and accounts are never
+    merged.
+  operationId: googleLink
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/auth-recent-auth.schema.yaml'
+  responses:
+    '200':
+      description: Google's authorization URL; sets `__Host-goidc`
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/auth-google-link-response.schema.yaml'
+    '400':
+      description: '`CURRENT_PASSWORD_INVALID`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '403':
+      description: '`REAUTH_REQUIRED`, or `USER_DISABLED`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '404':
+      description: Google sign-in is off
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '409':
+      description: '`IDENTITY_ALREADY_LINKED`: unlink first'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '429':
+      $ref: '../../components/responses/too-many-requests.response.yaml'
+delete:
+  tags:
+    - Auth
+  summary: Unlink Google
+  description: >-
+    Needs recent authentication (auth spec rule 30). Sessions made with Google stay. Without a
+    Google identity it's a no-op `200`. Mails the user about the change (rule 31).
+  operationId: googleUnlink
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/auth-recent-auth.schema.yaml'
+  responses:
+    '200':
+      description: The user, without the Google identity
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/auth-user-response.schema.yaml'
+    '400':
+      description: '`CURRENT_PASSWORD_INVALID`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '403':
+      description: '`REAUTH_REQUIRED`, or `USER_DISABLED`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '429':
+      $ref: '../../components/responses/too-many-requests.response.yaml'

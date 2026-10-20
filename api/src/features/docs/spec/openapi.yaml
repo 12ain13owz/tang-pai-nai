@@ -12,7 +12,8 @@ tags:
     description: Service health checks
   - name: Auth
     description: >-
-      Email code / magic-link / password / Google sign-in and sessions (docs/features/auth.md)
+      Email code / magic-link / password / Google sign-in, sessions and Account › Security
+      (docs/features/auth.md)
   - name: Todo
     description: Reference CRUD feature (in-memory, resets on restart)
 
@@ -43,6 +44,12 @@ paths:
     $ref: './paths/auth/google-start.yaml'
   /auth/google/callback:
     $ref: './paths/auth/google-callback.yaml'
+  /auth/google/link:
+    $ref: './paths/auth/google-link.yaml'
+  /auth/sessions:
+    $ref: './paths/auth/sessions.yaml'
+  /auth/sessions/{id}:
+    $ref: './paths/auth/session.yaml'
   /todos:
     $ref: './paths/todo/todos.yaml'
   /todos/{id}:

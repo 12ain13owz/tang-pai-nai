@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { env } from '@/core/config'
 import { createDatabase } from '@/core/database/client'
-import { users } from '@/core/database/schema/auth'
+import { sessions, users } from '@/core/database/schema/auth'
 import { createDrizzleAuthRepository } from './auth.repository.drizzle'
 import type { AuthRepository } from './auth.repository'
 
@@ -325,5 +325,58 @@ describe('fillAvatarIfEmpty', () => {
     })
 
     expect(user.avatarUrl).toBe('https://x.test/a.png')
+  })
+})
+
+describe('identity per user (4.4a)', () => {
+  it('finds and deletes the user’s identity of one provider, nobody else’s', async () => {
+    const one = await repo.createUser({ email: 'a@example.com', displayName: 'a' })
+    const two = await repo.createUser({ email: 'b@example.com', displayName: 'b' })
+    const link = { provider: 'google' as const, emailAtLink: 'x@gmail.com', lastUsedAt: AT }
+    await repo.createIdentity({ ...link, userId: one.id, providerSubject: 'sub-1' })
+    await repo.createIdentity({ ...link, userId: two.id, providerSubject: 'sub-2' })
+
+    expect(await repo.findUserIdentity(one.id, 'google')).toMatchObject({
+      providerSubject: 'sub-1',
+    })
+    expect(await repo.deleteIdentity(one.id, 'google')).toBe(true)
+    expect(await repo.deleteIdentity(one.id, 'google')).toBe(false)
+    expect(await repo.findUserIdentity(one.id, 'google')).toBeNull()
+    expect(await repo.findUserIdentity(two.id, 'google')).toMatchObject({
+      providerSubject: 'sub-2',
+    })
+  })
+})
+
+describe('listActiveSessions', () => {
+  it('lists the user’s live sessions, the last used first, with signedInAt kept', async () => {
+    const recent = await newSession({ id: 's1', familyId: 'f1', tokenHash: 't1' })
+    const older = await newSession({ id: 's2', familyId: 'f2', tokenHash: 't2' })
+    await newSession({ id: 's3', familyId: 'f3', tokenHash: 't3' })
+    await repo.revokeFamily('f3', AT)
+    await database
+      .update(sessions)
+      .set({ lastUsedAt: later(500) })
+      .where(eq(sessions.id, 's1'))
+    const stranger = await repo.createUser({ email: 'b@example.com', displayName: 'b' })
+    await repo.createSession({
+      id: 's4',
+      familyId: 'f4',
+      tokenHash: 't4',
+      userId: stranger.id,
+      expiresAt: later(1000),
+      absoluteExpiresAt: later(2000),
+      authTime: AT,
+      signedInAt: AT,
+      lastUsedAt: later(900),
+      userAgent: null,
+    })
+
+    const live = await repo.listActiveSessions(recent.userId, later(1))
+
+    expect(live.map((session) => session.id)).toEqual([recent.id, older.id])
+    expect(live[0].signedInAt).toEqual(AT)
+    // Past the idle expiry nothing is live.
+    expect(await repo.listActiveSessions(recent.userId, later(1000))).toEqual([])
   })
 })

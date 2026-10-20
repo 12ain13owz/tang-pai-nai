@@ -1,0 +1,17 @@
+type: object
+required: [message, timestamp, data]
+properties:
+  message:
+    type: string
+    example: Continue at Google to link the account
+  timestamp:
+    type: string
+    format: date-time
+  data:
+    type: object
+    required: [authorizationUrl]
+    properties:
+      authorizationUrl:
+        type: string
+        format: uri
+        description: Where the web app sends the browser next (a full-page navigation)
