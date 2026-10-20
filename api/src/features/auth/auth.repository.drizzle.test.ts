@@ -380,3 +380,70 @@ describe('listActiveSessions', () => {
     expect(await repo.listActiveSessions(recent.userId, later(1000))).toEqual([])
   })
 })
+
+describe('phone (4.4b)', () => {
+  it('finds a user by verified number and sets or clears it with its time', async () => {
+    const user = await repo.createUser({ email: 'a@example.com', displayName: 'a' })
+    expect(await repo.findUserByPhone('+66812345678')).toBeNull()
+
+    const saved = await repo.setUserPhone(user.id, '+66812345678', AT)
+    expect(saved).toMatchObject({ phone: '+66812345678', phoneVerifiedAt: AT })
+    expect((await repo.findUserByPhone('+66812345678'))?.id).toBe(user.id)
+
+    const cleared = await repo.setUserPhone(user.id, null, later(1))
+    expect(cleared).toMatchObject({ phone: null, phoneVerifiedAt: null })
+    expect(await repo.setUserPhone('01900000-0000-7000-8000-00000000dead', null, AT)).toBeNull()
+  })
+
+  it('keeps a number unique across users', async () => {
+    const a = await repo.createUser({ email: 'a@example.com', displayName: 'a' })
+    const b = await repo.createUser({ email: 'b@example.com', displayName: 'b' })
+    await repo.setUserPhone(a.id, '+66812345678', AT)
+
+    await expect(repo.setUserPhone(b.id, '+66812345678', AT)).rejects.toMatchObject({
+      status: 500,
+    })
+  })
+
+  it('keeps sms and email challenges apart and finds a user’s verify_phone code', async () => {
+    const user = await repo.createUser({ email: 'a@example.com', displayName: 'a' })
+    const sms = await repo.createChallenge({
+      channel: 'sms',
+      purpose: 'sign_in',
+      destination: '+66812345678',
+      userId: null,
+      codeHash: 'c',
+      linkTokenHash: null,
+      expiresAt: later(300_000),
+    })
+    const verify = await repo.createChallenge({
+      channel: 'sms',
+      purpose: 'verify_phone',
+      destination: '+66898765432',
+      userId: user.id,
+      codeHash: 'v',
+      linkTokenHash: null,
+      expiresAt: later(300_000),
+    })
+
+    expect(await repo.findLatestChallenge('+66812345678', 'sign_in')).toBeNull()
+    expect(await repo.findLatestChallenge('+66812345678', 'sign_in', 'sms')).toMatchObject({
+      id: sms.id,
+      channel: 'sms',
+    })
+    expect(await repo.findLatestUserChallenge(user.id, 'verify_phone')).toMatchObject({
+      id: verify.id,
+      purpose: 'verify_phone',
+      destination: '+66898765432',
+    })
+
+    await repo.expireOpenUserChallenges(user.id, 'verify_phone', later(1))
+    await repo.expireOpenChallenges('+66812345678', 'sign_in', later(2), 'sms')
+    expect((await repo.findLatestUserChallenge(user.id, 'verify_phone'))?.expiresAt).toEqual(
+      later(1)
+    )
+    expect((await repo.findLatestChallenge('+66812345678', 'sign_in', 'sms'))?.expiresAt).toEqual(
+      later(2)
+    )
+  })
+})

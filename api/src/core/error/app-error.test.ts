@@ -73,6 +73,13 @@ describe('AppError', () => {
         password: '[redacted]',
       })
     })
+
+    it('redacts a phone number too, so logs never hold one in full (auth rule 27)', () => {
+      const req = makeReq({ body: { phone: '0812345678', lang: 'th' } })
+      const error = new AppError('boom').withEndpoint(req)
+
+      expect(error.context.endpoint?.body).toEqual({ phone: '[redacted]', lang: 'th' })
+    })
   })
 
   describe('withCode', () => {

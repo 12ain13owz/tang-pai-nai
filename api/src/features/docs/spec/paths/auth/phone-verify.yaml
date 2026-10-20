@@ -1,0 +1,51 @@
+post:
+  tags:
+    - Auth
+  summary: Sign in with the SMS code
+  description: >-
+    Checks the latest sign-in code of the number (auth spec rule 24): 5 minutes, 5 wrong tries,
+    single use. Creates a session whose sign-in counts as recent authentication. Limit: 30
+    verifies per IP per 15 minutes, shared with the email code.
+  operationId: phoneVerify
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/auth-phone-verify.schema.yaml'
+  responses:
+    '200':
+      description: Signed in; sets the `__Host-rt` refresh cookie
+      headers:
+        Set-Cookie:
+          schema:
+            type: string
+            example: __Host-rt=…; Path=/; Expires=…; HttpOnly; Secure; SameSite=Strict
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/auth-session-response.schema.yaml'
+    '400':
+      description: >-
+        `OTP_INVALID` (wrong code), `OTP_LOCKED` (5 wrong) or `OTP_EXPIRED` (expired, used,
+        replaced, or no code for that number)
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '403':
+      description: '`USER_DISABLED`, after the code was checked'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '422':
+      $ref: '../../components/responses/error.response.yaml'
+    '429':
+      $ref: '../../components/responses/too-many-requests.response.yaml'
+    '503':
+      description: '`PHONE_DISABLED`: no SMS provider (`SMS_PROVIDER=disabled`), answered first'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

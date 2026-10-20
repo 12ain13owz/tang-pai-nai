@@ -1,0 +1,13 @@
+type: object
+required: [code]
+properties:
+  code:
+    type: string
+    pattern: '^\d{6}$'
+    description: The `verify_phone` code texted to the new number
+    example: '123456'
+  lang:
+    type: string
+    enum: [th, en]
+    default: th
+    description: Language of the mail that tells the user about the change (auth spec rule 31)

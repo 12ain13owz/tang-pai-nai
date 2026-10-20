@@ -1,0 +1,5 @@
+type: object
+required: [phone]
+properties:
+  phone:
+    $ref: './auth-phone.schema.yaml'

@@ -1,0 +1,5 @@
+type: string
+description: >-
+  A Thai mobile number, typed any usual way (`0812345678`, `081-234-5678`, `+66 81 234 5678`);
+  normalised to E.164 before any lookup. Anything else is `422`.
+example: 081-234-5678
