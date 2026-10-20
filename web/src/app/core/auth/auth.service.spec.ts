@@ -1,5 +1,6 @@
 import { provideHttpClient } from '@angular/common/http'
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
+import { DOCUMENT } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { AuthService, googleStartUrl } from './auth.service'
 import { AuthStore } from './auth.store'
@@ -213,6 +214,96 @@ describe('googleStartUrl', () => {
     expect(googleStartUrl('/')).toBe('/api/auth/google/start')
     expect(googleStartUrl('/account?tab=1')).toBe(
       '/api/auth/google/start?returnUrl=%2Faccount%3Ftab%3D1'
+    )
+  })
+})
+
+describe('AuthService: Account › Security (4.4a)', () => {
+  let service: AuthService
+  let store: AuthStore
+  let http: HttpTestingController
+  const assign = vi.fn<(url: string) => void>()
+
+  beforeEach(() => {
+    assign.mockReset()
+    // linkGoogle leaves the app: a stand-in window records where it went.
+    const fakeDocument = { defaultView: { location: { assign }, navigator: {} } }
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: DOCUMENT, useValue: fakeDocument },
+      ],
+    })
+    service = TestBed.inject(AuthService)
+    store = TestBed.inject(AuthStore)
+    http = TestBed.inject(HttpTestingController)
+    store.setSession(session())
+  })
+
+  afterEach(() => http.verify())
+
+  it('asks for Google’s URL to link, then leaves the app for it', async () => {
+    const done = service.linkGoogle('en', 'Gr33n Mango Tree')
+
+    const req = http.expectOne('/api/auth/google/link')
+    expect(req.request.method).toBe('POST')
+    expect(req.request.body).toEqual({ lang: 'en', currentPassword: 'Gr33n Mango Tree' })
+    req.flush(envelope({ authorizationUrl: 'https://accounts.google.com/o/oauth2/auth?x=1' }))
+    await done
+    expect(assign).toHaveBeenCalledWith('https://accounts.google.com/o/oauth2/auth?x=1')
+  })
+
+  it('stays put when linking is refused', async () => {
+    const done = service.linkGoogle('th')
+
+    http
+      .expectOne('/api/auth/google/link')
+      .flush({ message: 'x', code: 'REAUTH_REQUIRED' }, { status: 403, statusText: 'Forbidden' })
+    await expect(done).rejects.toBeDefined()
+    expect(assign).not.toHaveBeenCalled()
+  })
+
+  it('unlinks Google with a DELETE and keeps the returned user', async () => {
+    store.user.set({
+      ...session().user,
+      identities: [{ provider: 'google', email: 'mom@gmail.com', linkedAt: '' }],
+    })
+    const done = service.unlinkGoogle('th')
+
+    const req = http.expectOne('/api/auth/google/link')
+    expect(req.request.method).toBe('DELETE')
+    expect(req.request.body).toEqual({ lang: 'th' })
+    req.flush(envelope(session().user))
+    await done
+    expect(store.user()?.identities).toEqual([])
+  })
+
+  it('lists the devices and signs one or all others out', async () => {
+    const list = service.sessions()
+    http.expectOne('/api/auth/sessions').flush(envelope([{ id: 'f1', current: true }]))
+    expect(await list).toEqual([{ id: 'f1', current: true }])
+
+    const one = service.revokeSession('f2')
+    const revoke = http.expectOne('/api/auth/sessions/f2')
+    expect(revoke.request.method).toBe('DELETE')
+    revoke.flush(envelope())
+    await one
+
+    const others = service.revokeOtherSessions()
+    const all = http.expectOne('/api/auth/sessions')
+    expect(all.request.method).toBe('DELETE')
+    all.flush(envelope({ revoked: 3 }))
+    expect(await others).toBe(3)
+  })
+})
+
+describe('googleStartUrl with a language', () => {
+  it('adds lang only when it isn’t Thai (the API’s default)', () => {
+    expect(googleStartUrl('/', 'th')).toBe('/api/auth/google/start')
+    expect(googleStartUrl('/', 'en')).toBe('/api/auth/google/start?lang=en')
+    expect(googleStartUrl('/wallets', 'en')).toBe(
+      '/api/auth/google/start?returnUrl=%2Fwallets&lang=en'
     )
   })
 })
