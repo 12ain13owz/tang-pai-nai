@@ -8,12 +8,27 @@ import type {
   AuthSession,
   AuthStatus,
   AuthUser,
+  SessionEnd,
 } from './auth.type'
 
 /** Shared by every tab, so two tabs never rotate the same refresh token at once. */
 const REFRESH_LOCK = 'tpn-auth-refresh'
 
 const NO_PROVIDERS: AuthProviders = { google: false, phone: false }
+
+/**
+ * A sign-out the API hasn't heard of yet (made offline, offline-sync rules 3 and 7). Until it's
+ * sent, start-up never refreshes the session it was meant to end.
+ */
+const PENDING_SIGN_OUT = 'tpn-sign-out-pending'
+
+/** Which refusals of `/auth/refresh` end a session for good (offline-sync rule 7). */
+const sessionEnd = (code: string | undefined): SessionEnd | null => {
+  if (code === 'SESSION_REVOKED' || code === 'USER_DISABLED') {
+    return 'revoked'
+  }
+  return code === 'SESSION_EXPIRED' ? 'expired' : null
+}
 
 /**
  * Where "Continue with Google" sends the browser (the API, through the `/api` rewrite). `lang`
@@ -42,6 +57,7 @@ export class AuthService {
   private authStore = inject(AuthStore)
   private window = inject(DOCUMENT).defaultView
   private locks = this.window?.navigator.locks
+  private storage = this.readStorage()
 
   private refreshing: Promise<void> | null = null
   private restoring: Promise<AuthStatus> | null = null
@@ -95,7 +111,7 @@ export class AuthService {
       { context: skipAuthRefresh() }
     )
     if (response.data) {
-      this.authStore.setSession(response.data)
+      this.authStore.setSession(response.data, true)
     }
   }
 
@@ -132,7 +148,7 @@ export class AuthService {
       { context: skipAuthRefresh() }
     )
     if (response.data) {
-      this.authStore.setSession(response.data)
+      this.authStore.setSession(response.data, true)
     }
   }
 
@@ -221,13 +237,23 @@ export class AuthService {
     return this.refreshing
   }
 
+  /**
+   * Rule 14: back from Google the API has set the refresh cookie, so one refresh gets the
+   * session. Unlike a start-up refresh it is a sign-in (the trust step follows, offline-sync rule 1).
+   */
+  async finishGoogleSignIn(): Promise<void> {
+    await this.refresh()
+    this.authStore.freshSignIn.set(true)
+  }
+
   /** The start-up check: one silent refresh, answered from memory once it's settled. */
   async restore(): Promise<AuthStatus> {
     const status = this.authStore.status()
     if (status === 'signedIn' || status === 'signedOut') {
       return status
     }
-    this.restoring ??= this.refresh()
+    this.restoring ??= this.sendPendingSignOut()
+      .then(async (signedOut) => (signedOut ? undefined : this.refresh()))
       .then(() => this.authStore.status())
       .catch(() => this.authStore.status())
       .finally(() => {
@@ -249,12 +275,48 @@ export class AuthService {
     this.authStore.clear()
   }
 
+  /**
+   * Signs out now if the API can be reached, else later: this device forgets the session at
+   * once, and the next start sends the sign-out before anything else (offline-sync rules 3, 7).
+   */
+  async signOutOrLater(): Promise<void> {
+    try {
+      await this.signOut()
+    } catch (error) {
+      if (!isUnreachable(toApiError(error))) {
+        throw error
+      }
+      this.storage?.setItem(PENDING_SIGN_OUT, '1')
+      this.authStore.clear()
+    }
+  }
+
+  /** `true` when a sign-out made offline has now reached the API (or is still waiting). */
+  private async sendPendingSignOut(): Promise<boolean> {
+    const storage = this.storage
+    if (storage?.getItem(PENDING_SIGN_OUT) !== '1') {
+      return false
+    }
+    try {
+      await this.api.post('/auth/sign-out', {}, { context: skipAuthRefresh() })
+    } catch (error) {
+      if (isUnreachable(toApiError(error))) {
+        this.authStore.status.set('signedOut')
+        return true
+      }
+      // Any other answer means the session is already over.
+    }
+    storage.removeItem(PENDING_SIGN_OUT)
+    this.authStore.clear()
+    return true
+  }
+
   private async verify(body: { email: string; code: string } | { token: string }): Promise<void> {
     const response = await this.api.post<AuthSession>('/auth/email/verify', body, {
       context: skipAuthRefresh(),
     })
     if (response.data) {
-      this.authStore.setSession(response.data)
+      this.authStore.setSession(response.data, true)
     }
   }
 
@@ -275,9 +337,17 @@ export class AuthService {
           this.authStore.status.set('unreachable')
         }
       } else {
-        this.authStore.clear()
+        this.authStore.clear(sessionEnd(toApiError(error).code))
       }
       throw error
+    }
+  }
+
+  private readStorage(): Storage | undefined {
+    try {
+      return this.window?.localStorage
+    } catch {
+      return undefined
     }
   }
 }

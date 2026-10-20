@@ -38,7 +38,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       }
       return from(authService.refresh()).pipe(
         catchError((refreshError: unknown) => {
-          if (!isUnreachable(toApiError(refreshError))) {
+          // A trusted device keeps working on its local data after an expiry (offline-sync rule 7);
+          // its banner offers sign-in instead.
+          const keepsLocal = authStore.keepsLocalSession() && authStore.endedBy() !== 'revoked'
+          if (!isUnreachable(toApiError(refreshError)) && !keepsLocal) {
             void router.navigate([SIGN_IN_URL], { queryParams: { returnUrl: router.url } })
           }
           return throwError(() => error)

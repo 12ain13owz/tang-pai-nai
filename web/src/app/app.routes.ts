@@ -1,5 +1,5 @@
 import type { Routes } from '@angular/router'
-import { authGuard } from '@/core/auth'
+import { shellGuard } from '@/core/offline'
 import { AppShell } from '@/layout'
 
 export const routes: Routes = [
@@ -11,8 +11,8 @@ export const routes: Routes = [
   {
     path: '',
     component: AppShell,
-    canActivate: [authGuard],
-    canActivateChild: [authGuard],
+    canActivate: [shellGuard],
+    canActivateChild: [shellGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'transactions' },
       {
