@@ -1,8 +1,10 @@
 # Auth
 
 > Status: **4.1 built** (email code + magic link, sessions, sign-out, `/auth/me`); **4.2 built**
-> (optional password, recent auth, step-up code); **4.3 built** (Google sign-in); 4.4 is spec
-> (see [ROADMAP](../../ROADMAP.md#next-up-auth-4)).
+> (optional password, recent auth, step-up code); **4.3 built** (Google sign-in); 4.4 is spec,
+> built in two parts: **4.4a** Account › Security (sessions, linking / unlinking Google, mail on
+> credential change, rules 28–31) and **4.4b** phone OTP (rules 21–27), see
+> [ROADMAP](../../ROADMAP.md#next-up-auth-4).
 > Code lives in `src/features/auth/`, token helpers in
 > `src/core/security/`, the `authenticate` middleware in `src/core/middleware/`.
 > Reference implementation to adapt: `tripsurance-be/src/features/auth/` (refresh rotation, sessions,
@@ -58,10 +60,12 @@ Drizzle schema: `src/core/database/schema/auth.ts`. All ids are UUIDv7, and all 
   "send me a code" request, on any channel. Index on (`channel`, `destination`, `createdAt`).
 - **sessions** — `id`, `userId`, `familyId`, `tokenHash`, `expiresAt`, `absoluteExpiresAt`,
   `authTime` (when the credential was last checked; copied on rotation, used by rule 13),
+  `signedInAt` (when the family was created; copied on rotation, shown by rule 28, 4.4a),
   `revokedAt?`, `replacedById?`, `lastUsedAt`, `userAgent?`, `createdAt`. Each row is one refresh
   token. All rotations of one sign-in share a `familyId`.
 - **rate_limit_buckets** — `key` (e.g. `otp:email:<hash>`, `otp:ip:<hash>`, `verify:ip:<hash>`,
-  `email:global:day`, `otp:sms:<hash>`, `sms:global:day`, `pw:email:<hash>`, `pw:ip:<hash>`),
+  `email:global:day`, `otp:sms:<hash>`, `otp:sms-ip:<hash>`, `sms:global:day`,
+  `pw:email:<hash>`, `pw:ip:<hash>`),
   `count`,
   `windowStart`. These counters are DB-backed because in-memory limits reset on every serverless
   instance.
@@ -214,6 +218,8 @@ Raw OTPs, link tokens and refresh tokens are **never stored**, only their hashes
       it's empty; later sign-ins never overwrite what the user has.
     - A disabled user (rule 3) is refused after all the checks above. A Google sign-in sets the new
       session's `authTime` (it counts as recent auth, rule 13).
+    - **Language**: `GET /auth/google/start?lang=` (`th` | `en`, default `th`) is kept in the
+      cookie, for the mail an automatic link sends (rule 31, 4.4a).
     - **Never puts tokens in the redirect URL**. Success sets the refresh cookie and redirects to
       `/auth/callback` on the web app (with `returnUrl`, and `linked=google` after an automatic
       link), which calls `/auth/refresh` to get an access token. A failure redirects to
@@ -232,14 +238,14 @@ Raw OTPs, link tokens and refresh tokens are **never stored**, only their hashes
     the client IP, so Express `trust proxy` is set to the number of proxies in front of the API
     (`TRUST_PROXY_HOPS`: the dev proxy or the Vercel rewrite).
 17. Sign-out revokes the current session family and clears the cookie. "Sign out other devices"
-    revokes every other family.
+    revokes every other family (rule 28).
 18. Never log, return or store raw secrets: passwords, codes, link tokens, refresh tokens. Logs carry
     user ids, session ids and token **hashes** only. The OTP is hashed with **HMAC-SHA256 using a
     server secret** (`OTP_PEPPER`) rather than plain SHA-256, because a 6-digit code is trivial to
     brute-force offline from a plain hash.
 19. Every auth event is logged (sign-in success/failure + method — `email`, `password`, `google`
-    — refresh reuse detected, password set/changed/removed, identity linked) at `info`/`warn`, for
-    later review.
+    — refresh reuse detected, password set/changed/removed, identity linked / unlinked, sessions
+    revoked from Account › Security) at `info`/`warn`, for later review.
 20. Cleanup: a daily **Vercel Cron** job (`POST /internal/cron/auth-cleanup`, protected by
     `CRON_SECRET`) deletes challenges, sessions and rate-limit buckets more than 7 days past
     expiry or revocation. It replaces tripsurance's `setInterval`, which can't run on serverless.
@@ -254,14 +260,23 @@ SMS provider prints the code, so the whole flow is testable without an SMS accou
 
 21. Phone numbers are trimmed and normalised to E.164 before any lookup (`081-234-5678` →
     `+66812345678`). Only Thai mobile numbers are accepted (`+66` followed by 6, 8 or 9 and 8 more
-    digits); anything else is a `422`.
+    digits); anything else is a `422`. The web has one `type="tel"` field (`inputmode="tel"`,
+    `autocomplete="tel-national"`) where the number is typed the Thai way (`0812345678`; `+66`,
+    spaces and dashes are accepted too), and shows numbers as `081-234-5678` (decided at the start
+    of 4.4).
+    **SMS off**: `GET /auth/providers` answers `{ google, phone }`, `phone` being false when
+    `SMS_PROVIDER=disabled`. The web then hides "Sign in with phone number" and the "add number"
+    action (a number already saved still shows, read-only). Every `/auth/phone*` route answers `503`
+    **before** looking at the number, so a disabled provider never tells known numbers from
+    unknown ones.
 22. `POST /auth/phone/start` `{ phone }` sends a 6-digit code (same generation and hashing as rule
     4 and 18) **only if a user has that verified number and is active**. It **always** answers
     `202` with the same body and similar timing; for an unknown number it sends nothing (so no SMS
     is paid for) and sleeps instead, like rule 5.
 23. Limits: **resend cooldown 60 s** per number, **3 starts per number per hour**, **10 per IP per
-    hour**, and a **global cap of 100 SMS per day** (`SMS_DAILY_LIMIT`, env) across the app, which
-    caps the bill if the limits above are bypassed. Over a limit returns `429` with `Retry-After`;
+    hour** (`otp:sms-ip:`, separate from email's per-IP bucket), and a **global cap of 100 SMS per
+    day** (`SMS_DAILY_LIMIT`, env) across the app, which caps the bill if the limits above are
+    bypassed. Over a limit returns `429` with `Retry-After`;
     hitting the global cap also logs a `warn`.
 24. `POST /auth/phone/verify` `{ phone, code }`: the code expires after **5 minutes**, allows **5
     wrong attempts**, is compared in constant time, and is single-use, as in rule 7. Success
@@ -271,11 +286,66 @@ SMS provider prints the code, so the whole flow is testable without an SMS accou
 /auth/phone/confirm` `{ code }` saves it as `users.phone` with `phoneVerifiedAt`. If another
     user already holds that number, the confirm fails with a generic `409` (it reveals only what the
     person proved they own). Changing the number repeats the flow; `DELETE /auth/phone` removes it
-    (recent auth). The start limits of rule 23 apply here too.
-26. The SMS text is short, Thai, and names the app and the expiry, e.g. `รหัสเข้าสู่ระบบ Tang Pai
-Nai: 123456 (หมดอายุใน 5 นาที) ห้ามบอกรหัสนี้กับผู้อื่น`. It never contains a link.
+    (recent auth). The start limits of rule 23 apply here too. Adding, changing and removing a
+    number each send the mail of rule 31; the routes take `lang` like the others.
+26. The SMS text is Thai only and fits **one segment** (Thai is sent as UCS-2: 70 characters,
+    counted in UTF-16 units; a longer text is billed as two). It names the app and the expiry and
+    never contains a link (decided at the start of 4.4):
+    - sign-in: `รหัสเข้าสู่ระบบ ตังค์ไปไหน: 123456 ใช้ได้ 5 นาที ห้ามบอกผู้อื่น` (63)
+    - `verify_phone`: `รหัสยืนยันเบอร์ ตังค์ไปไหน: 123456 ใช้ได้ 5 นาที ห้ามบอกผู้อื่น` (63)
+
+    A test keeps both at ≤ 70 units.
+
 27. Phone events are logged like rule 19 (sign-in success/failure with method `phone`, number
     added/changed/removed) with the number **masked** (`+66*****5678`), never in full.
+
+**Account › Security (4.4a)** (decided at the start of 4.4)
+
+28. **Sessions.** `GET /auth/sessions` lists the caller's active session families (not revoked,
+    not past either expiry), one entry each, most recently used first, as
+    `{ id, userAgent, signedInAt, lastUsedAt, current }`. `id` is the family id; `userAgent` the latest one seen
+    (the web turns it into "Chrome · Android", or "Unknown device"); `current` flags the caller's
+    own family. No IP is stored or shown.
+    - `DELETE /auth/sessions/:id` revokes that family. Someone else's, unknown or already ended
+      → `404`; the caller's own → `400` `CURRENT_SESSION` (the web uses sign-out for that).
+    - `DELETE /auth/sessions` ("sign out other devices", rule 17) revokes every other family and
+      answers `{ revoked }` (how many).
+    - **No recent auth** (the owner's choice): revoking protects the account, and whoever is
+      thrown out can sign in again. The caller's own session must still be active, as on every
+      credential route. A revoked device's access token keeps working for its last ≤ 10 min, but
+      its next refresh is `SESSION_REVOKED`.
+29. **Linking Google while signed in.** `POST /auth/google/link` (Bearer, `{ lang }`) needs
+    Google on (`404` otherwise) and recent auth (rule 13). A user has **at most one** Google
+    identity: one already linked → `409` `IDENTITY_ALREADY_LINKED` (unlink first). It sets the
+    `__Host-goidc` cookie as rule 14's start does, with `mode: link`, the caller's user id and
+    session family, and answers `{ authorizationUrl }`; the web then navigates there.
+    The callback checks everything rule 14 checks, then (in link mode):
+    - the session family in the cookie must still be active and belong to an active user, else
+      `failed` / `disabled`;
+    - the `sub` already belongs to **another** user → `google_in_use` (accounts are never
+      merged); to this user → success with nothing to do;
+    - otherwise the identity is created with the Google email as `emailAtLink`. The Google email
+      **need not** match `users.email`, and `email_verified` isn't required: the user proved both
+      accounts just now. An empty `avatarUrl` is filled, as in rule 14.
+    - It creates **no session** and leaves the refresh cookie alone. It redirects to
+      `/account/security?linked=google`, or `/account/security?error=<reason>` (`cancelled` shows
+      nothing); never to `/auth/callback`.
+30. **Unlinking Google.** `DELETE /auth/google/link` `{ currentPassword?, lang }` needs recent
+    auth (rule 13), removes the identity and answers the user; a no-op `200` when none is linked.
+    Sessions made with Google stay; the email code always remains a way in.
+31. **Mail on credential change** (ASVS). One short mail to `users.email` after: password set,
+    changed or removed; Google linked (from Security, or automatically at sign-in, rule 14) or
+    unlinked; phone number added, changed or removed (4.4b). Not on sign-out or revoking sessions.
+    - Content: what changed and when (the user's `timezone`, formatted for the language: Thai with
+      พ.ศ.), then "If this wasn't you, sign in with an email code, change what was changed, and
+      sign out other devices on the Security page". No link and no code: users learn that this
+      mail never asks them to click anything.
+    - Language: the routes that change credentials take an optional `lang` (`th` | `en`, default
+      `th`) in the body, as `/auth/reauth/start` does; an automatic link uses the `lang` of
+      `/auth/google/start`.
+    - Sent after the change is saved. A failed send or a reached `EMAIL_DAILY_LIMIT` logs a `warn`
+      and skips the mail; the change still succeeds. It counts toward the daily cap but not toward
+      the per-email start limits of rule 6.
 
 ## Endpoints
 
@@ -290,24 +360,27 @@ All live under `/auth`, on the public router. "Bearer" = needs `authenticate`.
 | DELETE | `/auth/password`         | Bearer | Remove password (recent auth)                                  | 4.2  |
 | POST   | `/auth/reauth/start`     | Bearer | Mail a step-up code to the user's own email (rule 13)          | 4.2  |
 | POST   | `/auth/reauth/verify`    | Bearer | `{ code }` → `authTime` = now on the current session family    | 4.2  |
-| POST   | `/auth/phone/start`      | —      | Send SMS code to a verified number (always `202`)              | 4.4  |
-| POST   | `/auth/phone/verify`     | —      | `{ phone, code }` → user + access token; cookie                | 4.4  |
-| POST   | `/auth/phone`            | Bearer | Add or change number (recent auth): send `verify_phone` code   | 4.4  |
-| POST   | `/auth/phone/confirm`    | Bearer | `{ code }` → save the number as verified                       | 4.4  |
-| DELETE | `/auth/phone`            | Bearer | Remove the number (recent auth)                                | 4.4  |
-| GET    | `/auth/providers`        | —      | Which extra ways are on: `{ google }`                          | 4.3  |
+| POST   | `/auth/phone/start`      | —      | Send SMS code to a verified number (always `202`)              | 4.4b |
+| POST   | `/auth/phone/verify`     | —      | `{ phone, code }` → user + access token; cookie                | 4.4b |
+| POST   | `/auth/phone`            | Bearer | Add or change number (recent auth): send `verify_phone` code   | 4.4b |
+| POST   | `/auth/phone/confirm`    | Bearer | `{ code }` → save the number as verified                       | 4.4b |
+| DELETE | `/auth/phone`            | Bearer | Remove the number (recent auth)                                | 4.4b |
+| GET    | `/auth/providers`        | —      | Which extra ways are on: `{ google }`, + `phone` (4.4b)        | 4.3  |
 | GET    | `/auth/google/start`     | —      | Redirect to Google (PKCE + state + nonce)                      | 4.3  |
-| GET    | `/auth/google/callback`  | —      | Finish Google sign-in; sets cookie; redirects to web           | 4.3  |
+| GET    | `/auth/google/callback`  | —      | Finish Google sign-in or link; redirects to web                | 4.3  |
+| POST   | `/auth/google/link`      | Bearer | Start linking Google (recent auth) → `{ authorizationUrl }`    | 4.4a |
+| DELETE | `/auth/google/link`      | Bearer | Unlink Google (recent auth)                                    | 4.4a |
 | POST   | `/auth/refresh`          | cookie | Rotate refresh token → new access token                        | 4.1  |
 | POST   | `/auth/sign-out`         | cookie | Revoke current session; clear cookie                           | 4.1  |
 | GET    | `/auth/me`               | Bearer | Current user + `hasPassword` (4.2) + `identities` (4.3)        | 4.1  |
-| GET    | `/auth/sessions`         | Bearer | Active sessions (one per family), current one flagged          | 4.4  |
-| DELETE | `/auth/sessions/:id`     | Bearer | Revoke one session family                                      | 4.4  |
-| DELETE | `/auth/sessions`         | Bearer | Revoke all other session families                              | 4.4  |
+| GET    | `/auth/sessions`         | Bearer | Active sessions (one per family), current one flagged          | 4.4a |
+| DELETE | `/auth/sessions/:id`     | Bearer | Revoke one other session family                                | 4.4a |
+| DELETE | `/auth/sessions`         | Bearer | Revoke all other session families → `{ revoked }`              | 4.4a |
 
 Exact request/response shapes go in OpenAPI (`/docs`) once the endpoints are built. Every `user`
 in a response (sign-in, refresh, `/auth/me`, `PUT /auth/password`) carries `hasPassword` and
-`identities` (4.3): `[{ provider: 'google', email, linkedAt }]`, empty when nothing is linked.
+`identities` (4.3): `[{ provider: 'google', email, linkedAt }]`, empty when nothing is linked, and
+`phone` (4.4b): the verified number in E.164, or `null`.
 
 ## Web screens
 
@@ -333,14 +406,31 @@ who isn't signed in can't reach the account page.
   to the email code. Reached from the sign-in page's "Sign in with password" link.
 - **Password** `/account/password` (4.2, inside the shell): set / change / remove. Until 4.4's
   Security page exists, the account page has a short "Security" section with one row (password ·
-  set / not set) that opens it; 4.4 moves that row into Account → Security unchanged. 4.3 adds a
+  set / not set) that opens it; 4.4a moves that row into Account → Security unchanged. 4.3 adds a
   read-only row under it: "Google · linked (email)" or "not linked", hidden while Google is off.
-  Linking from a signed-in account and unlinking come with 4.4. A `403
+  Linking from a signed-in account and unlinking come with 4.4a. A `403
 REAUTH_REQUIRED` opens a confirm step in place: the current password (if one is set) or a
   step-up code to the user's email (`app-otp-field`), then the action is retried.
-- **Account → Security** (4.4): set/change/remove password, add/change/remove phone number, linked
-  Google account, active sessions with
-  "sign out other devices".
+- **Account → Security** `/account/security` (4.4a, inside the shell; layout decided at the start
+  of 4.4). The account page's "Security" section shrinks to one row, "ความปลอดภัย / Security",
+  that opens it. The page has a back button and two groups of list rows:
+  - **Ways to sign in**: Password (set / not set → `/account/password`, unchanged); Phone number
+    (4.4b: the number or "not added" → `/account/phone`, hidden while phone is off and no number
+    is saved); Google (hidden while Google is off): "Link" when none, else its email with
+    "Unlink". Link and unlink run the `403 REAUTH_REQUIRED` confirm step in place (the password
+    page's `reauth-step`); unlink asks "Unlink Google?" first. Coming back from Google,
+    `?linked=google` shows the 4.3 toast and `?error=` one error line (`google_in_use`: "This
+    Google account is linked to another account"; others: "Linking Google failed. Try again").
+  - **Signed-in devices**: one row per session (device label, "signed in <date>", "active
+    <relative time>", a "This device" badge on the current one). Other rows have a "Sign out"
+    button (acts at once, no undo: a revoked session can't come back, so it asks first); under
+    the list, an outline "Sign out other devices" button (asks first, then a toast with how many).
+    Hidden when this is the only session.
+  - Offline: the online-only notice, actions disabled, the list from the last load.
+- **Phone** `/account/phone` (4.4b): add / change (number field → `app-otp-field` for the SMS
+  code, resend timer) or remove (asks first), with the same confirm step.
+- **Sign in with phone** `/auth/phone` (4.4b): the phone field, then the enter-code screen with an
+  "check your SMS" hint and no magic-link line.
 
 ## Interactions
 
@@ -382,8 +472,8 @@ lets the web app decide whether to wipe or keep local data.
 ## Open questions
 
 - **Phone sign-in later**: switch it on in production only once the ThaiBulkSMS adapter, sender
-  name and credit are in place. Until then `SMS_PROVIDER=disabled` makes `/auth/phone/*` answer
-  `503`, and the web hides the phone link.
+  name and credit are in place. Until then `SMS_PROVIDER=disabled` makes `/auth/phone*` answer
+  `503` and `GET /auth/providers` says `phone: false`, so the web hides it (rule 21).
 - **Access token lifetime** of 10 min: fine with silent refresh. Raise it only if refresh traffic
   turns out to be a problem.
 - **Password policy**: decided in 4.2 as 8+ characters with all four character classes (rule 11),
@@ -392,5 +482,4 @@ lets the web app decide whether to wipe or keep local data.
 - **Google email ownership** (4.3): automatic linking trusts `email_verified`. Google is
   authoritative for `@gmail.com` and for Workspace domains, which covers the family; revisit
   (e.g. confirm with an email code before linking) if the app opens to strangers.
-- **Notify on password change**: ASVS asks for a mail when a credential changes. Not in 4.2;
-  proposal: one short mail on set / change / remove, added with 4.4's Security page.
+- **Notify on credential change**: decided at the start of 4.4 (rule 31), built in 4.4a.
