@@ -1,4 +1,4 @@
-import { Location } from '@angular/common'
+import { Location, NgTemplateOutlet } from '@angular/common'
 import {
   afterNextRender,
   Component,
@@ -15,6 +15,7 @@ import {
   lucideArrowLeft,
   lucideChevronRight,
   lucideKeyRound,
+  lucidePhone,
   lucideMonitor,
   lucideSmartphone,
   lucideTablet,
@@ -23,7 +24,7 @@ import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { toApiError } from '@/core/api'
-import { authErrorMessage, AuthService, AuthStore } from '@/core/auth'
+import { authErrorMessage, AuthService, AuthStore, formatThaiMobile } from '@/core/auth'
 import type { AuthDeviceSession, GoogleLinkFailure, UiMessage } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
@@ -74,12 +75,22 @@ const DAY = 24 * HOUR
  */
 @Component({
   selector: 'app-security-page',
-  imports: [TranslocoPipe, RouterLink, NgIcon, HlmButton, HlmSpinner, GoogleLogo, ReauthStep],
+  imports: [
+    NgTemplateOutlet,
+    TranslocoPipe,
+    RouterLink,
+    NgIcon,
+    HlmButton,
+    HlmSpinner,
+    GoogleLogo,
+    ReauthStep,
+  ],
   providers: [
     provideIcons({
       lucideArrowLeft,
       lucideChevronRight,
       lucideKeyRound,
+      lucidePhone,
       lucideMonitor,
       lucideSmartphone,
       lucideTablet,
@@ -129,6 +140,37 @@ const DAY = 24 * HOUR
                 aria-hidden="true"
               />
             </a>
+
+            @if (phoneEnabled()) {
+              <a routerLink="/account/phone" class="flex min-h-14 items-center gap-3 px-4 py-3">
+                <ng-container [ngTemplateOutlet]="phoneRow" />
+                <ng-icon
+                  name="lucideChevronRight"
+                  size="20"
+                  class="text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </a>
+            } @else if (phone()) {
+              <!-- SMS is off: a saved number still shows, read-only (rule 21). -->
+              <div class="flex min-h-14 items-center gap-3 px-4 py-3">
+                <ng-container [ngTemplateOutlet]="phoneRow" />
+              </div>
+            }
+            <ng-template #phoneRow>
+              <span
+                class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
+                aria-hidden="true"
+              >
+                <ng-icon name="lucidePhone" />
+              </span>
+              <span class="flex min-w-0 flex-1 flex-col">
+                <span class="text-base">{{ 'account.phone' | transloco }}</span>
+                <span class="text-sm text-muted-foreground tabular-nums">
+                  {{ phone() ?? ('account.phoneNotAdded' | transloco) }}
+                </span>
+              </span>
+            </ng-template>
 
             @if (googleEnabled() || google()) {
               <div class="flex min-h-14 items-center gap-3 px-4 py-3">
@@ -429,6 +471,11 @@ export class SecurityPage {
   protected reauth = inject(ReauthFlow<GoogleAction>)
 
   protected googleEnabled = signal(false)
+  protected phoneEnabled = signal(false)
+  protected phone = computed(() => {
+    const phone = this.authStore.user()?.phone
+    return phone ? formatThaiMobile(phone) : null
+  })
   // Google is the only provider, linked at most once per user (rule 29).
   protected google = computed(() => this.authStore.user()?.identities.at(0) ?? null)
   protected googleError = signal<UiMessage | null>(null)
@@ -469,6 +516,7 @@ export class SecurityPage {
     this.authService.loadMe().catch(() => undefined)
     void this.authService.providers().then((providers) => {
       this.googleEnabled.set(providers.google)
+      this.phoneEnabled.set(providers.phone)
     })
     void this.loadDevices()
   }

@@ -13,7 +13,7 @@ import type {
 /** Shared by every tab, so two tabs never rotate the same refresh token at once. */
 const REFRESH_LOCK = 'tpn-auth-refresh'
 
-const NO_PROVIDERS: AuthProviders = { google: false }
+const NO_PROVIDERS: AuthProviders = { google: false, phone: false }
 
 /**
  * Where "Continue with Google" sends the browser (the API, through the `/api` rewrite). `lang`
@@ -35,7 +35,7 @@ export const googleStartUrl = (returnUrl: string, lang = 'th'): string => {
 const recentAuthBody = (lang: string, currentPassword?: string) =>
   currentPassword === undefined ? { lang } : { lang, currentPassword }
 
-/** The auth endpoints (docs/features/auth.md, parts 4.1–4.4a) and the session they produce. */
+/** The auth endpoints (docs/features/auth.md, parts 4.1–4.4b) and the session they produce. */
 @Service()
 export class AuthService {
   private api = inject(ApiClient)
@@ -80,6 +80,48 @@ export class AuthService {
 
   async verifyLink(token: string): Promise<void> {
     await this.verify({ token })
+  }
+
+  /** Rule 22: an SMS code to a verified number (`phone` in E.164); the API answers the same either way. */
+  async startPhone(phone: string): Promise<void> {
+    await this.api.post('/auth/phone/start', { phone }, { context: skipAuthRefresh() })
+  }
+
+  /** Rule 24: number + SMS code → a session. */
+  async verifyPhone(phone: string, code: string): Promise<void> {
+    const response = await this.api.post<AuthSession>(
+      '/auth/phone/verify',
+      { phone, code },
+      { context: skipAuthRefresh() }
+    )
+    if (response.data) {
+      this.authStore.setSession(response.data)
+    }
+  }
+
+  /** Rule 25: send a `verify_phone` code to a new number (recent auth). */
+  async changePhone(phone: string, currentPassword?: string): Promise<void> {
+    const body = currentPassword === undefined ? { phone } : { phone, currentPassword }
+    await this.api.post('/auth/phone', body)
+  }
+
+  /** Rule 25: the SMS code saves the number. */
+  async confirmPhone(code: string, lang: string): Promise<void> {
+    const response = await this.api.post<AuthUser>('/auth/phone/confirm', { code, lang })
+    if (response.data) {
+      this.authStore.user.set(response.data)
+    }
+  }
+
+  /** Rule 25: remove the number (recent auth). */
+  async removePhone(lang: string, currentPassword?: string): Promise<void> {
+    const response = await this.api.delete<AuthUser>(
+      '/auth/phone',
+      recentAuthBody(lang, currentPassword)
+    )
+    if (response.data) {
+      this.authStore.user.set(response.data)
+    }
   }
 
   /** Rule 12: email + password → a session, like a verified code. */

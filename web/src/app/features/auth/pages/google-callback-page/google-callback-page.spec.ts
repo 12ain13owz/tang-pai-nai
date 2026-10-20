@@ -23,6 +23,7 @@ const session: AuthSession = {
     avatarUrl: null,
     timezone: 'Asia/Bangkok',
     hasPassword: false,
+    phone: null,
     identities: [{ provider: 'google', email: 'mom@gmail.com', linkedAt: '2026-10-19T00:00:00Z' }],
   },
 }

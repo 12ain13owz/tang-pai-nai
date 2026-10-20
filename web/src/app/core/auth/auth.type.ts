@@ -9,6 +9,8 @@ export interface AuthUser {
   hasPassword: boolean
   /** Linked sign-in providers (4.3), oldest first. */
   identities: AuthIdentity[]
+  /** The verified mobile number in E.164 (4.4b), or `null`. */
+  phone: string | null
 }
 
 /** Mirrors `AuthIdentityData` in the API. */
@@ -37,6 +39,8 @@ export type GoogleLinkFailure =
 /** `GET /auth/providers`: which extra ways to sign in the API has switched on. */
 export interface AuthProviders {
   google: boolean
+  /** Phone sign-in and adding a number (4.4b); off while the API has no SMS provider. */
+  phone: boolean
 }
 
 /** `/auth/callback?error=…` after Google sign-in (auth spec rule 14). */
@@ -77,3 +81,6 @@ export type AuthErrorCode =
   | 'CURRENT_SESSION'
   | 'IDENTITY_ALREADY_LINKED'
   | 'GOOGLE_IN_USE'
+  | 'PHONE_DISABLED'
+  | 'PHONE_UNCHANGED'
+  | 'PHONE_IN_USE'

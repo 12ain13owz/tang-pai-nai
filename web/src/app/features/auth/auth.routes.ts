@@ -5,9 +5,11 @@ import { guestGuard } from '@/core/auth'
 import { AuthFlowStore } from './auth-flow.store'
 import { AuthLayout } from './components/auth-layout'
 
-/** The code screen only makes sense right after asking for a code. */
-const hasPendingEmail = () =>
-  inject(AuthFlowStore).pending().email ? true : inject(Router).parseUrl('/auth/sign-in')
+/** The code screen only makes sense right after asking for a code (by email or SMS). */
+const hasPendingSignIn = () => {
+  const { email, phone } = inject(AuthFlowStore).pending()
+  return email || phone ? true : inject(Router).parseUrl('/auth/sign-in')
+}
 
 export default [
   {
@@ -25,7 +27,7 @@ export default [
       {
         path: 'code',
         title: 'title.enterCode',
-        canActivate: [guestGuard, hasPendingEmail],
+        canActivate: [guestGuard, hasPendingSignIn],
         loadComponent: async () =>
           import('./pages/enter-code-page/enter-code-page').then((m) => m.EnterCodePage),
       },
@@ -37,6 +39,13 @@ export default [
           import('./pages/password-sign-in-page/password-sign-in-page').then(
             (m) => m.PasswordSignInPage
           ),
+      },
+      {
+        path: 'phone',
+        title: 'title.phoneSignIn',
+        canActivate: [guestGuard],
+        loadComponent: async () =>
+          import('./pages/phone-sign-in-page/phone-sign-in-page').then((m) => m.PhoneSignInPage),
       },
       {
         // Not guest-only: a link opened while signed in signs in as that email.

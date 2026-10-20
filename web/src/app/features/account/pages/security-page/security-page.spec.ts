@@ -24,6 +24,7 @@ const user = (linked = false): AuthUser => ({
   avatarUrl: null,
   timezone: 'Asia/Bangkok',
   hasPassword: true,
+  phone: null,
   identities: linked
     ? [{ provider: 'google', email: 'mom@gmail.com', linkedAt: '2026-10-19T00:00:00Z' }]
     : [],
