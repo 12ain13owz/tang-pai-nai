@@ -11,7 +11,8 @@ tags:
   - name: Health
     description: Service health checks
   - name: Auth
-    description: Email code / magic-link / password sign-in and sessions (docs/features/auth.md)
+    description: >-
+      Email code / magic-link / password / Google sign-in and sessions (docs/features/auth.md)
   - name: Todo
     description: Reference CRUD feature (in-memory, resets on restart)
 
@@ -36,6 +37,12 @@ paths:
     $ref: './paths/auth/sign-out.yaml'
   /auth/me:
     $ref: './paths/auth/me.yaml'
+  /auth/providers:
+    $ref: './paths/auth/providers.yaml'
+  /auth/google/start:
+    $ref: './paths/auth/google-start.yaml'
+  /auth/google/callback:
+    $ref: './paths/auth/google-callback.yaml'
   /todos:
     $ref: './paths/todo/todos.yaml'
   /todos/{id}:
@@ -55,6 +62,11 @@ components:
       in: cookie
       name: __Host-rt
       description: Opaque refresh token, set by the API; never readable by the web app
+    googleFlowCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-goidc
+      description: Sealed state, nonce and PKCE verifier of one Google round trip (10 minutes)
   schemas:
     HealthResponse:
       $ref: './components/models/health.schema.yaml'
@@ -68,6 +80,8 @@ components:
       $ref: './components/models/auth-user.schema.yaml'
     AuthSessionResponse:
       $ref: './components/models/auth-session-response.schema.yaml'
+    AuthIdentity:
+      $ref: './components/models/auth-identity.schema.yaml'
   responses:
     SuccessResponse:
       $ref: './components/responses/success.response.yaml'

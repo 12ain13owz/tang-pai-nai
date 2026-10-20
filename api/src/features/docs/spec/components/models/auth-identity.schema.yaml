@@ -1,0 +1,15 @@
+type: object
+required: [provider, email, linkedAt]
+properties:
+  provider:
+    type: string
+    enum: [google]
+  email:
+    type: string
+    format: email
+    description: The provider's email when the account was linked
+    example: mom@gmail.com
+  linkedAt:
+    type: string
+    format: date-time
+    example: '2026-01-01T00:00:00.000Z'

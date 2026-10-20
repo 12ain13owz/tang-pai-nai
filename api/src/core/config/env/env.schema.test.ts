@@ -69,4 +69,48 @@ describe('envSchema', () => {
       expect(result.data.SHUTDOWN_TIMEOUT_MS).toBe(5000)
     }
   })
+
+  it('leaves Google sign-in off when its settings are empty, with Google as the issuer', () => {
+    const result = envSchema.safeParse({
+      ...validEnv,
+      GOOGLE_CLIENT_ID: '',
+      GOOGLE_CLIENT_SECRET: '',
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.GOOGLE_CLIENT_ID).toBeUndefined()
+      expect(result.data.GOOGLE_ISSUER).toBe('https://accounts.google.com')
+    }
+  })
+
+  it.each([
+    [{ GOOGLE_CLIENT_ID: 'id' }, 'GOOGLE_CLIENT_SECRET'],
+    [{ GOOGLE_CLIENT_SECRET: 'secret' }, 'GOOGLE_CLIENT_ID'],
+  ])('needs both Google settings or neither (%o)', (google, missing) => {
+    const result = envSchema.safeParse({ ...validEnv, ...google })
+
+    expect(result.success).toBe(false)
+    expect(result.error?.issues.map((issue) => issue.path.join('.'))).toContain(missing)
+  })
+
+  it('allows a plain-http issuer (the local stand-in) only outside production', () => {
+    const google = {
+      GOOGLE_CLIENT_ID: 'dev-client',
+      GOOGLE_CLIENT_SECRET: 'dev-secret',
+      GOOGLE_ISSUER: 'http://localhost:4400/',
+    }
+    const dev = envSchema.safeParse({ ...validEnv, ...google })
+    const prod = envSchema.safeParse({
+      ...validEnv,
+      ...google,
+      NODE_ENV: AppEnv.PRODUCTION,
+      EMAIL_PROVIDER: 'smtp',
+      SMTP_URL: 'smtp://mail.test',
+      SMS_PROVIDER: 'disabled',
+    })
+
+    expect(dev.success && dev.data.GOOGLE_ISSUER).toBe('http://localhost:4400')
+    expect(prod.error?.issues.map((issue) => issue.path.join('.'))).toEqual(['GOOGLE_ISSUER'])
+  })
 })

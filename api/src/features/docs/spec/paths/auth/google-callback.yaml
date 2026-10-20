@@ -1,0 +1,51 @@
+get:
+  tags:
+    - Auth
+  summary: Finish Google sign-in
+  description: >-
+    Where Google sends the browser back (`WEB_ORIGIN` + `/api/auth/google/callback`). Reads and
+    clears `__Host-goidc`, checks `state`, exchanges the code server-side with the PKCE verifier,
+    and validates the ID token (signature from Google's JWKS, `iss`, `aud`, `exp`, `nonce`). The
+    user is found by the Google `sub`; a new one is linked to the user with the same verified
+    email, or creates a user when sign-up is open. Never puts a token in the URL: on success it
+    sets the `__Host-rt` refresh cookie and redirects to the web app's `/auth/callback`, which
+    then calls `/auth/refresh`. Shares the per-IP verify limit (30 per 15 minutes).
+  operationId: googleCallback
+  security:
+    - googleFlowCookie: []
+  parameters:
+    - name: code
+      in: query
+      required: false
+      schema:
+        type: string
+    - name: state
+      in: query
+      required: false
+      schema:
+        type: string
+    - name: error
+      in: query
+      required: false
+      description: Set by Google instead of `code`, e.g. `access_denied` when the user says no
+      schema:
+        type: string
+  responses:
+    '302':
+      description: >-
+        Always a redirect to the web app's `/auth/callback`. Success:
+        `?returnUrl=<path>` (left out for `/`) and `&linked=google` right after an automatic
+        link; sets `__Host-rt`. Failure: `?error=<reason>`, one of `cancelled`,
+        `email_unverified`, `signup_closed`, `disabled`, `rate_limited`, `failed` (state, cookie,
+        code exchange or ID token).
+      headers:
+        Location:
+          schema:
+            type: string
+            format: uri
+    '404':
+      description: Google sign-in is off
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

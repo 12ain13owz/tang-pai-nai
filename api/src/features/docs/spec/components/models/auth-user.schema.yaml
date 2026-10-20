@@ -1,5 +1,5 @@
 type: object
-required: [id, email, displayName, avatarUrl, timezone, hasPassword]
+required: [id, email, displayName, avatarUrl, timezone, hasPassword, identities]
 properties:
   id:
     type: string
@@ -11,10 +11,12 @@ properties:
     example: mom@example.com
   displayName:
     type: string
-    description: The email's local part until the user changes it
+    description: >-
+      The email's local part, or the Google name when the account was created through Google
     example: mom
   avatarUrl:
     type: [string, 'null']
+    description: The Google picture when the account was created (or linked) through Google
     example: null
   timezone:
     type: string
@@ -23,3 +25,8 @@ properties:
     type: boolean
     description: Whether the user has set a password (and can sign in with it)
     example: false
+  identities:
+    type: array
+    description: Linked sign-in providers, oldest first; empty when none
+    items:
+      $ref: './auth-identity.schema.yaml'
