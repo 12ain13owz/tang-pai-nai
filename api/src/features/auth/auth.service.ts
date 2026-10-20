@@ -33,8 +33,14 @@ import type {
 } from '@/core/security'
 import { ERRORS, LOG } from '@/shared/constants'
 import { NotificationChannel } from '@/shared/types'
+import { maskPhone, phoneLastDigits } from '@/shared/utils'
 import { AUTH_LIMITS, AUTH_MESSAGE, AuthErrorCode, PASSWORD_POLICY } from './auth.const'
-import { buildCredentialChangeMail, buildReauthMail, buildSignInMail } from './auth.mail'
+import {
+  buildCredentialChangeMail,
+  buildPhoneSms,
+  buildReauthMail,
+  buildSignInMail,
+} from './auth.mail'
 import type {
   Caller,
   CleanupResult,
@@ -58,8 +64,12 @@ export interface AuthServiceConfig {
   webOrigin: string
   signupEnabled: boolean
   emailDailyLimit: number
-  /** Floor for `/email/start` (rule 5). Tests pass 0. */
+  /** Floor for `/email/start` and `/phone/start` (rules 5 and 22). Tests pass 0. */
   startMinDurationMs: number
+  /** `SMS_PROVIDER` isn't `disabled`: phone sign-in is on (rule 21). */
+  phoneEnabled: boolean
+  /** Global cap on SMS per day (rule 23). */
+  smsDailyLimit: number
 }
 
 /** Google sign-in (rule 14); absent when `GOOGLE_CLIENT_ID` / `_SECRET` aren't set. */
@@ -151,6 +161,10 @@ const identityAlreadyLinked = () =>
   )
 const googleInUse = () =>
   new ConflictError(AUTH_MESSAGE.GOOGLE_IN_USE).withCode(AuthErrorCode.GOOGLE_IN_USE)
+const phoneUnchanged = () =>
+  new BusinessRuleError(AUTH_MESSAGE.PHONE_UNCHANGED).withCode(AuthErrorCode.PHONE_UNCHANGED)
+const phoneInUse = () =>
+  new ConflictError(AUTH_MESSAGE.PHONE_IN_USE).withCode(AuthErrorCode.PHONE_IN_USE)
 
 /**
  * The Google round trip as sealed into the cookie at start (rule 14). A link (rule 29) also
@@ -296,6 +310,42 @@ export const createAuthService = ({
     ]
   }
 
+  /** Rule 23: cooldown, per number and per IP; shared by sign-in and adding a number. */
+  const smsStartChecks = (phone: string, client: ClientContext): RateLimitCheck[] => {
+    const phoneKey = sha256(phone)
+    return [
+      { key: `otp:sms-cooldown:${phoneKey}`, limit: 1, windowMs: L.RESEND_COOLDOWN_MS },
+      { key: `otp:sms:${phoneKey}`, ...L.STARTS_PER_PHONE },
+      { key: `otp:sms-ip:${ipKey(client.ip)}`, ...L.SMS_STARTS_PER_IP },
+    ]
+  }
+
+  const SMS_DAILY_KEY = 'sms:global:day'
+
+  /**
+   * Rule 23: the daily SMS cap is checked on every start, so a full cap refuses known and unknown
+   * numbers alike; it is counted only when an SMS goes out (`countDailySms`).
+   */
+  const ensureSmsUnderDailyCap = async (at: Date, operation: string) => {
+    const bucket = await authRepo.peekRateLimit(SMS_DAILY_KEY, L.SMS_PER_DAY_WINDOW_MS, at)
+    if (bucket && bucket.count >= config.smsDailyLimit) {
+      logger.warn(LOG.AUTH.smsDailyLimit(config.smsDailyLimit))
+      const retryAfterMs = bucket.windowStart.getTime() + L.SMS_PER_DAY_WINDOW_MS - at.getTime()
+      throw tooManyRequests(retryAfterMs, operation)
+    }
+  }
+
+  const sendSms = async (
+    phone: string,
+    purpose: 'sign_in' | 'verify_phone',
+    code: string,
+    at: Date
+  ) => {
+    await authRepo.hitRateLimit(SMS_DAILY_KEY, L.SMS_PER_DAY_WINDOW_MS, at)
+    const text = buildPhoneSms(purpose, code, minutes(L.SMS_CHALLENGE_TTL_MS))
+    await notifier.send({ channel: NotificationChannel.SMS, to: phone, text })
+  }
+
   /**
    * Rule 31: one mail after a credential changed. It never fails the change: a reached daily cap
    * or a failed send only logs a warning.
@@ -304,7 +354,8 @@ export const createAuthService = ({
     user: User,
     change: CredentialChange,
     lang: MailLanguage,
-    at: Date
+    at: Date,
+    phone?: string
   ): Promise<void> => {
     try {
       const daily = await authRepo.hitRateLimit('email:global:day', L.EMAILS_PER_DAY_WINDOW_MS, at)
@@ -313,7 +364,13 @@ export const createAuthService = ({
         logger.warn(LOG.AUTH.credentialMailSkipped('daily cap'), { userId: user.id, change })
         return
       }
-      const mail = buildCredentialChangeMail({ change, lang, at, timeZone: user.timezone })
+      const mail = buildCredentialChangeMail({
+        change,
+        lang,
+        at,
+        timeZone: user.timezone,
+        phoneLastDigits: phone ? phoneLastDigits(phone) : undefined,
+      })
       await notifier.send({ channel: NotificationChannel.EMAIL, to: user.email, ...mail })
     } catch (error) {
       const detail = error instanceof Error ? error.message : undefined
@@ -1129,6 +1186,223 @@ export const createAuthService = ({
     return others.size
   }
 
+  /**
+   * Rule 22: an SMS code only for an active user with that verified number. Always the same
+   * answer and at least the same time; an unknown number costs no SMS and stores nothing.
+   */
+  const startPhoneSignIn = async (phone: string, client: ClientContext): Promise<void> => {
+    const startedAt = Date.now()
+    const at = now()
+    await enforceLimits(smsStartChecks(phone, client), at, 'startPhoneSignIn')
+    await ensureSmsUnderDailyCap(at, 'startPhoneSignIn')
+
+    const user = await authRepo.findUserByPhone(phone)
+    const shouldSend = user?.status === 'active'
+    let challengeId: string | undefined
+    if (shouldSend) {
+      const code = randomCode(L.CODE_DIGITS)
+      const challenge = await authRepo.transaction(async (repo) => {
+        await repo.expireOpenChallenges(phone, 'sign_in', at, 'sms')
+        return repo.createChallenge({
+          channel: 'sms',
+          purpose: 'sign_in',
+          destination: phone,
+          userId: null,
+          codeHash: hashCode(code),
+          linkTokenHash: null,
+          expiresAt: new Date(at.getTime() + L.SMS_CHALLENGE_TTL_MS),
+        })
+      })
+      challengeId = challenge.id
+      await sendSms(phone, 'sign_in', code, at)
+    }
+    logger.info(LOG.AUTH.codeRequested, {
+      channel: 'sms',
+      challengeId,
+      sent: shouldSend,
+      phone: maskPhone(phone),
+    })
+
+    const remainingMs = startedAt + config.startMinDurationMs - Date.now()
+    if (remainingMs > 0) {
+      await sleep(remainingMs)
+    }
+  }
+
+  /** Rule 24: the SMS code → a session for the number's owner. */
+  const verifyPhoneSignIn = async (
+    phone: string,
+    code: string,
+    client: ClientContext
+  ): Promise<SignInResult> => {
+    const at = now()
+    await enforceLimits(
+      [{ key: `verify:ip:${ipKey(client.ip)}`, ...L.VERIFIES_PER_IP }],
+      at,
+      'verifyPhoneSignIn'
+    )
+    const challenge = await authRepo.findLatestChallenge(phone, 'sign_in', 'sms')
+    if (!challenge || !isOpen(challenge, at)) {
+      throw codeExpired().withOperation('verifyPhoneSignIn')
+    }
+    await checkCode(challenge, code, LOG.AUTH.signInFailed('phone'), 'verifyPhoneSignIn')
+
+    const outcome = await authRepo.transaction(async (repo) => {
+      if (!(await repo.consumeChallenge(challenge.id, at))) {
+        return { kind: 'expired' } as const
+      }
+      // The number may have been removed or moved since the code was sent.
+      const user = await repo.findUserByPhone(challenge.destination)
+      if (!user) {
+        return { kind: 'expired' } as const
+      }
+      // Checked after the credential, so a stranger can't learn the account's state (rule 3).
+      if (user.status === 'disabled') {
+        return { kind: 'disabled', userId: user.id } as const
+      }
+      const { familyId, refresh } = await startSession(repo, user.id, client, at)
+      return { kind: 'signedIn', user, familyId, refresh } as const
+    })
+
+    if (outcome.kind === 'expired') {
+      throw codeExpired().withOperation('verifyPhoneSignIn')
+    }
+    if (outcome.kind === 'disabled') {
+      logger.warn(LOG.AUTH.signInFailed('phone'), { userId: outcome.userId, reason: 'disabled' })
+      throw userDisabled().withOperation('verifyPhoneSignIn')
+    }
+    logger.info(LOG.AUTH.signedIn('phone'), {
+      userId: outcome.user.id,
+      sessionFamilyId: outcome.familyId,
+      phone: maskPhone(phone),
+    })
+    return signedIn(await profileOf(outcome.user), outcome.familyId, outcome.refresh)
+  }
+
+  /**
+   * Rule 25: add or change the number (recent auth). The code goes to the new number; the saved
+   * one keeps working until the new one is confirmed.
+   */
+  const startPhoneChange = async (
+    caller: Caller,
+    phone: string,
+    currentPassword: string | undefined,
+    client: ClientContext
+  ): Promise<void> => {
+    const at = now()
+    const access = await activeCaller(caller, at, 'startPhoneChange')
+    const { user } = access
+    if (user.phone === phone) {
+      throw phoneUnchanged().withOperation('startPhoneChange')
+    }
+    await requireRecentAuth(access, currentPassword, client, at, 'startPhoneChange')
+    await enforceLimits(smsStartChecks(phone, client), at, 'startPhoneChange')
+    await ensureSmsUnderDailyCap(at, 'startPhoneChange')
+
+    const code = randomCode(L.CODE_DIGITS)
+    const challenge = await authRepo.transaction(async (repo) => {
+      await repo.expireOpenUserChallenges(user.id, 'verify_phone', at)
+      return repo.createChallenge({
+        channel: 'sms',
+        purpose: 'verify_phone',
+        destination: phone,
+        userId: user.id,
+        codeHash: hashCode(code),
+        linkTokenHash: null,
+        expiresAt: new Date(at.getTime() + L.SMS_CHALLENGE_TTL_MS),
+      })
+    })
+    await sendSms(phone, 'verify_phone', code, at)
+    logger.info(LOG.AUTH.phoneCodeRequested, {
+      challengeId: challenge.id,
+      userId: user.id,
+      phone: maskPhone(phone),
+    })
+  }
+
+  /**
+   * Rule 25: the `verify_phone` code saves its number. A number held by someone else is a
+   * generic `409`, and the code is used up.
+   */
+  const confirmPhone = async (
+    caller: Caller,
+    code: string,
+    lang: MailLanguage,
+    client: ClientContext
+  ): Promise<UserProfile> => {
+    const at = now()
+    await enforceLimits(
+      [{ key: `verify:ip:${ipKey(client.ip)}`, ...L.VERIFIES_PER_IP }],
+      at,
+      'confirmPhone'
+    )
+    const { user } = await activeCaller(caller, at, 'confirmPhone')
+    const challenge = await authRepo.findLatestUserChallenge(user.id, 'verify_phone')
+    if (!challenge || !isOpen(challenge, at)) {
+      throw codeExpired().withOperation('confirmPhone')
+    }
+    await checkCode(challenge, code, LOG.AUTH.phoneConfirmFailed, 'confirmPhone')
+
+    const phone = challenge.destination
+    const outcome = await authRepo.transaction(async (repo) => {
+      if (!(await repo.consumeChallenge(challenge.id, at))) {
+        return { kind: 'expired' } as const
+      }
+      const holder = await repo.findUserByPhone(phone)
+      if (holder && holder.id !== user.id) {
+        return { kind: 'inUse' } as const
+      }
+      const saved = holder ? user : await repo.setUserPhone(user.id, phone, at)
+      return { kind: 'saved', user: saved ?? user, unchanged: holder !== null } as const
+    })
+
+    if (outcome.kind === 'expired') {
+      throw codeExpired().withOperation('confirmPhone')
+    }
+    if (outcome.kind === 'inUse') {
+      logger.warn(LOG.AUTH.phoneConfirmFailed, {
+        userId: user.id,
+        reason: 'in use',
+        phone: maskPhone(phone),
+      })
+      throw phoneInUse().withOperation('confirmPhone')
+    }
+    if (!outcome.unchanged) {
+      const change = user.phone ? 'phone_changed' : 'phone_added'
+      logger.info(user.phone ? LOG.AUTH.phoneChanged : LOG.AUTH.phoneAdded, {
+        userId: user.id,
+        sessionFamilyId: caller.sessionFamilyId,
+        phone: maskPhone(phone),
+      })
+      await notifyCredentialChange(outcome.user, change, lang, at, phone)
+    }
+    return profileOf(outcome.user)
+  }
+
+  /** Rule 25: remove the number (recent auth). Without one it's a no-op. */
+  const removePhone = async (
+    caller: Caller,
+    currentPassword: string | undefined,
+    lang: MailLanguage,
+    client: ClientContext
+  ): Promise<UserProfile> => {
+    const at = now()
+    const access = await activeCaller(caller, at, 'removePhone')
+    const { user } = access
+    if (!user.phone) {
+      return profileOf(user)
+    }
+    await requireRecentAuth(access, currentPassword, client, at, 'removePhone')
+    const updated = (await authRepo.setUserPhone(user.id, null, at)) ?? user
+    logger.info(LOG.AUTH.phoneRemoved, {
+      userId: user.id,
+      sessionFamilyId: caller.sessionFamilyId,
+      phone: maskPhone(user.phone),
+    })
+    await notifyCredentialChange(updated, 'phone_removed', lang, at, user.phone)
+    return profileOf(updated)
+  }
+
   const revokeForReuse = async (familyId: string, userId: string, at: Date) => {
     await authRepo.revokeFamily(familyId, at)
     logger.warn(LOG.AUTH.refreshReuse, { userId, sessionFamilyId: familyId })
@@ -1221,6 +1495,7 @@ export const createAuthService = ({
 
   return {
     googleEnabled: google !== null,
+    phoneEnabled: config.phoneEnabled,
     startGoogleSignIn,
     finishGoogleSignIn,
     googleFlowMode,
@@ -1232,6 +1507,11 @@ export const createAuthService = ({
     revokeOtherSessions,
     startEmailSignIn,
     verifyEmailSignIn,
+    startPhoneSignIn,
+    verifyPhoneSignIn,
+    startPhoneChange,
+    confirmPhone,
+    removePhone,
     signInWithPassword,
     setPassword,
     removePassword,

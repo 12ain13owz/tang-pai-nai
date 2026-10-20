@@ -4,7 +4,15 @@ import type { Request } from 'express'
 
 // Body fields that hold a secret (auth spec rule 18). Their values never reach a log line or a dev
 // error response, even when a request fails validation.
-const SECRET_FIELDS = new Set(['code', 'token', 'password', 'currentPassword', 'newPassword'])
+// `phone` isn't a secret, but auth rule 27 keeps full numbers out of the logs.
+const SECRET_FIELDS = new Set([
+  'code',
+  'token',
+  'password',
+  'currentPassword',
+  'newPassword',
+  'phone',
+])
 const REDACTED = '[redacted]'
 
 const redactSecrets = (body: Record<string, unknown>): Record<string, unknown> =>

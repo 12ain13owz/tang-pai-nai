@@ -43,6 +43,8 @@ const disabledUser: User = {
   displayName: 'somchai',
   avatarUrl: null,
   emailVerifiedAt: START,
+  phone: null,
+  phoneVerifiedAt: null,
   status: 'disabled',
   timezone: 'Asia/Bangkok',
   createdAt: START,
@@ -86,7 +88,14 @@ const buildApp = ({ google = true, seed, signupEnabled = true }: BuildOptions = 
     google: google
       ? { oidc, flowBox: createSealedBox('controller-test-secret-0000000000', 'google-oidc-flow') }
       : null,
-    config: { webOrigin: WEB, signupEnabled, emailDailyLimit: 100, startMinDurationMs: 0 },
+    config: {
+      webOrigin: WEB,
+      signupEnabled,
+      emailDailyLimit: 100,
+      startMinDurationMs: 0,
+      phoneEnabled: true,
+      smsDailyLimit: 100,
+    },
   })
   const app: Express = express()
   app.use(express.json())
@@ -133,7 +142,7 @@ describe('GET /auth/providers', () => {
 
     const body = res.body as AppResponse<AuthProvidersData>
     expect(res.status).toBe(HttpStatus.OK)
-    expect(body.data).toEqual({ google })
+    expect(body.data).toEqual({ google, phone: true })
   })
 })
 

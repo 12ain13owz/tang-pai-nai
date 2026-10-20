@@ -1,4 +1,4 @@
-import type { CredentialChange, MailLanguage } from './auth.entity'
+import type { ChallengePurpose, CredentialChange, MailLanguage } from './auth.entity'
 
 interface SignInMail {
   code: string
@@ -79,6 +79,8 @@ interface CredentialChangeMail {
   at: Date
   /** The user's timezone (IANA), for the time in the mail. */
   timeZone: string
+  /** A phone change names the number by its last 4 digits (rule 31). */
+  phoneLastDigits?: string
 }
 
 const CHANGE_TEXT: Record<CredentialChange, Record<MailLanguage, string>> = {
@@ -87,15 +89,29 @@ const CHANGE_TEXT: Record<CredentialChange, Record<MailLanguage, string>> = {
   password_removed: { th: 'มีการลบรหัสผ่าน', en: 'Your password was removed' },
   google_linked: { th: 'มีการเชื่อม Google', en: 'A Google account was linked' },
   google_unlinked: { th: 'มีการยกเลิกการเชื่อม Google', en: 'Google was unlinked' },
+  phone_added: { th: 'มีการเพิ่มเบอร์มือถือ', en: 'A phone number was added' },
+  phone_changed: { th: 'มีการเปลี่ยนเบอร์มือถือ', en: 'Your phone number was changed' },
+  phone_removed: { th: 'มีการลบเบอร์มือถือ', en: 'Your phone number was removed' },
 }
 
 /**
  * Rule 31: tells the user a way to sign in changed. No link and no code, so the mail never asks
  * anyone to click. The time is in the user's timezone; Thai uses the Buddhist year (th-TH).
  */
-export const buildCredentialChangeMail = ({ change, lang, at, timeZone }: CredentialChangeMail) => {
+export const buildCredentialChangeMail = ({
+  change,
+  lang,
+  at,
+  timeZone,
+  phoneLastDigits,
+}: CredentialChangeMail) => {
   // eslint-disable-next-line security/detect-object-injection -- `change` is a union of constants
   const what = CHANGE_TEXT[change][lang]
+  const number = phoneLastDigits
+    ? lang === 'en'
+      ? ` (ending in ${phoneLastDigits})`
+      : ` (ลงท้าย ${phoneLastDigits})`
+    : ''
   const when = new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'th-TH', {
     dateStyle: 'long',
     timeStyle: 'short',
@@ -105,7 +121,7 @@ export const buildCredentialChangeMail = ({ change, lang, at, timeZone }: Creden
     ? {
         subject: `${what} on your Tang Pai Nai account`,
         text: [
-          `${what} on your ตังค์ไปไหน (Tang Pai Nai) account on ${when}.`,
+          `${what}${number} on your ตังค์ไปไหน (Tang Pai Nai) account on ${when}.`,
           '',
           `If this was you, there's nothing to do.`,
           `If it wasn't, open the app, sign in with an email code, put back what was changed`,
@@ -115,7 +131,7 @@ export const buildCredentialChangeMail = ({ change, lang, at, timeZone }: Creden
     : {
         subject: `${what} ในบัญชีผู้ใช้ ตังค์ไปไหน`,
         text: [
-          `${what} ในบัญชีผู้ใช้ ตังค์ไปไหน ของคุณ เมื่อ ${when}`,
+          `${what}${number} ในบัญชีผู้ใช้ ตังค์ไปไหน ของคุณ เมื่อ ${when}`,
           '',
           'ถ้าคุณทำเอง ไม่ต้องทำอะไร',
           'ถ้าไม่ใช่คุณ ให้เปิดแอป เข้าสู่ระบบด้วยรหัสทางอีเมล แก้สิ่งที่ถูกเปลี่ยนกลับ',
@@ -123,3 +139,16 @@ export const buildCredentialChangeMail = ({ change, lang, at, timeZone }: Creden
         ].join('\n'),
       }
 }
+
+/**
+ * Rule 26: the SMS is Thai only and fits one segment (UCS-2: ≤ 70 UTF-16 units). It names the app
+ * and the expiry and never holds a link.
+ */
+export const buildPhoneSms = (
+  purpose: Extract<ChallengePurpose, 'sign_in' | 'verify_phone'>,
+  code: string,
+  expiresInMinutes: number
+): string =>
+  purpose === 'sign_in'
+    ? `รหัสเข้าสู่ระบบ ตังค์ไปไหน: ${code} ใช้ได้ ${expiresInMinutes} นาที ห้ามบอกผู้อื่น`
+    : `รหัสยืนยันเบอร์ ตังค์ไปไหน: ${code} ใช้ได้ ${expiresInMinutes} นาที ห้ามบอกผู้อื่น`

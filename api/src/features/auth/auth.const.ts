@@ -34,6 +34,11 @@ export const AUTH_LIMITS = {
   GOOGLE_CLOCK_TOLERANCE_S: 60,
   /** A Google `name` longer than this is cut when it becomes the display name. */
   DISPLAY_NAME_MAX: 100,
+  /** Rules 23–25: SMS codes (sign-in and `verify_phone`) and their start limits. */
+  SMS_CHALLENGE_TTL_MS: 5 * MINUTE,
+  STARTS_PER_PHONE: { limit: 3, windowMs: HOUR },
+  SMS_STARTS_PER_IP: { limit: 10, windowMs: HOUR },
+  SMS_PER_DAY_WINDOW_MS: DAY,
 } as const
 
 /** Rule 14: what we ask Google for. */
@@ -84,6 +89,12 @@ export enum AuthErrorCode {
   IDENTITY_ALREADY_LINKED = 'IDENTITY_ALREADY_LINKED',
   /** Rule 29: that Google account belongs to another user (accounts are never merged). */
   GOOGLE_IN_USE = 'GOOGLE_IN_USE',
+  /** Rule 21: `SMS_PROVIDER=disabled`; every `/auth/phone*` route answers `503`. */
+  PHONE_DISABLED = 'PHONE_DISABLED',
+  /** Rule 25: the number to add is the one already saved. */
+  PHONE_UNCHANGED = 'PHONE_UNCHANGED',
+  /** Rule 25: another user holds that number. */
+  PHONE_IN_USE = 'PHONE_IN_USE',
 }
 
 export const AUTH_MESSAGE = {
@@ -125,6 +136,15 @@ export const AUTH_MESSAGE = {
   GOOGLE_UNLINKED: 'Google is no longer linked',
   IDENTITY_ALREADY_LINKED: 'A Google account is already linked. Unlink it first',
   GOOGLE_IN_USE: 'This Google account is linked to another account',
+  PHONE: 'Phone sign-in',
+  PHONE_DISABLED: 'Phone sign-in is not available',
+  PHONE_CODE_SENT: 'If the number can sign in, a code is on its way',
+  PHONE_VERIFY_CODE_SENT: 'A confirmation code is on its way to that number',
+  PHONE_SAVED: 'Phone number saved',
+  PHONE_REMOVED: 'Phone number removed',
+  PHONE_UNCHANGED: 'This is already your phone number',
+  PHONE_IN_USE: 'This phone number cannot be used',
+  PHONE_INVALID: 'Enter a Thai mobile number',
 }
 
 /** Name of the cookie that carries the Google round trip (rule 14). */

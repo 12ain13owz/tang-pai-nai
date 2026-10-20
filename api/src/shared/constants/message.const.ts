@@ -37,6 +37,12 @@ export const LOG = {
     identityUnlinked: (provider: string) => `[Auth] ${provider} identity unlinked`,
     identityLinkFailed: (provider: string) => `[Auth] Linking ${provider} failed`,
     sessionRevoked: '[Auth] Session revoked from another device',
+    phoneCodeRequested: '[Auth] Phone confirmation code requested',
+    phoneConfirmFailed: '[Auth] Phone number confirmation failed',
+    phoneAdded: '[Auth] Phone number added',
+    phoneChanged: '[Auth] Phone number changed',
+    phoneRemoved: '[Auth] Phone number removed',
+    smsDailyLimit: (limit: number) => `[Auth] ⚠️ Daily SMS cap (${limit}) reached`,
     otherSessionsRevoked: '[Auth] Other sessions revoked',
     credentialMailSkipped: (reason: string) =>
       `[Auth] ⚠️ Credential change mail not sent: ${reason}`,

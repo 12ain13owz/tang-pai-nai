@@ -22,6 +22,10 @@ import type {
   GoogleStartQuery,
   PasswordSetInput,
   PasswordSignInInput,
+  PhoneChangeInput,
+  PhoneConfirmInput,
+  PhoneStartInput,
+  PhoneVerifyInput,
   ReauthStartInput,
   ReauthVerifyInput,
   RecentAuthInput,
@@ -84,6 +88,7 @@ const toUserData = (user: UserProfile): AuthUserData => ({
     email: identity.email,
     linkedAt: identity.linkedAt.toISOString(),
   })),
+  phone: user.phone,
 })
 
 const toDeviceSessionData = (session: SessionSummary): AuthDeviceSessionData => ({
@@ -284,8 +289,110 @@ export const createAuthController = (authService: AuthService, config: AuthContr
   }
 
   const providers = (_req: Request, res: Response): void => {
-    const data: AuthProvidersData = { google: authService.googleEnabled }
+    const data: AuthProvidersData = {
+      google: authService.googleEnabled,
+      phone: authService.phoneEnabled,
+    }
     res.status(HttpStatus.OK).json(createResponse(AUTH_MESSAGE.PROVIDERS, data))
+  }
+
+  /**
+   * Rule 21: in front of every `/auth/phone*` route, before the body or the caller is looked at,
+   * so a disabled SMS provider never tells known numbers from unknown ones.
+   */
+  const phoneGate = (_req: Request, _res: Response, next: NextFunction): void => {
+    if (authService.phoneEnabled) {
+      next()
+      return
+    }
+    next(
+      new AppError(
+        AUTH_MESSAGE.PHONE_DISABLED,
+        HttpStatus.SERVICE_UNAVAILABLE,
+        ErrorSeverity.WARN
+      ).withCode(AuthErrorCode.PHONE_DISABLED)
+    )
+  }
+
+  /** Rule 22: always `202`, SMS or not. */
+  const phoneStart = async (
+    req: Request<unknown, unknown, PhoneStartInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      await authService.startPhoneSignIn(req.body.phone, clientOf(req))
+      const response = createResponse(AUTH_MESSAGE.PHONE_CODE_SENT)
+      res.status(HttpStatus.ACCEPTED).json(response)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /** Rule 24. */
+  const phoneVerify = async (
+    req: Request<unknown, unknown, PhoneVerifyInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { phone, code } = req.body
+      const result = await authService.verifyPhoneSignIn(phone, code, clientOf(req))
+      sendSession(res, AUTH_MESSAGE.SIGNED_IN, result)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /** Rule 25: add or change the number; the code goes to the new one. */
+  const phoneChange = async (
+    req: Request<unknown, unknown, PhoneChangeInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { phone, currentPassword } = req.body
+      await authService.startPhoneChange(callerOf(req), phone, currentPassword, clientOf(req))
+      const response = createResponse(AUTH_MESSAGE.PHONE_VERIFY_CODE_SENT)
+      res.status(HttpStatus.ACCEPTED).json(response)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  const phoneConfirm = async (
+    req: Request<unknown, unknown, PhoneConfirmInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { code, lang } = req.body
+      const user = await authService.confirmPhone(callerOf(req), code, lang, clientOf(req))
+      const data: AuthUserData = toUserData(user)
+      res.status(HttpStatus.OK).json(createResponse(AUTH_MESSAGE.PHONE_SAVED, data))
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  const phoneRemove = async (
+    req: Request<unknown, unknown, RecentAuthInput>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { currentPassword, lang } = req.body
+      const user = await authService.removePhone(
+        callerOf(req),
+        currentPassword,
+        lang,
+        clientOf(req)
+      )
+      const data: AuthUserData = toUserData(user)
+      res.status(HttpStatus.OK).json(createResponse(AUTH_MESSAGE.PHONE_REMOVED, data))
+    } catch (error) {
+      next(error)
+    }
   }
 
   /** Rule 14: a top-level navigation from the web app; answers with a redirect to Google. */
@@ -480,6 +587,12 @@ export const createAuthController = (authService: AuthService, config: AuthContr
     signOut,
     me,
     providers,
+    phoneGate,
+    phoneStart,
+    phoneVerify,
+    phoneChange,
+    phoneConfirm,
+    phoneRemove,
     googleStart,
     googleCallback,
     googleLink,

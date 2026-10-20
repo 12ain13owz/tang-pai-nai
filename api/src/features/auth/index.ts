@@ -8,7 +8,7 @@ import {
   createSealedBox,
   skipBreachCheck,
 } from '@/core/security'
-import { PasswordBreachCheck } from '@/shared/types'
+import { PasswordBreachCheck, SmsProviderName } from '@/shared/types'
 import { AUTH_LIMITS, GOOGLE_OIDC } from './auth.const'
 import { createAuthController } from './auth.controller'
 import { createDrizzleAuthRepository } from './auth.repository.drizzle'
@@ -51,6 +51,9 @@ export const authService = createAuthService({
     signupEnabled: env.SIGNUP_ENABLED,
     emailDailyLimit: env.EMAIL_DAILY_LIMIT,
     startMinDurationMs: AUTH_LIMITS.START_MIN_DURATION_MS,
+    // Rule 21: no SMS provider, no phone sign-in.
+    phoneEnabled: env.SMS_PROVIDER !== SmsProviderName.DISABLED,
+    smsDailyLimit: env.SMS_DAILY_LIMIT,
   },
 })
 const authController = createAuthController(authService, { webOrigin: env.WEB_ORIGIN })

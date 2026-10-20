@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import { ERRORS } from '@/shared/constants'
+import { normalizeThaiMobile } from '@/shared/utils'
+import { AUTH_MESSAGE } from './auth.const'
 
 // Rule 2: trimmed and lowercased before validation and any lookup.
 const email = z
@@ -7,6 +9,19 @@ const email = z
   .trim()
   .toLowerCase()
   .pipe(z.email({ error: ERRORS.invalidField('email') }))
+
+// Rule 21: a Thai mobile number, typed any usual way, becomes E.164 before any lookup.
+const phone = z
+  .string({ error: AUTH_MESSAGE.PHONE_INVALID })
+  .max(32, AUTH_MESSAGE.PHONE_INVALID)
+  .transform((value, ctx) => {
+    const normalized = normalizeThaiMobile(value)
+    if (!normalized) {
+      ctx.addIssue({ code: 'custom', message: AUTH_MESSAGE.PHONE_INVALID })
+      return z.NEVER
+    }
+    return normalized
+  })
 
 const lang = z.enum(['th', 'en'], { error: ERRORS.invalidField('lang') }).default('th')
 
@@ -53,6 +68,15 @@ const recentAuthBody = z
   .default({ lang: 'th' })
 
 const reauthStartBody = z.object({ lang }).default({ lang: 'th' })
+
+// Rules 22–25 (4.4b).
+const phoneStartBody = z.object({ phone })
+const phoneVerifyBody = z.object({ phone, code })
+const phoneChangeBody = z.object({
+  phone,
+  currentPassword: password('Current password').optional(),
+})
+const phoneConfirmBody = z.object({ code, lang })
 const reauthVerifyBody = z.object({ code })
 
 // Google sends the browser to these (rule 14), so a bad value never fails validation: it's
@@ -85,6 +109,11 @@ export const authSchema = {
   googleUnlink: { body: recentAuthBody },
   sessionRevoke: { params: sessionParams },
   reauthStart: { body: reauthStartBody },
+  phoneStart: { body: phoneStartBody },
+  phoneVerify: { body: phoneVerifyBody },
+  phoneChange: { body: phoneChangeBody },
+  phoneConfirm: { body: phoneConfirmBody },
+  phoneRemove: { body: recentAuthBody },
   reauthVerify: { body: reauthVerifyBody },
   googleStart: { query: googleStartQuery },
   googleCallback: { query: googleCallbackQuery },
@@ -98,5 +127,9 @@ export type RecentAuthInput = z.infer<typeof recentAuthBody>
 export type SessionParams = z.infer<typeof sessionParams>
 export type ReauthStartInput = z.infer<typeof reauthStartBody>
 export type ReauthVerifyInput = z.infer<typeof reauthVerifyBody>
+export type PhoneStartInput = z.infer<typeof phoneStartBody>
+export type PhoneVerifyInput = z.infer<typeof phoneVerifyBody>
+export type PhoneChangeInput = z.infer<typeof phoneChangeBody>
+export type PhoneConfirmInput = z.infer<typeof phoneConfirmBody>
 export type GoogleStartQuery = z.infer<typeof googleStartQuery>
 export type GoogleCallbackQuery = z.infer<typeof googleCallbackQuery>

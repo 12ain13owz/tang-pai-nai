@@ -37,7 +37,14 @@ const buildApp = () => {
     },
     accessTokens,
     breachChecker: skipBreachCheck,
-    config: { webOrigin: WEB, signupEnabled: true, emailDailyLimit: 100, startMinDurationMs: 0 },
+    config: {
+      webOrigin: WEB,
+      signupEnabled: true,
+      emailDailyLimit: 100,
+      startMinDurationMs: 0,
+      phoneEnabled: true,
+      smsDailyLimit: 100,
+    },
     now: () => new Date(Date.now() + offsetMs),
   })
   const app: Express = express()
