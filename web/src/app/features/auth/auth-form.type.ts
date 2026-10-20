@@ -15,3 +15,8 @@ export interface PasswordSignInFormControls {
   password: FormControl<string>
 }
 export type PasswordSignInFormGroup = FormGroup<PasswordSignInFormControls>
+
+export interface PhoneFormControls {
+  phone: FormControl<string>
+}
+export type PhoneFormGroup = FormGroup<PhoneFormControls>

@@ -59,6 +59,8 @@ export const envSchema: z.ZodType<EnvConfig> = z
     OTP_PEPPER: z.string().min(32, ERRORS.minLength('OTP_PEPPER', 32)),
     SIGNUP_ENABLED: z.stringbool().default(true),
     EMAIL_DAILY_LIMIT: z.coerce.number().int().positive().max(100_000).default(100),
+    // Global cap on SMS per day (auth rule 23): caps the bill if the other limits are bypassed.
+    SMS_DAILY_LIMIT: z.coerce.number().int().positive().max(100_000).default(100),
     // Breach check of new passwords (auth rule 11). The URL can point at a local stand-in.
     PASSWORD_BREACH_CHECK: z.enum(PasswordBreachCheck).default(PasswordBreachCheck.HIBP),
     HIBP_API_URL: z

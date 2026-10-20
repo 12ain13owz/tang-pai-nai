@@ -363,8 +363,8 @@ How the API authenticates calls (spec: [`docs/features/auth.md`](../docs/feature
   `npm run dev:oidc` stands in for Google (`GOOGLE_ISSUER=http://localhost:4400`, client
   `dev-client` / `dev-secret`), with scenarios that break the ID token one way each.
 - **Recent auth** (spec rule 13): routes that change credentials (`PUT` / `DELETE
-/auth/password`, `POST` / `DELETE /auth/google/link`, later phone) check the caller's
-  **session**, not just the JWT (`activeCaller` + `requireRecentAuth` in the service):
+/auth/password`, `POST` / `DELETE /auth/google/link`, `POST` / `DELETE /auth/phone`) check the
+  caller's **session**, not just the JWT (`activeCaller` + `requireRecentAuth` in the service):
   `authTime` ≤ 10 min, or the current password (that request only), or a step-up code
   (`/auth/reauth/start` + `/verify`, which sets `authTime` on the family). Otherwise `403
 REAUTH_REQUIRED`. Revoking sessions needs an active session but no recent auth (rule 28).
@@ -377,6 +377,16 @@ REAUTH_REQUIRED`. Revoking sessions needs an active session but no recent auth (
   redirect to `/account/security?linked=google` or `?error=`). Every credential change mails the
   user through `notifyCredentialChange` (`buildCredentialChangeMail`, no link, no code); the
   request's `lang` picks the language, and a failed send or the daily cap only logs a warn.
+- **Phone OTP** (4.4b, spec rules 21–27): numbers are normalised to E.164 in the schema
+  (`normalizeThaiMobile`, `@/shared/utils`) before any lookup and logged only masked
+  (`maskPhone`); `phone` in a request body is redacted like a secret. `authController.phoneGate`
+  sits in front of every `/auth/phone*` route (before `authenticate` and `validate`) and answers
+  `503 PHONE_DISABLED` while `SMS_PROVIDER=disabled`; `GET /auth/providers` says `phone`. SMS
+  codes are `otp_challenges` rows with `channel: 'sms'` (sign-in, keyed by number) or purpose
+  `verify_phone` (keyed by the user: `findLatestUserChallenge`). SMS starts share
+  `smsStartChecks` (cooldown, per number, per IP); the daily SMS cap is peeked on every start and
+  hit only when an SMS is sent (`sendSms`), so a full cap refuses known and unknown numbers alike.
+  SMS texts (`buildPhoneSms`) stay one UCS-2 segment (≤ 70 UTF-16 units, a test checks).
 - **Status codes**: `401` means only "access token missing / invalid / expired" (the web app
   refreshes once and retries on it), or a dead refresh cookie on `/auth/refresh`
   (`SESSION_EXPIRED` / `SESSION_REVOKED`). Everything else uses 400/403/404/409/422/429 with a
@@ -399,6 +409,7 @@ REAUTH_REQUIRED`. Revoking sessions needs an active session but no recent auth (
   | `OTP_PEPPER`                                | HMAC key for codes, ≥ 32 chars                                 | — (required)                     |
   | `SIGNUP_ENABLED`                            | `false` closes sign-up; existing users still sign in           | `true`                           |
   | `EMAIL_DAILY_LIMIT`                         | global cap on sign-in emails per day                           | `100`                            |
+  | `SMS_DAILY_LIMIT`                           | global cap on SMS (phone codes) per day                        | `100`                            |
   | `PASSWORD_BREACH_CHECK`                     | `hibp` checks new passwords against HIBP, `off` skips it       | `hibp`                           |
   | `HIBP_API_URL`                              | HIBP range API base; a local stand-in when testing             | `https://api.pwnedpasswords.com` |
   | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google sign-in; both or neither (off: `404`)                   | unset                            |
@@ -416,7 +427,8 @@ skipBreachCheck` (tests never call HIBP; `vitest.config.ts` also sets
   `oidc` (`GoogleSignIn['oidc']`) that checks PKCE and the nonce, with a real sealed box
   (`auth.*.google.test.ts`); the OIDC client itself is tested against a local provider with real
   RS256 keys (`core/security/oidc-client.test.ts`). Account › Security is in
-  `auth.*.security.test.ts`. See `src/features/auth/*.test.ts`.
+  `auth.*.security.test.ts`, phone OTP in `auth.*.phone.test.ts` (SMS codes read from the
+  `notifier` fake). See `src/features/auth/*.test.ts`.
 
 ## 5. Controller pattern (copy this shape)
 

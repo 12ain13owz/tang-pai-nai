@@ -56,12 +56,29 @@ export const createMemoryAuthRepository = (
         displayName,
         avatarUrl,
         emailVerifiedAt: null,
+        phone: null,
+        phoneVerifiedAt: null,
         status: 'active',
         timezone: 'Asia/Bangkok',
         createdAt: now,
         updatedAt: now,
       }
       state.users.push(user)
+      return user
+    },
+
+    findUserByPhone: async (phone) => state.users.find((user) => user.phone === phone) ?? null,
+
+    setUserPhone: async (userId, phone, at) => {
+      const user = state.users.find((candidate) => candidate.id === userId)
+      if (!user) {
+        return null
+      }
+      if (phone && state.users.some((other) => other.id !== userId && other.phone === phone)) {
+        throw new Error('UNIQUE constraint failed: users.phone')
+      }
+      user.phone = phone
+      user.phoneVerifiedAt = phone ? at : null
       return user
     },
 
@@ -128,6 +145,7 @@ export const createMemoryAuthRepository = (
 
     createChallenge: async (data) => {
       const challenge: OtpChallenge = {
+        channel: 'email',
         ...data,
         id: uuidv7(),
         attempts: 0,
@@ -138,10 +156,13 @@ export const createMemoryAuthRepository = (
       return challenge
     },
 
-    expireOpenChallenges: async (destination, purpose, at) => {
+    expireOpenChallenges: async (destination, purpose, at, channel = 'email') => {
       for (const challenge of state.challenges) {
         const open = !challenge.consumedAt && challenge.expiresAt.getTime() > at.getTime()
-        const same = challenge.destination === destination && challenge.purpose === purpose
+        const same =
+          challenge.channel === channel &&
+          challenge.destination === destination &&
+          challenge.purpose === purpose
         if (same && open) {
           challenge.expiresAt = at
         }
@@ -149,10 +170,25 @@ export const createMemoryAuthRepository = (
     },
 
     // Newest first; ties keep insertion order, like ordering by the time-sortable id.
-    findLatestChallenge: async (destination, purpose) =>
+    findLatestChallenge: async (destination, purpose, channel = 'email') =>
       state.challenges
+        .filter((challenge) => challenge.channel === channel)
         .filter((challenge) => challenge.destination === destination)
         .filter((challenge) => challenge.purpose === purpose)
+        .at(-1) ?? null,
+
+    expireOpenUserChallenges: async (userId, purpose, at) => {
+      for (const challenge of state.challenges) {
+        const open = !challenge.consumedAt && challenge.expiresAt.getTime() > at.getTime()
+        if (challenge.userId === userId && challenge.purpose === purpose && open) {
+          challenge.expiresAt = at
+        }
+      }
+    },
+
+    findLatestUserChallenge: async (userId, purpose) =>
+      state.challenges
+        .filter((challenge) => challenge.userId === userId && challenge.purpose === purpose)
         .at(-1) ?? null,
 
     findChallengeByLinkTokenHash: async (linkTokenHash) =>

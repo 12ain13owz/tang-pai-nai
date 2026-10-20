@@ -17,13 +17,14 @@ import { SecurityPage } from './security-page'
 @Component({ template: '' })
 class Blank {}
 
-const user = (linked = false): AuthUser => ({
+const user = (linked = false, phone: string | null = null): AuthUser => ({
   id: 'u1',
   email: 'mom@example.com',
   displayName: 'mom',
   avatarUrl: null,
   timezone: 'Asia/Bangkok',
   hasPassword: true,
+  phone,
   identities: linked
     ? [{ provider: 'google', email: 'mom@gmail.com', linkedAt: '2026-10-19T00:00:00Z' }]
     : [],
@@ -75,17 +76,21 @@ describe('SecurityPage', () => {
   }
 
   /** Opens `/account/security…` and answers the three loads the page makes. */
-  const open = async (query = '', linked = false) => {
+  const open = async (
+    query = '',
+    linked = false,
+    { phone = null as string | null, phoneEnabled = true } = {}
+  ) => {
     TestBed.inject(AuthStore).setSession({
       accessToken: 'token',
       expiresIn: 600,
-      user: user(linked),
+      user: user(linked, phone),
     })
     await TestBed.inject(Router).navigateByUrl(`/account/security${query}`)
     fixture = TestBed.createComponent(SecurityPage)
     fixture.detectChanges()
-    http.expectOne('/api/auth/me').flush(envelope(user(linked)))
-    http.expectOne('/api/auth/providers').flush(envelope({ google: true }))
+    http.expectOne('/api/auth/me').flush(envelope(user(linked, phone)))
+    http.expectOne('/api/auth/providers').flush(envelope({ google: true, phone: phoneEnabled }))
     http.expectOne('/api/auth/sessions').flush(envelope(devices))
     await settle()
   }
@@ -112,6 +117,35 @@ describe('SecurityPage', () => {
   afterEach(() => {
     http.verify()
     toastState.toasts().forEach((toast) => toastState.dismiss(toast.id))
+  })
+
+  it('shows the phone row as a link to /account/phone, with the number the Thai way', async () => {
+    await open('', false, { phone: '+66812345678' })
+
+    const row = page().querySelector('a[href="/account/phone"]')
+    expect(row?.textContent).toContain(th.account.phone)
+    expect(row?.textContent).toContain('081-234-5678')
+  })
+
+  it('says "not added" when there is no number yet', async () => {
+    await open()
+
+    expect(page().querySelector('a[href="/account/phone"]')?.textContent).toContain(
+      th.account.phoneNotAdded
+    )
+  })
+
+  it('keeps a saved number read-only while SMS is off', async () => {
+    await open('', false, { phone: '+66812345678', phoneEnabled: false })
+
+    expect(page().querySelector('a[href="/account/phone"]')).toBeNull()
+    expect(page().textContent).toContain('081-234-5678')
+  })
+
+  it('hides the phone row while SMS is off and no number is saved', async () => {
+    await open('', false, { phoneEnabled: false })
+
+    expect(page().textContent).not.toContain(th.account.phone)
   })
 
   it('names each device and marks this one, with no sign-out button on it', async () => {

@@ -12,7 +12,8 @@ tags:
     description: Service health checks
   - name: Auth
     description: >-
-      Email code / magic-link / password / Google sign-in, sessions and Account › Security
+      Email code / magic-link / password / Google / phone (SMS) sign-in, sessions and Account ›
+      Security
       (docs/features/auth.md)
   - name: Todo
     description: Reference CRUD feature (in-memory, resets on restart)
@@ -32,6 +33,14 @@ paths:
     $ref: './paths/auth/reauth-start.yaml'
   /auth/reauth/verify:
     $ref: './paths/auth/reauth-verify.yaml'
+  /auth/phone/start:
+    $ref: './paths/auth/phone-start.yaml'
+  /auth/phone/verify:
+    $ref: './paths/auth/phone-verify.yaml'
+  /auth/phone:
+    $ref: './paths/auth/phone.yaml'
+  /auth/phone/confirm:
+    $ref: './paths/auth/phone-confirm.yaml'
   /auth/refresh:
     $ref: './paths/auth/refresh.yaml'
   /auth/sign-out:

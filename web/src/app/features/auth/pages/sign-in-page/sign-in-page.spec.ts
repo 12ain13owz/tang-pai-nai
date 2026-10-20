@@ -25,7 +25,10 @@ describe('SignInPage: Continue with Google', () => {
   }
 
   /** Opens the page and answers `GET /auth/providers`. */
-  const open = async (url: string, providers: { google: boolean } | 'unreachable') => {
+  const open = async (
+    url: string,
+    providers: { google: boolean; phone?: boolean } | 'unreachable'
+  ) => {
     await TestBed.inject(Router).navigateByUrl(url)
     fixture = TestBed.createComponent(SignInPage)
     fixture.detectChanges()
@@ -89,4 +92,23 @@ describe('SignInPage: Continue with Google', () => {
     expect(googleButton()?.disabled).toBe(true)
     expect(googleButton()?.querySelector('hlm-spinner')).not.toBeNull()
   })
+
+  it('links to phone sign-in, with the return path, only while SMS is on', async () => {
+    await open('/auth/sign-in?returnUrl=%2Freports', { google: false, phone: true })
+
+    const link = (fixture.nativeElement as HTMLElement).querySelector('a[href^="/auth/phone"]')
+    expect(link?.textContent).toContain(th.auth.usePhone)
+    expect(link?.getAttribute('href')).toBe('/auth/phone?returnUrl=%2Freports')
+  })
+
+  it.each([{ google: false, phone: false }, 'unreachable' as const])(
+    'hides the phone link while SMS is off or unknown (%o)',
+    async (providers) => {
+      await open('/auth/sign-in', providers)
+
+      expect(
+        (fixture.nativeElement as HTMLElement).querySelector('a[href^="/auth/phone"]')
+      ).toBeNull()
+    }
+  )
 })

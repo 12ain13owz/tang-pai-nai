@@ -5,7 +5,7 @@ import { NonNullableFormBuilder, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideKeyRound } from '@ng-icons/lucide'
+import { lucideKeyRound, lucideSmartphone } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { toApiError } from '@/core/api'
@@ -31,7 +31,7 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
     HlmSpinner,
     GoogleLogo,
   ],
-  providers: [provideIcons({ lucideKeyRound })],
+  providers: [provideIcons({ lucideKeyRound, lucideSmartphone })],
   // Coming back from Google with the browser's back button restores this page as it was left.
   host: { '(window:pageshow)': 'isLeaving.set(false)' },
   template: `
@@ -110,7 +110,7 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
         </div>
       }
 
-      <div class="mt-auto flex justify-center">
+      <div class="mt-auto flex flex-col items-center gap-1">
         <a
           hlmBtn
           variant="ghost"
@@ -121,6 +121,18 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
           <ng-icon name="lucideKeyRound" aria-hidden="true" />
           {{ 'auth.usePassword' | transloco }}
         </a>
+        @if (phoneEnabled()) {
+          <a
+            hlmBtn
+            variant="ghost"
+            class="h-11"
+            routerLink="/auth/phone"
+            [queryParams]="phoneQueryParams"
+          >
+            <ng-icon name="lucideSmartphone" aria-hidden="true" />
+            {{ 'auth.usePhone' | transloco }}
+          </a>
+        }
       </div>
     </div>
   `,
@@ -141,6 +153,9 @@ export class SignInPage {
   protected error = signal<UiMessage | null>(null)
   /** Hidden until the API says Google sign-in is on (it's off without its env, rule 14). */
   protected googleEnabled = signal(false)
+  /** Hidden until the API says it can send SMS (4.4b, rule 21). */
+  protected phoneEnabled = signal(false)
+  protected phoneQueryParams = { returnUrl: this.returnUrl === '/' ? null : this.returnUrl }
   /** The browser is on its way to Google. */
   protected isLeaving = signal(false)
 
@@ -166,6 +181,7 @@ export class SignInPage {
       if (this.networkStatusService.isOnline()) {
         void this.authService.providers().then((providers) => {
           this.googleEnabled.set(providers.google)
+          this.phoneEnabled.set(providers.phone)
         })
       }
     })

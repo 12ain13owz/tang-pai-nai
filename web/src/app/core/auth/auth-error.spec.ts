@@ -13,6 +13,9 @@ describe('authErrorMessage', () => {
     ['PASSWORD_TOO_WEAK', 'auth.passwordWeak'],
     ['PASSWORD_MATCHES_EMAIL', 'auth.passwordSameAsEmail'],
     ['PASSWORD_BREACHED', 'auth.passwordBreached'],
+    ['PHONE_DISABLED', 'auth.phoneDisabled'],
+    ['PHONE_UNCHANGED', 'phone.unchanged'],
+    ['PHONE_IN_USE', 'phone.inUse'],
   ])('maps %s to %s', (code, key) => {
     expect(authErrorMessage({ status: 400, code }, 'fallback')).toEqual({ key })
   })

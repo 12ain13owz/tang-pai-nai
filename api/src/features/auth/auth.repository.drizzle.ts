@@ -9,7 +9,14 @@ import {
   users,
 } from '@/core/database/schema/auth'
 import { wrapUnexpected } from '@/core/error'
-import type { ChallengePurpose, OtpChallenge, Session, User, UserIdentity } from './auth.entity'
+import type {
+  ChallengeChannel,
+  ChallengePurpose,
+  OtpChallenge,
+  Session,
+  User,
+  UserIdentity,
+} from './auth.entity'
 import type { AuthRepository } from './auth.repository'
 
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0]
@@ -24,16 +31,18 @@ const toUser = (row: UserRow): User => ({
   displayName: row.displayName,
   avatarUrl: row.avatarUrl,
   emailVerifiedAt: row.emailVerifiedAt,
+  phone: row.phone,
+  phoneVerifiedAt: row.phoneVerifiedAt,
   status: row.status,
   timezone: row.timezone,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
 })
 
-// The table also has `sms` / `verify_phone` rows (4.4); this feature only reads email ones.
 const toChallenge = (row: ChallengeRow): OtpChallenge => ({
   id: row.id,
-  purpose: row.purpose === 'reauth' ? 'reauth' : 'sign_in',
+  channel: row.channel,
+  purpose: row.purpose,
   destination: row.destination,
   userId: row.userId,
   codeHash: row.codeHash,
@@ -48,9 +57,13 @@ const toSession = (row: typeof sessions.$inferSelect): Session => ({ ...row })
 
 const toIdentity = (row: typeof userIdentities.$inferSelect): UserIdentity => ({ ...row })
 
-const emailChallenge = (destination: string, purpose: ChallengePurpose) =>
+const challengeFor = (
+  destination: string,
+  purpose: ChallengePurpose,
+  channel: ChallengeChannel = 'email'
+) =>
   and(
-    eq(otpChallenges.channel, 'email'),
+    eq(otpChallenges.channel, channel),
     eq(otpChallenges.purpose, purpose),
     eq(otpChallenges.destination, destination)
   )
@@ -74,6 +87,23 @@ export const createDrizzleAuthRepository = (db: Executor): AuthRepository => {
     findUserByEmail: async (email) =>
       run('findUserByEmail', async () => {
         const row = await db.query.users.findFirst({ where: eq(users.email, email) })
+        return row ? toUser(row) : null
+      }),
+
+    findUserByPhone: async (phone) =>
+      run('findUserByPhone', async () => {
+        const row = await db.query.users.findFirst({ where: eq(users.phone, phone) })
+        return row ? toUser(row) : null
+      }),
+
+    setUserPhone: async (userId, phone, at) =>
+      run('setUserPhone', async () => {
+        const rows = await db
+          .update(users)
+          .set({ phone, phoneVerifiedAt: phone ? at : null, updatedAt: at })
+          .where(eq(users.id, userId))
+          .returning()
+        const row = rows.at(0)
         return row ? toUser(row) : null
       }),
 
@@ -184,29 +214,53 @@ export const createDrizzleAuthRepository = (db: Executor): AuthRepository => {
       run('createChallenge', async () => {
         const [row] = await db
           .insert(otpChallenges)
-          .values({ ...data, channel: 'email' })
+          .values({ channel: 'email', ...data })
           .returning()
         return toChallenge(row)
       }),
 
-    expireOpenChallenges: async (destination, purpose, at) =>
+    expireOpenChallenges: async (destination, purpose, at, channel) =>
       run('expireOpenChallenges', async () => {
         await db
           .update(otpChallenges)
           .set({ expiresAt: at })
           .where(
             and(
-              emailChallenge(destination, purpose),
+              challengeFor(destination, purpose, channel),
               isNull(otpChallenges.consumedAt),
               gt(otpChallenges.expiresAt, at)
             )
           )
       }),
 
-    findLatestChallenge: async (destination, purpose) =>
+    findLatestChallenge: async (destination, purpose, channel) =>
       run('findLatestChallenge', async () => {
         const row = await db.query.otpChallenges.findFirst({
-          where: emailChallenge(destination, purpose),
+          where: challengeFor(destination, purpose, channel),
+          orderBy: [desc(otpChallenges.createdAt), desc(otpChallenges.id)],
+        })
+        return row ? toChallenge(row) : null
+      }),
+
+    expireOpenUserChallenges: async (userId, purpose, at) =>
+      run('expireOpenUserChallenges', async () => {
+        await db
+          .update(otpChallenges)
+          .set({ expiresAt: at })
+          .where(
+            and(
+              eq(otpChallenges.userId, userId),
+              eq(otpChallenges.purpose, purpose),
+              isNull(otpChallenges.consumedAt),
+              gt(otpChallenges.expiresAt, at)
+            )
+          )
+      }),
+
+    findLatestUserChallenge: async (userId, purpose) =>
+      run('findLatestUserChallenge', async () => {
+        const row = await db.query.otpChallenges.findFirst({
+          where: and(eq(otpChallenges.userId, userId), eq(otpChallenges.purpose, purpose)),
           orderBy: [desc(otpChallenges.createdAt), desc(otpChallenges.id)],
         })
         return row ? toChallenge(row) : null

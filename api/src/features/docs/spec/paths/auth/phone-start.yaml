@@ -1,0 +1,34 @@
+post:
+  tags:
+    - Auth
+  summary: Text a sign-in code to a verified number
+  description: >-
+    Sends a 6-digit code by SMS (valid 5 minutes, single use) only when an active user has
+    verified that number (auth spec rule 22); never creates an account. Always answers `202` with
+    the same body and a minimum duration; an unknown number costs no SMS and stores nothing.
+    Limits (rule 23): 60 s cooldown and 3 per hour per number, 10 per hour per IP, and a daily SMS
+    cap (`SMS_DAILY_LIMIT`) checked on every start and counted per SMS sent.
+  operationId: phoneStart
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/auth-phone-start.schema.yaml'
+  responses:
+    '202':
+      description: Accepted (identical for every number)
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/message-response.schema.yaml'
+    '422':
+      $ref: '../../components/responses/error.response.yaml'
+    '429':
+      $ref: '../../components/responses/too-many-requests.response.yaml'
+    '503':
+      description: '`PHONE_DISABLED`: no SMS provider (`SMS_PROVIDER=disabled`), answered first'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

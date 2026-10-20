@@ -9,6 +9,9 @@ export interface User {
   displayName: string
   avatarUrl: string | null
   emailVerifiedAt: Date | null
+  /** A verified Thai mobile number in E.164 (rule 25); set only once confirmed. */
+  phone: string | null
+  phoneVerifiedAt: Date | null
   status: UserStatus
   timezone: string
   createdAt: Date
@@ -50,15 +53,22 @@ export interface LinkedIdentity {
  */
 export type UserProfile = User & { hasPassword: boolean; identities: LinkedIdentity[] }
 
-/** `sign_in`: code + link to sign in. `reauth`: code only, for a signed-in user (rule 13). */
-export type ChallengePurpose = 'sign_in' | 'reauth'
+/**
+ * `sign_in`: a code (+ link by email) to sign in. `reauth`: code only, for a signed-in user (rule
+ * 13). `verify_phone`: an SMS code that proves a number before it's saved (rule 25).
+ */
+export type ChallengePurpose = 'sign_in' | 'reauth' | 'verify_phone'
 
-/** One "send me a code" request, on the email channel. */
+/** Where a code goes: a lowercased email or an E.164 phone number. */
+export type ChallengeChannel = 'email' | 'sms'
+
+/** One "send me a code" request, on either channel. */
 export interface OtpChallenge {
   id: string
+  channel: ChallengeChannel
   purpose: ChallengePurpose
   destination: string
-  /** Set for `reauth`: the only user who may use the code. */
+  /** Set for `reauth` and `verify_phone`: the only user who may use the code. */
   userId: string | null
   codeHash: string
   linkTokenHash: string | null
@@ -71,7 +81,8 @@ export interface OtpChallenge {
 export type NewOtpChallenge = Pick<
   OtpChallenge,
   'purpose' | 'destination' | 'userId' | 'codeHash' | 'linkTokenHash' | 'expiresAt'
->
+> &
+  Partial<Pick<OtpChallenge, 'channel'>>
 
 /** One refresh token. Every rotation of one sign-in shares `familyId`. */
 export interface Session {
@@ -175,4 +186,11 @@ export interface PasswordChange {
 
 /** What the mail of rule 31 reports. */
 export type CredentialChange =
-  'password_set' | 'password_changed' | 'password_removed' | 'google_linked' | 'google_unlinked'
+  | 'password_set'
+  | 'password_changed'
+  | 'password_removed'
+  | 'google_linked'
+  | 'google_unlinked'
+  | 'phone_added'
+  | 'phone_changed'
+  | 'phone_removed'

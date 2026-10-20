@@ -3,8 +3,8 @@
 > Status: **4.1 built** (email code + magic link, sessions, sign-out, `/auth/me`); **4.2 built**
 > (optional password, recent auth, step-up code); **4.3 built** (Google sign-in); **4.4a built**
 > (Account › Security: sessions, linking / unlinking Google, mail on credential change, rules
-> 28–31); **4.4b** phone OTP (rules 21–27) is spec, see
-> [ROADMAP](../../ROADMAP.md#next-up-auth-4).
+> 28–31); **4.4b built** (phone OTP, rules 21–27). See
+> [ROADMAP](../../ROADMAP.md#done-auth-4).
 > Code lives in `src/features/auth/`, token helpers in
 > `src/core/security/`, the `authenticate` middleware in `src/core/middleware/`.
 > Reference implementation to adapt: `tripsurance-be/src/features/auth/` (refresh rotation, sessions,
@@ -267,20 +267,26 @@ SMS provider prints the code, so the whole flow is testable without an SMS accou
     **SMS off**: `GET /auth/providers` answers `{ google, phone }`, `phone` being false when
     `SMS_PROVIDER=disabled`. The web then hides "Sign in with phone number" and the "add number"
     action (a number already saved still shows, read-only). Every `/auth/phone*` route answers `503`
-    **before** looking at the number, so a disabled provider never tells known numbers from
-    unknown ones.
+    `PHONE_DISABLED` **before** looking at the number (or the caller's session), so a disabled
+    provider never tells known numbers from unknown ones.
 22. `POST /auth/phone/start` `{ phone }` sends a 6-digit code (same generation and hashing as rule
     4 and 18) **only if a user has that verified number and is active**. It **always** answers
-    `202` with the same body and similar timing; for an unknown number it sends nothing (so no SMS
-    is paid for) and sleeps instead, like rule 5.
+    `202` with the same body and similar timing; for an unknown number (or a disabled user) it
+    sends nothing (so no SMS is paid for) and no challenge is stored; every start takes at least
+    the minimum time of rule 5, so timing doesn't tell the cases apart.
 23. Limits: **resend cooldown 60 s** per number, **3 starts per number per hour**, **10 per IP per
     hour** (`otp:sms-ip:`, separate from email's per-IP bucket), and a **global cap of 100 SMS per
     day** (`SMS_DAILY_LIMIT`, env) across the app, which caps the bill if the limits above are
     bypassed. Over a limit returns `429` with `Retry-After`;
-    hitting the global cap also logs a `warn`.
+    hitting the global cap also logs a `warn`. The per-number and per-IP buckets count every start,
+    sent or not (as for email). The daily cap is **checked** on every start but **counted** only
+    when an SMS goes out, so a full cap refuses known and unknown numbers alike (decided at the
+    start of 4.4b). Sign-in starts and adding a number (rule 25) share these buckets.
 24. `POST /auth/phone/verify` `{ phone, code }`: the code expires after **5 minutes**, allows **5
-    wrong attempts**, is compared in constant time, and is single-use, as in rule 7. Success
-    creates a session (rule 3 still applies to disabled users).
+    wrong attempts**, is compared in constant time, and is single-use, as in rule 7, with the
+    per-IP verify limit of rule 7 and the same `OTP_*` codes (an unknown number is `OTP_EXPIRED`).
+    Success creates a session whose `authTime` is now (it counts as recent auth, rule 13), logged
+    with method `phone` (rule 3 still applies to disabled users).
 25. **Adding a number** (Account → Security): `POST /auth/phone` `{ phone }` needs recent
     authentication (rule 13), then sends a `verify_phone` code to that number. `POST
 /auth/phone/confirm` `{ code }` saves it as `users.phone` with `phoneVerifiedAt`. If another
@@ -288,6 +294,19 @@ SMS provider prints the code, so the whole flow is testable without an SMS accou
     person proved they own). Changing the number repeats the flow; `DELETE /auth/phone` removes it
     (recent auth). The start limits of rule 23 apply here too. Adding, changing and removing a
     number each send the mail of rule 31; the routes take `lang` like the others.
+    Details (decided at the start of 4.4b):
+    - `POST /auth/phone` `{ phone, currentPassword? }` answers `202` (the mail goes at confirm). The user's own saved
+      number is refused with `422` `PHONE_UNCHANGED` before any SMS (the web checks it first).
+      A new start ends the user's earlier open `verify_phone` challenge. The saved number (if
+      any) keeps working until the new one is confirmed.
+    - The `verify_phone` code lasts **5 minutes** with 5 wrong attempts, single use, like rule 24.
+      `POST /auth/phone/confirm` `{ code, lang }` checks the caller's latest `verify_phone`
+      challenge (the number travels on the challenge, not in the body), under the per-IP verify
+      limit of rule 7. It needs an active session but no recent auth: the code was sent only
+      after recent auth. Success answers the user (`phone` set). A number held by another user is
+      `409` `PHONE_IN_USE`, and the challenge is used up.
+    - `DELETE /auth/phone` `{ currentPassword?, lang }` answers the user; a no-op `200` (no
+      mail) when no number is saved.
 26. The SMS text is Thai only and fits **one segment** (Thai is sent as UCS-2: 70 characters,
     counted in UTF-16 units; a longer text is billed as two). It names the app and the expiry and
     never contains a link (decided at the start of 4.4):
@@ -298,6 +317,7 @@ SMS provider prints the code, so the whole flow is testable without an SMS accou
 
 27. Phone events are logged like rule 19 (sign-in success/failure with method `phone`, number
     added/changed/removed) with the number **masked** (`+66*****5678`), never in full.
+    Error logs redact a `phone` field in the request body like a secret (4.4b).
 
 **Account › Security (4.4a)** (decided at the start of 4.4)
 
@@ -337,6 +357,8 @@ SMS provider prints the code, so the whole flow is testable without an SMS accou
 31. **Mail on credential change** (ASVS). One short mail to `users.email` after: password set,
     changed or removed; Google linked (from Security, or automatically at sign-in, rule 14) or
     unlinked; phone number added, changed or removed (4.4b). Not on sign-out or revoking sessions.
+    A phone mail names the number by its last 4 digits only ("ending in 5678": the new number
+    when added or changed, the removed one when removed; decided at the start of 4.4b).
     - Content: what changed and when (the user's `timezone`, formatted for the language: Thai with
       พ.ศ.), then "If this wasn't you, sign in with an email code, change what was changed, and
       sign out other devices on the Security page". No link and no code: users learn that this
@@ -429,9 +451,12 @@ REAUTH_REQUIRED` opens a confirm step in place: the current password (if one is 
     Hidden when this is the only session.
   - Offline: the online-only notice, actions disabled, the list from the last load.
 - **Phone** `/account/phone` (4.4b): add / change (number field → `app-otp-field` for the SMS
-  code, resend timer) or remove (asks first), with the same confirm step.
+  code, resend timer) or remove (asks first), with the same confirm step. After a confirm the
+  page stays and shows the saved number with a "saved" line, like the password page. Typing the
+  saved number again is refused in the field ("This is your current number"), no SMS.
 - **Sign in with phone** `/auth/phone` (4.4b): the phone field, then the enter-code screen with an
-  "check your SMS" hint and no magic-link line.
+  "check your SMS" hint and no magic-link line. The sign-in page's link to it sits at the bottom,
+  stacked under "Sign in with password" (both ghost buttons), hidden while phone is off.
 
 ## Interactions
 

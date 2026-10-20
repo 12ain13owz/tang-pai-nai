@@ -1,13 +1,15 @@
 import { Service, signal } from '@angular/core'
 
+/** A sign-in by email code, or by SMS code to `phone` (E.164, 4.4b); one of the two is set. */
 interface PendingSignIn {
   email: string
+  phone: string
   returnUrl: string
   /** Epoch ms when "send a new code" unlocks (the API's 60 s cooldown). */
   resendAt: number
 }
 
-const EMPTY: PendingSignIn = { email: '', returnUrl: '/', resendAt: 0 }
+const EMPTY: PendingSignIn = { email: '', phone: '', returnUrl: '/', resendAt: 0 }
 const RESEND_COOLDOWN_MS = 60_000
 
 /**
@@ -21,7 +23,11 @@ export class AuthFlowStore {
   pending = signal<PendingSignIn>(this.read())
 
   start(email: string, returnUrl: string): void {
-    this.save({ email, returnUrl, resendAt: Date.now() + RESEND_COOLDOWN_MS })
+    this.save({ email, phone: '', returnUrl, resendAt: Date.now() + RESEND_COOLDOWN_MS })
+  }
+
+  startPhone(phone: string, returnUrl: string): void {
+    this.save({ email: '', phone, returnUrl, resendAt: Date.now() + RESEND_COOLDOWN_MS })
   }
 
   resent(): void {
@@ -40,7 +46,7 @@ export class AuthFlowStore {
   private save(value: PendingSignIn): void {
     this.pending.set(value)
     try {
-      if (value.email) {
+      if (value.email || value.phone) {
         sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(value))
       } else {
         sessionStorage.removeItem(this.STORAGE_KEY)
@@ -53,7 +59,7 @@ export class AuthFlowStore {
   private read(): PendingSignIn {
     try {
       const saved: unknown = JSON.parse(sessionStorage.getItem(this.STORAGE_KEY) ?? 'null')
-      if (typeof saved === 'object' && saved !== null && 'email' in saved) {
+      if (typeof saved === 'object' && saved !== null && ('email' in saved || 'phone' in saved)) {
         return { ...EMPTY, ...(saved as Partial<PendingSignIn>) }
       }
     } catch {

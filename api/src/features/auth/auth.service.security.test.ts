@@ -96,6 +96,8 @@ const setup = ({ emailDailyLimit = 100 } = {}) => {
       webOrigin: 'http://web.test',
       signupEnabled: true,
       emailDailyLimit,
+      phoneEnabled: true,
+      smsDailyLimit: 100,
       startMinDurationMs: 0,
     },
     now: () => clock.now,

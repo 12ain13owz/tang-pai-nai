@@ -39,6 +39,23 @@ export const createAuthRouter = (authController: AuthController, webOrigin: stri
     validate(authSchema.reauthVerify),
     authController.reauthVerify
   )
+  // Rules 21–25 (4.4b): `503` before anything else while SMS is off.
+  router.use('/phone', authController.phoneGate)
+  router.post('/phone/start', validate(authSchema.phoneStart), authController.phoneStart)
+  router.post('/phone/verify', validate(authSchema.phoneVerify), authController.phoneVerify)
+  router.post(
+    '/phone/confirm',
+    authenticate,
+    validate(authSchema.phoneConfirm),
+    authController.phoneConfirm
+  )
+  router.post('/phone', authenticate, validate(authSchema.phoneChange), authController.phoneChange)
+  router.delete(
+    '/phone',
+    authenticate,
+    validate(authSchema.phoneRemove),
+    authController.phoneRemove
+  )
   router.post('/refresh', sameOrigin, authController.refresh)
   router.post('/sign-out', sameOrigin, authController.signOut)
   router.get('/me', authenticate, authController.me)

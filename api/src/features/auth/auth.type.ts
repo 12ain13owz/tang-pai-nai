@@ -9,6 +9,8 @@ export interface AuthUserData {
   hasPassword: boolean
   /** Linked sign-in providers (rule 14), oldest first; empty when none. */
   identities: AuthIdentityData[]
+  /** The verified mobile number in E.164 (rule 25), or `null`. */
+  phone: string | null
 }
 
 export interface AuthIdentityData {
@@ -21,6 +23,8 @@ export interface AuthIdentityData {
 /** `GET /auth/providers`: which extra ways to sign in are switched on. */
 export interface AuthProvidersData {
   google: boolean
+  /** Phone sign-in and adding a number (rule 21): off when `SMS_PROVIDER=disabled`. */
+  phone: boolean
 }
 
 /** `data` of sign-in and refresh. The refresh token only travels in the cookie. */

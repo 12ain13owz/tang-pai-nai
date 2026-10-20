@@ -14,6 +14,11 @@ export default [
       import('./pages/security-page/security-page').then((m) => m.SecurityPage),
   },
   {
+    path: 'phone',
+    title: 'title.phone',
+    loadComponent: async () => import('./pages/phone-page/phone-page').then((m) => m.PhonePage),
+  },
+  {
     path: 'password',
     title: 'title.password',
     loadComponent: async () =>

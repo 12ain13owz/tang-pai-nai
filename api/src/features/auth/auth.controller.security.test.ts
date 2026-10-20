@@ -84,7 +84,14 @@ const buildApp = () => {
       oidc,
       flowBox: createSealedBox('controller-test-secret-0000000000', 'google-oidc-flow'),
     },
-    config: { webOrigin: WEB, signupEnabled: true, emailDailyLimit: 100, startMinDurationMs: 0 },
+    config: {
+      webOrigin: WEB,
+      signupEnabled: true,
+      emailDailyLimit: 100,
+      startMinDurationMs: 0,
+      phoneEnabled: true,
+      smsDailyLimit: 100,
+    },
     now: () => clock.now,
   })
   const app: Express = express()

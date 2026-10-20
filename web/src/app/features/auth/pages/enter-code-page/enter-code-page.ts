@@ -8,7 +8,7 @@ import { lucideArrowLeft } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { toApiError } from '@/core/api'
-import { AuthService, safeReturnUrl, authErrorMessage } from '@/core/auth'
+import { AuthService, formatThaiMobile, safeReturnUrl, authErrorMessage } from '@/core/auth'
 import type { UiMessage } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
@@ -25,14 +25,18 @@ const CODE_LENGTH = 6
     <div class="flex flex-1 flex-col gap-6">
       <button hlmBtn variant="ghost" type="button" class="-ms-3 h-11 self-start" (click)="back()">
         <ng-icon name="lucideArrowLeft" aria-hidden="true" />
-        {{ 'auth.changeEmail' | transloco }}
+        {{ (phone() ? 'auth.changePhone' : 'auth.changeEmail') | transloco }}
       </button>
 
       <div class="flex flex-col gap-2">
-        <h1 class="text-2xl font-semibold">{{ 'auth.codeHeading' | transloco }}</h1>
+        <h1 class="text-2xl font-semibold">
+          {{ (phone() ? 'auth.smsCodeHeading' : 'auth.codeHeading') | transloco }}
+        </h1>
         <p class="text-sm text-muted-foreground">
-          {{ 'auth.codeSentTo' | transloco }}
-          <span class="font-medium wrap-anywhere text-foreground">{{ email() }}</span>
+          {{ (phone() ? 'auth.smsCodeSentTo' : 'auth.codeSentTo') | transloco }}
+          <span class="font-medium wrap-anywhere whitespace-nowrap text-foreground">
+            {{ phone() ? formattedPhone() : email() }}
+          </span>
         </p>
       </div>
 
@@ -51,7 +55,9 @@ const CODE_LENGTH = 6
         </button>
       </form>
 
-      <p class="text-center text-sm text-muted-foreground">{{ 'auth.linkHint' | transloco }}</p>
+      <p class="text-center text-sm text-muted-foreground">
+        {{ (phone() ? 'auth.smsHint' : 'auth.linkHint') | transloco }}
+      </p>
 
       <div class="mt-auto flex flex-col items-center gap-1">
         <button
@@ -70,7 +76,7 @@ const CODE_LENGTH = 6
         </button>
         <p role="status" class="min-h-5 text-sm text-muted-foreground">
           @if (resent()) {
-            {{ 'auth.resent' | transloco }}
+            {{ (phone() ? 'auth.smsResent' : 'auth.resent') | transloco }}
           }
         </p>
       </div>
@@ -85,6 +91,9 @@ export class EnterCodePage {
   private languageService = inject(LanguageService)
 
   protected email = computed(() => this.authFlowStore.pending().email)
+  /** Set when the code went by SMS (4.4b) instead of email. */
+  protected phone = computed(() => this.authFlowStore.pending().phone)
+  protected formattedPhone = computed(() => formatThaiMobile(this.phone()))
   private now = signal(Date.now())
   protected secondsLeft = computed(() =>
     Math.max(0, Math.ceil((this.authFlowStore.pending().resendAt - this.now()) / 1000))
@@ -121,7 +130,12 @@ export class EnterCodePage {
     this.error.set(null)
     this.resent.set(false)
     try {
-      await this.authService.verifyCode(this.email(), this.form.getRawValue().code)
+      const { code } = this.form.getRawValue()
+      if (this.phone()) {
+        await this.authService.verifyPhone(this.phone(), code)
+      } else {
+        await this.authService.verifyCode(this.email(), code)
+      }
       const returnUrl = safeReturnUrl(this.authFlowStore.pending().returnUrl)
       this.authFlowStore.clear()
       await this.router.navigateByUrl(returnUrl, { replaceUrl: true })
@@ -138,7 +152,11 @@ export class EnterCodePage {
     this.error.set(null)
     this.resent.set(false)
     try {
-      await this.authService.startEmail(this.email(), this.languageService.language().id)
+      if (this.phone()) {
+        await this.authService.startPhone(this.phone())
+      } else {
+        await this.authService.startEmail(this.email(), this.languageService.language().id)
+      }
       this.authFlowStore.resent()
       this.form.controls.code.reset('', { emitEvent: false })
       this.resent.set(true)
@@ -154,8 +172,9 @@ export class EnterCodePage {
   }
 
   protected async back(): Promise<void> {
-    await this.router.navigate(['/auth/sign-in'], {
-      queryParams: { returnUrl: this.authFlowStore.pending().returnUrl },
+    const { returnUrl } = this.authFlowStore.pending()
+    await this.router.navigate([this.phone() ? '/auth/phone' : '/auth/sign-in'], {
+      queryParams: { returnUrl: returnUrl === '/' ? null : returnUrl },
     })
   }
 }

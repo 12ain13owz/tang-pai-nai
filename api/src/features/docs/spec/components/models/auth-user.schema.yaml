@@ -1,5 +1,5 @@
 type: object
-required: [id, email, displayName, avatarUrl, timezone, hasPassword, identities]
+required: [id, email, displayName, avatarUrl, timezone, hasPassword, identities, phone]
 properties:
   id:
     type: string
@@ -30,3 +30,7 @@ properties:
     description: Linked sign-in providers, oldest first; empty when none
     items:
       $ref: './auth-identity.schema.yaml'
+  phone:
+    type: [string, 'null']
+    description: The verified mobile number in E.164 (auth spec rule 25), or null
+    example: '+66812345678'

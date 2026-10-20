@@ -1,0 +1,10 @@
+type: object
+required: [phone]
+properties:
+  phone:
+    $ref: './auth-phone.schema.yaml'
+  currentPassword:
+    type: string
+    description: >-
+      Proves recent authentication when the session's last credential check is older than 10
+      minutes (only for a user who has a password); good for this one request.

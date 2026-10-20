@@ -1,0 +1,9 @@
+type: object
+required: [phone, code]
+properties:
+  phone:
+    $ref: './auth-phone.schema.yaml'
+  code:
+    type: string
+    pattern: '^\d{6}$'
+    example: '123456'

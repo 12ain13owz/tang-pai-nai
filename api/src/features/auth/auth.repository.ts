@@ -1,4 +1,5 @@
 import type {
+  ChallengeChannel,
   ChallengePurpose,
   CleanupResult,
   NewOtpChallenge,
@@ -19,6 +20,10 @@ export interface AuthRepository {
 
   findUserById(id: string): Promise<User | null>
   findUserByEmail(email: string): Promise<User | null>
+  /** The user whose verified number this is (E.164). */
+  findUserByPhone(phone: string): Promise<User | null>
+  /** Saves a verified number (`null` removes it) with `phoneVerifiedAt` = `at`. */
+  setUserPhone(userId: string, phone: string | null, at: Date): Promise<User | null>
   createUser(data: NewUser): Promise<User>
   markEmailVerified(userId: string, at: Date): Promise<User | null>
   /** Sets `avatarUrl` only while the user has none. */
@@ -41,10 +46,24 @@ export interface AuthRepository {
   /** `false` when there was no password. */
   deletePasswordHash(userId: string): Promise<boolean>
 
+  /** `channel` defaults to `email`. */
   createChallenge(data: NewOtpChallenge): Promise<OtpChallenge>
   /** Ends every open (unconsumed, unexpired) `purpose` challenge for `destination` at `at`. */
-  expireOpenChallenges(destination: string, purpose: ChallengePurpose, at: Date): Promise<void>
-  findLatestChallenge(destination: string, purpose: ChallengePurpose): Promise<OtpChallenge | null>
+  expireOpenChallenges(
+    destination: string,
+    purpose: ChallengePurpose,
+    at: Date,
+    channel?: ChallengeChannel
+  ): Promise<void>
+  findLatestChallenge(
+    destination: string,
+    purpose: ChallengePurpose,
+    channel?: ChallengeChannel
+  ): Promise<OtpChallenge | null>
+  /** Ends every open `purpose` challenge of the user (any destination) at `at`. */
+  expireOpenUserChallenges(userId: string, purpose: ChallengePurpose, at: Date): Promise<void>
+  /** The user's newest `purpose` challenge, whatever its destination. */
+  findLatestUserChallenge(userId: string, purpose: ChallengePurpose): Promise<OtpChallenge | null>
   findChallengeByLinkTokenHash(linkTokenHash: string): Promise<OtpChallenge | null>
   /** Adds one wrong attempt and returns the new total (`null` if the challenge is gone). */
   recordFailedAttempt(id: string): Promise<number | null>

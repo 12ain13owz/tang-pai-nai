@@ -70,27 +70,27 @@ merging.
 
 ## Status
 
-| #   | Feature / phase            | API | Web | Notes                                                                                                     |
-| --- | -------------------------- | --- | --- | --------------------------------------------------------------------------------------------------------- |
-| 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                   |
-| 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys               |
-| 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                |
-| 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                            |
-| 4   | **Auth**                   | 🚧  | 🚧  | **← in progress.** 4.1–4.4a ✅; 4.4b ⬜ phone OTP. [spec](docs/features/auth.md)                          |
-| 4a  | Offline sync foundation    | ⬜  | ⬜  | encrypted local DB, PIN lock, outbox, `/sync/push` + `/sync/pull`. [spec](docs/features/offline-sync.md)  |
-| 5   | Currency                   | ⬜  | ⬜  | master table, THB default. [spec](docs/features/currency.md)                                              |
-| 6   | Wallet                     | ⬜  | ⬜  | accounts with a currency + balance; `wallet_members` table from day one. [spec](docs/features/wallet.md)  |
-| 7   | Category                   | ⬜  | ⬜  | income/expense, 1 level of sub-categories, default set seeded per user. [spec](docs/features/category.md) |
-| 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)             |
-| 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                   |
-| 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                |
-| 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                        |
-| 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                            |
-| 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                 |
-| 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                        |
-| 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                           |
-| 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog    |
-| 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys      |
+| #   | Feature / phase             | API | Web | Notes                                                                                                                |
+| --- | --------------------------- | --- | --- | -------------------------------------------------------------------------------------------------------------------- |
+| 0   | Starter repos               | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                              |
+| 1   | Local dev workflow          | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                          |
+| 2   | Database foundation         | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                           |
+| 3   | App shell                   | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                       |
+| 4   | Auth                        | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                         |
+| 4a  | **Offline sync foundation** | ⬜  | ⬜  | **← next.** encrypted local DB, PIN lock, outbox, `/sync/push` + `/sync/pull`. [spec](docs/features/offline-sync.md) |
+| 5   | Currency                    | ⬜  | ⬜  | master table, THB default. [spec](docs/features/currency.md)                                                         |
+| 6   | Wallet                      | ⬜  | ⬜  | accounts with a currency + balance; `wallet_members` table from day one. [spec](docs/features/wallet.md)             |
+| 7   | Category                    | ⬜  | ⬜  | income/expense, 1 level of sub-categories, default set seeded per user. [spec](docs/features/category.md)            |
+| 8   | Transaction                 | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                        |
+| 9   | Transfer between wallets    | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                              |
+| 10  | Reports                     | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                           |
+| 11  | Budget                      | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                   |
+| 12  | Recurring transactions      | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                       |
+| 13  | Debt / loan                 | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                            |
+| 14  | Event / trip                | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                   |
+| 15  | Search, filter, CSV export  | ⬜  | ⬜  |                                                                                                                      |
+| 16  | Family sharing              | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog               |
+| 17  | Deploy (Vercel)             | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                 |
 
 ✅ done · 🚧 in progress · ⬜ not started · — not applicable
 
@@ -100,7 +100,10 @@ decision "Local-first").
 
 ---
 
-## Next up: Auth (#4)
+## Done: Auth (#4)
+
+**Next up is Offline sync foundation (#4a)**, spec
+[docs/features/offline-sync.md](docs/features/offline-sync.md).
 
 Spec: [docs/features/auth.md](docs/features/auth.md). Built in five parts (4.4 was split in two at
 its start), one PR each, API and web together. The endpoints table in the spec says which part each
@@ -112,7 +115,7 @@ route belongs to.
 | 4.2  | Optional password (Argon2id, breach check), recent-auth rule + step-up code              | ✅     |
 | 4.3  | Google sign-in (OIDC + PKCE)                                                             | ✅     |
 | 4.4a | Account → Security: sessions, sign out others, link / unlink Google, credential mail     | ✅     |
-| 4.4b | Phone OTP: add / change / remove a number, sign in with phone (console SMS provider)     | ⬜     |
+| 4.4b | Phone OTP: add / change / remove a number, sign in with phone (console SMS provider)     | ✅     |
 
 4.1 in detail (✅ done):
 
@@ -208,7 +211,7 @@ route belongs to.
 - **Not in 4.3**: linking Google while signed in, unlinking (4.4), mail on linking (backlog "Mail
   on credential change").
 
-4.4 (decided at its start, spec rules 21–31; 4.4a ✅ done, 4.4b ⬜ next):
+4.4 (decided at its start, spec rules 21–31; 4.4a and 4.4b ✅ done):
 
 - **Split**: 4.4a (Security page, sessions, Google link / unlink, mail on credential change) and
   4.4b (phone OTP) are separate sessions and PRs, 4.4a first.
@@ -259,6 +262,46 @@ route belongs to.
 - **Not in 4.4a**: phone OTP (4.4b, rules 21–27: the `console` SMS provider, `/auth/phone*`,
   `providers.phone`, `/account/phone`, `/auth/phone`), the ThaiBulkSMS adapter (backlog), trusted
   device / PIN / local DB (#4a), invitations (#16).
+
+4.4b in detail (✅ done):
+
+- **Decided at the start of 4.4b** (spec rules 21–27, 31): the mail on a phone change names the
+  last 4 digits; `/account/phone` stays put after a confirm (a "saved" line, like the password
+  page); the saved number typed again is refused before any SMS (`422 PHONE_UNCHANGED`); the
+  sign-in page's "Sign in with phone number" sits at the bottom under "Sign in with password".
+  Also settled: the daily SMS cap is checked on every start but counted per SMS sent, sign-in and
+  add-number starts share the per-number / per-IP buckets, the `503` carries `PHONE_DISABLED`,
+  `POST /auth/phone/confirm` needs no recent auth (the code was sent after it).
+- **API**: `POST /auth/phone/start` + `/verify` (5-min SMS code, `202` and the minimum time for
+  any number, nothing stored for an unknown one), `POST /auth/phone` (recent auth) +
+  `/confirm` (`409 PHONE_IN_USE`, the code used up), `DELETE /auth/phone`; `phone` on every
+  `user`, `providers.phone`. A `phoneGate` answers `503` in front of every `/auth/phone*` while
+  `SMS_PROVIDER=disabled`. `otp_challenges` rows now carry their `channel` (the repository's
+  challenge methods take an optional channel, plus `*UserChallenge` methods for
+  `verify_phone`); no migration (the columns existed since 4.1). New env `SMS_DAILY_LIMIT`
+  (default 100). `normalizeThaiMobile` / `maskPhone` in `shared/utils/phone.ts`; numbers are
+  masked in logs and `phone` is redacted from error logs. SMS texts in `auth.mail.ts`
+  (`buildPhoneSms`, 63 UTF-16 units).
+- **Web**: `/auth/phone` (`PhoneSignInPage`) → the shared `/auth/code` screen in SMS mode
+  (`AuthFlowStore.pending().phone`); `/account/phone` (`PhonePage`: number → SMS code with a
+  resend timer, remove after asking, confirm step in place); a phone row on the Security page
+  (read-only while SMS is off). `core/auth/phone.ts` mirrors the API's normaliser and adds
+  `formatThaiMobile` (`081-234-5678`) and `thaiMobileValidator`.
+- **Checked**: curl against the dev API with SMS read from stdout for add / change / remove,
+  sign-in, wrong / locked / expired / reused codes, recent auth by step-up code and by password,
+  every limit (cooldown, 3 per number, 10 per IP with unknown numbers counted, verify per IP,
+  the daily cap for known and unknown numbers), another user's number (`409`), a disabled user
+  (no SMS; `403` after the code), `SMS_PROVIDER=disabled` (`503` before token and body) and the
+  same timing for known and unknown numbers; Playwright at 375×812 in th/en × light/dark for
+  the Security row, the phone page (every state), sign-in by phone and SMS off. Tests: API 374
+  (service, HTTP, Drizzle adapter, phone helpers, SMS length, redaction), web 134 (phone
+  helpers, auth service, phone page, Security row, sign-in link, phone sign-in, SMS code
+  screen).
+- **Known**: through `ng serve`'s proxy every browser is one IP, so the 10 SMS starts per hour
+  per IP is easy to hit while testing; empty `rate_limit_buckets` as in 4.1. Asking for a code
+  for a number another user holds still costs one SMS: the `409` comes only at confirm
+  (decided, rule 25). Only the `console` SMS provider has been used; the ThaiBulkSMS adapter
+  waits for its account (backlog).
 
 ## Done: App shell (#3)
 
@@ -456,7 +499,7 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 
 **Auth** (full spec: [docs/features/auth.md](docs/features/auth.md))
 
-- Three ways to sign in: **email**, **Google**, or **phone OTP** (SMS, only for a number already
+- Three ways to sign in (all built, #4): **email**, **Google**, or **phone OTP** (SMS, only for a number already
   verified on an existing account; no sign-up by phone). Email defaults to **passwordless** (one 6-digit OTP +
   magic link in the same email). A user may **optionally set a password** and then sign in with
   email + password.

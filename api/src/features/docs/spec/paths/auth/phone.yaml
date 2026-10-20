@@ -1,0 +1,97 @@
+post:
+  tags:
+    - Auth
+  summary: Add or change the phone number
+  description: >-
+    Needs recent authentication (auth spec rules 13 and 25), then texts a `verify_phone` code to
+    the new number and ends the caller's earlier one. The saved number (if any) keeps working
+    until `POST /auth/phone/confirm`. Shares the start limits of `/auth/phone/start`.
+  operationId: phoneChange
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/auth-phone-change.schema.yaml'
+  responses:
+    '202':
+      description: The code is on its way to the new number
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/message-response.schema.yaml'
+    '400':
+      description: '`CURRENT_PASSWORD_INVALID`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '403':
+      description: '`REAUTH_REQUIRED`, or `USER_DISABLED`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '422':
+      description: '`PHONE_UNCHANGED` (the number already saved, no SMS sent), or not a Thai mobile'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '429':
+      $ref: '../../components/responses/too-many-requests.response.yaml'
+    '503':
+      description: '`PHONE_DISABLED`: no SMS provider (`SMS_PROVIDER=disabled`), answered first'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+delete:
+  tags:
+    - Auth
+  summary: Remove the phone number
+  description: >-
+    Needs recent authentication (auth spec rule 25). Without a number it's a no-op `200`.
+    Mails the user about the change, naming the last 4 digits (rule 31).
+  operationId: phoneRemove
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/auth-recent-auth.schema.yaml'
+  responses:
+    '200':
+      description: The user, without a phone number
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/auth-user-response.schema.yaml'
+    '400':
+      description: '`CURRENT_PASSWORD_INVALID`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '403':
+      description: '`REAUTH_REQUIRED`, or `USER_DISABLED`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '429':
+      $ref: '../../components/responses/too-many-requests.response.yaml'
+    '503':
+      description: '`PHONE_DISABLED`: no SMS provider (`SMS_PROVIDER=disabled`), answered first'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

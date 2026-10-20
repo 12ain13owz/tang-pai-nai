@@ -1,0 +1,55 @@
+post:
+  tags:
+    - Auth
+  summary: Confirm the new phone number
+  description: >-
+    Checks the caller's latest `verify_phone` code (5 minutes, 5 wrong tries, single use; auth
+    spec rule 25) and saves its number as verified. Needs an active session but no recent
+    authentication: the code was only sent after it. Mails the user about the change, naming the
+    last 4 digits (rule 31). Limit: the per-IP verify limit.
+  operationId: phoneConfirm
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/auth-phone-confirm.schema.yaml'
+  responses:
+    '200':
+      description: The user, with the new number
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/auth-user-response.schema.yaml'
+    '400':
+      description: '`OTP_INVALID`, `OTP_LOCKED` or `OTP_EXPIRED`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '403':
+      description: '`USER_DISABLED`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '409':
+      description: '`PHONE_IN_USE`: another user holds the number; the code is used up'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '422':
+      $ref: '../../components/responses/error.response.yaml'
+    '429':
+      $ref: '../../components/responses/too-many-requests.response.yaml'
+    '503':
+      description: '`PHONE_DISABLED`: no SMS provider (`SMS_PROVIDER=disabled`), answered first'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

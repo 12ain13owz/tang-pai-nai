@@ -20,7 +20,9 @@
     "enterCode": "Enter code",
     "passwordSignIn": "Sign in with password",
     "password": "Password",
-    "security": "Security"
+    "security": "Security",
+    "phoneSignIn": "Sign in with phone",
+    "phone": "Phone number"
   },
   "status": {
     "online": "Online",
@@ -65,7 +67,7 @@
     "signingOut": "Signing out",
     "signOutFailed": "Couldn't sign out. Try again",
     "security": "Security",
-    "securityHint": "Password, Google and devices",
+    "securityHint": "Password, phone, Google and devices",
     "password": "Password",
     "passwordSet": "Set",
     "passwordUnset": "Not set",
@@ -103,7 +105,9 @@
     "currentPassword": "Current password",
     "confirm": "Confirm",
     "confirming": "Confirming",
-    "reauthFailed": "Couldn't confirm it's you. Try again"
+    "reauthFailed": "Couldn't confirm it's you. Try again",
+    "phone": "Phone number",
+    "phoneNotAdded": "Not added"
   },
   "auth": {
     "signInHeading": "Sign in",
@@ -161,7 +165,20 @@
     "passwordTooLong": "Use at most 128 characters",
     "passwordWeak": "Include a lowercase letter, an uppercase letter, a number and a symbol",
     "passwordSameAsEmail": "Don't use your email as the password",
-    "passwordBreached": "This password has shown up in a data breach. Choose another one"
+    "passwordBreached": "This password has shown up in a data breach. Choose another one",
+    "usePhone": "Sign in with phone number",
+    "phoneHeading": "Sign in with phone number",
+    "phoneText": "Enter the mobile number saved on your account and we'll text you a code",
+    "phone": "Mobile number",
+    "phoneRequired": "Enter your mobile number",
+    "phoneInvalid": "Enter a 10-digit Thai mobile number, like 081-234-5678",
+    "phoneHint": "Only works for a number confirmed on the Security page. Haven't added one? Sign in with an email code first",
+    "phoneDisabled": "Text messages aren't available right now. Use an email code instead",
+    "changePhone": "Change number",
+    "smsCodeHeading": "Enter the code from the SMS",
+    "smsCodeSentTo": "If this number can sign in, we texted a 6-digit code to",
+    "smsHint": "The code works for 5 minutes. No SMS? Use an email code instead",
+    "smsResent": "New code sent. Check your messages again"
   },
   "security": {
     "offline": "You're offline. Security settings need an internet connection",
@@ -207,5 +224,29 @@
     "pattern": "This format isn't valid",
     "showPassword": "Show password",
     "hidePassword": "Hide password"
+  },
+  "phone": {
+    "saved": "Saved number",
+    "notAdded": "No phone number yet",
+    "about": "Use this number to sign in with a code by SMS. An email code always works too",
+    "offline": "You're offline. Changing your phone number needs an internet connection",
+    "unavailable": "Text messages aren't available right now, so the number can't be changed for now",
+    "newNumber": "Mobile number",
+    "changeNumber": "New mobile number",
+    "sendCode": "Send code by SMS",
+    "codeSentTo": "We texted a 6-digit code to",
+    "codeHint": "The code works for 5 minutes",
+    "confirmNumber": "Confirm number",
+    "useOtherNumber": "Use another number",
+    "resent": "New code sent",
+    "added": "Phone number added",
+    "changed": "Phone number changed",
+    "removed": "Phone number removed",
+    "remove": "Remove phone number",
+    "removeConfirmText": "After removing it you can't sign in with this number. An email code always works",
+    "removeConfirm": "Remove number",
+    "unchanged": "This is your current number",
+    "inUse": "This number can't be used. Try another one",
+    "saveFailed": "Couldn't save the number. Try again"
   }
 }

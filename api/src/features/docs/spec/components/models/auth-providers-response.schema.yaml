@@ -10,10 +10,15 @@ properties:
     example: '2026-01-01T00:00:00.000Z'
   data:
     type: object
-    required: [google]
+    required: [google, phone]
     properties:
       google:
         type: boolean
         description: >-
           Whether Google sign-in is on (`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set)
+        example: true
+      phone:
+        type: boolean
+        description: >-
+          Whether phone sign-in and adding a number are on (`SMS_PROVIDER` isn't `disabled`)
         example: true
