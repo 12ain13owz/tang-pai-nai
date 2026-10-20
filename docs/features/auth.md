@@ -3,8 +3,8 @@
 > Status: **4.1 built** (email code + magic link, sessions, sign-out, `/auth/me`); **4.2 built**
 > (optional password, recent auth, step-up code); **4.3 built** (Google sign-in); **4.4a built**
 > (Account › Security: sessions, linking / unlinking Google, mail on credential change, rules
-> 28–31); **4.4b** phone OTP (rules 21–27) is in progress, see
-> [ROADMAP](../../ROADMAP.md#next-up-auth-4).
+> 28–31); **4.4b built** (phone OTP, rules 21–27). See
+> [ROADMAP](../../ROADMAP.md#done-auth-4).
 > Code lives in `src/features/auth/`, token helpers in
 > `src/core/security/`, the `authenticate` middleware in `src/core/middleware/`.
 > Reference implementation to adapt: `tripsurance-be/src/features/auth/` (refresh rotation, sessions,

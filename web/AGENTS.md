@@ -206,14 +206,14 @@ initialValue })`.
 - **Render fields with the shared wrappers** in `@/shared/components/form`. Never hand-build
   `<label>` + input + error markup in a feature:
 
-  | Field                | Control type           | Use for                                        |
-  | -------------------- | ---------------------- | ---------------------------------------------- |
-  | `app-input-field`    | `FormControl<string>`  | text / email / tel / url / search              |
-  | `app-password-field` | `FormControl<string>`  | password with show/hide                        |
-  | `app-textarea-field` | `FormControl<string>`  | multi-line note                                |
-  | `app-select-field`   | `FormControl<T \| ''>` | short fixed list (native picker on phones)     |
-  | `app-otp-field`      | `FormControl<string>`  | 6-digit email code (`one-time-code` auto-fill) |
-  | `app-switch-field`   | `FormControl<boolean>` | on/off setting row                             |
+  | Field                | Control type           | Use for                                    |
+  | -------------------- | ---------------------- | ------------------------------------------ |
+  | `app-input-field`    | `FormControl<string>`  | text / email / tel / url / search          |
+  | `app-password-field` | `FormControl<string>`  | password with show/hide                    |
+  | `app-textarea-field` | `FormControl<string>`  | multi-line note                            |
+  | `app-select-field`   | `FormControl<T \| ''>` | short fixed list (native picker on phones) |
+  | `app-otp-field`      | `FormControl<string>`  | 6-digit email / SMS code (`one-time-code`) |
+  | `app-switch-field`   | `FormControl<boolean>` | on/off setting row                         |
 
   Every field takes `[control]` (the typed control, so templates are type-checked) plus `label`,
   and optionally `hint` / `placeholder`. Labels are linked to the control automatically, so there's
@@ -380,11 +380,21 @@ are on, so don't disable them.
     (`features/account/reauth-flow.ts`), calls `reauth.refused(action, error, hasPassword)` on a
     failure and sends the pending action again once confirmed. `deviceLabel()` turns a session's
     user agent into "Chrome · Android".
+  - Phone (4.4b): `providers().phone` decides whether "Sign in with phone number" and adding a
+    number show. Numbers travel in E.164 and show the Thai way: `normalizeThaiMobile`,
+    `formatThaiMobile` (`081-234-5678`) and `thaiMobileValidator` (`@/core/auth`) on an
+    `app-input-field` with `type="tel"`, `inputmode="tel"`, `autocomplete="tel-national"`.
+    Sign-in: `startPhone` / `verifyPhone`, on `/auth/phone` then the shared `/auth/code` screen
+    (`AuthFlowStore.pending()` holds either `email` or `phone`). Account › Phone
+    (`features/account/pages/phone-page`): `changePhone` (recent auth, sends the SMS),
+    `confirmPhone(code, lang)`, `removePhone(lang)`; `AuthUser.phone` is the saved number or
+    `null`.
 - **Auth error codes** the screens switch on: `OTP_INVALID`, `OTP_LOCKED`, `OTP_EXPIRED`,
   `SESSION_EXPIRED`, `SESSION_REVOKED`, `USER_DISABLED`, `RATE_LIMITED` (with `Retry-After`),
   `INVALID_CREDENTIALS`, `CURRENT_PASSWORD_INVALID`, `REAUTH_REQUIRED`, `PASSWORD_TOO_SHORT`,
   `PASSWORD_TOO_LONG`, `PASSWORD_TOO_WEAK`, `PASSWORD_MATCHES_EMAIL`, `PASSWORD_BREACHED`,
-  `CURRENT_SESSION`, `IDENTITY_ALREADY_LINKED`, `GOOGLE_IN_USE`.
+  `CURRENT_SESSION`, `IDENTITY_ALREADY_LINKED`, `GOOGLE_IN_USE`, `PHONE_DISABLED`,
+  `PHONE_UNCHANGED`, `PHONE_IN_USE`.
   `authErrorMessage` (`core/auth/auth-error.ts`, shared by the auth and account features) maps
   them to translation keys.
 - **Testing**: `provideHttpClient(withInterceptors([authInterceptor]))` +
