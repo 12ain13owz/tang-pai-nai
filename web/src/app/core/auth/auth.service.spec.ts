@@ -142,18 +142,19 @@ describe('AuthService', () => {
 
   it('sends the current password only when given, and keeps the returned user', async () => {
     store.setSession(session())
-    const first = service.setPassword('Blue.Sky.2026')
+    const first = service.setPassword('Blue.Sky.2026', 'th')
     const set = http.expectOne('/api/auth/password')
     expect(set.request.method).toBe('PUT')
-    expect(set.request.body).toEqual({ newPassword: 'Blue.Sky.2026' })
+    expect(set.request.body).toEqual({ newPassword: 'Blue.Sky.2026', lang: 'th' })
     set.flush(envelope({ ...session().user, hasPassword: true }))
     await first
     expect(store.user()?.hasPassword).toBe(true)
 
-    const second = service.setPassword('Blue.Sky.2027', 'Blue.Sky.2026')
+    const second = service.setPassword('Blue.Sky.2027', 'en', 'Blue.Sky.2026')
     const change = http.expectOne('/api/auth/password')
     expect(change.request.body).toEqual({
       newPassword: 'Blue.Sky.2027',
+      lang: 'en',
       currentPassword: 'Blue.Sky.2026',
     })
     change.flush(envelope({ ...session().user, hasPassword: true }))
@@ -162,11 +163,11 @@ describe('AuthService', () => {
 
   it('removes the password with a DELETE that may carry the current password', async () => {
     store.setSession({ ...session(), user: { ...session().user, hasPassword: true } })
-    const done = service.removePassword('Blue.Sky.2026')
+    const done = service.removePassword('th', 'Blue.Sky.2026')
 
     const req = http.expectOne('/api/auth/password')
     expect(req.request.method).toBe('DELETE')
-    expect(req.request.body).toEqual({ currentPassword: 'Blue.Sky.2026' })
+    expect(req.request.body).toEqual({ lang: 'th', currentPassword: 'Blue.Sky.2026' })
     req.flush(envelope(session().user))
     await done
     expect(store.user()?.hasPassword).toBe(false)

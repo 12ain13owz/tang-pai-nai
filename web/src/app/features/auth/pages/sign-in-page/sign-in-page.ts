@@ -184,7 +184,7 @@ export class SignInPage {
   protected continueWithGoogle(): void {
     this.isLeaving.set(true)
     this.error.set(null)
-    this.authService.startGoogle(this.returnUrl)
+    this.authService.startGoogle(this.returnUrl, this.languageService.language().id)
   }
 
   protected async onSubmit(): Promise<void> {

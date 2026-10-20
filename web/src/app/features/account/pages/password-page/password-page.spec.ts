@@ -94,7 +94,7 @@ describe('PasswordPage', () => {
     await submitNewPassword()
 
     const req = http.expectOne('/api/auth/password')
-    expect(req.request.body).toEqual({ newPassword: NEW_PASSWORD })
+    expect(req.request.body).toEqual({ newPassword: NEW_PASSWORD, lang: 'th' })
     req.flush(envelope(user(true)))
     await settle()
 
@@ -131,6 +131,7 @@ describe('PasswordPage', () => {
     const retry = http.expectOne('/api/auth/password')
     expect(retry.request.body).toEqual({
       newPassword: NEW_PASSWORD,
+      lang: 'th',
       currentPassword: 'Gr33n Mango Tree',
     })
     retry.flush(envelope(user(true)))
@@ -181,7 +182,7 @@ describe('PasswordPage', () => {
     await settle()
 
     const retry = http.expectOne('/api/auth/password')
-    expect(retry.request.body).toEqual({ newPassword: NEW_PASSWORD })
+    expect(retry.request.body).toEqual({ newPassword: NEW_PASSWORD, lang: 'th' })
     retry.flush(envelope(user(true)))
     await settle()
     expect(text()).toContain(th.account.passwordSaved)

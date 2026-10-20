@@ -19,6 +19,21 @@ export interface AuthIdentity {
   linkedAt: string
 }
 
+/** `GET /auth/sessions`: one signed-in device (a session family). Mirrors `AuthDeviceSessionData`. */
+export interface AuthDeviceSession {
+  /** The session family id. */
+  id: string
+  userAgent: string | null
+  signedInAt: string
+  lastUsedAt: string
+  /** This device. */
+  current: boolean
+}
+
+/** `/account/security?error=…` after linking Google (auth spec rule 29). */
+export type GoogleLinkFailure =
+  'google_in_use' | 'already_linked' | 'disabled' | 'rate_limited' | 'failed'
+
 /** `GET /auth/providers`: which extra ways to sign in the API has switched on. */
 export interface AuthProviders {
   google: boolean
@@ -59,3 +74,6 @@ export type AuthErrorCode =
   | 'PASSWORD_TOO_WEAK'
   | 'PASSWORD_MATCHES_EMAIL'
   | 'PASSWORD_BREACHED'
+  | 'CURRENT_SESSION'
+  | 'IDENTITY_ALREADY_LINKED'
+  | 'GOOGLE_IN_USE'

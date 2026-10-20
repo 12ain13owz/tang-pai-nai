@@ -32,6 +32,8 @@ const CODE_MESSAGES = new Map<string, string>([
   ['PASSWORD_TOO_WEAK', 'auth.passwordWeak'],
   ['PASSWORD_MATCHES_EMAIL', 'auth.passwordSameAsEmail'],
   ['PASSWORD_BREACHED', 'auth.passwordBreached'],
+  ['IDENTITY_ALREADY_LINKED', 'security.googleAlreadyLinked'],
+  ['GOOGLE_IN_USE', 'security.googleInUse'],
 ])
 
 /** What to tell the user about a failed auth call; `fallback` covers anything unexpected. */
