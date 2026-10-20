@@ -9,6 +9,12 @@ const REFRESH_LOCK = 'tpn-auth-refresh'
 
 const NO_PROVIDERS: AuthProviders = { google: false }
 
+/** Where "Continue with Google" sends the browser (the API, through the `/api` rewrite). */
+export const googleStartUrl = (returnUrl: string): string =>
+  returnUrl === '/'
+    ? '/api/auth/google/start'
+    : `/api/auth/google/start?returnUrl=${encodeURIComponent(returnUrl)}`
+
 /** The auth endpoints (docs/features/auth.md, parts 4.1–4.3) and the session they produce. */
 @Service()
 export class AuthService {
@@ -41,8 +47,7 @@ export class AuthService {
    * answers with redirects and comes back to `/auth/callback`.
    */
   startGoogle(returnUrl: string): void {
-    const query = returnUrl === '/' ? '' : `?returnUrl=${encodeURIComponent(returnUrl)}`
-    this.window?.location.assign(`/api/auth/google/start${query}`)
+    this.window?.location.assign(googleStartUrl(returnUrl))
   }
 
   async startEmail(email: string, lang: string): Promise<void> {

@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http'
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
 import { TestBed } from '@angular/core/testing'
-import { AuthService } from './auth.service'
+import { AuthService, googleStartUrl } from './auth.service'
 import { AuthStore } from './auth.store'
 import type { AuthSession } from './auth.type'
 
@@ -184,5 +184,34 @@ describe('AuthService', () => {
     expect(verifyReq.request.body).toEqual({ code: '123456' })
     verifyReq.flush(envelope())
     await verify
+  })
+
+  it('asks the API once which providers are on', async () => {
+    const first = service.providers()
+    const second = service.providers()
+    http.expectOne('/api/auth/providers').flush(envelope({ google: true }))
+
+    await expect(first).resolves.toEqual({ google: true })
+    await expect(second).resolves.toEqual({ google: true })
+    await expect(service.providers()).resolves.toEqual({ google: true })
+  })
+
+  it('counts Google as off when the API cannot be reached, and asks again next time', async () => {
+    const offline = service.providers()
+    http.expectOne('/api/auth/providers').error(new ProgressEvent('error'))
+    await expect(offline).resolves.toEqual({ google: false })
+
+    const online = service.providers()
+    http.expectOne('/api/auth/providers').flush(envelope({ google: true }))
+    await expect(online).resolves.toEqual({ google: true })
+  })
+})
+
+describe('googleStartUrl', () => {
+  it('goes through the /api rewrite and carries an in-app return path', () => {
+    expect(googleStartUrl('/')).toBe('/api/auth/google/start')
+    expect(googleStartUrl('/account?tab=1')).toBe(
+      '/api/auth/google/start?returnUrl=%2Faccount%3Ftab%3D1'
+    )
   })
 })
