@@ -348,6 +348,16 @@ How the API authenticates calls (spec: [`docs/features/auth.md`](../docs/feature
 - **Passwords** (optional, 4.2): Argon2id PHC strings in `password_credentials`
   (`core/security/password.ts`: `hashPassword`, `verifyPassword`, `passwordNeedsRehash`,
   `verifyDummyPassword` for the timing guard). Every `user` in a response carries `hasPassword`.
+- **Google** (4.3, spec rule 14): `GET /auth/google/start` and `/auth/google/callback` are
+  top-level browser navigations, so they answer with redirects, never JSON (the callback always
+  lands on the web's `/auth/callback`, with `?error=<reason>` on failure). `core/security`
+  holds the provider-neutral pieces: `createOidcClient` (discovery, code exchange, ID token check
+  with `jose` against the JWKS) and `createSealedBox` (an encrypted JWE keyed from `JWT_SECRET`
+  by HKDF + a purpose) for the `__Host-goidc` round-trip cookie (SameSite=Lax, 10 min). Users are
+  matched on (`provider`, `sub`) in `user_identities`, never on email. Every `user` in a response
+  carries `identities`. `GET /auth/providers` tells the web which extra ways are on. Locally,
+  `npm run dev:oidc` stands in for Google (`GOOGLE_ISSUER=http://localhost:4400`, client
+  `dev-client` / `dev-secret`), with scenarios that break the ID token one way each.
 - **Recent auth** (spec rule 13): routes that change credentials (`PUT` / `DELETE
 /auth/password`, later phone and sessions) check the caller's **session**, not just the JWT:
   `authTime` ≤ 10 min, or the current password, or a step-up code (`/auth/reauth/start` +
@@ -366,17 +376,18 @@ How the API authenticates calls (spec: [`docs/features/auth.md`](../docs/feature
   (`core/error/app-error.ts`); add a field there when a new secret field appears in a request.
 - **Env** (all in `.env.example`; `npm run setup-env` generates the two secrets):
 
-  | Env                 | What                                                           | Default                 |
-  | ------------------- | -------------------------------------------------------------- | ----------------------- |
-  | `WEB_ORIGIN`        | the web app's origin: magic links + the only accepted `Origin` | `http://localhost:4200` |
-  | `TRUST_PROXY_HOPS`  | proxies in front of the API (dev proxy / Vercel rewrite)       | `1`                     |
-  | `JWT_SECRET`        | access-token key, ≥ 32 chars                                   | — (required)            |
-  | `OTP_PEPPER`        | HMAC key for codes, ≥ 32 chars                                 | — (required)            |
-  | `SIGNUP_ENABLED`    | `false` closes sign-up; existing users still sign in           | `true`                  |
-  | `EMAIL_DAILY_LIMIT` | global cap on sign-in emails per day                           | `100`                   |
-
-| `PASSWORD_BREACH_CHECK` | `hibp` checks new passwords against HIBP, `off` skips it | `hibp` |
-| `HIBP_API_URL` | HIBP range API base; a local stand-in when testing | `https://api.pwnedpasswords.com` |
+  | Env                                         | What                                                           | Default                          |
+  | ------------------------------------------- | -------------------------------------------------------------- | -------------------------------- |
+  | `WEB_ORIGIN`                                | the web app's origin: magic links + the only accepted `Origin` | `http://localhost:4200`          |
+  | `TRUST_PROXY_HOPS`                          | proxies in front of the API (dev proxy / Vercel rewrite)       | `1`                              |
+  | `JWT_SECRET`                                | access-token key, ≥ 32 chars                                   | — (required)                     |
+  | `OTP_PEPPER`                                | HMAC key for codes, ≥ 32 chars                                 | — (required)                     |
+  | `SIGNUP_ENABLED`                            | `false` closes sign-up; existing users still sign in           | `true`                           |
+  | `EMAIL_DAILY_LIMIT`                         | global cap on sign-in emails per day                           | `100`                            |
+  | `PASSWORD_BREACH_CHECK`                     | `hibp` checks new passwords against HIBP, `off` skips it       | `hibp`                           |
+  | `HIBP_API_URL`                              | HIBP range API base; a local stand-in when testing             | `https://api.pwnedpasswords.com` |
+  | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google sign-in; both or neither (off: `404`)                   | unset                            |
+  | `GOOGLE_ISSUER`                             | OIDC issuer (discovery); http only outside production          | `https://accounts.google.com`    |
 
 - **Cleanup**: `npm run auth:cleanup` deletes challenges, sessions and buckets that ended over 7
   days ago (a Vercel Cron endpoint replaces it at deploy, #17).
@@ -386,7 +397,10 @@ skipBreachCheck` (tests never call HIBP; `vitest.config.ts` also sets
   `express.json()` + `cookieParser()` + the router and pass the shared `accessTokens` from
   `@/core/security` to the service, because `authenticate` verifies with that instance. The
   Drizzle adapter is tested on a temporary SQLite file with the committed migrations
-  (`:memory:` gives each transaction its own empty database). See `src/features/auth/*.test.ts`.
+  (`:memory:` gives each transaction its own empty database). Google flows run against a fake
+  `oidc` (`GoogleSignIn['oidc']`) that checks PKCE and the nonce, with a real sealed box
+  (`auth.*.google.test.ts`); the OIDC client itself is tested against a local provider with real
+  RS256 keys (`core/security/oidc-client.test.ts`). See `src/features/auth/*.test.ts`.
 
 ## 5. Controller pattern (copy this shape)
 

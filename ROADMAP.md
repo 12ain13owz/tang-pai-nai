@@ -76,7 +76,7 @@ merging.
 | 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                      |
 | 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                       |
 | 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                   |
-| 4   | **Auth**                   | 🚧  | 🚧  | **← in progress.** 4.1 ✅ email, sessions; 4.2 ✅ password; 4.3 🚧 Google; 4.4 ⬜. [spec](docs/features/auth.md) |
+| 4   | **Auth**                   | 🚧  | 🚧  | **← in progress.** 4.1 ✅ email, sessions; 4.2 ✅ password; 4.3 ✅ Google; 4.4 ⬜. [spec](docs/features/auth.md) |
 | 4a  | Offline sync foundation    | ⬜  | ⬜  | encrypted local DB, PIN lock, outbox, `/sync/push` + `/sync/pull`. [spec](docs/features/offline-sync.md)         |
 | 5   | Currency                   | ⬜  | ⬜  | master table, THB default. [spec](docs/features/currency.md)                                                     |
 | 6   | Wallet                     | ⬜  | ⬜  | accounts with a currency + balance; `wallet_members` table from day one. [spec](docs/features/wallet.md)         |
@@ -109,7 +109,7 @@ together. The endpoints table in the spec says which part each route belongs to.
 | ---- | ----------------------------------------------------------------------------------------- | ------ |
 | 4.1  | Email code + magic link, open sign-up, sessions (refresh rotation), sign-out, `/auth/me`  | ✅     |
 | 4.2  | Optional password (Argon2id, breach check), recent-auth rule + step-up code               | ✅     |
-| 4.3  | Google sign-in (OIDC + PKCE)                                                              | 🚧     |
+| 4.3  | Google sign-in (OIDC + PKCE)                                                              | ✅     |
 | 4.4  | Phone OTP, Account → Security (password, phone, linked Google, sessions, sign out others) | ⬜     |
 
 4.1 in detail (✅ done):
@@ -173,7 +173,7 @@ together. The endpoints table in the spec says which part each route belongs to.
   shows when a test ages a session by hand. The policy is checked in the browser too, so a change
   to `PASSWORD_POLICY` goes in both `api/…/auth.const.ts` and `web/…/core/auth/password-policy.ts`.
 
-4.3 in detail (🚧 in progress):
+4.3 in detail (✅ done):
 
 - **Decided at the start of 4.3** (spec rule 14): tested in the sandbox against a **local OIDC
   stand-in** (`npm run dev:oidc` in `api/`, its issuer set by `GOOGLE_ISSUER`); an existing user
@@ -184,8 +184,25 @@ together. The endpoints table in the spec says which part each route belongs to.
   "Google · linked" row; the web asks `GET /auth/providers` whether Google is on.
 - **API**: table `user_identities`; `GET /auth/providers`, `GET /auth/google/start`,
   `GET /auth/google/callback`; `identities` on every `user`. New env: `GOOGLE_CLIENT_ID`,
-  `GOOGLE_CLIENT_SECRET`, `GOOGLE_ISSUER`.
-- **Web**: "Continue with Google" on sign-in, `/auth/callback`, the account page row.
+  `GOOGLE_CLIENT_SECRET`, `GOOGLE_ISSUER`. `core/security` gained an OIDC client
+  (`oidc-client.ts`: discovery, code exchange, ID token check) and a sealed JWE box
+  (`sealed-box.ts`) for the `__Host-goidc` round-trip cookie.
+- **Web**: "Continue with Google" on sign-in, `/auth/callback`, the account page row. spartan
+  `sonner` was added; the toaster lives in the app root, lifted above the tab bar.
+- **Checked**: curl against the dev API and `dev:oidc` for new user, second sign-in, linking (name
+  kept, empty avatar filled, `linked=google` once), `/auth/me`, every broken token (aud, issuer,
+  expiry, signature, nonce), state mismatch, missing cookie, code replay, provider down, unverified
+  email, cancel, sign-up closed (strangers refused, existing users and linking still work),
+  disabled user, the per-IP limit, unsafe `returnUrl`s and no env (`404`). Playwright at 375×812
+  in th/en × light/dark for the button, the round trip to `returnUrl`, the account row, the link
+  toast, the error pages, cancel, Google off and offline. Tests: API 286 (service on a fake
+  provider, HTTP, OIDC client against a local provider with real RS256 keys, sealed box, env,
+  Drizzle adapter), web 85 (providers + start URL, callback page, sign-in button).
+- **Known**: one Google round trip per browser at a time: starting a second one in another tab
+  replaces the `__Host-goidc` cookie, so finishing the first ends in `error=failed`. The button
+  is our outline style with Google's real "G" mark, not Google's white / dark button. A real
+  Google client (Cloud Console, redirect URI `<WEB_ORIGIN>/api/auth/google/callback`) is set up
+  at deploy (#17); until then only the stand-in has been used.
 - **Not in 4.3**: linking Google while signed in, unlinking (4.4), mail on linking (backlog "Mail
   on credential change").
 
@@ -247,7 +264,7 @@ with no deploy and no third-party API keys.
    - `console` providers are refused when `NODE_ENV=production`.
 5. **Features that need an outside key stay off** until their env vars are set: Google sign-in is
    disabled without `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (the endpoints return `404`, the web
-   hides the button). Scheduled jobs (auth cleanup, recurring #12) run as npm scripts locally
+   hides the button; `npm run dev:oidc` in `api/` is a local stand-in to test it). Scheduled jobs (auth cleanup, recurring #12) run as npm scripts locally
    instead of Vercel Cron.
 6. **Testing a feature**: unit/integration tests (`npm test`) plus a real run in the sandbox: start
    both apps, exercise the API with `curl`, and check screens with Playwright (Chromium is
