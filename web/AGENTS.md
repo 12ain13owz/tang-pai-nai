@@ -371,10 +371,20 @@ are on, so don't disable them.
     API comes back to `/auth/callback` (`features/auth/pages/google-callback-page`), which calls
     `refresh()` once: the URL never holds a token, only `returnUrl`, `linked=google` or
     `error=<reason>` (`GoogleFailure`). `AuthUser.identities` lists linked providers.
+  - Account › Security (4.4a, `features/account/pages/security-page`): `sessions()`,
+    `revokeSession(id)`, `revokeOtherSessions()`; `linkGoogle(lang)` is an API call that then
+    **navigates** to Google's URL, and the API comes back to `/account/security?linked=google` or
+    `?error=<reason>` (`GoogleLinkFailure`); `unlinkGoogle(lang)`. Calls that change credentials
+    take the UI language (`LanguageService.language().id`) as `lang`, for the mail the API sends
+    about the change. A page that runs the confirm step provides `ReauthFlow`
+    (`features/account/reauth-flow.ts`), calls `reauth.refused(action, error, hasPassword)` on a
+    failure and sends the pending action again once confirmed. `deviceLabel()` turns a session's
+    user agent into "Chrome · Android".
 - **Auth error codes** the screens switch on: `OTP_INVALID`, `OTP_LOCKED`, `OTP_EXPIRED`,
   `SESSION_EXPIRED`, `SESSION_REVOKED`, `USER_DISABLED`, `RATE_LIMITED` (with `Retry-After`),
   `INVALID_CREDENTIALS`, `CURRENT_PASSWORD_INVALID`, `REAUTH_REQUIRED`, `PASSWORD_TOO_SHORT`,
-  `PASSWORD_TOO_LONG`, `PASSWORD_TOO_WEAK`, `PASSWORD_MATCHES_EMAIL`, `PASSWORD_BREACHED`.
+  `PASSWORD_TOO_LONG`, `PASSWORD_TOO_WEAK`, `PASSWORD_MATCHES_EMAIL`, `PASSWORD_BREACHED`,
+  `CURRENT_SESSION`, `IDENTITY_ALREADY_LINKED`, `GOOGLE_IN_USE`.
   `authErrorMessage` (`core/auth/auth-error.ts`, shared by the auth and account features) maps
   them to translation keys.
 - **Testing**: `provideHttpClient(withInterceptors([authInterceptor]))` +
