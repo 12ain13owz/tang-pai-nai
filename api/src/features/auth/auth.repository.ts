@@ -25,9 +25,13 @@ export interface AuthRepository {
   fillAvatarIfEmpty(userId: string, avatarUrl: string): Promise<User | null>
 
   findIdentity(provider: IdentityProvider, providerSubject: string): Promise<UserIdentity | null>
+  /** The user's identity with `provider`, if linked (rule 29: at most one per provider). */
+  findUserIdentity(userId: string, provider: IdentityProvider): Promise<UserIdentity | null>
   /** The user's linked identities, oldest first. */
   listIdentities(userId: string): Promise<UserIdentity[]>
   createIdentity(data: NewUserIdentity): Promise<UserIdentity>
+  /** `false` when the user had no identity with that provider. */
+  deleteIdentity(userId: string, provider: IdentityProvider): Promise<boolean>
   touchIdentity(id: string, at: Date): Promise<void>
 
   /** The Argon2id PHC string, or `null` when the user has no password. */
@@ -57,6 +61,8 @@ export interface AuthRepository {
   findActiveSession(familyId: string): Promise<Session | null>
   /** Sets `authTime` on the family's sessions that aren't revoked (step-up, rule 13). */
   setFamilyAuthTime(familyId: string, at: Date): Promise<void>
+  /** The user's sessions that are neither revoked nor past either expiry at `at`. */
+  listActiveSessions(userId: string, at: Date): Promise<Session[]>
   /** Revokes every active session of the user outside `keepFamilyId`; returns how many. */
   revokeOtherFamilies(userId: string, keepFamilyId: string, at: Date): Promise<number>
 

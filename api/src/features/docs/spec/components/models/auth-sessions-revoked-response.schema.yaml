@@ -1,0 +1,17 @@
+type: object
+required: [message, timestamp, data]
+properties:
+  message:
+    type: string
+    example: Other devices are signed out
+  timestamp:
+    type: string
+    format: date-time
+  data:
+    type: object
+    required: [revoked]
+    properties:
+      revoked:
+        type: integer
+        description: How many other devices were signed out
+        example: 2

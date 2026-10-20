@@ -10,6 +10,8 @@ get:
     email, or creates a user when sign-up is open. Never puts a token in the URL: on success it
     sets the `__Host-rt` refresh cookie and redirects to the web app's `/auth/callback`, which
     then calls `/auth/refresh`. Shares the per-IP verify limit (30 per 15 minutes).
+    A round trip started by `POST /auth/google/link` (link mode, rule 29) instead links the
+    Google account to that signed-in user, sets no cookie and redirects to `/account/security`.
   operationId: googleCallback
   security:
     - googleFlowCookie: []
@@ -37,7 +39,9 @@ get:
         `?returnUrl=<path>` (left out for `/`) and `&linked=google` right after an automatic
         link; sets `__Host-rt`. Failure: `?error=<reason>`, one of `cancelled`,
         `email_unverified`, `signup_closed`, `disabled`, `rate_limited`, `failed` (state, cookie,
-        code exchange or ID token).
+        code exchange or ID token). In link mode: `/account/security?linked=google`, or
+        `?error=` `google_in_use`, `already_linked`, `disabled`, `rate_limited`, `failed`; a cancel
+        comes back with no `error`.
       headers:
         Location:
           schema:

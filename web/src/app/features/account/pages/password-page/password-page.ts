@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, inject, signal } from '@angular/core'
+import { Component, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, Validators } from '@angular/forms'
 import type { ValidatorFn } from '@angular/forms'
@@ -13,14 +13,13 @@ import { authErrorMessage, AuthService, AuthStore, passwordPolicyValidator } fro
 import type { UiMessage } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
-import type { NewPasswordFormGroup, ReauthMethod } from '@/features/account/account-form.type'
+import type { NewPasswordFormGroup } from '@/features/account/account-form.type'
 import { ReauthStep } from '@/features/account/components/reauth-step'
+import { ReauthFlow } from '@/features/account/reauth-flow'
 import { FORM_IMPORTS, PasswordField, withMessage } from '@/shared/components/form'
 
 /** What waits for "confirm it's you" before it's sent again. */
 type PendingAction = { kind: 'set'; newPassword: string } | { kind: 'remove' }
-
-const RESEND_COOLDOWN_MS = 60_000
 
 const matchesNewPassword: ValidatorFn = (control) => {
   const newPassword: unknown = control.parent?.get('newPassword')?.value
@@ -36,7 +35,7 @@ const matchesNewPassword: ValidatorFn = (control) => {
 @Component({
   selector: 'app-password-page',
   imports: [FORM_IMPORTS, TranslocoPipe, NgIcon, PasswordField, ReauthStep, HlmButton, HlmSpinner],
-  providers: [provideIcons({ lucideArrowLeft })],
+  providers: [provideIcons({ lucideArrowLeft }), ReauthFlow],
   template: `
     <div class="flex flex-col gap-6 p-4">
       <button hlmBtn variant="ghost" type="button" class="-ms-3 h-11 self-start" (click)="back()">
@@ -63,20 +62,20 @@ const matchesNewPassword: ValidatorFn = (control) => {
         }
       </p>
 
-      @if (pending(); as action) {
+      @if (reauth.pending(); as action) {
         <app-reauth-step
           [email]="email()"
           [hasPassword]="hasPassword()"
-          [method]="reauthMethod()"
-          [codeSent]="codeSent()"
-          [secondsLeft]="secondsLeft()"
-          [isProcessing]="isProcessing()"
-          [error]="reauthError()"
+          [method]="reauth.method()"
+          [codeSent]="reauth.codeSent()"
+          [secondsLeft]="reauth.secondsLeft()"
+          [isProcessing]="isProcessing() || reauth.isBusy()"
+          [error]="reauth.error()"
           (passwordSubmitted)="confirmWithPassword(action, $event)"
-          (sendCode)="sendCode()"
+          (sendCode)="reauth.sendCode()"
           (codeSubmitted)="confirmWithCode(action, $event)"
-          (methodChange)="switchMethod($event)"
-          (cancelled)="cancelReauth()"
+          (methodChange)="reauth.switchMethod($event)"
+          (cancelled)="reauth.close()"
         />
       } @else {
         <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="onSubmit()">
@@ -166,6 +165,7 @@ export class PasswordPage {
   private authStore = inject(AuthStore)
   private languageService = inject(LanguageService)
   protected networkStatusService = inject(NetworkStatusService)
+  protected reauth = inject(ReauthFlow<PendingAction>)
 
   protected email = computed(() => this.authStore.user()?.email ?? '')
   protected hasPassword = computed(() => this.authStore.user()?.hasPassword ?? false)
@@ -174,16 +174,6 @@ export class PasswordPage {
   protected error = signal<UiMessage | null>(null)
   protected done = signal<string | null>(null)
   protected confirmingRemove = signal(false)
-
-  protected pending = signal<PendingAction | null>(null)
-  protected reauthMethod = signal<ReauthMethod>('code')
-  protected reauthError = signal<UiMessage | null>(null)
-  protected codeSent = signal(false)
-  private resendAt = signal(0)
-  private now = signal(Date.now())
-  protected secondsLeft = computed(() =>
-    Math.max(0, Math.ceil((this.resendAt() - this.now()) / 1000))
-  )
 
   form: NewPasswordFormGroup = this.nnfb.group({
     newPassword: [
@@ -200,8 +190,6 @@ export class PasswordPage {
   })
 
   constructor() {
-    const timer = setInterval(() => this.now.set(Date.now()), 1000)
-    inject(DestroyRef).onDestroy(() => clearInterval(timer))
     this.form.controls.newPassword.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.form.controls.confirmPassword.updateValueAndValidity())
@@ -225,45 +213,9 @@ export class PasswordPage {
   }
 
   protected async confirmWithCode(action: PendingAction, code: string): Promise<void> {
-    this.isProcessing.set(true)
-    this.reauthError.set(null)
-    try {
-      await this.authService.verifyReauth(code)
-    } catch (error) {
-      this.reauthError.set(authErrorMessage(toApiError(error), 'account.reauthFailed'))
-      this.isProcessing.set(false)
-      return
+    if (await this.reauth.verifyCode(code)) {
+      await this.run(action)
     }
-    await this.run(action)
-  }
-
-  protected async sendCode(): Promise<void> {
-    this.isProcessing.set(true)
-    this.reauthError.set(null)
-    try {
-      await this.authService.startReauth(this.languageService.language().id)
-      this.codeSent.set(true)
-      this.now.set(Date.now())
-      this.resendAt.set(this.now() + RESEND_COOLDOWN_MS)
-    } catch (error) {
-      const apiError = toApiError(error)
-      if (apiError.retryAfterSeconds) {
-        this.resendAt.set(Date.now() + apiError.retryAfterSeconds * 1000)
-      }
-      this.reauthError.set(authErrorMessage(apiError, 'auth.sendFailed'))
-    } finally {
-      this.isProcessing.set(false)
-    }
-  }
-
-  protected switchMethod(method: ReauthMethod): void {
-    this.reauthMethod.set(method)
-    this.reauthError.set(null)
-  }
-
-  protected cancelReauth(): void {
-    this.pending.set(null)
-    this.reauthError.set(null)
   }
 
   protected async back(): Promise<void> {
@@ -274,19 +226,20 @@ export class PasswordPage {
   private async run(action: PendingAction, currentPassword?: string): Promise<void> {
     this.isProcessing.set(true)
     this.error.set(null)
-    this.reauthError.set(null)
+    this.reauth.clearError()
     this.done.set(null)
+    const lang = this.languageService.language().id
     try {
       if (action.kind === 'set') {
         const hadPassword = this.hasPassword()
-        await this.authService.setPassword(action.newPassword, currentPassword)
+        await this.authService.setPassword(action.newPassword, lang, currentPassword)
         this.form.reset({ newPassword: '', confirmPassword: '' })
         this.done.set(hadPassword ? 'account.passwordChanged' : 'account.passwordSaved')
       } else {
-        await this.authService.removePassword(currentPassword)
+        await this.authService.removePassword(lang, currentPassword)
         this.done.set('account.passwordRemoved')
       }
-      this.pending.set(null)
+      this.reauth.close()
       this.confirmingRemove.set(false)
     } catch (error) {
       this.handleError(action, toApiError(error))
@@ -296,20 +249,8 @@ export class PasswordPage {
   }
 
   private handleError(action: PendingAction, apiError: ReturnType<typeof toApiError>): void {
-    if (apiError.code === 'REAUTH_REQUIRED') {
-      if (!this.pending()) {
-        this.reauthMethod.set(this.hasPassword() ? 'password' : 'code')
-      }
-      this.pending.set(action)
-      return
+    if (!this.reauth.refused(action, apiError, this.hasPassword())) {
+      this.error.set(authErrorMessage(apiError, 'account.passwordSaveFailed'))
     }
-    const message = authErrorMessage(apiError, 'account.passwordSaveFailed')
-    if (this.pending() && apiError.code === 'CURRENT_PASSWORD_INVALID') {
-      this.reauthError.set(message)
-      return
-    }
-    // Anything else ends the confirm step and shows the error on the form.
-    this.pending.set(null)
-    this.error.set(message)
   }
 }

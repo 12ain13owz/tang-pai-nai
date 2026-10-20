@@ -1,0 +1,55 @@
+get:
+  tags:
+    - Auth
+  summary: List the signed-in devices
+  description: >-
+    The caller's active session families (not revoked, not past either expiry), one entry each,
+    most recently used first; the caller's own is flagged `current`. No IP is stored or shown.
+  operationId: sessionsList
+  security:
+    - bearerAuth: []
+  responses:
+    '200':
+      description: The devices
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/auth-device-sessions-response.schema.yaml'
+    '401':
+      description: Access token invalid, or its session was revoked or expired
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '403':
+      description: '`USER_DISABLED`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+delete:
+  tags:
+    - Auth
+  summary: Sign out other devices
+  description: >-
+    Revokes every session family of the user except the caller's. No recent auth needed (auth
+    spec rule 28): revoking only protects the account. A revoked device's access token works for
+    at most its last 10 minutes; its next refresh answers `SESSION_REVOKED`.
+  operationId: sessionsRevokeOthers
+  security:
+    - bearerAuth: []
+  responses:
+    '200':
+      description: Signed out; how many
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/auth-sessions-revoked-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '403':
+      description: '`USER_DISABLED`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

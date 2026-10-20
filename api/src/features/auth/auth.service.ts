@@ -3,6 +3,7 @@ import { v7 as uuidv7 } from 'uuid'
 import {
   BadRequestError,
   BusinessRuleError,
+  ConflictError,
   ForbiddenError,
   NotFoundError,
   TooManyRequestsError,
@@ -33,11 +34,12 @@ import type {
 import { ERRORS, LOG } from '@/shared/constants'
 import { NotificationChannel } from '@/shared/types'
 import { AUTH_LIMITS, AUTH_MESSAGE, AuthErrorCode, PASSWORD_POLICY } from './auth.const'
-import { buildReauthMail, buildSignInMail } from './auth.mail'
+import { buildCredentialChangeMail, buildReauthMail, buildSignInMail } from './auth.mail'
 import type {
   Caller,
   CleanupResult,
   ClientContext,
+  CredentialChange,
   EmailVerification,
   GoogleCallback,
   GoogleSignInResult,
@@ -45,6 +47,7 @@ import type {
   OtpChallenge,
   PasswordChange,
   Session,
+  SessionSummary,
   SignInResult,
   User,
   UserProfile,
@@ -88,6 +91,7 @@ interface SessionGrant {
   userId: string
   familyId: string
   authTime: Date
+  signedInAt: Date
   absoluteExpiresAt: Date
   userAgent: string | null
 }
@@ -139,14 +143,31 @@ const emailUnverified = () =>
   new BadRequestError(AUTH_MESSAGE.EMAIL_UNVERIFIED).withCode(AuthErrorCode.EMAIL_UNVERIFIED)
 const signupClosed = () =>
   new ForbiddenError(AUTH_MESSAGE.SIGNUP_CLOSED).withCode(AuthErrorCode.SIGNUP_CLOSED)
+const currentSession = () =>
+  new BadRequestError(AUTH_MESSAGE.CURRENT_SESSION).withCode(AuthErrorCode.CURRENT_SESSION)
+const identityAlreadyLinked = () =>
+  new ConflictError(AUTH_MESSAGE.IDENTITY_ALREADY_LINKED).withCode(
+    AuthErrorCode.IDENTITY_ALREADY_LINKED
+  )
+const googleInUse = () =>
+  new ConflictError(AUTH_MESSAGE.GOOGLE_IN_USE).withCode(AuthErrorCode.GOOGLE_IN_USE)
 
-/** The Google round trip as sealed into the cookie at start (rule 14). */
+/**
+ * The Google round trip as sealed into the cookie at start (rule 14). A link (rule 29) also
+ * carries the signed-in caller it links to.
+ */
 interface GoogleFlow {
   state: string
   nonce: string
   verifier: string
   returnUrl: string
+  /** For the change mail of an automatic or explicit link (rule 31). */
+  lang?: MailLanguage
+  link?: Caller
 }
+
+/** Which way the callback goes: a sign-in (`/auth/callback`) or a link (`/account/security`). */
+export type GoogleFlowMode = 'signIn' | 'link'
 
 const isGoogleFlow = (
   value: Record<string, unknown> | null
@@ -154,6 +175,16 @@ const isGoogleFlow = (
   value !== null &&
   // eslint-disable-next-line security/detect-object-injection -- four constant keys
   ['state', 'nonce', 'verifier', 'returnUrl'].every((key) => typeof value[key] === 'string')
+
+const isCaller = (value: unknown): value is Caller =>
+  typeof value === 'object' &&
+  value !== null &&
+  'userId' in value &&
+  typeof value.userId === 'string' &&
+  'sessionFamilyId' in value &&
+  typeof value.sessionFamilyId === 'string'
+
+const flowLanguage = (flow: GoogleFlow): MailLanguage => (flow.lang === 'en' ? 'en' : 'th')
 
 /** An in-app path only, never `//evil.example` or a full URL (same rule as the web). */
 const safeReturnUrl = (url: unknown): string =>
@@ -265,6 +296,35 @@ export const createAuthService = ({
     ]
   }
 
+  /**
+   * Rule 31: one mail after a credential changed. It never fails the change: a reached daily cap
+   * or a failed send only logs a warning.
+   */
+  const notifyCredentialChange = async (
+    user: User,
+    change: CredentialChange,
+    lang: MailLanguage,
+    at: Date
+  ): Promise<void> => {
+    try {
+      const daily = await authRepo.hitRateLimit('email:global:day', L.EMAILS_PER_DAY_WINDOW_MS, at)
+      if (daily.count > config.emailDailyLimit) {
+        logger.warn(LOG.AUTH.emailDailyLimit(config.emailDailyLimit))
+        logger.warn(LOG.AUTH.credentialMailSkipped('daily cap'), { userId: user.id, change })
+        return
+      }
+      const mail = buildCredentialChangeMail({ change, lang, at, timeZone: user.timezone })
+      await notifier.send({ channel: NotificationChannel.EMAIL, to: user.email, ...mail })
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : undefined
+      logger.warn(LOG.AUTH.credentialMailSkipped('send failed'), {
+        userId: user.id,
+        change,
+        detail,
+      })
+    }
+  }
+
   const profileOf = async (user: User): Promise<UserProfile> => ({
     ...user,
     hasPassword: (await authRepo.findPasswordHash(user.id)) !== null,
@@ -307,6 +367,7 @@ export const createAuthService = ({
         userId,
         familyId,
         authTime: at,
+        signedInAt: at,
         absoluteExpiresAt: new Date(at.getTime() + L.SESSION_ABSOLUTE_MS),
         userAgent: client.userAgent ?? null,
       },
@@ -561,7 +622,7 @@ export const createAuthService = ({
   /** Rule 13: set or change the password, then sign out every other session family. */
   const setPassword = async (
     caller: Caller,
-    { newPassword, currentPassword }: PasswordChange,
+    { newPassword, currentPassword, lang = 'th' }: PasswordChange,
     client: ClientContext
   ): Promise<UserProfile> => {
     const at = now()
@@ -587,6 +648,7 @@ export const createAuthService = ({
       sessionFamilyId: session.familyId,
       revokedSessions,
     })
+    await notifyCredentialChange(user, hadPassword ? 'password_changed' : 'password_set', lang, at)
     return profileOf(user)
   }
 
@@ -594,7 +656,8 @@ export const createAuthService = ({
   const removePassword = async (
     caller: Caller,
     currentPassword: string | undefined,
-    client: ClientContext
+    client: ClientContext,
+    lang: MailLanguage = 'th'
   ): Promise<UserProfile> => {
     const at = now()
     const access = await activeCaller(caller, at, 'removePassword')
@@ -608,6 +671,7 @@ export const createAuthService = ({
       userId: user.id,
       sessionFamilyId: caller.sessionFamilyId,
     })
+    await notifyCredentialChange(user, 'password_removed', lang, at)
     return profileOf(user)
   }
 
@@ -677,16 +741,17 @@ export const createAuthService = ({
     return google
   }
 
-  /** Rule 14: state, nonce and PKCE verifier go into a sealed cookie; the user goes to Google. */
-  const startGoogleSignIn = async (
-    returnUrl: string
+  /** Seals a new round trip and builds Google's URL for it (rules 14 and 29). */
+  const beginGoogleFlow = async (
+    { oidc, flowBox }: GoogleSignIn,
+    extra: Pick<GoogleFlow, 'returnUrl' | 'lang' | 'link'>,
+    operation: string
   ): Promise<{ authorizationUrl: string; flowToken: string }> => {
-    const { oidc, flowBox } = requireGoogle('startGoogleSignIn')
     const flow: GoogleFlow = {
       state: randomToken(),
       nonce: randomToken(),
       verifier: randomToken(),
-      returnUrl: safeReturnUrl(returnUrl),
+      ...extra,
     }
     const flowToken = await flowBox.seal({ ...flow }, L.GOOGLE_FLOW_TTL_MS / 1000)
     // Reads Google's discovery document the first time.
@@ -697,47 +762,87 @@ export const createAuthService = ({
           nonce: flow.nonce,
           codeChallenge: pkceChallenge(flow.verifier),
         }),
-      { operation: 'startGoogleSignIn' }
+      { operation }
     )
     return { authorizationUrl, flowToken }
   }
 
-  /** Rule 14 failures: logged with the reason, answered with one generic error. */
-  const failGoogle = (reason: string, cause?: unknown): never => {
-    const detail = cause instanceof Error ? cause.message : undefined
-    logger.warn(LOG.AUTH.signInFailed('google'), { reason, detail })
-    throw googleFailed().withOperation('finishGoogleSignIn')
-  }
+  /** Rule 14: state, nonce and PKCE verifier go into a sealed cookie; the user goes to Google. */
+  const startGoogleSignIn = async (
+    returnUrl: string,
+    lang: MailLanguage = 'th'
+  ): Promise<{ authorizationUrl: string; flowToken: string }> =>
+    beginGoogleFlow(
+      requireGoogle('startGoogleSignIn'),
+      { returnUrl: safeReturnUrl(returnUrl), lang },
+      'startGoogleSignIn'
+    )
 
-  /** Rule 14: state → code exchange → ID token → the identity's user (linked or created). */
-  const verifiedGoogleIdentity = async (
-    { oidc, flowBox }: GoogleSignIn,
-    callback: GoogleCallback,
+  /** Opens the round-trip cookie; `null` when it's missing, expired or tampered with. */
+  const openGoogleFlow = async (
+    { flowBox }: GoogleSignIn,
     flowToken: string | undefined
-  ): Promise<{ identity: OidcIdentity; flow: GoogleFlow }> => {
-    if (callback.error) {
-      if (callback.error === 'access_denied') {
-        logger.info(LOG.AUTH.signInFailed('google'), { reason: 'cancelled' })
-        throw googleCancelled().withOperation('finishGoogleSignIn')
-      }
-      return failGoogle(`provider error: ${callback.error.slice(0, 64)}`)
-    }
+  ): Promise<GoogleFlow | null> => {
     const flow = flowToken ? await flowBox.open(flowToken) : null
     if (!isGoogleFlow(flow)) {
-      return failGoogle('flow cookie missing or expired')
+      return null
+    }
+    const link = isCaller(flow.link) ? flow.link : undefined
+    return { ...flow, link }
+  }
+
+  /** Which callback this round trip belongs to; a broken cookie counts as a sign-in. */
+  const googleFlowMode = async (flowToken: string | undefined): Promise<GoogleFlowMode> => {
+    const flow = google ? await openGoogleFlow(google, flowToken) : null
+    return flow?.link ? 'link' : 'signIn'
+  }
+
+  /** Rule 14 failures: logged with the reason, answered with one generic error. */
+  const failGoogle = (reason: string, cause?: unknown, mode: GoogleFlowMode = 'signIn'): never => {
+    const detail = cause instanceof Error ? cause.message : undefined
+    const message =
+      mode === 'link' ? LOG.AUTH.identityLinkFailed('google') : LOG.AUTH.signInFailed('google')
+    logger.warn(message, { reason, detail })
+    throw googleFailed().withOperation(mode === 'link' ? 'finishGoogleLink' : 'finishGoogleSignIn')
+  }
+
+  /** Rule 14: state → code exchange → ID token. `mode` must match what the cookie was made for. */
+  const verifiedGoogleIdentity = async (
+    googleSignIn: GoogleSignIn,
+    callback: GoogleCallback,
+    flowToken: string | undefined,
+    mode: GoogleFlowMode
+  ): Promise<{ identity: OidcIdentity; flow: GoogleFlow }> => {
+    const { oidc } = googleSignIn
+    if (callback.error) {
+      if (callback.error === 'access_denied') {
+        logger.info(
+          mode === 'link' ? LOG.AUTH.identityLinkFailed('google') : LOG.AUTH.signInFailed('google'),
+          { reason: 'cancelled' }
+        )
+        throw googleCancelled().withOperation('finishGoogleSignIn')
+      }
+      return failGoogle(`provider error: ${callback.error.slice(0, 64)}`, undefined, mode)
+    }
+    const flow = await openGoogleFlow(googleSignIn, flowToken)
+    if (!flow) {
+      return failGoogle('flow cookie missing or expired', undefined, mode)
+    }
+    if ((flow.link ? 'link' : 'signIn') !== mode) {
+      return failGoogle('flow cookie of the other mode', undefined, mode)
     }
     if (!callback.state || !safeEqualHex(sha256(callback.state), sha256(flow.state))) {
-      return failGoogle('state mismatch')
+      return failGoogle('state mismatch', undefined, mode)
     }
     if (!callback.code) {
-      return failGoogle('no code')
+      return failGoogle('no code', undefined, mode)
     }
     try {
       const idToken = await oidc.exchangeCode(callback.code, flow.verifier)
       const identity = await oidc.verifyIdToken(idToken, flow.nonce)
       return { identity, flow }
     } catch (error) {
-      return failGoogle('code exchange or id token', error)
+      return failGoogle('code exchange or id token', error, mode)
     }
   }
 
@@ -753,7 +858,12 @@ export const createAuthService = ({
       at,
       'finishGoogleSignIn'
     )
-    const { identity, flow } = await verifiedGoogleIdentity(googleSignIn, callback, flowToken)
+    const { identity, flow } = await verifiedGoogleIdentity(
+      googleSignIn,
+      callback,
+      flowToken,
+      'signIn'
+    )
     const email = identity.email?.trim().toLowerCase() ?? ''
 
     const outcome = await authRepo.transaction(async (repo) => {
@@ -818,6 +928,7 @@ export const createAuthService = ({
     }
     if (outcome.linked) {
       logger.info(LOG.AUTH.identityLinked('google'), { userId: outcome.user.id })
+      await notifyCredentialChange(outcome.user, 'google_linked', flowLanguage(flow), at)
     }
     logger.info(LOG.AUTH.signedIn('google'), {
       userId: outcome.user.id,
@@ -825,6 +936,197 @@ export const createAuthService = ({
     })
     const result = await signedIn(await profileOf(outcome.user), outcome.familyId, outcome.refresh)
     return { ...result, returnUrl: flow.returnUrl, linked: outcome.linked }
+  }
+
+  /**
+   * Rule 29: link Google to the signed-in caller. Needs recent auth and no Google identity yet;
+   * the callback then finishes in `finishGoogleLink`.
+   */
+  const startGoogleLink = async (
+    caller: Caller,
+    currentPassword: string | undefined,
+    lang: MailLanguage,
+    client: ClientContext
+  ): Promise<{ authorizationUrl: string; flowToken: string }> => {
+    const googleSignIn = requireGoogle('startGoogleLink')
+    const at = now()
+    const access = await activeCaller(caller, at, 'startGoogleLink')
+    if (await authRepo.findUserIdentity(access.user.id, 'google')) {
+      throw identityAlreadyLinked().withOperation('startGoogleLink')
+    }
+    await requireRecentAuth(access, currentPassword, client, at, 'startGoogleLink')
+    return beginGoogleFlow(
+      googleSignIn,
+      {
+        returnUrl: L.GOOGLE_LINK_RETURN_PATH,
+        lang,
+        link: { userId: access.user.id, sessionFamilyId: access.session.familyId },
+      },
+      'startGoogleLink'
+    )
+  }
+
+  /**
+   * Rule 29: the identity joins the caller from the cookie, whose session must still be active.
+   * No session is created. A `sub` owned by someone else is refused; accounts are never merged.
+   */
+  const finishGoogleLink = async (
+    callback: GoogleCallback,
+    flowToken: string | undefined,
+    client: ClientContext
+  ): Promise<{ returnUrl: string }> => {
+    const googleSignIn = requireGoogle('finishGoogleLink')
+    const at = now()
+    await enforceLimits(
+      [{ key: `verify:ip:${ipKey(client.ip)}`, ...L.VERIFIES_PER_IP }],
+      at,
+      'finishGoogleLink'
+    )
+    const { identity, flow } = await verifiedGoogleIdentity(
+      googleSignIn,
+      callback,
+      flowToken,
+      'link'
+    )
+    if (!flow.link) {
+      return failGoogle('link flow without caller', undefined, 'link')
+    }
+    const linkTo = flow.link
+    // The session may have ended, or the user been disabled, while they were at Google.
+    const { user } = await activeCaller(linkTo, at, 'finishGoogleLink').catch((error: unknown) => {
+      if (error instanceof ForbiddenError) {
+        logger.warn(LOG.AUTH.identityLinkFailed('google'), {
+          userId: linkTo.userId,
+          reason: 'disabled',
+        })
+        throw error
+      }
+      return failGoogle('session ended during the round trip', error, 'link')
+    })
+
+    const outcome = await authRepo.transaction(async (repo) => {
+      const existing = await repo.findIdentity('google', identity.subject)
+      if (existing) {
+        return existing.userId === user.id ? ('alreadyLinked' as const) : ('inUse' as const)
+      }
+      if (await repo.findUserIdentity(user.id, 'google')) {
+        return 'otherLinked' as const
+      }
+      await repo.createIdentity({
+        userId: user.id,
+        provider: 'google',
+        providerSubject: identity.subject,
+        emailAtLink: identity.email?.trim().toLowerCase() ?? '',
+        lastUsedAt: at,
+      })
+      const picture = googlePicture(identity)
+      if (picture) {
+        await repo.fillAvatarIfEmpty(user.id, picture)
+      }
+      return 'linked' as const
+    })
+
+    if (outcome === 'inUse') {
+      logger.warn(LOG.AUTH.identityLinkFailed('google'), { userId: user.id, reason: 'in use' })
+      throw googleInUse().withOperation('finishGoogleLink')
+    }
+    if (outcome === 'otherLinked') {
+      logger.warn(LOG.AUTH.identityLinkFailed('google'), {
+        userId: user.id,
+        reason: 'another google already linked',
+      })
+      throw identityAlreadyLinked().withOperation('finishGoogleLink')
+    }
+    if (outcome === 'linked') {
+      logger.info(LOG.AUTH.identityLinked('google'), { userId: user.id })
+      await notifyCredentialChange(user, 'google_linked', flowLanguage(flow), at)
+    }
+    return { returnUrl: flow.returnUrl }
+  }
+
+  /** Rule 30: remove the Google identity (recent auth). Without one it's a no-op. */
+  const unlinkGoogle = async (
+    caller: Caller,
+    currentPassword: string | undefined,
+    lang: MailLanguage,
+    client: ClientContext
+  ): Promise<UserProfile> => {
+    const at = now()
+    const access = await activeCaller(caller, at, 'unlinkGoogle')
+    const { user } = access
+    if (!(await authRepo.findUserIdentity(user.id, 'google'))) {
+      return profileOf(user)
+    }
+    await requireRecentAuth(access, currentPassword, client, at, 'unlinkGoogle')
+    if (await authRepo.deleteIdentity(user.id, 'google')) {
+      logger.info(LOG.AUTH.identityUnlinked('google'), {
+        userId: user.id,
+        sessionFamilyId: caller.sessionFamilyId,
+      })
+      await notifyCredentialChange(user, 'google_unlinked', lang, at)
+    }
+    return profileOf(user)
+  }
+
+  /** Rule 28: the caller's signed-in devices, one per session family, latest use first. */
+  const listSessions = async (caller: Caller): Promise<SessionSummary[]> => {
+    const at = now()
+    const { user } = await activeCaller(caller, at, 'listSessions')
+    const sessions = await authRepo.listActiveSessions(user.id, at)
+    const families = new Map<string, SessionSummary>()
+    for (const session of sessions) {
+      if (!families.has(session.familyId)) {
+        families.set(session.familyId, {
+          familyId: session.familyId,
+          userAgent: session.userAgent,
+          signedInAt: session.signedInAt,
+          lastUsedAt: session.lastUsedAt,
+          current: session.familyId === caller.sessionFamilyId,
+        })
+      }
+    }
+    return [...families.values()]
+  }
+
+  /** Rule 28: sign out one other device. No recent auth: revoking only protects the account. */
+  const revokeSession = async (caller: Caller, familyId: string): Promise<void> => {
+    const at = now()
+    const { user } = await activeCaller(caller, at, 'revokeSession')
+    if (familyId === caller.sessionFamilyId) {
+      throw currentSession().withOperation('revokeSession')
+    }
+    const session = await authRepo.findActiveSession(familyId)
+    const end = session
+      ? Math.min(session.expiresAt.getTime(), session.absoluteExpiresAt.getTime())
+      : 0
+    if (!session || session.userId !== user.id || end <= at.getTime()) {
+      throw new NotFoundError(AUTH_MESSAGE.SESSION).withOperation('revokeSession')
+    }
+    await authRepo.revokeFamily(familyId, at)
+    logger.info(LOG.AUTH.sessionRevoked, {
+      userId: user.id,
+      sessionFamilyId: caller.sessionFamilyId,
+      revokedFamilyId: familyId,
+    })
+  }
+
+  /** Rules 17 and 28: "sign out other devices". Returns how many families were signed out. */
+  const revokeOtherSessions = async (caller: Caller): Promise<number> => {
+    const at = now()
+    const { user } = await activeCaller(caller, at, 'revokeOtherSessions')
+    const before = await authRepo.listActiveSessions(user.id, at)
+    const others = new Set(
+      before
+        .map((session) => session.familyId)
+        .filter((familyId) => familyId !== caller.sessionFamilyId)
+    )
+    await authRepo.revokeOtherFamilies(user.id, caller.sessionFamilyId, at)
+    logger.info(LOG.AUTH.otherSessionsRevoked, {
+      userId: user.id,
+      sessionFamilyId: caller.sessionFamilyId,
+      revoked: others.size,
+    })
+    return others.size
   }
 
   const revokeForReuse = async (familyId: string, userId: string, at: Date) => {
@@ -875,6 +1177,7 @@ export const createAuthService = ({
           userId: user.id,
           familyId: session.familyId,
           authTime: session.authTime,
+          signedInAt: session.signedInAt,
           absoluteExpiresAt: session.absoluteExpiresAt,
           userAgent: client.userAgent ?? session.userAgent,
         },
@@ -920,6 +1223,13 @@ export const createAuthService = ({
     googleEnabled: google !== null,
     startGoogleSignIn,
     finishGoogleSignIn,
+    googleFlowMode,
+    startGoogleLink,
+    finishGoogleLink,
+    unlinkGoogle,
+    listSessions,
+    revokeSession,
+    revokeOtherSessions,
     startEmailSignIn,
     verifyEmailSignIn,
     signInWithPassword,

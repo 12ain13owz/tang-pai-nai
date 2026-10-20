@@ -1,0 +1,51 @@
+delete:
+  tags:
+    - Auth
+  summary: Sign out one other device
+  description: >-
+    Revokes one session family of the caller (no recent auth needed, auth spec rule 28). The
+    caller's own family is refused: that is `POST /auth/sign-out`.
+  operationId: sessionRevoke
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: The session family id from `GET /auth/sessions`
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '200':
+      description: Signed out
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/message-response.schema.yaml'
+    '400':
+      description: "`CURRENT_SESSION`: the caller's own session"
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '403':
+      description: '`USER_DISABLED`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '404':
+      description: Unknown, already ended, or someone else's session
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '422':
+      description: '`id` is not a UUID'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

@@ -34,6 +34,12 @@ export const LOG = {
     passwordRemoved: '[Auth] Password removed',
     passwordRehashed: '[Auth] Password hash upgraded',
     identityLinked: (provider: string) => `[Auth] ${provider} identity linked`,
+    identityUnlinked: (provider: string) => `[Auth] ${provider} identity unlinked`,
+    identityLinkFailed: (provider: string) => `[Auth] Linking ${provider} failed`,
+    sessionRevoked: '[Auth] Session revoked from another device',
+    otherSessionsRevoked: '[Auth] Other sessions revoked',
+    credentialMailSkipped: (reason: string) =>
+      `[Auth] ⚠️ Credential change mail not sent: ${reason}`,
     breachCheckUnavailable: '[Auth] ⚠️ Breached-password check unavailable: allowed (fail open)',
     emailDailyLimit: (limit: number) => `[Auth] ⚠️ Daily email cap (${limit}) reached`,
     cleanedUp: (challenges: number, sessions: number, buckets: number) =>

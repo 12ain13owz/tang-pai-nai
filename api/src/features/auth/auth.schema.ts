@@ -42,12 +42,15 @@ const passwordSignInBody = z.object({ email, password: password('Password') })
 const passwordSetBody = z.object({
   newPassword: password('New password'),
   currentPassword: password('Current password').optional(),
+  lang,
 })
 
-// DELETE may come without a body at all.
-const passwordRemoveBody = z
-  .object({ currentPassword: password('Current password').optional() })
-  .default({})
+// Credential changes under recent auth (rules 13, 29, 30): an optional current password as the
+// proof, and the language of the change mail (rule 31). DELETE may come without a body at all,
+// and a default skips the inner defaults, so it spells out `lang`.
+const recentAuthBody = z
+  .object({ currentPassword: password('Current password').optional(), lang })
+  .default({ lang: 'th' })
 
 const reauthStartBody = z.object({ lang }).default({ lang: 'th' })
 const reauthVerifyBody = z.object({ code })
@@ -56,7 +59,15 @@ const reauthVerifyBody = z.object({ code })
 // dropped, and the callback then redirects to the web app's error page instead of showing JSON.
 const queryValue = (max: number) => z.string().max(max).optional().catch(undefined)
 
-const googleStartQuery = z.object({ returnUrl: queryValue(2048) })
+const googleStartQuery = z.object({
+  returnUrl: queryValue(2048),
+  lang: z.enum(['th', 'en']).default('th').catch('th'),
+})
+
+// Rule 28: a session family id (UUIDv7).
+const sessionParams = z.object({
+  id: z.uuid({ error: ERRORS.invalidField('id') }),
+})
 
 const googleCallbackQuery = z.object({
   code: queryValue(2048),
@@ -69,7 +80,10 @@ export const authSchema = {
   emailVerify: { body: verifyBody },
   passwordSignIn: { body: passwordSignInBody },
   passwordSet: { body: passwordSetBody },
-  passwordRemove: { body: passwordRemoveBody },
+  passwordRemove: { body: recentAuthBody },
+  googleLink: { body: recentAuthBody },
+  googleUnlink: { body: recentAuthBody },
+  sessionRevoke: { params: sessionParams },
   reauthStart: { body: reauthStartBody },
   reauthVerify: { body: reauthVerifyBody },
   googleStart: { query: googleStartQuery },
@@ -80,7 +94,8 @@ export type EmailStartInput = z.infer<typeof startBody>
 export type EmailVerifyInput = z.infer<typeof verifyBody>
 export type PasswordSignInInput = z.infer<typeof passwordSignInBody>
 export type PasswordSetInput = z.infer<typeof passwordSetBody>
-export type PasswordRemoveInput = z.infer<typeof passwordRemoveBody>
+export type RecentAuthInput = z.infer<typeof recentAuthBody>
+export type SessionParams = z.infer<typeof sessionParams>
 export type ReauthStartInput = z.infer<typeof reauthStartBody>
 export type ReauthVerifyInput = z.infer<typeof reauthVerifyBody>
 export type GoogleStartQuery = z.infer<typeof googleStartQuery>

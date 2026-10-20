@@ -30,3 +30,25 @@ export interface AuthSessionData {
   expiresIn: number
   user: AuthUserData
 }
+
+/** `GET /auth/sessions`: one signed-in device (a session family, rule 28). */
+export interface AuthDeviceSessionData {
+  /** The session family id; `DELETE /auth/sessions/:id` takes it. */
+  id: string
+  /** The latest user agent seen, if any; the web turns it into "Chrome · Android". */
+  userAgent: string | null
+  signedInAt: string
+  lastUsedAt: string
+  /** The caller's own session. */
+  current: boolean
+}
+
+/** `DELETE /auth/sessions`: how many other devices were signed out. */
+export interface AuthSessionsRevokedData {
+  revoked: number
+}
+
+/** `POST /auth/google/link`: where the web app sends the browser next (rule 29). */
+export interface AuthGoogleLinkData {
+  authorizationUrl: string
+}

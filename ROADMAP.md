@@ -70,27 +70,27 @@ merging.
 
 ## Status
 
-| #   | Feature / phase            | API | Web | Notes                                                                                                            |
-| --- | -------------------------- | --- | --- | ---------------------------------------------------------------------------------------------------------------- |
-| 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                          |
-| 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                      |
-| 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                       |
-| 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                   |
-| 4   | **Auth**                   | 🚧  | 🚧  | **← in progress.** 4.1 ✅ email, sessions; 4.2 ✅ password; 4.3 ✅ Google; 4.4 ⬜. [spec](docs/features/auth.md) |
-| 4a  | Offline sync foundation    | ⬜  | ⬜  | encrypted local DB, PIN lock, outbox, `/sync/push` + `/sync/pull`. [spec](docs/features/offline-sync.md)         |
-| 5   | Currency                   | ⬜  | ⬜  | master table, THB default. [spec](docs/features/currency.md)                                                     |
-| 6   | Wallet                     | ⬜  | ⬜  | accounts with a currency + balance; `wallet_members` table from day one. [spec](docs/features/wallet.md)         |
-| 7   | Category                   | ⬜  | ⬜  | income/expense, 1 level of sub-categories, default set seeded per user. [spec](docs/features/category.md)        |
-| 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                    |
-| 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                          |
-| 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                       |
-| 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                               |
-| 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                   |
-| 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                        |
-| 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                               |
-| 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                                  |
-| 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog           |
-| 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys             |
+| #   | Feature / phase            | API | Web | Notes                                                                                                     |
+| --- | -------------------------- | --- | --- | --------------------------------------------------------------------------------------------------------- |
+| 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                   |
+| 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys               |
+| 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                |
+| 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                            |
+| 4   | **Auth**                   | 🚧  | 🚧  | **← in progress.** 4.1–4.4a ✅; 4.4b ⬜ phone OTP. [spec](docs/features/auth.md)                          |
+| 4a  | Offline sync foundation    | ⬜  | ⬜  | encrypted local DB, PIN lock, outbox, `/sync/push` + `/sync/pull`. [spec](docs/features/offline-sync.md)  |
+| 5   | Currency                   | ⬜  | ⬜  | master table, THB default. [spec](docs/features/currency.md)                                              |
+| 6   | Wallet                     | ⬜  | ⬜  | accounts with a currency + balance; `wallet_members` table from day one. [spec](docs/features/wallet.md)  |
+| 7   | Category                   | ⬜  | ⬜  | income/expense, 1 level of sub-categories, default set seeded per user. [spec](docs/features/category.md) |
+| 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)             |
+| 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                   |
+| 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                |
+| 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                        |
+| 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                            |
+| 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                 |
+| 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                        |
+| 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                           |
+| 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog    |
+| 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys      |
 
 ✅ done · 🚧 in progress · ⬜ not started · — not applicable
 
@@ -102,15 +102,17 @@ decision "Local-first").
 
 ## Next up: Auth (#4)
 
-Spec: [docs/features/auth.md](docs/features/auth.md). Built in four parts, one PR each, API and web
-together. The endpoints table in the spec says which part each route belongs to.
+Spec: [docs/features/auth.md](docs/features/auth.md). Built in five parts (4.4 was split in two at
+its start), one PR each, API and web together. The endpoints table in the spec says which part each
+route belongs to.
 
-| Part | What                                                                                      | Status |
-| ---- | ----------------------------------------------------------------------------------------- | ------ |
-| 4.1  | Email code + magic link, open sign-up, sessions (refresh rotation), sign-out, `/auth/me`  | ✅     |
-| 4.2  | Optional password (Argon2id, breach check), recent-auth rule + step-up code               | ✅     |
-| 4.3  | Google sign-in (OIDC + PKCE)                                                              | ✅     |
-| 4.4  | Phone OTP, Account → Security (password, phone, linked Google, sessions, sign out others) | ⬜     |
+| Part | What                                                                                     | Status |
+| ---- | ---------------------------------------------------------------------------------------- | ------ |
+| 4.1  | Email code + magic link, open sign-up, sessions (refresh rotation), sign-out, `/auth/me` | ✅     |
+| 4.2  | Optional password (Argon2id, breach check), recent-auth rule + step-up code              | ✅     |
+| 4.3  | Google sign-in (OIDC + PKCE)                                                             | ✅     |
+| 4.4a | Account → Security: sessions, sign out others, link / unlink Google, credential mail     | ✅     |
+| 4.4b | Phone OTP: add / change / remove a number, sign in with phone (console SMS provider)     | ⬜     |
 
 4.1 in detail (✅ done):
 
@@ -205,6 +207,58 @@ together. The endpoints table in the spec says which part each route belongs to.
   at deploy (#17); until then only the stand-in has been used.
 - **Not in 4.3**: linking Google while signed in, unlinking (4.4), mail on linking (backlog "Mail
   on credential change").
+
+4.4 (decided at its start, spec rules 21–31; 4.4a ✅ done, 4.4b ⬜ next):
+
+- **Split**: 4.4a (Security page, sessions, Google link / unlink, mail on credential change) and
+  4.4b (phone OTP) are separate sessions and PRs, 4.4a first.
+- **Security page** `/account/security`: one "Security" row on the account page opens it; two
+  groups, "Ways to sign in" (password → `/account/password`, phone → `/account/phone` in 4.4b,
+  Google with Link / Unlink in the row) and "Signed-in devices" (sessions + "Sign out other
+  devices"). The confirm step (`reauth-step`) runs in place.
+- **Sessions** (rule 28): device from the user agent (parsed on the web), signed in at, last
+  active, "This device"; revoking one or all others needs **no** recent auth. `sessions` gains
+  `signedInAt` (copied on rotation), since the family's first row is deleted by cleanup.
+- **Google link** (rule 29): `POST /auth/google/link` needs recent auth and returns the Google
+  URL (the round-trip cookie carries `mode: link`); one Google per user; a Google account linked
+  to someone else is refused (`google_in_use`), never merged; its email need not match. Back on
+  `/account/security`. **Unlink** (rule 30) needs recent auth.
+- **Mail on credential change** (rule 31): password set / changed / removed, Google linked
+  (including automatic linking) / unlinked, phone added / changed / removed; no link, no code;
+  language from `lang` in the request; never blocks the change.
+- **Phone (4.4b)**: `GET /auth/providers` gains `phone` (`SMS_PROVIDER` ≠ `disabled`), and
+  `/auth/phone*` answer `503` before any lookup when it's off; one Thai-style `tel` field shown as
+  `081-234-5678`; Thai SMS of one segment (≤ 70 UTF-16 units, rule 26).
+- **API (4.4a)**: `sessions.signedInAt` (migration 0003, hand-edited: SQLite can't add a NOT NULL
+  column to a table with rows; old rows get it from the absolute expiry). `GET` / `DELETE
+/auth/sessions`, `DELETE /auth/sessions/:id`, `POST` / `DELETE /auth/google/link`. The Google
+  round-trip cookie may now carry `link: { userId, sessionFamilyId }` and `lang`; the callback asks
+  `googleFlowMode()` which way to go. Credential changes take `lang`; `notifyCredentialChange`
+  sends the mail of rule 31. New error codes `CURRENT_SESSION`, `IDENTITY_ALREADY_LINKED`,
+  `GOOGLE_IN_USE`.
+- **Web (4.4a)**: `/account/security` (`features/account/pages/security-page`), the account
+  page's single Security row, `deviceLabel()` (user agent → "Chrome · Android"), and `ReauthFlow`
+  (`features/account/reauth-flow.ts`): the confirm-step state, provided per page and shared by the
+  password and Security pages.
+- **Checked (4.4a)**: curl against the dev API and `dev:oidc` for the session list (order, current,
+  `signedInAt` kept on refresh), revoke one / own (`400`) / unknown / someone else's (`404`), sign
+  out others and the revoked devices' `SESSION_REVOKED`; Google link with recent auth by step-up
+  code and by password, `IDENTITY_ALREADY_LINKED`, `google_in_use`, cancel, bad signature and
+  nonce, session revoked or user disabled during the round trip, the per-IP limit; unlink and its
+  no-op; mails in th / en (also for an automatic link), the daily cap skipping the mail but not the
+  change; migration 0003 on a table with rows. Playwright at 375×812 in th/en × light/dark for the
+  page, the revoke confirm, the link round trip + toast, unlink by password and by email code, the
+  in-use error, sign out others and offline. Tests: API 323 (service, HTTP, Drizzle adapter, mail
+  builder), web 104 (auth service, device label, Security page).
+- **Known (4.4a)**: a current-password proof covers one request only (as in 4.2): linking right
+  after unlinking with a password asks again; a step-up code covers 10 minutes. The device name is
+  a hint from the user agent: an iPad on Safari says "Safari · Mac", and a PWA looks like its
+  browser. "Last active" moves on sign-in and refresh, not on every API call. A signed-out
+  device's access token still works for its last ≤ 10 minutes (rule 28). A long "last active"
+  wraps the device row to three lines at 375px; the owner accepted that.
+- **Not in 4.4a**: phone OTP (4.4b, rules 21–27: the `console` SMS provider, `/auth/phone*`,
+  `providers.phone`, `/account/phone`, `/auth/phone`), the ThaiBulkSMS adapter (backlog), trusted
+  device / PIN / local DB (#4a), invitations (#16).
 
 ## Done: App shell (#3)
 
@@ -443,8 +497,6 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   feature session. The app ignores `.gitguardian.yaml` (that file only helps a local ggshield).
   Fix once someone has dashboard access: mark the incidents as false positives and exclude test
   files in the workspace settings.
-- **Mail on credential change** (from 4.2): ASVS asks to tell the user when a password is set,
-  changed or removed. Proposal: one short mail, added with 4.4's Security page.
 - **Open sign-up obligations**: before strangers use the app, add account deletion (with its
   data) and a short privacy notice (PDPA).
 - **Shared wallet categories** (#16): when an editor adds to the owner's wallet, they pick from the

@@ -1,0 +1,21 @@
+type: object
+description: One signed-in device, i.e. one session family (auth spec rule 28)
+required: [id, userAgent, signedInAt, lastUsedAt, current]
+properties:
+  id:
+    type: string
+    format: uuid
+    description: The session family id; `DELETE /auth/sessions/{id}` takes it
+  userAgent:
+    type: [string, 'null']
+    description: The latest user agent seen; the web turns it into "Chrome · Android"
+  signedInAt:
+    type: string
+    format: date-time
+  lastUsedAt:
+    type: string
+    format: date-time
+    description: The last sign-in or refresh of the family
+  current:
+    type: boolean
+    description: The caller's own session

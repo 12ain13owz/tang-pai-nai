@@ -130,7 +130,7 @@ Turso `libsql://` URL + `DATABASE_AUTH_TOKEN` in prod. Foreign keys are enforced
 | `columns.ts`            | `id()` (UUIDv7 text PK), `epochMs()`, `timestamps` (`createdAt`/`updatedAt`, epoch ms) |
 | `schema/<feature>.ts`   | that feature's tables; re-export it from `schema/index.ts`                             |
 | `migrate.ts`, `seed.ts` | run by `npm run db:migrate` / `npm run db:seed`                                        |
-| `api/drizzle/`          | generated SQL migrations (`npm run db:generate`), **committed**, never edited by hand  |
+| `api/drizzle/`          | generated SQL migrations (`npm run db:generate`), **committed**, see below             |
 
 - Column names are written in camelCase in TS and stored as snake_case (`casing: 'snake_case'` on
   the client and in `drizzle.config.ts`), so don't pass explicit column names.
@@ -138,6 +138,10 @@ Turso `libsql://` URL + `DATABASE_AUTH_TOKEN` in prod. Foreign keys are enforced
   data). Amounts are `integer()` in minor units, calendar dates `text()` as `YYYY-MM-DD`.
 - Changing a table: edit `schema/<feature>.ts` → `npm run db:generate` → review the SQL →
   `npm run db:migrate`. Commit the schema change and the migration together.
+- Don't edit a generated migration, with one exception: SQLite can't add a `NOT NULL` column
+  without a default to a table that has rows, so such a migration gets a `DEFAULT` and an
+  `UPDATE` that fills the column, with a SQL comment saying why (see `0003_auth_sessions.sql`).
+  Never edit a migration that has already been committed.
 - Seed: add one idempotent seeder per feature to `seeders` in `seed.ts` (it never runs in
   production).
 - Only `*.repository.drizzle.ts` adapters (and `core/database` itself) import `@/core/database` or
@@ -359,9 +363,20 @@ How the API authenticates calls (spec: [`docs/features/auth.md`](../docs/feature
   `npm run dev:oidc` stands in for Google (`GOOGLE_ISSUER=http://localhost:4400`, client
   `dev-client` / `dev-secret`), with scenarios that break the ID token one way each.
 - **Recent auth** (spec rule 13): routes that change credentials (`PUT` / `DELETE
-/auth/password`, later phone and sessions) check the caller's **session**, not just the JWT:
-  `authTime` ≤ 10 min, or the current password, or a step-up code (`/auth/reauth/start` +
-  `/verify`, which sets `authTime` on the family). Otherwise `403 REAUTH_REQUIRED`.
+/auth/password`, `POST` / `DELETE /auth/google/link`, later phone) check the caller's
+  **session**, not just the JWT (`activeCaller` + `requireRecentAuth` in the service):
+  `authTime` ≤ 10 min, or the current password (that request only), or a step-up code
+  (`/auth/reauth/start` + `/verify`, which sets `authTime` on the family). Otherwise `403
+REAUTH_REQUIRED`. Revoking sessions needs an active session but no recent auth (rule 28).
+- **Account › Security** (4.4a, spec rules 28–31): `GET /auth/sessions` lists session families
+  (`signedInAt` is copied on rotation like `authTime`); `DELETE /auth/sessions/:id` revokes another
+  one (own → `400 CURRENT_SESSION`), `DELETE /auth/sessions` all others. Linking Google while signed
+  in is an API call (`POST /auth/google/link` → `{ authorizationUrl }` + the `__Host-goidc`
+  cookie with `link: { userId, sessionFamilyId }`); the shared callback asks
+  `authService.googleFlowMode()` and, in link mode, finishes with `finishGoogleLink` (no session,
+  redirect to `/account/security?linked=google` or `?error=`). Every credential change mails the
+  user through `notifyCredentialChange` (`buildCredentialChangeMail`, no link, no code); the
+  request's `lang` picks the language, and a failed send or the daily cap only logs a warn.
 - **Status codes**: `401` means only "access token missing / invalid / expired" (the web app
   refreshes once and retries on it), or a dead refresh cookie on `/auth/refresh`
   (`SESSION_EXPIRED` / `SESSION_REVOKED`). Everything else uses 400/403/404/409/422/429 with a
@@ -400,7 +415,8 @@ skipBreachCheck` (tests never call HIBP; `vitest.config.ts` also sets
   (`:memory:` gives each transaction its own empty database). Google flows run against a fake
   `oidc` (`GoogleSignIn['oidc']`) that checks PKCE and the nonce, with a real sealed box
   (`auth.*.google.test.ts`); the OIDC client itself is tested against a local provider with real
-  RS256 keys (`core/security/oidc-client.test.ts`). See `src/features/auth/*.test.ts`.
+  RS256 keys (`core/security/oidc-client.test.ts`). Account › Security is in
+  `auth.*.security.test.ts`. See `src/features/auth/*.test.ts`.
 
 ## 5. Controller pattern (copy this shape)
 

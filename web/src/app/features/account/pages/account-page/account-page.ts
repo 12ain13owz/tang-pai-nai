@@ -4,7 +4,7 @@ import { NonNullableFormBuilder } from '@angular/forms'
 import { Router, RouterLink } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideChevronRight, lucideLogOut } from '@ng-icons/lucide'
+import { lucideChevronRight, lucideLogOut, lucideShieldCheck } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { AuthService, AuthStore, SIGN_IN_URL } from '@/core/auth'
@@ -13,24 +13,14 @@ import type { Language } from '@/core/i18n'
 import { DeviceStorageService } from '@/core/pwa'
 import { PALETTES, ThemeService } from '@/core/theme'
 import type { PaletteId, ThemePreference } from '@/core/theme'
-import { GoogleLogo } from '@/shared/components/brand'
 import { SelectField } from '@/shared/components/form'
 import type { SelectOption } from '@/shared/types'
 import { PalettePicker } from './palette-picker'
 
 @Component({
   selector: 'app-account-page',
-  imports: [
-    TranslocoPipe,
-    RouterLink,
-    SelectField,
-    PalettePicker,
-    NgIcon,
-    HlmButton,
-    HlmSpinner,
-    GoogleLogo,
-  ],
-  providers: [provideIcons({ lucideLogOut, lucideChevronRight })],
+  imports: [TranslocoPipe, RouterLink, SelectField, PalettePicker, NgIcon, HlmButton, HlmSpinner],
+  providers: [provideIcons({ lucideLogOut, lucideChevronRight, lucideShieldCheck })],
   template: `
     <div class="flex flex-col gap-6 p-4">
       @if (authStore.user(); as user) {
@@ -44,40 +34,29 @@ import { PalettePicker } from './palette-picker'
           </div>
         </section>
 
-        <!-- 4.4 moves this row into Account → Security. -->
-        <section class="flex flex-col gap-3" aria-labelledby="security-heading">
-          <h2 id="security-heading" class="text-sm font-medium text-muted-foreground">
-            {{ 'account.security' | transloco }}
-          </h2>
-          <a
-            routerLink="/account/password"
-            class="flex min-h-14 items-center justify-between gap-4 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground"
+        <a
+          routerLink="/account/security"
+          class="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground"
+        >
+          <span
+            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
+            aria-hidden="true"
           >
-            <span class="text-base">{{ 'account.password' | transloco }}</span>
-            <span class="flex items-center gap-1 text-sm text-muted-foreground">
-              {{ (user.hasPassword ? 'account.passwordSet' : 'account.passwordUnset') | transloco }}
-              <ng-icon name="lucideChevronRight" size="20" aria-hidden="true" />
+            <ng-icon name="lucideShieldCheck" />
+          </span>
+          <span class="flex min-w-0 flex-1 flex-col">
+            <span class="text-base">{{ 'account.security' | transloco }}</span>
+            <span class="text-sm text-muted-foreground">
+              {{ 'account.securityHint' | transloco }}
             </span>
-          </a>
-          <!-- Read-only until 4.4 adds linking and unlinking. -->
-          @if (googleEnabled()) {
-            @let google = googleIdentity();
-            <div
-              class="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground"
-            >
-              <app-google-logo />
-              <span class="flex min-w-0 flex-1 flex-col">
-                <span class="text-base">{{ 'account.google' | transloco }}</span>
-                @if (google) {
-                  <span class="truncate text-sm text-muted-foreground">{{ google.email }}</span>
-                }
-              </span>
-              <span class="text-sm text-muted-foreground">
-                {{ (google ? 'account.googleLinked' : 'account.googleNotLinked') | transloco }}
-              </span>
-            </div>
-          }
-        </section>
+          </span>
+          <ng-icon
+            name="lucideChevronRight"
+            size="20"
+            class="text-muted-foreground"
+            aria-hidden="true"
+          />
+        </a>
       }
 
       <section class="flex flex-col gap-3" aria-labelledby="appearance-heading">
@@ -170,9 +149,6 @@ export class AccountPage {
   protected authStore = inject(AuthStore)
 
   protected isSigningOut = signal(false)
-  protected googleEnabled = signal(false)
-  // Google is the only provider so far (rule 14); 4.4 adds the rest of Account › Security.
-  protected googleIdentity = computed(() => this.authStore.user()?.identities.at(0) ?? null)
   protected signOutFailed = signal(false)
 
   protected readonly palettes = PALETTES
@@ -196,9 +172,6 @@ export class AccountPage {
   constructor() {
     // Fresh profile; the one from sign-in is shown meanwhile, and offline it simply stays.
     this.authService.loadMe().catch(() => undefined)
-    void this.authService.providers().then((providers) => {
-      this.googleEnabled.set(providers.google)
-    })
 
     this.languageControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((language) => {
       if (language) {

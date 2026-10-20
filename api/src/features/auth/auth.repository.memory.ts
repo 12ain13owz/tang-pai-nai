@@ -88,6 +88,10 @@ export const createMemoryAuthRepository = (
         (identity) =>
           `${identity.provider}:${identity.providerSubject}` === `${provider}:${providerSubject}`
       ) ?? null,
+    findUserIdentity: async (userId, provider) =>
+      state.identities.find(
+        (identity) => `${identity.userId}:${identity.provider}` === `${userId}:${provider}`
+      ) ?? null,
     listIdentities: async (userId) =>
       state.identities.filter((identity) => identity.userId === userId),
     createIdentity: async (data) => {
@@ -101,6 +105,13 @@ export const createMemoryAuthRepository = (
       const identity: UserIdentity = { ...data, id: uuidv7(), createdAt: new Date() }
       state.identities.push(identity)
       return identity
+    },
+    deleteIdentity: async (userId, provider) => {
+      const before = state.identities.length
+      state.identities = state.identities.filter(
+        (identity) => `${identity.userId}:${identity.provider}` !== `${userId}:${provider}`
+      )
+      return state.identities.length < before
     },
     touchIdentity: async (id, at) => {
       const identity = state.identities.find((candidate) => candidate.id === id)
@@ -212,6 +223,19 @@ export const createMemoryAuthRepository = (
         }
       }
     },
+
+    // Most recently used first; ties keep insertion order reversed, like ordering by id desc.
+    listActiveSessions: async (userId, at) =>
+      state.sessions
+        .filter(
+          (session) =>
+            session.userId === userId &&
+            !session.revokedAt &&
+            session.expiresAt.getTime() > at.getTime() &&
+            session.absoluteExpiresAt.getTime() > at.getTime()
+        )
+        .reverse()
+        .sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime()),
 
     revokeOtherFamilies: async (userId, keepFamilyId, at) => {
       const others = state.sessions.filter(

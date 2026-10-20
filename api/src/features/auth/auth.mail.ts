@@ -1,4 +1,4 @@
-import type { MailLanguage } from './auth.entity'
+import type { CredentialChange, MailLanguage } from './auth.entity'
 
 interface SignInMail {
   code: string
@@ -72,3 +72,54 @@ export const buildReauthMail = ({ code, lang, expiresInMinutes }: ReauthMail) =>
           'ห้ามบอกรหัสนี้กับผู้อื่น ถ้าคุณไม่ได้ขอรหัสนี้ ไม่ต้องทำอะไร ไม่มีอะไรเปลี่ยนถ้าไม่มีรหัสนี้',
         ].join('\n'),
       }
+
+interface CredentialChangeMail {
+  change: CredentialChange
+  lang: MailLanguage
+  at: Date
+  /** The user's timezone (IANA), for the time in the mail. */
+  timeZone: string
+}
+
+const CHANGE_TEXT: Record<CredentialChange, Record<MailLanguage, string>> = {
+  password_set: { th: 'มีการตั้งรหัสผ่าน', en: 'A password was set' },
+  password_changed: { th: 'มีการเปลี่ยนรหัสผ่าน', en: 'Your password was changed' },
+  password_removed: { th: 'มีการลบรหัสผ่าน', en: 'Your password was removed' },
+  google_linked: { th: 'มีการเชื่อม Google', en: 'A Google account was linked' },
+  google_unlinked: { th: 'มีการยกเลิกการเชื่อม Google', en: 'Google was unlinked' },
+}
+
+/**
+ * Rule 31: tells the user a way to sign in changed. No link and no code, so the mail never asks
+ * anyone to click. The time is in the user's timezone; Thai uses the Buddhist year (th-TH).
+ */
+export const buildCredentialChangeMail = ({ change, lang, at, timeZone }: CredentialChangeMail) => {
+  // eslint-disable-next-line security/detect-object-injection -- `change` is a union of constants
+  const what = CHANGE_TEXT[change][lang]
+  const when = new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'th-TH', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+    timeZone,
+  }).format(at)
+  return lang === 'en'
+    ? {
+        subject: `${what} on your Tang Pai Nai account`,
+        text: [
+          `${what} on your ตังค์ไปไหน (Tang Pai Nai) account on ${when}.`,
+          '',
+          `If this was you, there's nothing to do.`,
+          `If it wasn't, open the app, sign in with an email code, put back what was changed`,
+          `and choose "Sign out other devices" on the Security page.`,
+        ].join('\n'),
+      }
+    : {
+        subject: `${what} ในบัญชีผู้ใช้ ตังค์ไปไหน`,
+        text: [
+          `${what} ในบัญชีผู้ใช้ ตังค์ไปไหน ของคุณ เมื่อ ${when}`,
+          '',
+          'ถ้าคุณทำเอง ไม่ต้องทำอะไร',
+          'ถ้าไม่ใช่คุณ ให้เปิดแอป เข้าสู่ระบบด้วยรหัสทางอีเมล แก้สิ่งที่ถูกเปลี่ยนกลับ',
+          'แล้วกด "ออกจากระบบอุปกรณ์อื่น" ในหน้าความปลอดภัย',
+        ].join('\n'),
+      }
+}

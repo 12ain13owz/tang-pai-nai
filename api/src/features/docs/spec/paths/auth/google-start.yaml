@@ -18,6 +18,15 @@ get:
       schema:
         type: string
         example: /wallets
+    - name: lang
+      in: query
+      required: false
+      description: >-
+        Language of the mail an automatic link sends (`th` | `en`); anything else counts as `th`
+      schema:
+        type: string
+        enum: [th, en]
+        default: th
   responses:
     '302':
       description: To Google's authorization endpoint; sets `__Host-goidc`

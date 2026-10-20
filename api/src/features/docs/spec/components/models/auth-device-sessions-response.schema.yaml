@@ -1,0 +1,14 @@
+type: object
+required: [message, timestamp, data]
+properties:
+  message:
+    type: string
+    example: Active sessions
+  timestamp:
+    type: string
+    format: date-time
+  data:
+    type: array
+    description: Most recently used first
+    items:
+      $ref: './auth-device-session.schema.yaml'

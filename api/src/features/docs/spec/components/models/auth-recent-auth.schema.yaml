@@ -1,0 +1,13 @@
+type: object
+description: The body may be omitted.
+properties:
+  currentPassword:
+    type: string
+    description: >-
+      Proves recent authentication when the session's last credential check is older than 10
+      minutes (only for a user who has a password); good for this one request.
+  lang:
+    type: string
+    enum: [th, en]
+    default: th
+    description: Language of the mail that tells the user about the change (auth spec rule 31)

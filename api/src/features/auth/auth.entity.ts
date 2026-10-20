@@ -82,6 +82,8 @@ export interface Session {
   expiresAt: Date
   absoluteExpiresAt: Date
   authTime: Date
+  /** When the family was created (copied on rotation). */
+  signedInAt: Date
   revokedAt: Date | null
   replacedById: string | null
   lastUsedAt: Date
@@ -98,9 +100,20 @@ export type NewSession = Pick<
   | 'expiresAt'
   | 'absoluteExpiresAt'
   | 'authTime'
+  | 'signedInAt'
   | 'lastUsedAt'
   | 'userAgent'
 >
+
+/** One signed-in device as Account › Security lists it (rule 28): a session family. */
+export interface SessionSummary {
+  familyId: string
+  userAgent: string | null
+  signedInAt: Date
+  lastUsedAt: Date
+  /** The caller's own family. */
+  current: boolean
+}
 
 export interface RateLimitHit {
   /** Hits in the current window, this one included. */
@@ -156,4 +169,10 @@ export interface GoogleSignInResult extends SignInResult {
 export interface PasswordChange {
   newPassword: string
   currentPassword?: string
+  /** Language of the change mail (rule 31). */
+  lang?: MailLanguage
 }
+
+/** What the mail of rule 31 reports. */
+export type CredentialChange =
+  'password_set' | 'password_changed' | 'password_removed' | 'google_linked' | 'google_unlinked'

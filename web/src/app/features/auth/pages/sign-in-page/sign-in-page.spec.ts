@@ -85,7 +85,7 @@ describe('SignInPage: Continue with Google', () => {
     googleButton()?.click()
     fixture.detectChanges()
 
-    expect(startGoogle).toHaveBeenCalledWith('/reports')
+    expect(startGoogle).toHaveBeenCalledWith('/reports', 'th')
     expect(googleButton()?.disabled).toBe(true)
     expect(googleButton()?.querySelector('hlm-spinner')).not.toBeNull()
   })
