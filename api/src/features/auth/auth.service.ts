@@ -1344,6 +1344,8 @@ export const createAuthService = ({
     await checkCode(challenge, code, LOG.AUTH.phoneConfirmFailed, 'confirmPhone')
 
     const phone = challenge.destination
+    // Read before the update: an adapter may hand back the same object it changes.
+    const previousPhone = user.phone
     const outcome = await authRepo.transaction(async (repo) => {
       if (!(await repo.consumeChallenge(challenge.id, at))) {
         return { kind: 'expired' } as const
@@ -1368,8 +1370,8 @@ export const createAuthService = ({
       throw phoneInUse().withOperation('confirmPhone')
     }
     if (!outcome.unchanged) {
-      const change = user.phone ? 'phone_changed' : 'phone_added'
-      logger.info(user.phone ? LOG.AUTH.phoneChanged : LOG.AUTH.phoneAdded, {
+      const change = previousPhone ? 'phone_changed' : 'phone_added'
+      logger.info(previousPhone ? LOG.AUTH.phoneChanged : LOG.AUTH.phoneAdded, {
         userId: user.id,
         sessionFamilyId: caller.sessionFamilyId,
         phone: maskPhone(phone),
@@ -1389,7 +1391,8 @@ export const createAuthService = ({
     const at = now()
     const access = await activeCaller(caller, at, 'removePhone')
     const { user } = access
-    if (!user.phone) {
+    const removed = user.phone
+    if (!removed) {
       return profileOf(user)
     }
     await requireRecentAuth(access, currentPassword, client, at, 'removePhone')
@@ -1397,9 +1400,9 @@ export const createAuthService = ({
     logger.info(LOG.AUTH.phoneRemoved, {
       userId: user.id,
       sessionFamilyId: caller.sessionFamilyId,
-      phone: maskPhone(user.phone),
+      phone: maskPhone(removed),
     })
-    await notifyCredentialChange(updated, 'phone_removed', lang, at, user.phone)
+    await notifyCredentialChange(updated, 'phone_removed', lang, at, removed)
     return profileOf(updated)
   }
 
