@@ -189,6 +189,48 @@ describe('AuthService', () => {
     await verify
   })
 
+  it('starts and verifies a phone sign-in without the refresh-and-retry', async () => {
+    const start = service.startPhone('+66812345678')
+    const startReq = http.expectOne('/api/auth/phone/start')
+    expect(startReq.request.body).toEqual({ phone: '+66812345678' })
+    startReq.flush(envelope(), { status: 202, statusText: 'Accepted' })
+    await start
+
+    const verify = service.verifyPhone('+66812345678', '123456')
+    const verifyReq = http.expectOne('/api/auth/phone/verify')
+    expect(verifyReq.request.body).toEqual({ phone: '+66812345678', code: '123456' })
+    verifyReq.flush(envelope(session('access-phone')))
+    await verify
+    expect(store.accessToken()).toBe('access-phone')
+  })
+
+  it('adds, confirms and removes a number, keeping the returned user', async () => {
+    store.setSession(session())
+    const withPhone = { ...session().user, phone: '+66812345678' }
+
+    const change = service.changePhone('+66812345678', 'Current.1')
+    const changeReq = http.expectOne('/api/auth/phone')
+    expect(changeReq.request.method).toBe('POST')
+    expect(changeReq.request.body).toEqual({ phone: '+66812345678', currentPassword: 'Current.1' })
+    changeReq.flush(envelope(), { status: 202, statusText: 'Accepted' })
+    await change
+
+    const confirm = service.confirmPhone('654321', 'en')
+    const confirmReq = http.expectOne('/api/auth/phone/confirm')
+    expect(confirmReq.request.body).toEqual({ code: '654321', lang: 'en' })
+    confirmReq.flush(envelope(withPhone))
+    await confirm
+    expect(store.user()?.phone).toBe('+66812345678')
+
+    const remove = service.removePhone('th')
+    const removeReq = http.expectOne('/api/auth/phone')
+    expect(removeReq.request.method).toBe('DELETE')
+    expect(removeReq.request.body).toEqual({ lang: 'th' })
+    removeReq.flush(envelope({ ...withPhone, phone: null }))
+    await remove
+    expect(store.user()?.phone).toBeNull()
+  })
+
   it('asks the API once which providers are on', async () => {
     const first = service.providers()
     const second = service.providers()
