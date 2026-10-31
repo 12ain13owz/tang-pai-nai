@@ -75,15 +75,43 @@ layout    ->  core, shared
   `PageTitleStrategy` (`core/routing`) translates it for the header and the document title.
   Full-screen flows that shouldn't show the bar (sign-in, PIN) go outside it.
 - The sign-in flow (`features/auth`, under `/auth/*`) is mounted before the shell with its own
-  `AuthLayout` (app name + language switch). The shell route carries `authGuard`
-  (`canActivate` + `canActivateChild`), so every tab needs a signed-in user.
+  `AuthLayout` (app name + language switch); so are the trusted-device screens `/auth/trust`,
+  `/auth/lock` and `/auth/tab` (offline-sync rules 1–3). The shell route carries `shellGuard`
+  (`core/offline`, `canActivate` + `canActivateChild`): a signed-in user, or a trusted device
+  unlocked with its PIN (even offline or with an expired session). See "Trusted device" below.
 - App-wide device state lives in `core/` as signal services: `ThemeService` (`core/theme`),
   `LanguageService` (`core/i18n`), `NetworkStatusService` (`core/network`), `KeyboardService`
-  (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`).
+  (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`), `OfflineService`
+  (`core/offline`).
 - The service worker (`ngsw-config.json`) caches the **app shell only**. Never add `dataGroups`:
   data comes from the local DB ([offline-sync](../docs/features/offline-sync.md) → Layers). It is
   off in `ng serve`, so check PWA behaviour against `npm run build` output served with an SPA
-  fallback.
+  fallback. It also prefetches `/sqlite/sqlite3.wasm` (copied from `@sqlite.org/sqlite-wasm` by
+  `angular.json`), so the local database opens offline.
+
+### Trusted device & local database (`core/offline`, #4a)
+
+Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 1–7.
+
+- `LocalDatabase`: SQLite WASM **in memory**, loaded lazily (`locateFile` → `/sqlite/`). Schema
+  changes are appended to `MIGRATIONS` in `local-database.ts` (applied by `PRAGMA user_version`);
+  never edit a step that shipped. Write through `OfflineService.write(db => …)`: one SQLite
+  transaction, then the snapshot is saved (calls during a save are coalesced).
+- The vault (IndexedDB `tpn-vault`, `vault-storage.ts`) holds the clear meta the lock screen needs
+  (user id + name, salt, wrapped key, wrong-PIN count) and **one** AES-GCM snapshot of the whole
+  database (`vault-crypto.ts`). The data key lives in memory only while unlocked.
+- `OfflineService.state()`: `none` (untrusted) / `locked` / `unlocked` / `elsewhere` (another
+  tab holds the `tpn-local-db` Web Lock). `enable(pin)`, `unlock(pin)` and `verifyPin(pin)`
+  answer `ok` / `wrong` / `wiped` (the 5th wrong PIN wipes and signs out); `changePin`, `lock`,
+  `wipe`. It locks by itself after 5 minutes idle or in the background and wipes on a revoked
+  session.
+- A trusted device keeps working after its session **expires** (`AuthStore.keepsLocalSession`
+  stops the interceptor's redirect; `layout/session-banner` offers sign-in). Anything that ends
+  a user's time on the device (sign-out, turning offline off) calls `OfflineService.wipe()`.
+- Specs: jsdom has no IndexedDB, wasm or `matchMedia`. Provide `VAULT_STORAGE` /
+  `OPEN_LOCAL_DATABASE` fakes (see `offline.service.spec.ts`), or a fake `OfflineService` /
+  `DeviceStorageService` for components and the shell (`app.spec.ts`). `vi.mock` doesn't work
+  with Angular's bundled Vitest runner; inject seams instead.
 
 ### Inside a feature
 
@@ -355,11 +383,18 @@ are on, so don't disable them.
   - `AuthService.refresh()` is shared by concurrent callers and runs inside a Web Lock
     (`tpn-auth-refresh`), so two tabs never present the same refresh token (the API treats a
     reused token as theft and signs every device of that sign-in out).
-  - App start: `authGuard` / `guestGuard` call `AuthService.restore()`, one silent refresh. A
-    reload therefore costs one `/auth/refresh`. When the API is unreachable the status is
-    `unreachable` (not signed out), and the sign-in page retries once the network is back.
-  - Sign-out: `AuthService.signOut()` then navigate to sign-in. #4a adds wiping the local DB
-    ([offline-sync](../docs/features/offline-sync.md) rule 7).
+  - App start: `shellGuard` / `guestGuard` call `AuthService.restore()`, one silent refresh (after
+    sending a sign-out made offline, if one is pending). A reload therefore costs one
+    `/auth/refresh`. When the API is unreachable the status is `unreachable` (not signed out),
+    and the sign-in page retries once the network is back.
+  - `AuthStore.endedBy()` says why a refresh was refused (`revoked`, `expired`, or `null`), and
+    `freshSignIn()` marks a sign-in (not a refresh) until the trust step has run. Every sign-in
+    path goes through `AuthService` (`verifyCode`, `verifyLink`, `signInWithPassword`,
+    `verifyPhone`, `finishGoogleSignIn`), which sets it.
+  - Sign-out: `AuthService.signOut()`, then `OfflineService.wipe()`, then navigate to sign-in
+    ([offline-sync](../docs/features/offline-sync.md) rule 7; 4a.2 pushes the outbox first).
+    `signOutOrLater()` is for a device that must forget the session even offline (the lock
+    screen's "forgot PIN", the 5th wrong PIN).
   - Password (4.2): `AuthService.signInWithPassword()`, `setPassword()`, `removePassword()`,
     `startReauth()` / `verifyReauth()`. `AuthUser.hasPassword` says whether one is set. Routes that
     change credentials may answer `403 REAUTH_REQUIRED`: show the confirm step (current password or
@@ -399,7 +434,8 @@ are on, so don't disable them.
   them to translation keys.
 - **Testing**: `provideHttpClient(withInterceptors([authInterceptor]))` +
   `provideHttpClientTesting()`; flush envelopes from `HttpTestingController`. A spec that renders
-  the shell sets a session on `AuthStore` first (see `app.spec.ts`).
+  the shell sets a session on `AuthStore` first and stubs `DeviceStorageService` (see
+  `app.spec.ts`). `restore()` sends its request a tick later than `refresh()` does.
 
 ## 5. Definition of done
 

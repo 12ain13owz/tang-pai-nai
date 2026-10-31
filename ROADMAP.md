@@ -70,27 +70,27 @@ merging.
 
 ## Status
 
-| #   | Feature / phase             | API | Web | Notes                                                                                                                     |
-| --- | --------------------------- | --- | --- | ------------------------------------------------------------------------------------------------------------------------- |
-| 0   | Starter repos               | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                   |
-| 1   | Local dev workflow          | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                               |
-| 2   | Database foundation         | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                |
-| 3   | App shell                   | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                            |
-| 4   | Auth                        | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                              |
-| 4a  | **Offline sync foundation** | 🚧  | 🚧  | **← now.** 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`. [spec](docs/features/offline-sync.md) |
-| 5   | Currency                    | ⬜  | ⬜  | master table, THB default. [spec](docs/features/currency.md)                                                              |
-| 6   | Wallet                      | ⬜  | ⬜  | accounts with a currency + balance; `wallet_members` table from day one. [spec](docs/features/wallet.md)                  |
-| 7   | Category                    | ⬜  | ⬜  | income/expense, 1 level of sub-categories, default set seeded per user. [spec](docs/features/category.md)                 |
-| 8   | Transaction                 | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                             |
-| 9   | Transfer between wallets    | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                   |
-| 10  | Reports                     | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                |
-| 11  | Budget                      | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                        |
-| 12  | Recurring transactions      | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                            |
-| 13  | Debt / loan                 | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                                 |
-| 14  | Event / trip                | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                        |
-| 15  | Search, filter, CSV export  | ⬜  | ⬜  |                                                                                                                           |
-| 16  | Family sharing              | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                    |
-| 17  | Deploy (Vercel)             | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                      |
+| #   | Feature / phase             | API | Web | Notes                                                                                                                        |
+| --- | --------------------------- | --- | --- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 0   | Starter repos               | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                      |
+| 1   | Local dev workflow          | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                                  |
+| 2   | Database foundation         | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                   |
+| 3   | App shell                   | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                               |
+| 4   | Auth                        | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                                 |
+| 4a  | **Offline sync foundation** | 🚧  | 🚧  | **← now.** 4a.1 ✅ encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`. [spec](docs/features/offline-sync.md) |
+| 5   | Currency                    | ⬜  | ⬜  | master table, THB default. [spec](docs/features/currency.md)                                                                 |
+| 6   | Wallet                      | ⬜  | ⬜  | accounts with a currency + balance; `wallet_members` table from day one. [spec](docs/features/wallet.md)                     |
+| 7   | Category                    | ⬜  | ⬜  | income/expense, 1 level of sub-categories, default set seeded per user. [spec](docs/features/category.md)                    |
+| 8   | Transaction                 | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                                |
+| 9   | Transfer between wallets    | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                      |
+| 10  | Reports                     | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                   |
+| 11  | Budget                      | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                           |
+| 12  | Recurring transactions      | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                               |
+| 13  | Debt / loan                 | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                                    |
+| 14  | Event / trip                | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                           |
+| 15  | Search, filter, CSV export  | ⬜  | ⬜  |                                                                                                                              |
+| 16  | Family sharing              | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                       |
+| 17  | Deploy (Vercel)             | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                         |
 
 ✅ done · 🚧 in progress · ⬜ not started · — not applicable
 
@@ -109,8 +109,51 @@ the app usable on local data with a "sign in again to sync" banner.
 
 | Part | What                                                                                          | Status |
 | ---- | --------------------------------------------------------------------------------------------- | ------ |
-| 4a.1 | Trust step, encrypted local DB, PIN lock (keypad), auto-lock, wipe rules, Security › device   | 🚧     |
+| 4a.1 | Trust step, encrypted local DB, PIN lock (keypad), auto-lock, wipe rules, Security › device   | ✅     |
 | 4a.2 | Sync tables, `/sync/push` + `/sync/pull`, outbox, sync status, rejected ops, conflict notices | ⬜     |
+
+**Next up is 4a.2.** Decide its first synced table at its start (spec → Open questions: fold
+Currency #5 in as pull-only master data, prove push with a test-only table in the API tests).
+
+4a.1 in detail (✅ done, web only):
+
+- **API**: no change. `/auth/refresh` already tells `SESSION_REVOKED` (and `USER_DISABLED`) from
+  `SESSION_EXPIRED`, which decides wipe vs keep (spec rule 7).
+- **Web**: `core/offline`: `LocalDatabase` (SQLite WASM in memory, schema steps by
+  `PRAGMA user_version`; 4a.1 only has `sync_meta`), `vault-crypto` (AES-GCM data key, AES-KW wrap
+  by a PBKDF2-SHA256 600k PIN key), `vault-storage` (IndexedDB `tpn-vault`: clear meta +
+  one sealed snapshot), `OfflineService` (trust, unlock, lock, change PIN, wipe, coalesced saves,
+  auto-lock after 5 min idle or in the background, one tab via the `tpn-local-db` Web Lock +
+  BroadcastChannel takeover, wipe on `revoked`). `shellGuard` replaces `authGuard` on the shell;
+  `trustGuard`, `lockGuard`, `otherTabGuard` guard `/auth/trust`, `/auth/lock`, `/auth/tab`.
+  `AuthStore` gained `endedBy`, `freshSignIn`, `keepsLocalSession`; `AuthService` gained
+  `finishGoogleSignIn()` and `signOutOrLater()` (a sign-out made offline is kept in
+  `tpn-sign-out-pending` and sent at the next start before any refresh). Shared `app-pin-pad` /
+  `app-pin-setup`; `/account/pin` (turn on / change PIN); the Security page's "This device" group;
+  the expired-session banner under the header. The wasm is copied to `/sqlite/` and prefetched by
+  the service worker; the initial bundle warning budget is 550 kB.
+- **Decided while building**: the current PIN is checked as soon as it's typed on the change-PIN
+  page (a wrong one counts toward the 5); 5 wrong PINs also sign the device out (now or, offline,
+  at the next start), so a wiped device can't walk back in online; the lock screen's "forgot
+  PIN" signs out and wipes after asking.
+- **Checked**: curl for the refresh codes the wipe rules read (revoked after sign-out, expired with
+  no cookie, sign-out without a cookie answers `200`). Playwright at 375×812 in th/en ×
+  light/dark on `npm run build` (service worker on): trust step (installed / tab defaults, iOS
+  note), PIN set + mismatch, lock + warning from the 3rd wrong PIN, a **really offline** reopen
+  (web and API stopped: the SW serves the shell and the wasm, PIN unlocks, lazy tabs open), the
+  5th wrong PIN offline (wiped, sign-out sent once back online, the old cookie then
+  `SESSION_REVOKED`), expired session → banner → same user signs in with data kept, another user
+  → wipe → their trust step, revoked elsewhere → wipe, second tab → "use here" hand-over,
+  auto-lock at 5 min idle (clock fast-forwarded), change PIN, turn offline off. Tests: web 194
+  (vault crypto, `OfflineService` on an in-memory vault and fake database, guards, auth store /
+  service / interceptor changes, PIN pad / setup, lock / trust / PIN pages, banner, Security
+  page group); API unchanged (374).
+- **Known**: Playwright's `setOffline` doesn't cut the service worker's network, so offline checks
+  stop the servers instead. Each tab holds its own unlocked copy, so taking over in another tab
+  asks for the PIN again. Untrusted devices don't open the in-memory database yet: it arrives with
+  4a.2's first reader. Someone with DevTools on an unlocked browser profile can still use the
+  refresh cookie online; the PIN protects the local data, not the session (spec rule 4's honest
+  limit). Each unlock costs ~0.3 s of PBKDF2 on a laptop, more on an old phone.
 
 ## Done: Auth (#4)
 

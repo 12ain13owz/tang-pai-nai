@@ -189,6 +189,15 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   time: a server error clears once the user edits the form. Field-level validation stays in the field (`*-field` wrappers). An "only works online"
   notice is a tinted block (`rounded-xl bg-destructive/10 text-destructive`), and the action it
   blocks is disabled.
+- **PIN entry** (`app-pin-pad`, `shared/components/pin`): six dots over an on-screen 3×4 keypad
+  of 64px round `bg-muted` keys, so the phone keyboard never opens; Backspace bottom right, a
+  hardware keyboard works too. The sixth digit submits. Choosing a PIN is `app-pin-setup` (type,
+  then type again; a mismatch starts over with one error line). Errors and the attempts warning
+  sit in one `role="alert"` line between the heading and the dots. Used by the trust step, the
+  lock screen and Account › PIN.
+- **Strip under the header**: the update banner and the expired-session banner
+  (`layout/session-banner`) share one look: `bg-muted px-4 py-2 text-sm`, the text left and one
+  44px button right.
 - **Status**: the header's right side holds the connection pill today and the sync status from #4a.
   A small dot plus the word, never the dot alone: online = green dot (`bg-income`) and muted
   "ออนไลน์"; offline = red dot in a red-tinted pill, "ออฟไลน์" in `text-destructive`. Status changes
