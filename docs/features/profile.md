@@ -33,17 +33,24 @@ profile splits everything.
 
 ## Business rules
 
-1. A user has **at least one** profile. A new user starts with one, "ส่วนตัว" (Personal); the
-   others are created by the user.
+1. **A new user has no profile.** The user creates every profile, the first one included
+   (decided with the owner before #6), so nothing is made automatically and two devices can never
+   both create a starter set.
 2. `name` is 1–30 chars after trimming, unique per user among live profiles (case-insensitive).
 3. Every screen and every query works inside the **current profile**: wallets, totals,
    categories, transactions, reports. Switching profile switches all of them at once.
 4. The app opens on the **last profile used on this device**. If it's gone (deleted on another
-   device), it falls back to the first profile by `sortOrder`.
-5. A new profile gets its own **default categories** (category spec rule 8) and one wallet
-   "เงินสด" (wallet spec rule 7).
+   device), it falls back to the first profile by `sortOrder`, or to the empty state when none is
+   left.
+5. **Onboarding** (also for any later new profile): create the profile → create its first wallet
+   (wallet form, nothing pre-filled but the currency) → done. Creating a profile also writes its
+   **category template** (category spec rule 8) in the same local write, on the device that
+   created it, so the template syncs to other devices like any other rows.
+   - Until a profile exists, the Transactions tab (the first screen) shows an empty state with
+     one button, "สร้างโปรไฟล์" (Create a profile); the other tabs and ➕ lead to the same flow.
 6. Deleting a profile is a soft delete of the profile **and everything in it**, after asking
-   (DESIGN.md: confirm when undo is impossible). The last profile can't be deleted.
+   (DESIGN.md: confirm when undo is impossible). Deleting the last one brings back the "Create a
+   profile" empty state.
 7. Sync carries every profile of the user, so each device has all of them offline; the profile
    switch itself needs no network.
 
@@ -63,8 +70,8 @@ profile splits everything.
 
 ## Open questions
 
-- **Who creates the starting profile, wallet and categories** of a new user (and of a new
-  profile): the server at sign-up (then pulled), or the first device (risk: two devices each
-  create one)? Decide at the start of #6.
+- ~~Who creates the starting profile, wallet and categories~~: decided, the user creates the
+  profile and the first wallet; the device that creates a profile writes its category template
+  (rules 1 and 5).
 - **Sharing (#16)**: share a single wallet (the current locked decision) or a whole profile?
   A profile is the more natural unit for a household; revisit at #16.

@@ -80,7 +80,7 @@ merging.
 | 4a  | Offline sync foundation    | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                            |
 | 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                  |
 | 6   | **Profile + Wallet**       | ⬜  | ⬜  | **← next.** profiles (separate books) and wallets with a currency + balance. [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
-| 7   | Category                   | ⬜  | ⬜  | income/expense, 1 level of sub-categories, default set seeded per user. [spec](docs/features/category.md)                                            |
+| 7   | Category                   | ⬜  | ⬜  | income/expense, 1 level of sub-categories, template per profile, merge on delete. [spec](docs/features/category.md)                                  |
 | 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                                                        |
 | 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                                              |
 | 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                           |

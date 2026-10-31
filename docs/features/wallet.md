@@ -54,13 +54,28 @@ the wallet. Add a cached column only if this gets slow.
      a conversion).
    - **Has transactions, different `minorUnit`** (THB ↔ JPY): refused; make a new wallet instead
      (otherwise ฿65.50 would read as ¥6,550).
+   - **Say it plainly** (owner's request): the device knows the wallet's transactions, so the form
+     explains before saving, never after. Under the currency field, a hint when the wallet has
+     transactions: "มีรายการแล้ว เปลี่ยนสกุลได้เฉพาะสกุลที่มีทศนิยมเท่ากัน และตัวเลขเดิมจะไม่ถูก
+     แปลงค่า" / "This wallet has transactions: you can only switch to a currency with the same
+     decimals, and the amounts won't be converted". Picking a same-decimals currency asks: "฿100
+     จะแสดงเป็น $100 ตัวเลขไม่ถูกแปลงตามอัตราแลกเปลี่ยน เปลี่ยนไหม" / "฿100 will show as $100.
+     Amounts aren't converted. Change it?". Picking a different-decimals one shows an error line
+     under the field: "เปลี่ยนเป็น ¥ ไม่ได้ เพราะกระเป๋านี้มีรายการแล้วและทศนิยมไม่เท่ากัน
+     ให้สร้างกระเป๋าใหม่สกุลนี้แทน" / "Can't switch to ¥: this wallet has transactions and the
+     decimals differ. Make a new wallet in this currency instead". (Final wording goes through
+     DESIGN.md §11 when built.)
+   - The server refuses the same cases as a backstop (a push answers `rejected` with code
+     `WALLET_CURRENCY_LOCKED`, which the sync sheet translates).
 4. `initialBalance` is an integer within ±10¹⁵.
 5. A wallet with transactions can't be deleted, only **archived**. Archived wallets are hidden from
    pickers and from the total, but their history stays in reports. A wallet with no transactions can
    be deleted (soft delete, `deletedAt`). Only the owner can archive or delete.
 6. The total balance ("ยอดรวม") sums the current profile's non-archived wallets with
    `excludeFromTotal = false`, **grouped by currency**.
-7. Every new profile (so every new user) starts with one wallet: "เงินสด" (cash, THB, balance 0).
+7. **No wallet is created automatically**: right after creating a profile, the onboarding opens
+   the wallet form for its first wallet ([profile.md](profile.md) rule 5). A profile with no wallet
+   shows an empty state with "เพิ่มกระเป๋าเงิน" (Add wallet) where wallets are needed.
 
 ## Endpoints
 
