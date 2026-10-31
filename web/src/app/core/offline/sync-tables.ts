@@ -19,7 +19,22 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
     booleans: ['isActive'],
     readOnly: true,
   },
-  // Dev only, removed at #6.
+  profiles: {
+    key: 'id',
+    columns: [
+      'id',
+      'name',
+      'icon',
+      'color',
+      'sortOrder',
+      'createdAt',
+      'updatedAt',
+      'deletedAt',
+      'changeSeq',
+      'updatedBy',
+    ],
+  },
+  // Dev only, removed at #6.2.
   sync_probes: {
     key: 'id',
     columns: [

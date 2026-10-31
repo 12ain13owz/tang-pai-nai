@@ -92,9 +92,7 @@ describe('TrustPage', () => {
     await fixture.whenStable()
 
     expect(enable).toHaveBeenCalledWith('135790')
-    await vi.waitFor(() =>
-      expect(navigate).toHaveBeenCalledWith('/reports', { replaceUrl: true })
-    )
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith('/reports', { replaceUrl: true }))
   })
 
   it('says so and asks for the PIN again when trusting fails', async () => {

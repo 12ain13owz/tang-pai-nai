@@ -56,6 +56,19 @@ const MIGRATIONS: readonly string[] = [
     created_at INTEGER NOT NULL,
     seen_at INTEGER
   ) STRICT`,
+  // #6.1: profiles (docs/features/profile.md).
+  `CREATE TABLE profiles (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    icon TEXT NOT NULL,
+    color TEXT NOT NULL,
+    sort_order INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted_at INTEGER,
+    change_seq INTEGER,
+    updated_by TEXT
+  ) STRICT`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null

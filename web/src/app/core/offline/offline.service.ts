@@ -33,6 +33,9 @@ export type SyncMetaKey = 'deviceId' | 'userId' | 'cursor' | 'lastSyncedAt' | 't
 export const LOCK_URL = '/auth/lock'
 export const OTHER_TAB_URL = '/auth/tab'
 
+/** Keys of per-user device choices that a wipe removes (`tpn-profile:<userId>`). */
+const DEVICE_PREF_PREFIX = 'tpn-profile:'
+
 /** Wrong PINs in a row before the local data is wiped (rule 3). */
 export const MAX_PIN_ATTEMPTS = 5
 /** The warning shows from this wrong attempt on (rule 3). */
@@ -250,11 +253,27 @@ export class OfflineService {
   async wipe(): Promise<void> {
     this.closeDatabase()
     await this.vaultStorage.wipe()
+    this.forgetDevicePrefs()
     this.meta.set(null)
     this.reading = Promise.resolve(null)
     this.state.set('none')
     this.releaseTab?.()
     this.releaseTab = null
+  }
+
+  /** Per-user device choices kept beside the database: the current profile (profile rule 6). */
+  private forgetDevicePrefs(): void {
+    for (const storage of [this.window?.localStorage, this.window?.sessionStorage]) {
+      if (!storage) {
+        continue
+      }
+      const keys = Array.from({ length: storage.length }, (_, i) => storage.key(i))
+      for (const key of keys) {
+        if (key?.startsWith(DEVICE_PREF_PREFIX)) {
+          storage.removeItem(key)
+        }
+      }
+    }
   }
 
   /** Rule 7, a different user signed in: their data must never meet the previous user's. */

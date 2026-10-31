@@ -1,4 +1,11 @@
-import { createDataKey, PBKDF2_ITERATIONS, seal, unseal, unwrapDataKey, wrapDataKey } from './vault-crypto'
+import {
+  createDataKey,
+  PBKDF2_ITERATIONS,
+  seal,
+  unseal,
+  unwrapDataKey,
+  wrapDataKey,
+} from './vault-crypto'
 
 // Fewer PBKDF2 rounds keep the specs fast; the production default is checked on its own.
 const ROUNDS = 1_000

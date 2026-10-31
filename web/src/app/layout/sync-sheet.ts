@@ -14,6 +14,7 @@ import type { SyncRow } from '@/core/offline'
 
 /** Where "fix" opens a rejected op's values, per table. */
 const FIX_ROUTES: Readonly<Record<string, string>> = {
+  profiles: '/account/profiles',
   sync_probes: '/account/sync-test',
 }
 
@@ -199,7 +200,7 @@ export class SyncSheet {
   }
 
   protected summary(row: SyncRow): string {
-    const title = row['title']
+    const title = row['title'] ?? row['name']
     return typeof title === 'string' ? title : String(row['id'])
   }
 

@@ -9,6 +9,7 @@ import {
   lucideFlaskConical,
   lucideLogOut,
   lucideShieldCheck,
+  lucideUsers,
 } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
@@ -16,6 +17,7 @@ import { AuthService, AuthStore, SIGN_IN_URL } from '@/core/auth'
 import { LANGUAGES, LanguageService } from '@/core/i18n'
 import type { Language } from '@/core/i18n'
 import { OfflineService, SyncService } from '@/core/offline'
+import { ProfileService } from '@/core/profile'
 import { DeviceStorageService } from '@/core/pwa'
 import { PALETTES, ThemeService } from '@/core/theme'
 import type { PaletteId, ThemePreference } from '@/core/theme'
@@ -27,7 +29,13 @@ import { PalettePicker } from './palette-picker'
   selector: 'app-account-page',
   imports: [TranslocoPipe, RouterLink, SelectField, PalettePicker, NgIcon, HlmButton, HlmSpinner],
   providers: [
-    provideIcons({ lucideLogOut, lucideChevronRight, lucideShieldCheck, lucideFlaskConical }),
+    provideIcons({
+      lucideLogOut,
+      lucideChevronRight,
+      lucideShieldCheck,
+      lucideFlaskConical,
+      lucideUsers,
+    }),
   ],
   template: `
     <div class="flex flex-col gap-6 p-4">
@@ -41,6 +49,30 @@ import { PalettePicker } from './palette-picker'
             <p class="text-sm break-all text-muted-foreground">{{ user.email }}</p>
           </div>
         </section>
+
+        <a
+          routerLink="/account/profiles"
+          class="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground"
+        >
+          <span
+            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
+            aria-hidden="true"
+          >
+            <ng-icon name="lucideUsers" />
+          </span>
+          <span class="flex min-w-0 flex-1 flex-col">
+            <span class="text-base">{{ 'account.profiles' | transloco }}</span>
+            <span class="truncate text-sm text-muted-foreground">
+              {{ profileService.current()?.name ?? ('account.profilesNone' | transloco) }}
+            </span>
+          </span>
+          <ng-icon
+            name="lucideChevronRight"
+            size="20"
+            class="text-muted-foreground"
+            aria-hidden="true"
+          />
+        </a>
 
         <a
           routerLink="/account/security"
@@ -196,6 +228,7 @@ import { PalettePicker } from './palette-picker'
   `,
 })
 export class AccountPage {
+  protected profileService = inject(ProfileService)
   private nnfb = inject(NonNullableFormBuilder)
   private transloco = inject(TranslocoService)
   private themeService = inject(ThemeService)
