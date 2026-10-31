@@ -70,27 +70,27 @@ merging.
 
 ## Status
 
-| #   | Feature / phase            | API | Web | Notes                                                                                                                     |
-| --- | -------------------------- | --- | --- | ------------------------------------------------------------------------------------------------------------------------- |
-| 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                   |
-| 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                               |
-| 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                |
-| 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                            |
-| 4   | Auth                       | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                              |
-| 4a  | Offline sync foundation    | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md) |
-| 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                       |
-| 6   | **Wallet**                 | ⬜  | ⬜  | **← next.** accounts with a currency + balance; `wallet_members` from day one. [spec](docs/features/wallet.md)            |
-| 7   | Category                   | ⬜  | ⬜  | income/expense, 1 level of sub-categories, default set seeded per user. [spec](docs/features/category.md)                 |
-| 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                             |
-| 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                   |
-| 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                |
-| 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                        |
-| 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                            |
-| 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                                 |
-| 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                        |
-| 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                                           |
-| 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                    |
-| 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                      |
+| #   | Feature / phase            | API | Web | Notes                                                                                                                                                    |
+| --- | -------------------------- | --- | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                                                  |
+| 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                                                              |
+| 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                                               |
+| 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                                                           |
+| 4   | Auth                       | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                                                             |
+| 4a  | Offline sync foundation    | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                |
+| 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                      |
+| 6   | **Profile + Wallet**       | 🚧  | 🚧  | **← now.** 6.1 profiles + switcher; 6.2 wallets (`profileId`, `wallet_members`). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
+| 7   | Category                   | ⬜  | ⬜  | income/expense, 1 level of sub-categories, one set per profile (seeded with it). [spec](docs/features/category.md)                                       |
+| 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                                                            |
+| 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                                                  |
+| 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                               |
+| 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                                                       |
+| 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                                                           |
+| 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                                                                |
+| 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                                                       |
+| 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                                                                          |
+| 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                                                   |
+| 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                     |
 
 ✅ done · 🚧 in progress · ⬜ not started · — not applicable
 
@@ -99,6 +99,36 @@ After #8 the app can replace Money Lover for daily use. Until #17, everything ru
 decision "Local-first").
 
 ---
+
+## Now: Profile + Wallet (#6)
+
+Specs: [profile.md](docs/features/profile.md), [wallet.md](docs/features/wallet.md). **Decided at
+the start of #6**: two parts, one session and PR each, because wallets, categories and
+transactions all carry a `profileId`, so `profiles` must exist first.
+
+| Part | What                                                                                                               | Status |
+| ---- | ------------------------------------------------------------------------------------------------------------------ | ------ |
+| 6.1  | `profiles` (API table + sync handler; device table), create step, profile form, header switcher, Account › โปรไฟล์ | 🚧     |
+| 6.2  | `wallets` + `wallet_members`, Wallets tab, wallet form + icons, first-wallet step, **remove `sync_probes`**        | ⬜     |
+
+Decided with the owner (don't re-ask):
+
+- **Profiles are made by the user.** No automatic profile or wallet (replaces wallet rule 7).
+  Onboarding = create a profile → its first wallet. The app reopens on the device's last
+  profile (`tpn-profile:<userId>`, profile rule 6).
+- **Profile look** (6.1): a lucide icon from a curated set on a user colour. The switcher
+  replaces the page title on the Transactions, Wallets and Reports tabs. Delete asks in a sheet
+  (no undo, takes the profile's wallets and transactions with it from 6.2); the last profile may
+  be deleted.
+- **Categories**: one set per profile, and a wallet can hide categories it doesn't use. The
+  default set (category rule 8) comes with #7, written by the device that creates the profile
+  in the same local write; 6.1 writes no categories.
+- **For 6.2** (update wallet.md at its start): wallets have **no type** (drop `type`); icons are
+  lucide **plus our own `tpn` SVG set plus a letter badge** (no bank or brand logos), so
+  DESIGN.md §7's "lucide only" changes with it; the currency can change only while the wallet
+  has no transactions, and the form says why when it can't.
+- 6.1 leaves out: `wallets` / `wallet_members`, the Wallets tab, the `tpn` icon set and removing
+  `sync_probes` (all 6.2).
 
 ## Done: Offline sync foundation (#4a)
 
@@ -112,10 +142,10 @@ the app usable on local data with a "sign in again to sync" banner.
 | 4a.1 | Trust step, encrypted local DB, PIN lock (keypad), auto-lock, wipe rules, Security › device   | ✅     |
 | 4a.2 | Sync tables, `/sync/push` + `/sync/pull`, outbox, sync status, rejected ops, conflict notices | ✅     |
 
-**Next up is Wallet (#6)**, the first real synced table: it registers a sync handler like
-`sync_probes` does (`api/AGENTS.md` → Sync, `web/AGENTS.md` → Sync) and then **removes the
-dev-only probe** (its feature folder, handler, web page, local table and a migration dropping
-`sync_probes`).
+**Next up is Profile + Wallet (#6)**, the first real synced tables (see "Now" below). Profiles
+(6.1) register a sync handler like `sync_probes` does (`api/AGENTS.md` → Sync, `web/AGENTS.md` →
+Sync); 6.2 adds wallets and then **removes the dev-only probe** (its feature folder, handler, web
+page, local table and a migration dropping `sync_probes`).
 
 4a.2 in detail (✅ done, API + web):
 

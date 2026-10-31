@@ -1,6 +1,11 @@
 # Category
 
-> Status: Spec — not built yet. Code will live in `src/features/category/`.
+> Status: Spec — not built yet (#7). Code will live in `src/features/category/`.
+>
+> **To revise at the start of #7** (decided at the start of #6): one category set **per profile**
+> (`profileId`, [profile.md](profile.md)), not per user; a wallet can hide categories it doesn't
+> use; the default set (rule 8) is written by the device that creates the profile, in the same
+> local write, not seeded on the server when the user is created.
 
 ## Purpose
 

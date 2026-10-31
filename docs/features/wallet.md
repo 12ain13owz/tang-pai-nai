@@ -1,6 +1,11 @@
 # Wallet
 
-> Status: Spec — not built yet. Code will live in `src/features/wallet/`.
+> Status: Spec — not built yet (#6.2). Code will live in `src/features/wallet/`.
+>
+> **To revise at the start of 6.2** (decided at the start of #6, ROADMAP → "Now: Profile +
+> Wallet"): every wallet belongs to a profile (`profileId`, [profile.md](profile.md)); no `type`;
+> icons are lucide + our `tpn` SVG set + a letter badge; rule 7 (a starter wallet) is replaced by
+> the user creating the first wallet after the first profile.
 
 ## Purpose
 
