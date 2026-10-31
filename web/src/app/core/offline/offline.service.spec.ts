@@ -175,6 +175,19 @@ describe('OfflineService', () => {
     expect(service.isOpen()).toBe(false)
   })
 
+  it('forgets every current-profile choice on wipe, and nothing else (profile rule 6)', async () => {
+    setUp()
+    await service.enable(PIN)
+    localStorage.setItem('tpn-profile:u1', 'p1')
+    sessionStorage.setItem('tpn-profile:u2', 'p2')
+    localStorage.setItem('tpn-theme', 'dark')
+    await service.wipe()
+    expect(localStorage.getItem('tpn-profile:u1')).toBeNull()
+    expect(sessionStorage.getItem('tpn-profile:u2')).toBeNull()
+    expect(localStorage.getItem('tpn-theme')).toBe('dark')
+    localStorage.clear()
+  })
+
   it('locks: the key and the database leave memory until the PIN unlocks them again', async () => {
     setUp()
     await trustedAndLocked()

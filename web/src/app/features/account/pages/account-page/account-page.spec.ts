@@ -3,9 +3,11 @@ import { TestBed } from '@angular/core/testing'
 import type { ComponentFixture } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
-import { AuthService } from '@/core/auth'
+import { AuthService, AuthStore } from '@/core/auth'
+import type { AuthUser } from '@/core/auth'
 import th from '@/core/i18n/th.json'
 import { OfflineService, SyncService } from '@/core/offline'
+import { ProfileService } from '@/core/profile'
 import { DeviceStorageService } from '@/core/pwa'
 import { PALETTES, ThemeService } from '@/core/theme'
 import { AccountPage } from './account-page'
@@ -46,6 +48,7 @@ describe('AccountPage', () => {
         { provide: AuthService, useValue: authService },
         { provide: OfflineService, useValue: offlineService },
         { provide: SyncService, useValue: syncService },
+        { provide: ProfileService, useValue: { current: signal({ name: 'ส่วนตัว' }) } },
         {
           provide: DeviceStorageService,
           useValue: { isInstalled: signal(false), isPersisted: signal(null) },
@@ -64,6 +67,14 @@ describe('AccountPage', () => {
     vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true)
     fixture = TestBed.createComponent(AccountPage)
     fixture.detectChanges()
+  })
+
+  it('links the profiles page and names the current profile', () => {
+    TestBed.inject(AuthStore).user.set({ displayName: 'mom', email: 'm@example.com' } as AuthUser)
+    fixture.detectChanges()
+    const link = page().querySelector('a[href="/account/profiles"]')
+    expect(link?.textContent).toContain(th.account.profiles)
+    expect(link?.textContent).toContain('ส่วนตัว')
   })
 
   it('pushes first, then signs out and wipes when everything is synced (rule 7)', async () => {
