@@ -23,18 +23,18 @@ wallets and its own total.
 
 `src/core/database/schema/wallet.ts`
 
-- **wallets** — `id`, `userId`, `profileId` (FK profiles), `name`, `type` (`cash` | `bank` |
-  `credit_card` | `e_wallet` | `other`), `currencyCode` (FK currencies), `initialBalance` (integer, minor units, may be
+- **wallets** — `id`, `userId`, `profileId` (FK profiles), `name`, `currencyCode` (FK currencies), `initialBalance` (integer, minor units, may be
   negative), `icon`, `color`, `excludeFromTotal` (default `false`), `isArchived` (default
   `false`), `sortOrder`, plus the sync columns (`createdAt`, `updatedAt`, `deletedAt?`, `changeSeq`,
   `updatedBy`; see [offline-sync.md](offline-sync.md)). `userId` is the **owner**.
 - **wallet_members**: `walletId` (FK), `userId` (FK), `role` (`editor` | `viewer`), `addedAt`.
   PK (`walletId`, `userId`). The owner isn't listed here. It stays empty until #16 adds the UI.
 
-`type` is a label and the default icon only; it limits nothing. `bank` covers a bank account and
-its debit card ("ธนาคาร / เดบิต"), since a debit card spends from that account. `credit_card`
-stays apart because it may later get a negative balance view or a statement cycle. `icon` is an
-icon name from the app's own set (Web screens → Icons), never an uploaded image.
+**No wallet type** (decided with the owner before #6): every wallet works the same, whether it
+holds cash, a bank account / debit card, a credit card or an e-wallet; its name, icon and colour
+say what it is. A credit card with a limit or a statement cycle can become its own kind later, if
+missed. `icon` is an icon name from the app's own set (Web screens → Icons), never an uploaded
+image.
 
 **Balance isn't stored.** It's computed as `initialBalance + Σ income − Σ expense ± transfers` for
 the wallet. Add a cached column only if this gets slow.
@@ -79,14 +79,14 @@ the wallet. Add a cached column only if this gets slow.
 
 ## Endpoints
 
-| Method | Path             | Auth   | What                                                                        |
-| ------ | ---------------- | ------ | --------------------------------------------------------------------------- |
-| GET    | `/wallets`       | Bearer | List (with computed balance); `?archived=true` includes archived            |
-| GET    | `/wallets/:id`   | Bearer | Detail with balance                                                         |
-| POST   | `/wallets`       | Bearer | Create                                                                      |
-| PATCH  | `/wallets/:id`   | Bearer | Update name/type/icon/color/flags/sortOrder (+ currency if no transactions) |
-| DELETE | `/wallets/:id`   | Bearer | Delete (only if no transactions, else 409)                                  |
-| PUT    | `/wallets/order` | Bearer | Reorder: `{ ids: [...] }`                                                   |
+| Method | Path             | Auth   | What                                                                   |
+| ------ | ---------------- | ------ | ---------------------------------------------------------------------- |
+| GET    | `/wallets`       | Bearer | List (with computed balance); `?archived=true` includes archived       |
+| GET    | `/wallets/:id`   | Bearer | Detail with balance                                                    |
+| POST   | `/wallets`       | Bearer | Create                                                                 |
+| PATCH  | `/wallets/:id`   | Bearer | Update name/icon/color/flags/sortOrder (+ currency if no transactions) |
+| DELETE | `/wallets/:id`   | Bearer | Delete (only if no transactions, else 409)                             |
+| PUT    | `/wallets/order` | Bearer | Reorder: `{ ids: [...] }`                                              |
 
 ## Web screens
 
@@ -99,13 +99,15 @@ the wallet. Add a cached column only if this gets slow.
 
 - **Wallets tab** (current profile): the total per currency at the top, then the wallet list (icon, name, balance).
   Tapping a wallet opens its transactions, and long-press/drag reorders.
-- **Wallet form** (bottom sheet): name, type, icon (or letter badge), colour, starting balance, currency (only if more
+- **Wallet form** (bottom sheet): name, icon (or letter badge), colour, starting balance, currency (only if more
   than one is active), and an "exclude from total" toggle.
 - **Wallet switcher** in the header of the Transactions tab: "all wallets" or one wallet.
 
 ## Interactions
 
 - Transaction requires `walletId` and inherits the wallet's currency.
+- Categories belong to the profile, not to a wallet, and a category may be hidden in some wallets
+  (category spec rule 9).
 - Reports and budgets can filter by wallet.
 
 ## Offline

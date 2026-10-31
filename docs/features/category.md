@@ -25,6 +25,7 @@ delete. Reports and budgets group by them.
 
 - **categories** — `id`, `userId`, `profileId` (FK profiles; each profile has its own set,
   [profile.md](profile.md)), `type` (`income` | `expense`), `parentId?` (FK categories),
+  `hiddenWalletIds` (JSON array of wallet ids, default `[]`; rule 9),
   `name`, `icon`, `color`, `isArchived` (default `false`), `sortOrder`, plus the sync columns
   (`createdAt`, `updatedAt`, `deletedAt?`, `changeSeq`, `updatedBy`; see
   [offline-sync.md](offline-sync.md)).
@@ -64,6 +65,19 @@ template is written in Thai (rule 8).
      ครอบครัว, ของขวัญและบริจาค, ประกัน, ท่องเที่ยว, อื่นๆ
    - Income: เงินเดือน, โบนัส, ดอกเบี้ยและเงินปันผล, ขายของ, ได้รับเงิน, อื่นๆ
 
+9. **One set for every wallet of the profile** (decided with the owner before #6). A category
+   is never copied per wallet: "อาหาร" used from three wallets is the same category, so its total
+   is one number, and reports can then split it by wallet. Money Lover used to keep separate
+   categories per wallet, which made totals hard; we don't.
+   - **Which wallets show it**: a category can be hidden in some wallets (`hiddenWalletIds`). The
+     category picker of a transaction lists only the categories shown in that transaction's
+     wallet. New wallets show every category until the user hides some.
+   - A sub follows its main: a main hidden in a wallet hides its subs there too; a sub can also be
+     hidden on its own.
+   - Hiding only filters the picker. Transactions already in a hidden category stay where they
+     are and still count in totals and reports, and the server never refuses a transaction for
+     it.
+
 ## Endpoints
 
 | Method | Path                | Auth   | What                                                  |
@@ -79,7 +93,9 @@ template is written in Thai (rule 8).
 - **Category picker** (bottom sheet, used by the transaction form): tabs for รายจ่าย / รายรับ, a
   grid of icons with parents and their children inline, plus search.
 - **Manage categories** (Account tab): list by type, add a main or a sub, edit, merge, delete
-  (with the counts above), archive, reorder.
+  (with the counts above), archive, reorder. Editing a category has a "ใช้ในกระเป๋า" (Shown in
+  wallets) list of the profile's wallets with a check each, all on by default (rule 9).
+- **Category detail / reports**: one total per category, with a breakdown by wallet beneath.
 
 ## Interactions
 
