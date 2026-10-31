@@ -61,11 +61,11 @@ const MIGRATIONS: readonly string[] = [
 let sqlitePromise: Promise<Sqlite3Static> | null = null
 
 /** Loads SQLite WASM once, on first use (it's a lazy chunk plus ~880 KB of wasm). */
-const loadSqlite = async (): Promise<Sqlite3Static> => {
+const loadSqlite = async (wasmDir = WASM_DIR): Promise<Sqlite3Static> => {
   sqlitePromise ??= import('@sqlite.org/sqlite-wasm').then(async ({ default: init }) => {
     // The typings omit the Emscripten module options; `locateFile` is how the wasm is found.
     const withOptions = init as unknown as (options: object) => Promise<Sqlite3Static>
-    return withOptions({ locateFile: (file: string) => `${WASM_DIR}${file}` })
+    return withOptions({ locateFile: (file: string) => `${wasmDir}${file}` })
   })
   return sqlitePromise.catch((error: unknown) => {
     sqlitePromise = null
@@ -83,9 +83,12 @@ export class LocalDatabase {
     private db: Database
   ) {}
 
-  /** A new empty database, or one restored from `snapshot`, migrated to the current schema. */
-  static async open(snapshot?: Uint8Array<ArrayBuffer>): Promise<LocalDatabase> {
-    const sqlite3 = await loadSqlite()
+  /**
+   * A new empty database, or one restored from `snapshot`, migrated to the current schema.
+   * `wasmDir` is for specs, which read the wasm from `node_modules` instead of `/sqlite/`.
+   */
+  static async open(snapshot?: Uint8Array<ArrayBuffer>, wasmDir?: string): Promise<LocalDatabase> {
+    const sqlite3 = await loadSqlite(wasmDir)
     const db = new sqlite3.oo1.DB(':memory:', 'c')
     if (snapshot) {
       const pointer = sqlite3.wasm.allocFromTypedArray(snapshot)

@@ -140,6 +140,41 @@ describe('OfflineService', () => {
     expect(persist).toHaveBeenCalled()
   })
 
+  it('opens an untrusted device in memory only: nothing reaches the vault (rule 1)', async () => {
+    setUp()
+    await service.ready()
+    await service.openUntrusted()
+    expect(service.isOpen()).toBe(true)
+    expect(service.state()).toBe('none')
+    expect(service.db().selectValue('SELECT', ['userId'])).toBe('u1')
+    expect(service.syncMeta('deviceId')).toMatch(/^[0-9a-f-]{36}$/)
+    service.write((db) => db.exec('INSERT', ['note', 'x']))
+    await service.save()
+    expect(vault.store).toEqual({ meta: null, snapshot: null })
+    await service.openUntrusted() // a second call keeps the same database
+    expect(service.db().selectValue('SELECT', ['note'])).toBe('x')
+  })
+
+  it('counts local writes, so screens re-read the database (rule 8)', async () => {
+    setUp()
+    await service.enable(PIN)
+    const before = service.changes()
+    service.write((db) => db.exec('INSERT', ['note', 'x']))
+    expect(service.changes()).toBe(before + 1)
+  })
+
+  it('replaces the in-memory copy when the device becomes trusted, and closes it on wipe', async () => {
+    setUp()
+    await service.ready()
+    await service.openUntrusted()
+    service.write((db) => db.exec('INSERT', ['note', 'memory only']))
+    await service.enable(PIN)
+    expect(service.db().selectValue('SELECT', ['note'])).toBeNull()
+    expect(service.isOpen()).toBe(true)
+    await service.wipe()
+    expect(service.isOpen()).toBe(false)
+  })
+
   it('locks: the key and the database leave memory until the PIN unlocks them again', async () => {
     setUp()
     await trustedAndLocked()

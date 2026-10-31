@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http'
+import { provideHttpClientTesting } from '@angular/common/http/testing'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter, Router, TitleStrategy } from '@angular/router'
@@ -5,6 +7,8 @@ import { provideServiceWorker } from '@angular/service-worker'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
 import th from '@/core/i18n/th.json'
+import { OPEN_LOCAL_DATABASE } from '@/core/offline'
+import { openTestDatabase } from '@/core/offline/testing-db'
 import { DeviceStorageService } from '@/core/pwa'
 import { PageTitleStrategy } from '@/core/routing'
 import { App } from './app'
@@ -36,6 +40,10 @@ describe('App', () => {
         { provide: TitleStrategy, useExisting: PageTitleStrategy },
         provideServiceWorker('ngsw-worker.js', { enabled: false }),
         deviceStorageStub,
+        // The shell opens the database in memory (untrusted device) and starts syncing.
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: OPEN_LOCAL_DATABASE, useValue: openTestDatabase },
       ],
     }).compileComponents()
   })

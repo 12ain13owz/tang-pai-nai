@@ -35,6 +35,7 @@ describe('offline guards', () => {
       return Promise.resolve()
     }),
     claimTab: vi.fn(async () => Promise.resolve(offline.tabFree)),
+    openUntrusted: vi.fn(async () => Promise.resolve()),
     // As the real one: nobody signed in (an expired session) is not someone else.
     belongsToSomeoneElse: () => {
       const signedIn = authStore.user()
@@ -69,13 +70,15 @@ describe('offline guards', () => {
   })
 
   describe('shellGuard on an untrusted device', () => {
-    it('lets a signed-in user in', async () => {
+    it('lets a signed-in user in, with the database open in memory (rule 1)', async () => {
       expect(await run(shellGuard)).toBe(true)
+      expect(offline.openUntrusted).toHaveBeenCalledOnce()
     })
 
     it('sends a fresh sign-in to the trust step first (rule 1)', async () => {
       authStore.freshSignIn.set(true)
       expect(await run(shellGuard)).toBe('/auth/trust?returnUrl=%2Fwallets')
+      expect(offline.openUntrusted).not.toHaveBeenCalled()
     })
 
     it('sends someone signed out to sign-in', async () => {
