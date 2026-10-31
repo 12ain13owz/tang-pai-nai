@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http'
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
-import { Component } from '@angular/core'
+import { Component, signal } from '@angular/core'
 import type { DebugElement } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import type { ComponentFixture } from '@angular/core/testing'
@@ -11,6 +11,7 @@ import { toastState } from '@spartan-ng/brain/sonner'
 import { AuthStore } from '@/core/auth'
 import type { AuthDeviceSession, AuthUser } from '@/core/auth'
 import th from '@/core/i18n/th.json'
+import { OfflineService } from '@/core/offline'
 import { ReauthStep } from '@/features/account/components/reauth-step'
 import { SecurityPage } from './security-page'
 
@@ -56,9 +57,22 @@ const refused = (code: string, status: number) => ({
   init: { status, statusText: code },
 })
 
+/** Just what the page reads of this device's offline mode (offline-sync rules 1 and 4). */
+const fakeOffline = () => {
+  const isTrusted = signal(false)
+  return {
+    isTrusted,
+    wipe: vi.fn(async () => {
+      isTrusted.set(false)
+      return Promise.resolve()
+    }),
+  }
+}
+
 describe('SecurityPage', () => {
   let fixture: ComponentFixture<SecurityPage>
   let http: HttpTestingController
+  let offline: ReturnType<typeof fakeOffline>
 
   const page = () => fixture.nativeElement as HTMLElement
   const alerts = () =>
@@ -109,6 +123,7 @@ describe('SecurityPage', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([{ path: '**', component: Blank }]),
+        { provide: OfflineService, useFactory: () => (offline = fakeOffline()) },
       ],
     }).compileComponents()
     http = TestBed.inject(HttpTestingController)
@@ -230,5 +245,34 @@ describe('SecurityPage', () => {
 
     expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.security.googleLinked])
     expect(page().textContent).toContain('mom@gmail.com')
+  })
+  it('offers to turn offline on with a PIN on an untrusted device', async () => {
+    await open()
+
+    const turnOn = [...page().querySelectorAll('a')].find(
+      (link) => link.textContent.trim() === th.security.turnOn
+    )
+    expect(turnOn?.getAttribute('href')).toBe('/account/pin')
+    expect(page().textContent).toContain(th.security.offlineOff)
+    expect(page().textContent).not.toContain(th.security.changePin)
+  })
+
+  it('asks before turning offline off, then wipes this device', async () => {
+    await open()
+    offline.isTrusted.set(true)
+    fixture.detectChanges()
+    expect(page().textContent).toContain(th.security.offlineOn)
+    expect(page().textContent).toContain(th.security.changePin)
+
+    buttonNamed(th.security.turnOff)[0].click()
+    fixture.detectChanges()
+    expect(page().textContent).toContain(th.security.offlineOffConfirmText)
+    expect(offline.wipe).not.toHaveBeenCalled()
+
+    buttonNamed(th.security.offlineOffConfirm)[0].click()
+    await settle()
+    expect(offline.wipe).toHaveBeenCalledTimes(1)
+    expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.security.offlineOffDone])
+    expect(page().textContent).toContain(th.security.offlineOff)
   })
 })

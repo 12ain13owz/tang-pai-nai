@@ -1,12 +1,24 @@
+import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter, Router, TitleStrategy } from '@angular/router'
 import { provideServiceWorker } from '@angular/service-worker'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
 import th from '@/core/i18n/th.json'
+import { DeviceStorageService } from '@/core/pwa'
 import { PageTitleStrategy } from '@/core/routing'
 import { App } from './app'
 import { routes } from './app.routes'
+
+/** jsdom has no `matchMedia` / storage manager; the device facts don't matter here. */
+const deviceStorageStub = {
+  provide: DeviceStorageService,
+  useValue: {
+    isInstalled: signal(false),
+    isPersisted: signal(null),
+    persist: async () => Promise.resolve(false),
+  },
+}
 
 describe('App', () => {
   beforeEach(async () => {
@@ -23,6 +35,7 @@ describe('App', () => {
         provideRouter(routes),
         { provide: TitleStrategy, useExisting: PageTitleStrategy },
         provideServiceWorker('ngsw-worker.js', { enabled: false }),
+        deviceStorageStub,
       ],
     }).compileComponents()
   })

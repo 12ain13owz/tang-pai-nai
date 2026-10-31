@@ -23,12 +23,16 @@ const session = (accessToken = 'access-1'): AuthSession => ({
 
 const envelope = (data?: unknown) => ({ message: 'ok', timestamp: '', data })
 
+/** `restore()` first checks for a sign-out made offline, so its request goes out a tick later. */
+const tick = async () => new Promise<void>((resolve) => setTimeout(resolve))
+
 describe('AuthService', () => {
   let service: AuthService
   let store: AuthStore
   let http: HttpTestingController
 
   beforeEach(() => {
+    localStorage.clear()
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()],
     })
@@ -98,6 +102,7 @@ describe('AuthService', () => {
 
   it('restores once, then answers from memory', async () => {
     const restored = service.restore()
+    await tick()
     http.expectOne('/api/auth/refresh').flush(envelope(session()))
 
     await expect(restored).resolves.toBe('signedIn')
@@ -106,10 +111,70 @@ describe('AuthService', () => {
 
   it('restores to signedOut without a valid cookie, and does not ask again', async () => {
     const restored = service.restore()
+    await tick()
     http.expectOne('/api/auth/refresh').flush({ message: 'x' }, { status: 401, statusText: 'No' })
 
     await expect(restored).resolves.toBe('signedOut')
     await expect(service.restore()).resolves.toBe('signedOut')
+  })
+
+  it.each([
+    ['SESSION_REVOKED', 401, 'revoked'],
+    ['USER_DISABLED', 403, 'revoked'],
+    ['SESSION_EXPIRED', 401, 'expired'],
+    [undefined, 500, null],
+  ] as const)('says a refusal with %s ended the session as %s', async (code, status, endedBy) => {
+    store.setSession(session())
+    const done = service.refresh()
+
+    http.expectOne('/api/auth/refresh').flush({ message: 'no', code }, { status, statusText: 'No' })
+    await expect(done).rejects.toBeTruthy()
+    expect(store.status()).toBe('signedOut')
+    expect(store.endedBy()).toBe(endedBy)
+  })
+
+  it('marks a sign-in as fresh, but not a refresh', async () => {
+    const refreshed = service.refresh()
+    http.expectOne('/api/auth/refresh').flush(envelope(session()))
+    await refreshed
+    expect(store.freshSignIn()).toBe(false)
+
+    const verified = service.verifyCode('mom@example.com', '123456')
+    http.expectOne('/api/auth/email/verify').flush(envelope(session()))
+    await verified
+    expect(store.freshSignIn()).toBe(true)
+  })
+
+  it('counts the refresh after Google as a sign-in', async () => {
+    const done = service.finishGoogleSignIn()
+    http.expectOne('/api/auth/refresh').flush(envelope(session()))
+    await done
+    expect(store.status()).toBe('signedIn')
+    expect(store.freshSignIn()).toBe(true)
+  })
+
+  it('signs out later when the API cannot be reached, and sends it before the next refresh', async () => {
+    store.setSession(session())
+    const offline = service.signOutOrLater()
+    http.expectOne('/api/auth/sign-out').error(new ProgressEvent('error'))
+    await offline
+    expect(store.status()).toBe('signedOut')
+    expect(localStorage.getItem('tpn-sign-out-pending')).toBe('1')
+
+    // Still offline at the next start: signed out, and no refresh is attempted.
+    store.status.set('unknown')
+    const stillOffline = service.restore()
+    http.expectOne('/api/auth/sign-out').error(new ProgressEvent('error'))
+    await expect(stillOffline).resolves.toBe('signedOut')
+    expect(localStorage.getItem('tpn-sign-out-pending')).toBe('1')
+
+    // Online again: the sign-out goes out, the cookie is never refreshed.
+    store.status.set('unknown')
+    const online = service.restore()
+    http.expectOne('/api/auth/sign-out').flush(envelope())
+    await expect(online).resolves.toBe('signedOut')
+    http.expectNone('/api/auth/refresh')
+    expect(localStorage.getItem('tpn-sign-out-pending')).toBeNull()
   })
 
   it('clears the session on sign-out', async () => {
