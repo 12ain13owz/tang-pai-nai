@@ -198,10 +198,17 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - **Strip under the header**: the update banner and the expired-session banner
   (`layout/session-banner`) share one look: `bg-muted px-4 py-2 text-sm`, the text left and one
   44px button right.
-- **Status**: the header's right side holds the connection pill today and the sync status from #4a.
-  A small dot plus the word, never the dot alone: online = green dot (`bg-income`) and muted
-  "ออนไลน์"; offline = red dot in a red-tinted pill, "ออฟไลน์" in `text-destructive`. Status changes
-  are announced politely (`role="status"`).
+- **Status**: the header's right side holds the **sync pill** (`layout/sync-status`, #4a.2). A
+  small dot plus words, never the dot alone: synced = green dot (`bg-income`) and muted
+  "sync แล้ว"; syncing = a spinning refresh icon and "กำลัง sync"; waiting = muted dot and
+  "รอ sync 3"; offline = red dot in a red-tinted pill, "ออฟไลน์" or "ออฟไลน์ · รอ 2"; errors =
+  the same red pill, "บันทึกไม่สำเร็จ 1". Status changes are announced politely
+  (`role="status"`). The pill is a 44px button that opens the sync sheet (last sync, "sync
+  ตอนนี้", rejected items with fix / discard, conflict notices).
+- **Bottom sheet**: spartan `hlm-drawer` with `hlm-drawer-content` (`mx-auto max-w-[480px]`), a
+  `hlmDrawerTitle` heading, content that scrolls inside `max-h-[70vh]`, and the main action plus a
+  "ปิด" outline button at the bottom. Load a sheet that isn't needed at start with `@defer`
+  (see `layout/sync-sheet`).
 
 ## 7. Icons
 
@@ -273,20 +280,21 @@ WCAG 2.2 AA, as in `AGENTS.md`:
   `เกิดข้อผิดพลาด`.
 - **Glossary**: use these words everywhere, so the same thing is never called two names.
 
-  | Concept          | Thai                                | English          | Note                                        |
-  | ---------------- | ----------------------------------- | ---------------- | ------------------------------------------- |
-  | Transaction      | ธุรกรรม                             | Transaction      |                                             |
-  | Wallet           | กระเป๋าเงิน                         | Wallet           | Thai tab bar label shortens to กระเป๋า      |
-  | Category         | หมวดหมู่                            | Category         |                                             |
-  | Income / expense | รายรับ / รายจ่าย                    | Income / Expense |                                             |
-  | Balance          | คงเหลือ (summary), ยอดเงิน (wallet) | Balance          |                                             |
-  | Transfer         | โอนเงิน                             | Transfer         | #9                                          |
-  | Budget           | งบประมาณ                            | Budget           | #11                                         |
-  | Report           | รายงาน                              | Report           |                                             |
-  | Account (user)   | บัญชีผู้ใช้                         | Account          | Not บัญชี alone (could mean a bank account) |
-  | Online / offline | ออนไลน์ / ออฟไลน์                   | Online / Offline |                                             |
-  | Undo             | เลิกทำ                              | Undo             |                                             |
-  | Theme / mode     | ธีม / โหมดสี                        | Theme / Mode     | Theme names themselves stay English         |
+  | Concept          | Thai                                | English          | Note                                          |
+  | ---------------- | ----------------------------------- | ---------------- | --------------------------------------------- |
+  | Transaction      | ธุรกรรม                             | Transaction      |                                               |
+  | Wallet           | กระเป๋าเงิน                         | Wallet           | Thai tab bar label shortens to กระเป๋า        |
+  | Category         | หมวดหมู่                            | Category         |                                               |
+  | Income / expense | รายรับ / รายจ่าย                    | Income / Expense |                                               |
+  | Balance          | คงเหลือ (summary), ยอดเงิน (wallet) | Balance          |                                               |
+  | Transfer         | โอนเงิน                             | Transfer         | #9                                            |
+  | Budget           | งบประมาณ                            | Budget           | #11                                           |
+  | Report           | รายงาน                              | Report           |                                               |
+  | Account (user)   | บัญชีผู้ใช้                         | Account          | Not บัญชี alone (could mean a bank account)   |
+  | Online / offline | ออนไลน์ / ออฟไลน์                   | Online / Offline |                                               |
+  | Sync             | sync                                | Sync             | Stays English in Thai: "รอ sync", "sync แล้ว" |
+  | Undo             | เลิกทำ                              | Undo             |                                               |
+  | Theme / mode     | ธีม / โหมดสี                        | Theme / Mode     | Theme names themselves stay English           |
 
 ## 12. Before opening a PR with UI changes
 

@@ -1,7 +1,8 @@
 # Currency
 
-> Status: API built with offline sync 4a.2 (folded in, pull-only). Code in
-> `api/src/features/currency/`; the web app reads the pulled copy from its local database.
+> Status: Built with offline sync 4a.2 (folded in, pull-only). Code in
+> `api/src/features/currency/`; the web app reads the pulled copy from its local database
+> (`currencies` table). The wallet form's picker comes with #6.
 
 ## Purpose
 

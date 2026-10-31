@@ -1,11 +1,12 @@
 # Offline & sync
 
-> Status: **4a.1 built** (rules 1–7 on the web); **4a.2 (sync) in progress**. Built in two parts (decided at the start of #4a, one PR each):
-> **4a.1** trusted device, encrypted local database, PIN lock and the wipe rules (rules 1–7, web
-> only: the API already answers `SESSION_REVOKED` / `SESSION_EXPIRED`); **4a.2** sync (rules
-> 8–12: sync tables, `/sync/push`, `/sync/pull`, outbox, sync status). Server code will live in
-> `api/src/features/sync/` with the per-table registry in `api/src/core/sync/`. The web side
-> (local database, outbox, app lock) lives in `web/src/app/core/offline/`.
+> Status: **Built** (rules 1–12; rules 13–16 arrive with sharing, #16). Built in two parts
+> (decided at the start of #4a, one PR each): **4a.1** trusted device, encrypted local database,
+> PIN lock and the wipe rules (rules 1–7, web only: the API already answers `SESSION_REVOKED` /
+> `SESSION_EXPIRED`); **4a.2** sync (rules 8–12: sync tables, `/sync/push`, `/sync/pull`,
+> outbox, sync status). Server code lives in `api/src/features/sync/` with the per-table
+> registry in `api/src/core/sync/`. The web side (local database, outbox, sync rounds, app lock)
+> lives in `web/src/app/core/offline/`; the sync pill and sheet in `web/src/app/layout/`.
 
 ## Purpose
 
