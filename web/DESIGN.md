@@ -195,6 +195,10 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   then type again; a mismatch starts over with one error line). Errors and the attempts warning
   sit in one `role="alert"` line between the heading and the dots. Used by the trust step, the
   lock screen and Account › PIN.
+- **Tab bar**: the active tab is shown by colour alone: icon and label in `text-brand`, the label
+  `font-semibold` and the icon stroke 2.4 (so it doesn't rely on colour only), no pill, fill or
+  border (owner's choice in #6.1, so the gold ➕ stays the bar's one strong shape). Inactive tabs
+  are `text-muted-foreground`. Focus shows a ring around the icon.
 - **Strip under the header**: the update banner and the expired-session banner
   (`layout/session-banner`) share one look: `bg-muted px-4 py-2 text-sm`, the text left and one
   44px button right.
