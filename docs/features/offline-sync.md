@@ -1,6 +1,6 @@
 # Offline & sync
 
-> Status: **4a.1 built** (rules 1–7 on the web), 4a.2 (sync) not yet. Built in two parts (decided at the start of #4a, one PR each):
+> Status: **4a.1 built** (rules 1–7 on the web); **4a.2 (sync) in progress**. Built in two parts (decided at the start of #4a, one PR each):
 > **4a.1** trusted device, encrypted local database, PIN lock and the wipe rules (rules 1–7, web
 > only: the API already answers `SESSION_REVOKED` / `SESSION_EXPIRED`); **4a.2** sync (rules
 > 8–12: sync tables, `/sync/push`, `/sync/pull`, outbox, sync status). Server code will live in
@@ -54,7 +54,29 @@ recurring rules, debts, events). Each one carries:
   database (`sync_state.lastSeq`). Pull uses it as a cursor, because device clocks can't be trusted.
 - `updatedBy`: the user id that made the change (owner or member), for history and notices.
 
-Master data (currencies) is read-only for clients and is pulled the same way.
+Master data (currencies) is read-only for clients and is pulled the same way. It carries
+`changeSeq`, `createdAt` and `updatedAt` but no `deletedAt` or `updatedBy` (currency rule 4: never
+deleted), and its key is its own (`code`), not a UUID.
+
+Every write of a synced row (the server's own seed included) takes the next `sync_state.lastSeq`
+**in the same database transaction** as the row. SQLite and Turso run one write transaction at a
+time, so rows commit in `changeSeq` order and a pull can never skip a row that commits later with
+a lower number.
+
+### Server: tables synced in 4a.2 (decided at the start of 4a.2)
+
+No user-data table exists before #6, so 4a.2 syncs:
+
+- **currencies** (#5 folded in, pull-only): the currency feature's table, with its rows inserted
+  by a migration (not the dev seeder), because master data must exist in production too.
+- **sync_probes** (temporary, **dev only**): `id`, `userId`, `title` (1–50 chars), `amount`
+  (integer ≥ 0, satang), plus the sync columns. Its handler is registered only when
+  `NODE_ENV` isn't `production`, so a production API neither pulls nor accepts it; the table
+  itself exists everywhere (migrations are global). It lets the web app prove push, outbox,
+  offline, conflicts and rejected ops end to end before a real table exists. Server-only rule:
+  a `title` is unique among the user's live probes, which a device can't check offline, so it is
+  how a rejection happens for real. **Removed** (handler, web page, local table, plus a migration
+  dropping it) once Wallet (#6) syncs.
 
 ### Server: sync tables
 
@@ -66,9 +88,13 @@ Master data (currencies) is read-only for clients and is pulled the same way.
   This makes push idempotent, so a retried push never applies an op twice. Rows older than 90
   days are purged.
 - **change_history**: `id`, `table`, `rowId`, `walletId?`, `overwrittenBy` (user id),
-  `previous` (JSON of the losing version), `loserUserId`, `changeSeq`, `createdAt`. It keeps the
-  version that lost a conflict (rule 12), so nothing disappears silently. Its `changeSeq` lets
-  pull carry the notice to the loser's devices with the rows (rule 12).
+  `overwrittenByDevice`, `previous` (JSON of the losing version), `loserUserId`, `loserDeviceId?`,
+  `changeSeq`, `createdAt`. It keeps the version that lost a conflict (rule 12), so nothing
+  disappears silently. Its `changeSeq` lets pull carry the notice to the loser's devices with the
+  rows (rule 12). `loserDeviceId` is set when the push that lost is the one being answered
+  (`overridden`): that device already hears it in the push result, so pull skips it. When an
+  already applied row loses later, `loserDeviceId` is empty and pull gives the notice to every
+  device of `loserUserId` except `overwrittenByDevice`.
 
 ### Device: local database (web)
 
@@ -82,9 +108,19 @@ Master data (currencies) is read-only for clients and is pulled the same way.
   `userId`, the PBKDF2 salt and iterations, the wrapped data key, and the wrong-PIN count.
 - It holds **only the signed-in user's own data plus master data**. It never holds data of wallets
   shared with them, apart from their own pending adds (rule 14).
-- The tables mirror the server's synced tables, plus:
-  - **outbox**: ordered pending ops `{ opId, table, op: upsert | delete, row, baseSeq, createdAt }`.
+- The tables mirror the server's synced tables (snake_case columns; 4a.2: `currencies`,
+  `sync_probes`), plus:
+  - **outbox**: ordered ops `{ opId, table, rowId, op: upsert | delete, row, baseSeq, createdAt,
+status: pending | rejected, error? }`. It keeps **one pending op per row**: a newer local write
+    of the same row replaces the pending op's `row` and `op` but keeps its `baseSeq` (so an edit
+    then delete, or delete then undo, is one op). A row created and deleted before it was ever
+    pushed (`baseSeq` empty) just drops its op.
+  - **sync_notices**: conflict notices to show (`id` from `change_history`, `table`, `rowId`,
+    `previous`, `createdAt`, `seenAt?`). Kept by `id`, so a notice heard twice shows once.
   - **sync_meta**: `cursor` (the last `changeSeq` pulled), `deviceId`, `userId`.
+- An **untrusted** device opens the same database in memory when the shell opens (signed in and
+  online), pulls from cursor 0, and pushes each write right away. Offline it can't write (rule 1:
+  nothing is queued), and the screen says so in place.
 - Balances, reports and month summaries are **computed locally** from transactions, never stored
   (ROADMAP → Money & data).
 
@@ -149,8 +185,13 @@ Master data (currencies) is read-only for clients and is pulled the same way.
    and again when the app goes to the background (`visibilitychange` / `pagehide`).
 9. **Pull** (`GET /sync/pull?since=<cursor>&limit=500`) returns every row the user may sync with
    `changeSeq > cursor` (tombstones included), ordered by `changeSeq`, plus the new cursor. The
-   device applies them and saves the cursor. A cursor older than the tombstone retention returns
-   `410`, and the device does a full resync.
+   device applies them and saves the cursor; it pulls again while `hasMore`. A cursor older than
+   the tombstone retention returns `410 CURSOR_EXPIRED`, and the device does a **full resync**:
+   it clears its synced tables (the outbox stays), sets the cursor to 0 and pulls again.
+   - A pulled row never overwrites a local row that has a **pending** op: that op is pushed next
+     round with its old `baseSeq`, and the server settles it (rule 12).
+   - Pull also returns `tables` (the tables this server syncs), so a device knows, for example,
+     whether the dev-only probe exists.
 10. **Push** (`POST /sync/push`) sends outbox ops in order, in batches.
     - For each op the server checks access and **runs the feature's own validation** (same service
       rules as the feature specs), applies it, stamps `changeSeq`, clamps `updatedAt` to the
@@ -158,9 +199,22 @@ Master data (currencies) is read-only for clients and is pulled the same way.
     - It returns a per-op result: `applied`, `overridden` (a conflict was resolved against it; the
       winning row is returned), or `rejected` (a validation error, with the message).
     - Rejected ops stay visible to the user ("บันทึกไม่สำเร็จ", with fix or discard); they are never
-      dropped silently.
+      dropped silently. A `rejected` result carries the server's current row (or none for a new
+      row), and the device puts that back in its table, so local data always matches what the
+      server accepted. The rejected op keeps the values that were refused: "fix" opens them in
+      the row's form (saving makes a new op on top of the current row), "discard" deletes the op.
+    - Ops apply one by one, each in its own database transaction (one rejection never undoes
+      another). At most 100 ops per request; the device sends the next batch after the answer.
+    - A repeated `opId` from the same user answers the result stored in `sync_ops`, without
+      applying anything. An `opId` or row `id` that belongs to another user is `rejected`.
+    - Deleting a row the server doesn't have is `applied` and does nothing.
 11. **Push before pull.** Each sync round pushes, then pulls. Running two rounds at once is
-    prevented with a Web Lock (`navigator.locks`), so two tabs don't sync together.
+    prevented with a Web Lock (`tpn-sync`), so two tabs don't sync together.
+    - A round starts when the device unlocks or the shell opens, when it comes back online, when
+      the app comes back to the foreground, about 2 seconds after a local write, and every 5
+      minutes while the app is open. Only online, with a live session (rule 7: an expired one
+      waits for the same user to sign in again).
+    - A failed round (offline, API down) changes nothing and the next trigger tries again.
 
 **Conflicts**
 
@@ -170,7 +224,8 @@ Master data (currencies) is read-only for clients and is pulled the same way.
       rule 10). If they're equal, the one the server received first wins.
     - **Shared wallet**: the **owner always wins** over a member, whatever the times. Between
       members, conflicts can't happen, because members edit online only (rule 14).
-    - **Delete beats edit**: if either side deleted the row, it stays deleted.
+    - **Delete beats edit**: if either side deleted the row, it stays deleted. (Without a
+      conflict, an upsert on a tombstone the device has seen restores the row: that is undo.)
     - The losing version goes to `change_history`, and the person whose change lost sees a notice
       ("รายการนี้ถูกแก้ไขโดย …") the next time they sync: a push answers `overridden` to the
       device that lost, and pull returns the user's `change_history` entries newer than the
@@ -202,10 +257,26 @@ Master data (currencies) is read-only for clients and is pulled the same way.
 
 ## Endpoints
 
-| Method | Path         | Auth   | What                                                                  |
-| ------ | ------------ | ------ | --------------------------------------------------------------------- |
-| GET    | `/sync/pull` | Bearer | `?since=&limit=` → changed rows (incl. tombstones) + new cursor       |
-| POST   | `/sync/push` | Bearer | `{ deviceId, ops: [...] }` → per-op `applied`/`overridden`/`rejected` |
+| Method | Path          | Auth   | What                                                                  |
+| ------ | ------------- | ------ | --------------------------------------------------------------------- |
+| GET    | `/sync/pull`  | Bearer | `?since=&limit=&deviceId=` → changed rows + notices + new cursor      |
+| POST   | `/sync/push`  | Bearer | `{ deviceId, ops: [...] }` → per-op `applied`/`overridden`/`rejected` |
+| GET    | `/currencies` | Bearer | currency spec (REST, not used by the web app's own screens)           |
+
+- **Pull** `since` ≥ 0 (default 0), `limit` 1–1000 (default 500), `deviceId` a UUID. Answers
+  `{ changes: [{ table, row }], notices: [...], cursor, hasMore, tables }`, `changes` ordered by
+  `row.changeSeq` across tables. `cursor` is the last `changeSeq` returned (or `since` when
+  nothing changed). `410 CURSOR_EXPIRED` when `since` is below `sync_state.purgedSeq` (and above 0).
+- **Push** op: `{ opId, table, op: 'upsert' | 'delete', row, baseSeq }`; `row` is the whole row
+  for an upsert and `{ id }` for a delete, `baseSeq` is `null` for a row the device never saw on
+  the server. Answers `{ results: [{ opId, status, row?, changeSeq?, notice?, code?, message? }] }`
+  in the same order: `row` is the server's row after the op (the winner when `overridden`, the
+  current one when `rejected`), `notice` the `change_history` entry when `overridden`.
+- Rejection `code`s: `VALIDATION` (the feature's rules, with its message), `CONFLICT` (a feature
+  rule about other rows, e.g. a probe title in use), `ID_TAKEN` (row `id` or `opId` of another
+  user), `UNKNOWN_TABLE`, `READ_ONLY` (a pull-only table such as currencies).
+- **Cleanup**: `npm run sync:cleanup` deletes tombstones and `sync_ops` older than 90 days and
+  raises `purgedSeq` (a Vercel Cron endpoint replaces it at deploy, #17, like `auth:cleanup`).
 
 Feature REST endpoints stay. They serve shared wallets (members, online), admin/debug, and tests.
 The web app's **own** data goes through the local database + sync.
@@ -223,8 +294,17 @@ opens.
   wrong PIN (rule 3), and "ออกจากระบบ" (sign out, rule 7). Later "use fingerprint/face".
 - **Another tab** (4a.1): "แอปเปิดอยู่ในแท็บอื่น" with "ใช้ที่แท็บนี้" (rule 2).
 - **Expired session banner** under the header (4a.1, rule 7).
-- **Sync status** in the header (4a.2): synced ✓ / syncing / offline (n pending) / errors (n).
-  Tapping it lists rejected ops to fix or discard, and conflict notices.
+- **Sync status** in the header (4a.2): **one pill replaces the online/offline pill**, a dot plus
+  words (DESIGN.md §6 Status). In order of precedence: errors "บันทึกไม่สำเร็จ n" (red) /
+  offline "ออฟไลน์" or "ออฟไลน์ · รอ n" (red) / "กำลัง sync" / "รอ sync n" / "sync แล้ว" (green
+  dot). Tapping it opens a bottom sheet: the last sync time, a "sync ตอนนี้" button, rejected ops
+  (with the refused values and the server's message, fix or discard) and conflict notices
+  (dismiss). An untrusted device shows the same pill.
+- **Sign-out with unsynced changes** (4a.2, rule 7): sign-out pushes first; if ops are still
+  pending or rejected afterwards, the confirm sheet says how many will be lost.
+- **Sync test page** `/account/sync-test` (4a.2, dev only, temporary): reachable from Account only
+  when the last pull listed `sync_probes`. It lists probes (with "รอ sync" on pending rows) and
+  adds, edits and deletes them (with undo), and shows the pulled currencies. Removed at #6.
 - **Account → Security** (4a.1): a "This device" group with "Use offline on this device" (turn on:
   set a PIN; turn off: asks, then wipes local data) and "Change PIN" (current PIN, then the new
   one twice), beside the devices list (auth sessions).
@@ -261,7 +341,9 @@ opens.
   every browser, including iOS Safari. Angular's build bundles the package as a lazy chunk once
   `locateFile` points at the copied wasm. A family's five years (~18k rows) is a ~4 MB snapshot.
 
-- **First synced table for 4a.2**: no synced table exists before #5 / #6. Proposal: fold Currency
-  (#5, pull-only master data) into 4a.2 and prove push with a test-only table in the API tests;
-  decide at the start of 4a.2.
+- **First synced table for 4a.2**: decided at the start of 4a.2, Currency (#5) folded in as
+  pull-only master data, plus the dev-only `sync_probes` table and test page (Data model →
+  tables synced in 4a.2), rather than a table that exists only in the API tests: that way the
+  web app's outbox, offline writes, two devices, conflicts and rejections can be tried for real.
+- **Sync status**: decided at the start of 4a.2, one pill in the header (Web screens).
 - **Auto-lock timeout** 5 min and **PIN length** 6: adjustable in settings later?

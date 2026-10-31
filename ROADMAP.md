@@ -112,8 +112,10 @@ the app usable on local data with a "sign in again to sync" banner.
 | 4a.1 | Trust step, encrypted local DB, PIN lock (keypad), auto-lock, wipe rules, Security › device   | ✅     |
 | 4a.2 | Sync tables, `/sync/push` + `/sync/pull`, outbox, sync status, rejected ops, conflict notices | ⬜     |
 
-**Next up is 4a.2.** Decide its first synced table at its start (spec → Open questions: fold
-Currency #5 in as pull-only master data, prove push with a test-only table in the API tests).
+**4a.2 is in progress.** Decided at its start: Currency (#5) is folded in as pull-only master
+data, and push is proven by a temporary **dev-only** `sync_probes` table with a test page (removed
+at #6); the sync status is one header pill that replaces the online/offline pill. Protocol details
+in the spec (Data model, rules 8–12, Endpoints).
 
 4a.1 in detail (✅ done, web only):
 
