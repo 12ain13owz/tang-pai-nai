@@ -247,6 +247,8 @@ export const createSyncService = ({
         .withCode(SyncErrorCode.CURSOR_EXPIRED)
         .withOperation('syncPull')
     }
+    // Read before the rows: writes commit in `changeSeq` order, so every row up to it is visible.
+    const lastSeq = await syncRepo.lastSeq()
     const handlers = registry.all()
     const merged: PullChange[] = []
     for (const handler of handlers) {
@@ -255,8 +257,11 @@ export const createSyncService = ({
     }
     merged.sort((a, b) => a.row.changeSeq - b.row.changeSeq)
     const changes = merged.slice(0, limit)
-    const cursor = changes.at(-1)?.row.changeSeq ?? since
     const hasMore = merged.length > limit
+    const lastReturned = changes.at(-1)?.row.changeSeq ?? since
+    // Nothing more for this user: jump to the server's counter, so a quiet device's cursor never
+    // falls behind the purge watermark (which would answer 410 forever).
+    const cursor = hasMore ? lastReturned : Math.max(lastReturned, lastSeq, since)
     const notices = await syncRepo.notices(
       userId,
       deviceId,

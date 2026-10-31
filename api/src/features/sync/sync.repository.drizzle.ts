@@ -46,6 +46,15 @@ export const createDrizzleSyncRepository = (
         return state.lastSeq
       }),
 
+    lastSeq: async () =>
+      run('lastSeq', async () => {
+        const rows = await db
+          .select({ lastSeq: syncState.lastSeq })
+          .from(syncState)
+          .where(eq(syncState.id, STATE_ID))
+        return rows.at(0)?.lastSeq ?? 0
+      }),
+
     purgedSeq: async () =>
       run('purgedSeq', async () => {
         const rows = await db

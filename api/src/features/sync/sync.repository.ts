@@ -11,6 +11,8 @@ export interface SyncRepository {
   transaction<T>(work: (tx: SyncRepository) => Promise<T>): Promise<T>
   /** The next `changeSeq` from the database-wide counter. */
   nextSeq(): Promise<number>
+  /** The highest `changeSeq` handed out so far (every row up to it has committed). */
+  lastSeq(): Promise<number>
   purgedSeq(): Promise<number>
   raisePurgedSeq(seq: number): Promise<void>
   findOp(opId: string): Promise<StoredOp | null>

@@ -112,9 +112,10 @@ No user-data table exists before #6, so 4a.2 syncs:
   `sync_probes`), plus:
   - **outbox**: ordered ops `{ opId, table, rowId, op: upsert | delete, row, baseSeq, createdAt,
 status: pending | rejected, error? }`. It keeps **one pending op per row**: a newer local write
-    of the same row replaces the pending op's `row` and `op` but keeps its `baseSeq` (so an edit
-    then delete, or delete then undo, is one op). A row created and deleted before it was ever
-    pushed (`baseSeq` empty) just drops its op.
+    of the same row replaces the pending op's `row` and `op` and gives it a new `opId` (the old
+    one may be in flight), but keeps its `baseSeq` (so an edit then delete, or delete then undo,
+    is one op). When the answer to a replaced op arrives, the newer op's `baseSeq` moves to the
+    server's new `changeSeq`.
   - **sync_notices**: conflict notices to show (`id` from `change_history`, `table`, `rowId`,
     `previous`, `createdAt`, `seenAt?`). Kept by `id`, so a notice heard twice shows once.
   - **sync_meta**: `cursor` (the last `changeSeq` pulled), `deviceId`, `userId`.
@@ -265,8 +266,8 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
 
 - **Pull** `since` ≥ 0 (default 0), `limit` 1–1000 (default 500), `deviceId` a UUID. Answers
   `{ changes: [{ table, row }], notices: [...], cursor, hasMore, tables }`, `changes` ordered by
-  `row.changeSeq` across tables. `cursor` is the last `changeSeq` returned (or `since` when
-  nothing changed). `410 CURSOR_EXPIRED` when `since` is below `sync_state.purgedSeq` (and above 0).
+  `row.changeSeq` across tables. `cursor` is the last `changeSeq` returned while `hasMore`, else the
+  server's latest `changeSeq` (so a quiet device's cursor keeps up with the purge watermark). `410 CURSOR_EXPIRED` when `since` is below `sync_state.purgedSeq` (and above 0).
 - **Push** op: `{ opId, table, op: 'upsert' | 'delete', row, baseSeq }`; `row` is the whole row
   for an upsert and `{ id }` for a delete, `baseSeq` is `null` for a row the device never saw on
   the server. Answers `{ results: [{ opId, status, row?, changeSeq?, notice?, code?, message? }] }`
