@@ -82,7 +82,7 @@ layout    ->  core, shared
 - App-wide device state lives in `core/` as signal services: `ThemeService` (`core/theme`),
   `LanguageService` (`core/i18n`), `NetworkStatusService` (`core/network`), `KeyboardService`
   (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`), `OfflineService`
-  and `SyncService` (`core/offline`).
+  and `SyncService` (`core/offline`), `ProfileService` (`core/profile`).
 - The service worker (`ngsw-config.json`) caches the **app shell only**. Never add `dataGroups`:
   data comes from the local DB ([offline-sync](../docs/features/offline-sync.md) → Layers). It is
   off in `ng serve`, so check PWA behaviour against `npm run build` output served with an SPA
@@ -112,7 +112,9 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 1–7.
   `shellGuard`): it syncs while online and can't write offline (rule 1). `isOpen()` says whether a
   database is open at all; `changes()` is bumped by every `write()`, so a screen's `computed()`
   reads re-run (read it, then `isOpen()`, then query `db()`).
-- Specs: jsdom has no IndexedDB or `matchMedia`, and no `/sqlite/`. For real SQL use
+- Specs: jsdom has no IndexedDB or `matchMedia`, and no `/sqlite/`. A drawer renders into
+  `document.body` (query there), and a radio's `[value]` is a property, so find it by its
+  `aria-label` (`profile-sheet.spec.ts`). For real SQL use
   `openTestDatabase()` (`core/offline/testing-db.ts`, the wasm from `node_modules`), as
   `OPEN_LOCAL_DATABASE` or behind a fake `OfflineService` (`sync.service.spec.ts`,
   `sync-test-page.spec.ts`); `offline.service.spec.ts` uses a key/value fake. Stub
@@ -142,6 +144,33 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
   `?fix=<opId>`; saving queues a new op and deletes the rejected one.
 - The header pill is `layout/sync-status.ts`; its sheet (`layout/sync-sheet.ts`, spartan drawer)
   is `@defer`red until first opened.
+
+### Profiles (`core/profile`, #6.1)
+
+Spec: [profile.md](../docs/features/profile.md). Every data screen (wallets, transactions,
+reports) shows the **current profile's** data.
+
+- `ProfileService`: `profiles()` (live, in order), `current()` (the device's choice, else the
+  first), `ready()` (false only while a new device waits for its first pull), `canWrite()`
+  (untrusted = online only), `atLimit()`, `nameTaken()`, `save(id | null, values, fixOpId?)`,
+  `remove(id)`, `moveTo(id, index)`, `select(id)`. The current id is `tpn-profile:<userId>` in
+  `localStorage` (trusted) or `sessionStorage` (untrusted); `OfflineService.wipe()` removes it.
+- The shell owns the profile UI because every tab needs it: `layout/profile-switcher` (header,
+  on `isProfileTab()` routes), `layout/profile-sheet` (create / edit / fix / delete, opened by
+  `ProfileService.open(state)` from anywhere and `@defer`red), and `layout/profile-create-step`,
+  which `AppShell` renders instead of the page on the data tabs while there is no profile. Data
+  pages can therefore assume `current()` is set.
+- A feature's rows carry `profileId` (from 6.2) and its queries filter by
+  `profileService.current()`. Deleting a profile must tombstone its rows in the same
+  `OfflineService.write()` (profile rule 8).
+- Reordering a list: an order mode with one CDK drag handle per row (`cdkDropList` /
+  `cdkDrag` / `cdkDragHandle`, `cdkDragStartDelay` `{ touch: 300, mouse: 0 }`,
+  `cdkDragPreviewClass="tpn-drag-preview"`) plus ↑ / ↓ on the handle; see
+  `features/account/pages/profiles-page`.
+- User icons and colours: `@/shared/components/icon-badge` (`app-icon-badge`, `PROFILE_ICONS`,
+  `USER_COLORS`, `glyphColor`); pick them with `app-icon-field` / `app-color-field`.
+- Sheets with unsaved input: spartan's `disableClose` is read only when the drawer opens, so a
+  dirty sheet re-opens on `(closed)` with its "discard?" question (`layout/profile-sheet`).
 
 ### Inside a feature
 
@@ -272,6 +301,8 @@ initialValue })`.
   | `app-select-field`   | `FormControl<T \| ''>` | short fixed list (native picker on phones) |
   | `app-otp-field`      | `FormControl<string>`  | 6-digit email / SMS code (`one-time-code`) |
   | `app-switch-field`   | `FormControl<boolean>` | on/off setting row                         |
+  | `app-icon-field`     | `FormControl<string>`  | pick a curated lucide icon (radio grid)    |
+  | `app-color-field`    | `FormControl<string>`  | pick a user colour (radio swatches)        |
 
   Every field takes `[control]` (the typed control, so templates are type-checked) plus `label`,
   and optionally `hint` / `placeholder`. Labels are linked to the control automatically, so there's

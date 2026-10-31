@@ -1,7 +1,8 @@
 # Profile
 
-> Status: Spec. Built in #6.1 (API: `api/src/features/profile/`, web:
-> `web/src/app/features/profiles/`). Wallets join profiles in #6.2, categories in #7.
+> Status: **Built** in #6.1. API: `api/src/features/profile/` (sync handler only). Web:
+> `core/profile` (`ProfileService`), `layout/` (switcher, profile sheet, create step) and
+> `features/account/pages/profiles-page`. Wallets join profiles in #6.2, categories in #7.
 
 ## Purpose
 

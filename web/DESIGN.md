@@ -221,6 +221,10 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   headers, larger only inside empty-state circles.
 - Decorative icons get `aria-hidden="true"`. An icon that is the whole label of a control needs an
   `aria-label` on the control.
+- **Profile icons** (#6.1): 16 curated lucide icons in `shared/components/icon-badge/user-icons.ts`
+  (`PROFILE_ICONS`), on one of 10 `USER_COLORS`, shown by `app-icon-badge` (40px in rows, 28px
+  in the header switcher). Never rename or remove a shipped icon; an unknown name shows
+  `lucideUser`.
 - **Category and wallet icons**: the user picks from a curated lucide set (food, transport, home,
   shopping, …) shown as a grid in the picker. They're stored as the lucide name (e.g.
   `lucideCoffee`), so there's no image upload. The curated list lives in code next to the picker
@@ -290,6 +294,7 @@ WCAG 2.2 AA, as in `AGENTS.md`:
   | Concept          | Thai                                | English          | Note                                          |
   | ---------------- | ----------------------------------- | ---------------- | --------------------------------------------- |
   | Transaction      | ธุรกรรม                             | Transaction      |                                               |
+  | Profile          | โปรไฟล์                             | Profile          | #6.1; a separate area of money                |
   | Wallet           | กระเป๋าเงิน                         | Wallet           | Thai tab bar label shortens to กระเป๋า        |
   | Category         | หมวดหมู่                            | Category         |                                               |
   | Income / expense | รายรับ / รายจ่าย                    | Income / Expense |                                               |
