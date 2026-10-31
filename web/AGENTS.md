@@ -70,7 +70,7 @@ layout    ->  core, shared
 ### App shell & PWA
 
 - `app.routes.ts` mounts `AppShell` (`layout/`) as the layout route for the tab pages: header (page
-  title from the route's `title`, online/offline pill, update banner), the page, and the fixed
+  title from the route's `title`, sync status pill, update banner), the page, and the fixed
   bottom tab bar. Give every routed page a `title` that is a **translation key** (`title.wallets`);
   `PageTitleStrategy` (`core/routing`) translates it for the header and the document title.
   Full-screen flows that shouldn't show the bar (sign-in, PIN) go outside it.
@@ -82,7 +82,7 @@ layout    ->  core, shared
 - App-wide device state lives in `core/` as signal services: `ThemeService` (`core/theme`),
   `LanguageService` (`core/i18n`), `NetworkStatusService` (`core/network`), `KeyboardService`
   (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`), `OfflineService`
-  (`core/offline`).
+  and `SyncService` (`core/offline`).
 - The service worker (`ngsw-config.json`) caches the **app shell only**. Never add `dataGroups`:
   data comes from the local DB ([offline-sync](../docs/features/offline-sync.md) → Layers). It is
   off in `ng serve`, so check PWA behaviour against `npm run build` output served with an SPA
@@ -108,10 +108,40 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 1–7.
 - A trusted device keeps working after its session **expires** (`AuthStore.keepsLocalSession`
   stops the interceptor's redirect; `layout/session-banner` offers sign-in). Anything that ends
   a user's time on the device (sign-out, turning offline off) calls `OfflineService.wipe()`.
-- Specs: jsdom has no IndexedDB, wasm or `matchMedia`. Provide `VAULT_STORAGE` /
-  `OPEN_LOCAL_DATABASE` fakes (see `offline.service.spec.ts`), or a fake `OfflineService` /
-  `DeviceStorageService` for components and the shell (`app.spec.ts`). `vi.mock` doesn't work
-  with Angular's bundled Vitest runner; inject seams instead.
+- An **untrusted** device opens the same database in memory (`openUntrusted()`, called by
+  `shellGuard`): it syncs while online and can't write offline (rule 1). `isOpen()` says whether a
+  database is open at all; `changes()` is bumped by every `write()`, so a screen's `computed()`
+  reads re-run (read it, then `isOpen()`, then query `db()`).
+- Specs: jsdom has no IndexedDB or `matchMedia`, and no `/sqlite/`. For real SQL use
+  `openTestDatabase()` (`core/offline/testing-db.ts`, the wasm from `node_modules`), as
+  `OPEN_LOCAL_DATABASE` or behind a fake `OfflineService` (`sync.service.spec.ts`,
+  `sync-test-page.spec.ts`); `offline.service.spec.ts` uses a key/value fake. Stub
+  `DeviceStorageService` for the shell (`app.spec.ts`). `vi.mock` doesn't work with Angular's
+  bundled Vitest runner; inject seams instead.
+
+### Sync (`core/offline`, #4a.2)
+
+Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
+
+- **Every own-data write** goes through `queueWrite(db, table, op, row)` (`outbox.ts`) inside
+  `OfflineService.write(...)`: the row lands in its local table and the outbox in one transaction.
+  `op` is `upsert` (the whole row, with `createdAt`, `updatedAt: Date.now()`, `deletedAt`) or
+  `delete` (the row with `deletedAt` set: a tombstone locally, `{ id, updatedAt }` on the wire).
+  Keep the row's `changeSeq` in the object you pass (spread the current row), it becomes the
+  op's `baseSeq`. Ids are `uuidv7()`. Screens list rows `WHERE deleted_at IS NULL`.
+- **A synced table on the device** = a schema step in `MIGRATIONS` (snake_case columns,
+  `change_seq INTEGER` nullable) + an entry in `SYNC_TABLES` (`sync-tables.ts`: key, camelCase
+  columns, booleans, `readOnly` for master data). `putRow` / `getRow` / `fromSql` map between them.
+- `SyncService` runs the rounds (push, then pull, `tpn-sync` Web Lock) by itself; screens don't
+  call the API for own data. It exposes `status()` (`errors` / `offline` / `syncing` /
+  `pending` / `synced`), `pendingCount()`, `rejected()`, `notices()`, `lastSyncedAt()`,
+  `serverTables()`, `sync()`, `flush()` (before sign-out: how many ops would be lost),
+  `discard(opId)`, `rejectedOp(opId)`, `dismissNotice(id)`.
+- **Rejected ops**: the local row already went back to the server's version; the op keeps the
+  refused values. "Fix" opens the table's form via `FIX_ROUTES` in `layout/sync-sheet.ts` with
+  `?fix=<opId>`; saving queues a new op and deletes the rejected one.
+- The header pill is `layout/sync-status.ts`; its sheet (`layout/sync-sheet.ts`, spartan drawer)
+  is `@defer`red until first opened.
 
 ### Inside a feature
 
@@ -391,8 +421,9 @@ are on, so don't disable them.
     `freshSignIn()` marks a sign-in (not a refresh) until the trust step has run. Every sign-in
     path goes through `AuthService` (`verifyCode`, `verifyLink`, `signInWithPassword`,
     `verifyPhone`, `finishGoogleSignIn`), which sets it.
-  - Sign-out: `AuthService.signOut()`, then `OfflineService.wipe()`, then navigate to sign-in
-    ([offline-sync](../docs/features/offline-sync.md) rule 7; 4a.2 pushes the outbox first).
+  - Sign-out: `SyncService.flush()` (push; if ops would be lost, ask first), then
+    `AuthService.signOut()`, then `OfflineService.wipe()`, then navigate to sign-in
+    ([offline-sync](../docs/features/offline-sync.md) rule 7).
     `signOutOrLater()` is for a device that must forget the session even offline (the lock
     screen's "forgot PIN", the 5th wrong PIN).
   - Password (4.2): `AuthService.signInWithPassword()`, `setPassword()`, `removePassword()`,

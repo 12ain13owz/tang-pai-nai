@@ -30,4 +30,11 @@ export default [
     title: 'title.pin',
     loadComponent: async () => import('./pages/pin-page/pin-page').then((m) => m.PinPage),
   },
+  {
+    // Dev only, temporary (offline-sync → Web screens): removed at #6.
+    path: 'sync-test',
+    title: 'title.syncTest',
+    loadComponent: async () =>
+      import('./pages/sync-test-page/sync-test-page').then((m) => m.SyncTestPage),
+  },
 ] satisfies Routes

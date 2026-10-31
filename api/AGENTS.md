@@ -124,13 +124,13 @@ Rules of thumb:
 folder is created on first use and gitignored), `:memory:` in tests (`vitest.config.ts`), and a
 Turso `libsql://` URL + `DATABASE_AUTH_TOKEN` in prod. Foreign keys are enforced.
 
-| File / folder           | What                                                                                   |
-| ----------------------- | -------------------------------------------------------------------------------------- |
-| `index.ts`              | `db` (Drizzle), `client` (closed via `onShutdown`), column helpers, `Database` type    |
-| `columns.ts`            | `id()` (UUIDv7 text PK), `epochMs()`, `timestamps` (`createdAt`/`updatedAt`, epoch ms) |
-| `schema/<feature>.ts`   | that feature's tables; re-export it from `schema/index.ts`                             |
-| `migrate.ts`, `seed.ts` | run by `npm run db:migrate` / `npm run db:seed`                                        |
-| `api/drizzle/`          | generated SQL migrations (`npm run db:generate`), **committed**, see below             |
+| File / folder           | What                                                                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`              | `db` (Drizzle), `client` (closed via `onShutdown`), column helpers, `Database` / `Executor` (db or a transaction) types |
+| `columns.ts`            | `id()` (UUIDv7 text PK), `epochMs()`, `timestamps` (`createdAt`/`updatedAt`, epoch ms), `syncColumns` (below)           |
+| `schema/<feature>.ts`   | that feature's tables; re-export it from `schema/index.ts`                                                              |
+| `migrate.ts`, `seed.ts` | run by `npm run db:migrate` / `npm run db:seed`                                                                         |
+| `api/drizzle/`          | generated SQL migrations (`npm run db:generate`), **committed**, see below                                              |
 
 - Column names are written in camelCase in TS and stored as snake_case (`casing: 'snake_case'` on
   the client and in `drizzle.config.ts`), so don't pass explicit column names.
@@ -146,6 +146,40 @@ Turso `libsql://` URL + `DATABASE_AUTH_TOKEN` in prod. Foreign keys are enforced
   production).
 - Only `*.repository.drizzle.ts` adapters (and `core/database` itself) import `@/core/database` or
   `drizzle-orm`; lint blocks it in services, entities, ports and the HTTP layer (§2).
+
+### Sync (`src/core/sync/`, `src/features/sync/`)
+
+Offline sync (spec: [`offline-sync.md`](../docs/features/offline-sync.md) rules 8–12). Devices
+write their own data locally and send it through `POST /sync/push`; they read other devices'
+changes with `GET /sync/pull`. Features can't import each other, so **each synced feature
+registers a table handler** in `syncRegistry` (`@/core/sync`) from its own `index.ts`, and
+`features/sync` reads the registry. Reference: `features/sync-probe` (pushable, dev only) and
+`features/currency` (pull-only master data).
+
+- **Make a table synced**: give it `id: text().primaryKey()` (the device's UUIDv7, no default),
+  `userId`, and `...syncColumns` (`createdAt`, `updatedAt`, `deletedAt`, `changeSeq`,
+  `updatedBy`, all plain integers / text, no defaults), plus an index on (`userId`,
+  `changeSeq`). "Delete" means a tombstone (`deletedAt`), never a row removal.
+- **The handler** (`SyncTableHandler`): `pull(executor, userId, since, limit)` returns the rows
+  the user may sync with `changeSeq > since`, ordered, tombstones included, without `userId`.
+  A pushable table adds `push`: `validate(row)` (the feature's own rules, pure, usually a Zod
+  schema in `<feature>.schema.ts` answering `SyncValidation`), `find(executor, id)` (whoever owns
+  it), `check(executor, userId, row)` (rules about other rows, e.g. a unique name: the message or
+  `null`), `write(executor, userId, row)` (upsert, answers the row as pull would) and
+  `purge(executor, before)` (old tombstones). The functions that touch the DB live in the
+  feature's `*.repository.drizzle.ts` and run on the `executor` they get (the push transaction).
+- **The service owns the rules**: one write transaction per op (the `changeSeq` counter in
+  `sync_state` is taken inside it, so rows commit in order), idempotency via `sync_ops`, the
+  clock clamp, the conflict rules (later edit wins, tie keeps the server row, delete beats edit)
+  and `change_history` for the losing version. A feature never stamps `changeSeq` itself.
+- **Master data** registers `pull` only (pushes answer `READ_ONLY`); its rows come from a
+  migration that also raises `sync_state.last_seq` (see `0005_currency_seed.sql`).
+- **Cleanup**: `npm run sync:cleanup` purges tombstones and `sync_ops` older than 90 days and
+  raises `purgedSeq` (a pull below it answers `410 CURSOR_EXPIRED`).
+- **Testing**: the service on `createMemorySyncRepository()` (any table name; `checks` and
+  `shared` options) with a local `createSyncRegistry()`; handlers on a temporary SQLite file with
+  the committed migrations (`sync-probe.repository.drizzle.test.ts`); HTTP with `accessTokens`
+  for the Bearer header (`sync.controller.test.ts`).
 
 ### Notifications (`src/core/notification/`)
 
@@ -297,6 +331,7 @@ Import `env` from `@/core/config`, never from `./env/env`. Add env-dependent mid
   | `BusinessRuleError(message, meta?)`  | input is well-formed but breaks a domain rule  | 422    | WARN     |
   | `BadRequestError(message, meta?)`    | a request the rules refuse (wrong / dead code) | 400    | WARN     |
   | `ForbiddenError(message, meta?)`     | authenticated, but not allowed (disabled user) | 403    | WARN     |
+  | `GoneError(message, meta?)`          | it existed once, gone for good (sync cursor)   | 410    | WARN     |
   | `TooManyRequestsError(msg, retryS)`  | a rate limit was hit; sends `Retry-After`      | 429    | WARN     |
 
   ```ts

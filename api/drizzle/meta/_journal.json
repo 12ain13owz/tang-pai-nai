@@ -29,6 +29,20 @@
       "when": 1792472922248,
       "tag": "0003_auth_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1793454076371,
+      "tag": "0004_offline_sync",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793454077221,
+      "tag": "0005_currency_seed",
+      "breakpoints": true
     }
   ]
 }

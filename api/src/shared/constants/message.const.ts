@@ -51,6 +51,10 @@ export const LOG = {
     cleanedUp: (challenges: number, sessions: number, buckets: number) =>
       `[Auth] Cleanup removed ${challenges} challenges, ${sessions} sessions, ${buckets} rate-limit buckets`,
   },
+  SYNC: {
+    cleanedUp: (tombstones: number, ops: number) =>
+      `[Sync] Cleanup removed ${tombstones} tombstones, ${ops} op records`,
+  },
 }
 
 // API response pools. Flat on purpose: UPPER_CASE = fixed text, camelCase = builder.

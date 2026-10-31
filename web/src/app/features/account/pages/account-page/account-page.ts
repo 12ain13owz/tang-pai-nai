@@ -4,13 +4,18 @@ import { NonNullableFormBuilder } from '@angular/forms'
 import { Router, RouterLink } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideChevronRight, lucideLogOut, lucideShieldCheck } from '@ng-icons/lucide'
+import {
+  lucideChevronRight,
+  lucideFlaskConical,
+  lucideLogOut,
+  lucideShieldCheck,
+} from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { AuthService, AuthStore, SIGN_IN_URL } from '@/core/auth'
 import { LANGUAGES, LanguageService } from '@/core/i18n'
 import type { Language } from '@/core/i18n'
-import { OfflineService } from '@/core/offline'
+import { OfflineService, SyncService } from '@/core/offline'
 import { DeviceStorageService } from '@/core/pwa'
 import { PALETTES, ThemeService } from '@/core/theme'
 import type { PaletteId, ThemePreference } from '@/core/theme'
@@ -21,7 +26,9 @@ import { PalettePicker } from './palette-picker'
 @Component({
   selector: 'app-account-page',
   imports: [TranslocoPipe, RouterLink, SelectField, PalettePicker, NgIcon, HlmButton, HlmSpinner],
-  providers: [provideIcons({ lucideLogOut, lucideChevronRight, lucideShieldCheck })],
+  providers: [
+    provideIcons({ lucideLogOut, lucideChevronRight, lucideShieldCheck, lucideFlaskConical }),
+  ],
   template: `
     <div class="flex flex-col gap-6 p-4">
       @if (authStore.user(); as user) {
@@ -51,6 +58,27 @@ import { PalettePicker } from './palette-picker'
               {{ 'account.securityHint' | transloco }}
             </span>
           </span>
+          <ng-icon
+            name="lucideChevronRight"
+            size="20"
+            class="text-muted-foreground"
+            aria-hidden="true"
+          />
+        </a>
+      }
+
+      @if (syncService.serverTables().includes('sync_probes')) {
+        <a
+          routerLink="/account/sync-test"
+          class="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground"
+        >
+          <span
+            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
+            aria-hidden="true"
+          >
+            <ng-icon name="lucideFlaskConical" />
+          </span>
+          <span class="flex-1 text-base">{{ 'account.syncTest' | transloco }}</span>
           <ng-icon
             name="lucideChevronRight"
             size="20"
@@ -121,7 +149,7 @@ import { PalettePicker } from './palette-picker'
           type="button"
           class="h-11 w-full text-base"
           [disabled]="isSigningOut()"
-          (click)="signOut()"
+          (click)="signOut(false)"
         >
           @if (isSigningOut()) {
             <hlm-spinner [aria-label]="'account.signingOut' | transloco" />
@@ -130,6 +158,34 @@ import { PalettePicker } from './palette-picker'
           }
           {{ 'account.signOut' | transloco }}
         </button>
+        @if (unsynced() > 0) {
+          <div
+            class="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 text-card-foreground"
+          >
+            <p class="text-sm">
+              {{ 'account.signOutUnsynced' | transloco: { count: unsynced() } }}
+            </p>
+            <button
+              hlmBtn
+              variant="destructive"
+              type="button"
+              class="h-11 w-full text-base"
+              [disabled]="isSigningOut()"
+              (click)="signOut(true)"
+            >
+              {{ 'account.signOutUnsyncedConfirm' | transloco }}
+            </button>
+            <button
+              hlmBtn
+              variant="outline"
+              type="button"
+              class="h-11 w-full"
+              (click)="unsynced.set(0)"
+            >
+              {{ 'account.cancel' | transloco }}
+            </button>
+          </div>
+        }
         @if (signOutFailed()) {
           <p role="alert" class="text-center text-sm text-destructive">
             {{ 'account.signOutFailed' | transloco }}
@@ -148,10 +204,13 @@ export class AccountPage {
   private router = inject(Router)
   private authService = inject(AuthService)
   private offlineService = inject(OfflineService)
+  protected syncService = inject(SyncService)
   protected authStore = inject(AuthStore)
 
   protected isSigningOut = signal(false)
   protected signOutFailed = signal(false)
+  /** Ops that would be lost by signing out now (still pending or rejected after a push). */
+  protected unsynced = signal(0)
 
   protected readonly palettes = PALETTES
   // Language names are shown in their own language, so they never need translating.
@@ -192,12 +251,19 @@ export class AccountPage {
       .subscribe((id) => this.themeService.setPalette(id))
   }
 
-  protected async signOut(): Promise<void> {
+  protected async signOut(confirmed: boolean): Promise<void> {
     this.isSigningOut.set(true)
     this.signOutFailed.set(false)
     try {
+      // Rule 7: push the outbox first, and ask before losing what couldn't be pushed.
+      const unsynced = await this.syncService.flush()
+      if (unsynced > 0 && !confirmed) {
+        this.unsynced.set(unsynced)
+        return
+      }
+      this.unsynced.set(0)
       await this.authService.signOut()
-      // Rule 7: this device forgets the signed-out user's data (4a.2 pushes the outbox first).
+      // Rule 7: this device forgets the signed-out user's data.
       await this.offlineService.wipe()
       await this.router.navigateByUrl(SIGN_IN_URL, { replaceUrl: true })
     } catch {

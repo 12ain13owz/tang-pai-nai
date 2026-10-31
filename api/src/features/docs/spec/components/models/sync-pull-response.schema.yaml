@@ -1,0 +1,45 @@
+type: object
+required: [message, timestamp, data]
+properties:
+  message:
+    type: string
+    example: Sync pull processed
+  timestamp:
+    type: string
+    format: date-time
+  data:
+    type: object
+    required: [changes, notices, cursor, hasMore, tables]
+    properties:
+      changes:
+        type: array
+        description: Ordered by row.changeSeq across tables, tombstones included
+        items:
+          type: object
+          required: [table, row]
+          properties:
+            table:
+              type: string
+              example: sync_probes
+            row:
+              $ref: './sync-row.schema.yaml'
+      notices:
+        type: array
+        description: >-
+          Versions of this user's rows that lost to a later push from another device, for this
+          device (not the one that overwrote them)
+        items:
+          $ref: './sync-notice.schema.yaml'
+      cursor:
+        type: integer
+        description: >-
+          Send as `since` next time. The last changeSeq returned while `hasMore`, else the
+          server's latest changeSeq.
+      hasMore:
+        type: boolean
+      tables:
+        type: array
+        description: Tables this server syncs (the dev-only sync_probes is absent in production)
+        items:
+          type: string
+        example: [currencies, sync_probes]

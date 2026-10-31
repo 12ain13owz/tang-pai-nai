@@ -1,0 +1,14 @@
+type: object
+required: [message, timestamp, data]
+properties:
+  message:
+    type: string
+    example: Listed currencies successfully
+  timestamp:
+    type: string
+    format: date-time
+  data:
+    type: array
+    description: Active currencies by sortOrder, then code
+    items:
+      $ref: './currency.schema.yaml'

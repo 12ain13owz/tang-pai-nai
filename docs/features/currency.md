@@ -1,6 +1,8 @@
 # Currency
 
-> Status: Spec — not built yet. Code will live in `src/features/currency/`.
+> Status: Built with offline sync 4a.2 (folded in, pull-only). Code in
+> `api/src/features/currency/`; the web app reads the pulled copy from its local database
+> (`currencies` table). The wallet form's picker comes with #6.
 
 ## Purpose
 
@@ -19,12 +21,14 @@ migration.
 `src/core/database/schema/currency.ts`
 
 - **currencies** — `code` (PK, ISO 4217, e.g. `THB`), `minorUnit` (digits after the decimal point:
-  THB 2, JPY 0, KWD 3), `isActive` (default `false`), `sortOrder`, `createdAt`, `updatedAt`.
+  THB 2, JPY 0, KWD 3), `isActive` (default `false`), `sortOrder`, `createdAt`, `updatedAt`,
+  `changeSeq` (offline-sync: master data is pulled like user data, but never pushed or deleted).
 
 Names and symbols are **not stored**. The web app renders them with `Intl.DisplayNames` /
 `Intl.NumberFormat` from `code`.
 
-Seed: `THB` (active, sortOrder 0), plus inactive `USD`, `EUR`, `JPY`, `GBP`, `CNY`, `KRW`, `SGD`,
+Seed (a **migration**, not the dev seeder, because production needs the rows too; each row takes
+a `changeSeq`): `THB` (active, sortOrder 0), plus inactive `USD`, `EUR`, `JPY`, `GBP`, `CNY`, `KRW`, `SGD`,
 `HKD`, `TWD`, `AUD`, `VND`, `LAK`, `MYR`.
 
 ## Business rules
@@ -42,6 +46,9 @@ Seed: `THB` (active, sortOrder 0), plus inactive `USD`, `EUR`, `JPY`, `GBP`, `CN
 | Method | Path          | Auth   | What                        |
 | ------ | ------------- | ------ | --------------------------- |
 | GET    | `/currencies` | Bearer | Active currencies, in order |
+
+Devices get **every** currency (inactive ones too, so an old wallet still formats) through
+`/sync/pull` (offline-sync spec) and filter `isActive` themselves.
 
 Activating a currency is done by seed/migration for now. There's no admin UI, because the app has no
 admin role.
