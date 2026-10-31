@@ -1,11 +1,20 @@
-import { computed, DOCUMENT, effect, inject, Service, signal, untracked } from '@angular/core'
+import {
+  computed,
+  DOCUMENT,
+  effect,
+  inject,
+  InjectionToken,
+  Service,
+  signal,
+  untracked,
+} from '@angular/core'
 import { Router } from '@angular/router'
 import { AuthService, AuthStore, SIGN_IN_URL } from '@/core/auth'
 import { DeviceStorageService } from '@/core/pwa'
 import { LocalDatabase } from './local-database'
 import { createDataKey, seal, unseal, unwrapDataKey, wrapDataKey } from './vault-crypto'
 import { vaultStorage } from './vault-storage'
-import type { VaultMeta } from './vault-storage'
+import type { VaultMeta, VaultStorage } from './vault-storage'
 
 /**
  * - `unknown`: the vault hasn't been read yet
@@ -28,6 +37,16 @@ export const WARN_FROM_ATTEMPT = 3
 /** Background or idle time before the app locks again (rule 2). */
 export const LOCK_AFTER_MS = 5 * 60_000
 
+/** Where the vault lives (IndexedDB); a spec swaps it for memory. */
+export const VAULT_STORAGE = new InjectionToken<VaultStorage>('VAULT_STORAGE', {
+  factory: () => vaultStorage,
+})
+
+/** Opens the SQLite database (wasm); a spec swaps it, since jsdom can't load the wasm. */
+export const OPEN_LOCAL_DATABASE = new InjectionToken<
+  (snapshot?: Uint8Array<ArrayBuffer>) => Promise<LocalDatabase>
+>('OPEN_LOCAL_DATABASE', { factory: () => async (snapshot) => LocalDatabase.open(snapshot) })
+
 const TAB_LOCK = 'tpn-local-db'
 const TAB_CHANNEL = 'tpn-local-db'
 const IDLE_CHECK_MS = 15_000
@@ -43,6 +62,8 @@ export class OfflineService {
   private authStore = inject(AuthStore)
   private authService = inject(AuthService)
   private deviceStorageService = inject(DeviceStorageService)
+  private vaultStorage = inject(VAULT_STORAGE)
+  private openDatabase = inject(OPEN_LOCAL_DATABASE)
 
   state = signal<OfflineState>('unknown')
   /** The clear-text part of the vault, `null` on an untrusted device. */
@@ -78,7 +99,7 @@ export class OfflineService {
 
   /** Reads the vault's meta once; `null` means an untrusted device. */
   async ready(): Promise<VaultMeta | null> {
-    this.reading ??= vaultStorage
+    this.reading ??= this.vaultStorage
       .readMeta()
       .catch(() => null)
       .then((meta) => {
@@ -117,7 +138,7 @@ export class OfflineService {
     }
     await this.claimTab()
     const dataKey = await createDataKey()
-    const database = await LocalDatabase.open()
+    const database = await this.openDatabase()
     database.transaction((db) => {
       db.exec('INSERT INTO sync_meta (key, value) VALUES (?, ?), (?, ?)', [
         'deviceId',
@@ -132,7 +153,7 @@ export class OfflineService {
       key: await wrapDataKey(dataKey, pin),
       failedAttempts: 0,
     }
-    await vaultStorage.create(meta, await seal(dataKey, database.export()))
+    await this.vaultStorage.create(meta, await seal(dataKey, database.export()))
     this.dataKey = dataKey
     this.database = database
     this.meta.set(meta)
@@ -148,8 +169,8 @@ export class OfflineService {
     if (result.check !== 'ok') {
       return result.check
     }
-    const snapshot = await vaultStorage.readSnapshot()
-    this.database = await LocalDatabase.open(
+    const snapshot = await this.vaultStorage.readSnapshot()
+    this.database = await this.openDatabase(
       snapshot ? await unseal(result.dataKey, snapshot) : undefined
     )
     this.dataKey = result.dataKey
@@ -185,7 +206,7 @@ export class OfflineService {
   /** Rules 3 and 7, and "turn offline off": deletes everything this device stored. */
   async wipe(): Promise<void> {
     this.closeDatabase()
-    await vaultStorage.wipe()
+    await this.vaultStorage.wipe()
     this.meta.set(null)
     this.reading = Promise.resolve(null)
     this.state.set('none')
@@ -268,7 +289,7 @@ export class OfflineService {
       if (!this.database || !this.dataKey) {
         return
       }
-      await vaultStorage.writeSnapshot(await seal(this.dataKey, this.database.export()))
+      await this.vaultStorage.writeSnapshot(await seal(this.dataKey, this.database.export()))
       if (this.saveRequests === requests) {
         return
       }
@@ -301,7 +322,7 @@ export class OfflineService {
   }
 
   private async storeMeta(meta: VaultMeta): Promise<void> {
-    await vaultStorage.writeMeta(meta)
+    await this.vaultStorage.writeMeta(meta)
     this.meta.set(meta)
   }
 
