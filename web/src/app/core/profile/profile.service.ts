@@ -169,8 +169,10 @@ export class ProfileService {
     const now = Date.now()
     const rowId = id ?? uuidv7(now)
     const last = this.profiles().at(-1)
+    let isNew = false
     this.offlineService.write((db) => {
       const current = this.find(db, rowId)
+      isNew = current?.deletedAt !== null
       const live = current?.deletedAt === null ? current : null
       queueWrite(db, PROFILE_TABLE, 'upsert', {
         ...current,
@@ -187,7 +189,8 @@ export class ProfileService {
         deleteOp(db, fixOpId)
       }
     })
-    if (!id) {
+    // A new row (also a "fix" of a refused create, whose local row went away) becomes current.
+    if (isNew) {
       this.select(rowId)
     }
     return rowId

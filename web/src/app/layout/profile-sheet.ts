@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, Validators } from '@angular/forms'
 import type { ValidatorFn } from '@angular/forms'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
@@ -37,23 +38,19 @@ type View = 'form' | 'confirmDelete' | 'confirmDiscard'
   ],
   template: `
     @let f = form.controls;
-    <hlm-drawer
-      [state]="state() ? 'open' : 'closed'"
-      [disableClose]="form.dirty"
-      (closed)="onClosed()"
-    >
+    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="onClosed()">
       <hlm-drawer-content *hlmDrawerPortal class="mx-auto max-w-[480px]">
         @switch (view()) {
           @case ('form') {
             <form
               [formGroup]="form"
-              class="flex max-h-[85vh] flex-col gap-4 px-2 pt-2 pb-4"
+              class="flex min-h-0 flex-1 flex-col gap-4 px-2 pt-2 pb-4"
               (ngSubmit)="save()"
             >
               <h2 hlmDrawerTitle class="text-lg font-semibold">
                 {{ heading() | transloco }}
               </h2>
-              <div class="-mx-2 flex flex-col gap-6 overflow-y-auto px-2 pb-1">
+              <div class="-mx-2 flex min-h-0 flex-col gap-6 overflow-y-auto px-2 pb-1">
                 @if (!profileService.canWrite()) {
                   <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
                     {{ 'profiles.needsOnline' | transloco }}
@@ -224,13 +221,21 @@ export class ProfileSheet {
     color: [USER_COLORS[0] as string],
   })
 
+  /** Unsaved input: swiping or tapping the sheet away asks first (DESIGN.md §6). */
+  protected dirty = signal(false)
+  protected open = signal(false)
+
   constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.dirty.set(this.form.dirty))
     effect(() => {
       const state = this.state()
       untracked(() => {
         if (state) {
           this.start(state)
         }
+        this.open.set(state !== null)
       })
     })
   }
@@ -275,17 +280,27 @@ export class ProfileSheet {
     this.finish()
   }
 
+  /** Swiped down, tapped the backdrop or pressed Escape. */
   protected onClosed(): void {
+    if (this.dirty() && this.state()) {
+      // The drawer can't refuse to close, so it comes back with the question instead.
+      this.view.set('confirmDiscard')
+      this.open.set(false)
+      setTimeout(() => this.open.set(true))
+      return
+    }
     this.state.set(null)
   }
 
   private finish(): void {
     this.form.markAsPristine()
+    this.dirty.set(false)
     this.state.set(null)
   }
 
   private start(state: ProfileSheetState): void {
     this.view.set('form')
+    this.dirty.set(false)
     if (state.mode === 'create') {
       this.form.reset({ name: '', icon: PROFILE_ICON_NAMES[0], color: USER_COLORS[0] })
       return
@@ -294,6 +309,7 @@ export class ProfileSheet {
       this.form.reset(state.values)
       this.form.markAllAsTouched()
       this.form.markAsDirty()
+      this.dirty.set(true)
       return
     }
     const profile = this.profileService.byId(state.id)
