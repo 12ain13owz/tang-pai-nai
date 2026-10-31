@@ -417,12 +417,12 @@
     "listHeading": "All profiles ({{count}})",
     "order": "Reorder",
     "orderDone": "Done",
-    "moveUp": "Move {{name}} up",
-    "moveDown": "Move {{name}} down",
     "editItem": "Edit {{name}}",
     "limit": "You have 20 profiles. Delete one you don’t use to add another.",
     "deletedElsewhere": "Profile “{{name}}” was deleted on another device",
-    "loading": "Loading profiles"
+    "loading": "Loading profiles",
+    "dragItem": "Move {{name}} (press and hold, then drag, or use the arrow keys)",
+    "orderHint": "Press and hold a handle, then drag to reorder"
   },
   "icons": {
     "lucideUser": "Person",

@@ -169,10 +169,10 @@ export class ProfileService {
     const now = Date.now()
     const rowId = id ?? uuidv7(now)
     const last = this.profiles().at(-1)
-    let isNew = false
+    // A new row (also a "fix" of a refused create, whose local row went away) becomes current.
+    const isNew = this.byId(rowId) === null
     this.offlineService.write((db) => {
       const current = this.find(db, rowId)
-      isNew = current?.deletedAt !== null
       const live = current?.deletedAt === null ? current : null
       queueWrite(db, PROFILE_TABLE, 'upsert', {
         ...current,
@@ -189,7 +189,6 @@ export class ProfileService {
         deleteOp(db, fixOpId)
       }
     })
-    // A new row (also a "fix" of a refused create, whose local row went away) becomes current.
     if (isNew) {
       this.select(rowId)
     }
@@ -210,15 +209,15 @@ export class ProfileService {
     })
   }
 
-  /** Rule 7: moves a profile one place up or down; rewrites `sortOrder` where it changed. */
-  move(id: string, step: -1 | 1): void {
+  /** Rule 7: moves a profile to `to` (an index in the list); rewrites `sortOrder` where it changed. */
+  moveTo(id: string, to: number): void {
     const profiles = [...this.profiles()]
     const from = profiles.findIndex((profile) => profile.id === id)
-    const to = from + step
-    if (from < 0 || to < 0 || to >= profiles.length) {
+    if (from < 0 || to < 0 || to >= profiles.length || from === to) {
       return
     }
-    ;[profiles[from], profiles[to]] = [profiles[to], profiles[from]]
+    const [moved] = profiles.splice(from, 1)
+    profiles.splice(to, 0, moved)
     const now = Date.now()
     this.offlineService.write((db) => {
       profiles.forEach((profile, index) => {

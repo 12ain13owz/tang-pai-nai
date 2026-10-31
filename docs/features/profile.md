@@ -100,8 +100,9 @@ Glossary: โปรไฟล์ / Profile (DESIGN.md §11).
 - **Account › โปรไฟล์** `/account/profiles`: the list in order (icon, name, "รอ sync" on a
   pending row). Tap a row to edit it in the form, which also holds "ลบโปรไฟล์" (destructive) →
   confirm sheet naming the profile (and, from #6.2, how many wallets and transactions go with
-  it). "จัดลำดับ" switches the list to an order mode with up / down buttons on each row
-  (DESIGN.md §8: no long-press-only actions).
+  it). "จัดลำดับ" switches the list to an order mode with one grip handle per row (decided
+  while building 6.1): press and hold it (~0.3 s on touch, at once with a mouse), then drag;
+  the handle also moves its row with the ↑ / ↓ keys (DESIGN.md §8).
 
 ## Interactions
 

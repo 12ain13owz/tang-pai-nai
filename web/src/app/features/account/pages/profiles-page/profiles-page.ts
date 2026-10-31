@@ -1,15 +1,11 @@
+import { CdkDrag, CdkDragHandle, CdkDragPlaceholder, CdkDropList } from '@angular/cdk/drag-drop'
+import type { CdkDragDrop } from '@angular/cdk/drag-drop'
 import { Component, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import {
-  lucideArrowDown,
-  lucideArrowUp,
-  lucideChevronRight,
-  lucidePlus,
-  lucideUsers,
-} from '@ng-icons/lucide'
+import { lucideChevronRight, lucideGripVertical, lucidePlus, lucideUsers } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { ProfileService } from '@/core/profile'
 import type { Profile } from '@/core/profile'
@@ -22,10 +18,18 @@ import { IconBadge } from '@/shared/components/icon-badge'
  */
 @Component({
   selector: 'app-profiles-page',
-  imports: [TranslocoPipe, NgIcon, HlmButton, EmptyState, IconBadge],
-  providers: [
-    provideIcons({ lucideArrowDown, lucideArrowUp, lucideChevronRight, lucidePlus, lucideUsers }),
+  imports: [
+    TranslocoPipe,
+    NgIcon,
+    HlmButton,
+    EmptyState,
+    IconBadge,
+    CdkDropList,
+    CdkDrag,
+    CdkDragHandle,
+    CdkDragPlaceholder,
   ],
+  providers: [provideIcons({ lucideChevronRight, lucideGripVertical, lucidePlus, lucideUsers })],
   template: `
     @let profiles = profileService.profiles();
     <div class="flex flex-col gap-6 p-4">
@@ -63,9 +67,22 @@ import { IconBadge } from '@/shared/components/icon-badge'
           </div>
           <ul
             class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
+            cdkDropList
+            cdkDropListLockAxis="y"
+            [cdkDropListDisabled]="!ordering()"
+            (cdkDropListDropped)="drop($event)"
           >
-            @for (profile of profiles; track profile.id; let first = $first; let last = $last) {
-              <li class="flex min-h-14 items-center gap-3 py-2 pr-2 pl-4">
+            @for (profile of profiles; track profile.id; let index = $index) {
+              <li
+                class="flex min-h-14 items-center gap-3 bg-card py-2 pr-2 pl-4 first:rounded-t-xl last:rounded-b-xl"
+                cdkDrag
+                [cdkDragStartDelay]="dragDelay"
+                cdkDragPreviewClass="tpn-drag-preview"
+              >
+                <div
+                  *cdkDragPlaceholder
+                  class="min-h-14 border-2 border-dashed border-border bg-muted"
+                ></div>
                 @if (ordering()) {
                   <app-icon-badge [icon]="profile.icon" [color]="profile.color" />
                   <span class="min-w-0 flex-1 truncate text-base">{{ profile.name }}</span>
@@ -74,24 +91,13 @@ import { IconBadge } from '@/shared/components/icon-badge'
                     variant="ghost"
                     size="icon"
                     type="button"
-                    class="size-11"
-                    [disabled]="first"
-                    [attr.aria-label]="'profiles.moveUp' | transloco: { name: profile.name }"
-                    (click)="profileService.move(profile.id, -1)"
+                    class="size-11 touch-none"
+                    cdkDragHandle
+                    [attr.aria-label]="'profiles.dragItem' | transloco: { name: profile.name }"
+                    (keydown.arrowup)="moveBy($event, profile.id, index, -1)"
+                    (keydown.arrowdown)="moveBy($event, profile.id, index, 1)"
                   >
-                    <ng-icon name="lucideArrowUp" size="20" aria-hidden="true" />
-                  </button>
-                  <button
-                    hlmBtn
-                    variant="ghost"
-                    size="icon"
-                    type="button"
-                    class="size-11"
-                    [disabled]="last"
-                    [attr.aria-label]="'profiles.moveDown' | transloco: { name: profile.name }"
-                    (click)="profileService.move(profile.id, 1)"
-                  >
-                    <ng-icon name="lucideArrowDown" size="20" aria-hidden="true" />
+                    <ng-icon name="lucideGripVertical" size="20" aria-hidden="true" />
                   </button>
                 } @else {
                   <button
@@ -125,6 +131,9 @@ import { IconBadge } from '@/shared/components/icon-badge'
               </li>
             }
           </ul>
+          @if (ordering()) {
+            <p class="text-sm text-muted-foreground">{{ 'profiles.orderHint' | transloco }}</p>
+          }
         </section>
       }
       @if (!profileService.atLimit()) {
@@ -161,6 +170,25 @@ export class ProfilesPage {
         void this.router.navigate([], { queryParams: {}, replaceUrl: true })
       }
     })
+  }
+
+  /** Touch: press and hold the handle before dragging, so scrolling the list still works. */
+  protected dragDelay = { touch: 300, mouse: 0 }
+
+  protected drop(event: CdkDragDrop<unknown>): void {
+    const profile = this.profileService.profiles().at(event.previousIndex)
+    if (profile) {
+      this.profileService.moveTo(profile.id, event.currentIndex)
+    }
+  }
+
+  /** The handle's keyboard way (DESIGN.md §8: a drag is never the only way). */
+  protected moveBy(event: Event, id: string, index: number, step: -1 | 1): void {
+    event.preventDefault()
+    this.profileService.moveTo(id, index + step)
+    const target = event.target
+    // The row re-renders in its new place; keep the focus on its handle.
+    queueMicrotask(() => target instanceof HTMLElement && target.focus())
   }
 
   protected edit(profile: Profile): void {

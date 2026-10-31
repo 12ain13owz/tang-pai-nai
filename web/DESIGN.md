@@ -227,8 +227,11 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - **Touch targets ≥ 44 × 44px.** Pad small icons out to that size instead of making them bigger.
 - **No hover-only behaviour.** Every hover style also needs a visible `focus-visible` style and must
   work by tap.
-- **Long-press is a shortcut, never the only way** (e.g. wallet reorder also gets an "edit order"
-  mode).
+- **Long-press is a shortcut, never the only way.** Reordering a list is an order mode (a
+  "จัดลำดับ" button) where each row has one grip handle (`lucideGripVertical`, CDK drag-drop):
+  press and hold it for ~0.3 s on touch (at once with a mouse), then drag; the same handle moves
+  its row with ↑ / ↓ for keyboards. Profiles (Account › โปรไฟล์) are the reference; wallets
+  follow.
 - **Motion**: 150–250 ms, ease-out. Sheets slide up, toasts fade and slide. Nothing bounces or
   loops. Honour `prefers-reduced-motion` by dropping the movement and keeping a fade.
 - **Keyboard**: numeric fields use `inputmode="decimal"` or `"numeric"`. Keep the focused field
