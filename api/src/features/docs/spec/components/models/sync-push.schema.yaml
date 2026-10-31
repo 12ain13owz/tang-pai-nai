@@ -1,0 +1,35 @@
+type: object
+required: [deviceId, ops]
+properties:
+  deviceId:
+    type: string
+    format: uuid
+  ops:
+    type: array
+    minItems: 1
+    maxItems: 100
+    description: Applied in order, each on its own
+    items:
+      type: object
+      required: [opId, table, op, row, baseSeq]
+      properties:
+        opId:
+          type: string
+          format: uuid
+          description: Made on the device; a retried opId answers the stored result
+        table:
+          type: string
+          example: sync_probes
+        op:
+          type: string
+          enum: [upsert, delete]
+        row:
+          type: object
+          description: >-
+            The whole row for an upsert (checked by the table's own rules); `{ id, updatedAt? }`
+            for a delete
+          required: [id]
+          additionalProperties: true
+        baseSeq:
+          type: [integer, 'null']
+          description: The row's changeSeq the device last saw; null for a row it never saw

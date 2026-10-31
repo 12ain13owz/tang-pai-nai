@@ -1,0 +1,25 @@
+type: object
+description: A currency (docs/features/currency.md). Names and symbols come from Intl on the web.
+required: [code, minorUnit, isActive, sortOrder, createdAt, updatedAt, changeSeq]
+properties:
+  code:
+    type: string
+    pattern: '^[A-Z]{3}$'
+    example: THB
+  minorUnit:
+    type: integer
+    description: Digits after the decimal point (THB 2, JPY 0)
+    example: 2
+  isActive:
+    type: boolean
+  sortOrder:
+    type: integer
+  createdAt:
+    type: integer
+    description: Epoch ms
+  updatedAt:
+    type: integer
+    description: Epoch ms
+  changeSeq:
+    type: integer
+    description: Server-assigned sync sequence

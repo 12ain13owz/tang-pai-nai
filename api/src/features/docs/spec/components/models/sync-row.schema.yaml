@@ -1,0 +1,29 @@
+type: object
+description: >-
+  A synced row, camelCase, as its table defines it. Every row has `id` (the code for currencies)
+  and `changeSeq`; user data also has `createdAt`, `updatedAt`, `deletedAt` (a tombstone when set)
+  and `updatedBy`.
+required: [id, changeSeq, updatedAt]
+additionalProperties: true
+properties:
+  id:
+    type: string
+  changeSeq:
+    type: integer
+  createdAt:
+    type: integer
+  updatedAt:
+    type: integer
+  deletedAt:
+    type: [integer, 'null']
+  updatedBy:
+    type: string
+example:
+  id: 0199a000-0000-7000-8000-000000000001
+  title: Coffee
+  amount: 6550
+  createdAt: 1793454460000
+  updatedAt: 1793454460000
+  deletedAt: null
+  changeSeq: 15
+  updatedBy: 01a19237-0568-70cf-9d98-82758115d9cd

@@ -1,0 +1,41 @@
+type: object
+required: [message, timestamp, data]
+properties:
+  message:
+    type: string
+    example: Sync push processed
+  timestamp:
+    type: string
+    format: date-time
+  data:
+    type: object
+    required: [results]
+    properties:
+      results:
+        type: array
+        description: One per op, in the same order
+        items:
+          type: object
+          required: [opId, status, row]
+          properties:
+            opId:
+              type: string
+            status:
+              type: string
+              enum: [applied, overridden, rejected]
+            row:
+              description: >-
+                The server's row after the op: the winner when `overridden`, the current one (or
+                null for a refused new row) when `rejected`
+              oneOf:
+                - $ref: './sync-row.schema.yaml'
+                - type: 'null'
+            changeSeq:
+              type: [integer, 'null']
+            notice:
+              $ref: './sync-notice.schema.yaml'
+            code:
+              type: string
+              enum: [VALIDATION, CONFLICT, ID_TAKEN, UNKNOWN_TABLE, READ_ONLY]
+            message:
+              type: string

@@ -1,0 +1,18 @@
+type: object
+description: A conflict notice, the version that lost (offline-sync rule 12)
+required: [id, table, rowId, previous, overwrittenBy, createdAt]
+properties:
+  id:
+    type: string
+  table:
+    type: string
+  rowId:
+    type: string
+  previous:
+    type: object
+    additionalProperties: true
+  overwrittenBy:
+    type: string
+    description: User id that made the winning change
+  createdAt:
+    type: integer

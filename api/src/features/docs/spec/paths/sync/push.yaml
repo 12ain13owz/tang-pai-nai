@@ -1,0 +1,29 @@
+post:
+  tags:
+    - Sync
+  summary: Push outbox ops
+  description: >-
+    Applies ops in order, each in its own transaction (docs/features/offline-sync.md rules 10 and
+    12): the table's own validation, then the conflict rules (the later edit wins between one
+    user's devices, delete beats edit, a tie keeps the server's row). Times are clamped to the
+    server's clock, and each write takes the next changeSeq.
+  operationId: syncPush
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/sync-push.schema.yaml'
+  responses:
+    '200':
+      description: A result per op
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/sync-push-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '422':
+      $ref: '../../components/responses/error.response.yaml'

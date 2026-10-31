@@ -1,0 +1,19 @@
+get:
+  tags:
+    - Currency
+  summary: List active currencies
+  description: >-
+    Active currencies by sortOrder, then code (docs/features/currency.md). The web app's own
+    screens read the copy pulled through /sync/pull, which carries inactive ones too.
+  operationId: currenciesList
+  security:
+    - bearerAuth: []
+  responses:
+    '200':
+      description: The active currencies
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/currency-list-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'

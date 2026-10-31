@@ -15,6 +15,10 @@ tags:
       Email code / magic-link / password / Google / phone (SMS) sign-in, sessions and Account ›
       Security
       (docs/features/auth.md)
+  - name: Currency
+    description: Master list of currencies (docs/features/currency.md)
+  - name: Sync
+    description: Offline sync, push then pull (docs/features/offline-sync.md)
   - name: Todo
     description: Reference CRUD feature (in-memory, resets on restart)
 
@@ -59,6 +63,12 @@ paths:
     $ref: './paths/auth/sessions.yaml'
   /auth/sessions/{id}:
     $ref: './paths/auth/session.yaml'
+  /currencies:
+    $ref: './paths/currency/currencies.yaml'
+  /sync/pull:
+    $ref: './paths/sync/pull.yaml'
+  /sync/push:
+    $ref: './paths/sync/push.yaml'
   /todos:
     $ref: './paths/todo/todos.yaml'
   /todos/{id}:
@@ -98,6 +108,12 @@ components:
       $ref: './components/models/auth-session-response.schema.yaml'
     AuthIdentity:
       $ref: './components/models/auth-identity.schema.yaml'
+    Currency:
+      $ref: './components/models/currency.schema.yaml'
+    SyncRow:
+      $ref: './components/models/sync-row.schema.yaml'
+    SyncPushRequest:
+      $ref: './components/models/sync-push.schema.yaml'
   responses:
     SuccessResponse:
       $ref: './components/responses/success.response.yaml'
