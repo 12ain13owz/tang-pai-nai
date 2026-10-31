@@ -84,7 +84,7 @@ export class GoogleCallbackPage {
       return
     }
     try {
-      await this.authService.refresh()
+      await this.authService.finishGoogleSignIn()
     } catch (refreshError) {
       const unreachable = isUnreachable(toApiError(refreshError))
       this.error.set({ key: unreachable ? 'auth.unreachable' : 'auth.googleFailed' })

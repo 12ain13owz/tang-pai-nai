@@ -22,7 +22,11 @@
     "password": "Password",
     "security": "Security",
     "phoneSignIn": "Sign in with phone",
-    "phone": "Phone number"
+    "phone": "Phone number",
+    "trust": "Use offline",
+    "lock": "Locked",
+    "otherTab": "Open in another tab",
+    "pin": "PIN"
   },
   "status": {
     "online": "Online",
@@ -67,7 +71,7 @@
     "signingOut": "Signing out",
     "signOutFailed": "Couldn't sign out. Try again",
     "security": "Security",
-    "securityHint": "Password, phone, Google and devices",
+    "securityHint": "Password, phone, Google, PIN and devices",
     "password": "Password",
     "passwordSet": "Set",
     "passwordUnset": "Not set",
@@ -181,7 +185,7 @@
     "smsResent": "New code sent. Check your messages again"
   },
   "security": {
-    "offline": "You're offline. Security settings need an internet connection",
+    "offline": "You're offline. Ways to sign in and devices need an internet connection",
     "waysHeading": "Ways to sign in",
     "link": "Link",
     "linking": "Opening Google",
@@ -211,7 +215,17 @@
     "signOutOthers": "Sign out other devices",
     "signOutOthersConfirmText": "Every other device will need to sign in again. This one stays signed in",
     "signedOutOthers": "Signed out other devices: {{count}}",
-    "signOutFailed": "Couldn't sign the device out. Try again"
+    "signOutFailed": "Couldn't sign the device out. Try again",
+    "deviceHeading": "This device",
+    "offlineMode": "Use offline",
+    "offlineOn": "On · locked with a PIN",
+    "offlineOff": "Off · online only",
+    "turnOn": "Turn on",
+    "turnOff": "Turn off",
+    "changePin": "Change PIN",
+    "offlineOffConfirmText": "Turning it off deletes the data on this device. Anything not synced yet is lost, and the app works online only",
+    "offlineOffConfirm": "Turn off and delete data",
+    "offlineOffDone": "Offline is off and this device's data is deleted"
   },
   "form": {
     "invalid": "This value isn't valid",
@@ -248,5 +262,51 @@
     "unchanged": "This is your current number",
     "inUse": "This number can't be used. Try another one",
     "saveFailed": "Couldn't save the number. Try again"
+  },
+  "trust": {
+    "heading": "Use offline on this device?",
+    "intro": "If you turn it on, your data is kept encrypted on this device, works without internet, and is locked with a 6-digit PIN",
+    "switch": "Use offline on this device",
+    "onHint": "Only on a device that is yours",
+    "offHint": "Online only, nothing is kept on this device",
+    "iosNote": "On iPhone and iPad the data only stays when the app is added to the home screen (Share → Add to Home Screen)",
+    "continue": "Continue",
+    "back": "Back",
+    "saving": "Setting up",
+    "failed": "Couldn't set it up. Try again"
+  },
+  "pin": {
+    "newHeading": "Choose a 6-digit PIN",
+    "newHint": "You unlock the app on this device with it",
+    "confirmHeading": "Enter the PIN again",
+    "confirmHint": "To make sure you remember it",
+    "mismatch": "The PINs don't match. Choose it again",
+    "currentHeading": "Enter your current PIN",
+    "currentHint": "Before you choose a new one",
+    "filled": "PIN, {{count}} of 6 digits entered",
+    "delete": "Delete digit",
+    "changed": "PIN changed",
+    "offlineOn": "Offline is on for this device",
+    "changeHeading": "Choose a new PIN"
+  },
+  "lock": {
+    "heading": "Enter your PIN to unlock",
+    "hello": "Hi {{name}}",
+    "unlocking": "Unlocking",
+    "wrong": "Wrong PIN",
+    "warning": "{{count}} more wrong tries and the data on this device is deleted",
+    "wiped": "Wrong PIN 5 times, so the data on this device was deleted. Sign in again to go on",
+    "forgot": "Forgot your PIN? Sign out",
+    "signOutConfirmText": "Signing out deletes the data on this device. Anything not synced yet is lost",
+    "signOut": "Sign out and delete data"
+  },
+  "otherTab": {
+    "heading": "The app is open in another tab",
+    "text": "It runs in one tab at a time, so the data on this device stays in step",
+    "useHere": "Use here"
+  },
+  "session": {
+    "expired": "Sign in again to sync",
+    "signIn": "Sign in"
   }
 }

@@ -4,14 +4,14 @@ One file per feature: **what it does and the rules it enforces**, in plain langu
 AI can understand a feature without reading its code. These docs are the shared spec for both
 `api/` and `web/`.
 
-| Feature        | Doc                                | Status                  |
-| -------------- | ---------------------------------- | ----------------------- |
-| Auth           | [auth.md](auth.md)                 | 4.1 built; 4.2–4.4 spec |
-| Currency       | [currency.md](currency.md)         | Spec — not built yet    |
-| Wallet         | [wallet.md](wallet.md)             | Spec — not built yet    |
-| Category       | [category.md](category.md)         | Spec — not built yet    |
-| Transaction    | [transaction.md](transaction.md)   | Spec — not built yet    |
-| Offline & sync | [offline-sync.md](offline-sync.md) | Spec — not built yet    |
+| Feature        | Doc                                | Status                |
+| -------------- | ---------------------------------- | --------------------- |
+| Auth           | [auth.md](auth.md)                 | Built (4.1–4.4b)      |
+| Currency       | [currency.md](currency.md)         | Spec — not built yet  |
+| Wallet         | [wallet.md](wallet.md)             | Spec — not built yet  |
+| Category       | [category.md](category.md)         | Spec — not built yet  |
+| Transaction    | [transaction.md](transaction.md)   | Spec — not built yet  |
+| Offline & sync | [offline-sync.md](offline-sync.md) | 4a.1 built; 4a.2 spec |
 
 Order of work and project-wide decisions live in [`../../ROADMAP.md`](../../ROADMAP.md), not here.
 

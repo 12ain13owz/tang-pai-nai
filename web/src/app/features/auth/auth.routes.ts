@@ -1,7 +1,8 @@
 import { inject } from '@angular/core'
 import { Router } from '@angular/router'
 import type { Routes } from '@angular/router'
-import { guestGuard } from '@/core/auth'
+import { authGuard, guestGuard } from '@/core/auth'
+import { lockGuard, otherTabGuard, trustGuard } from '@/core/offline'
 import { AuthFlowStore } from './auth-flow.store'
 import { AuthLayout } from './components/auth-layout'
 
@@ -62,6 +63,28 @@ export default [
           import('./pages/google-callback-page/google-callback-page').then(
             (m) => m.GoogleCallbackPage
           ),
+      },
+      {
+        // Right after a sign-in on an untrusted device (offline-sync rule 1).
+        path: 'trust',
+        title: 'title.trust',
+        canActivate: [authGuard, trustGuard],
+        loadComponent: async () => import('./pages/trust-page/trust-page').then((m) => m.TrustPage),
+      },
+      {
+        // A trusted device before its PIN (offline-sync rules 2–3).
+        path: 'lock',
+        title: 'title.lock',
+        canActivate: [lockGuard],
+        loadComponent: async () => import('./pages/lock-page/lock-page').then((m) => m.LockPage),
+      },
+      {
+        // One tab at a time (offline-sync rule 2).
+        path: 'tab',
+        title: 'title.otherTab',
+        canActivate: [otherTabGuard],
+        loadComponent: async () =>
+          import('./pages/other-tab-page/other-tab-page').then((m) => m.OtherTabPage),
       },
     ],
   },

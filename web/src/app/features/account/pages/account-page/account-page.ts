@@ -10,6 +10,7 @@ import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { AuthService, AuthStore, SIGN_IN_URL } from '@/core/auth'
 import { LANGUAGES, LanguageService } from '@/core/i18n'
 import type { Language } from '@/core/i18n'
+import { OfflineService } from '@/core/offline'
 import { DeviceStorageService } from '@/core/pwa'
 import { PALETTES, ThemeService } from '@/core/theme'
 import type { PaletteId, ThemePreference } from '@/core/theme'
@@ -146,6 +147,7 @@ export class AccountPage {
   protected deviceStorageService = inject(DeviceStorageService)
   private router = inject(Router)
   private authService = inject(AuthService)
+  private offlineService = inject(OfflineService)
   protected authStore = inject(AuthStore)
 
   protected isSigningOut = signal(false)
@@ -195,6 +197,8 @@ export class AccountPage {
     this.signOutFailed.set(false)
     try {
       await this.authService.signOut()
+      // Rule 7: this device forgets the signed-out user's data (4a.2 pushes the outbox first).
+      await this.offlineService.wipe()
       await this.router.navigateByUrl(SIGN_IN_URL, { replaceUrl: true })
     } catch {
       this.signOutFailed.set(true)

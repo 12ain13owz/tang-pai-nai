@@ -24,4 +24,10 @@ export default [
     loadComponent: async () =>
       import('./pages/password-page/password-page').then((m) => m.PasswordPage),
   },
+  {
+    // Turn offline on (choose a PIN) or change the PIN (offline-sync rules 1 and 4).
+    path: 'pin',
+    title: 'title.pin',
+    loadComponent: async () => import('./pages/pin-page/pin-page').then((m) => m.PinPage),
+  },
 ] satisfies Routes

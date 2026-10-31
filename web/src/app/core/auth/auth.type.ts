@@ -61,6 +61,13 @@ export interface AuthSession {
  */
 export type AuthStatus = 'unknown' | 'signedIn' | 'signedOut' | 'unreachable'
 
+/**
+ * Why `/auth/refresh` refused (auth spec → Tokens & session): `revoked` (signed out elsewhere,
+ * reuse, disabled user) wipes a trusted device's local data, `expired` keeps it (offline-sync
+ * rule 7).
+ */
+export type SessionEnd = 'revoked' | 'expired'
+
 /** `code` values the API sends on auth errors. */
 export type AuthErrorCode =
   | 'OTP_INVALID'
