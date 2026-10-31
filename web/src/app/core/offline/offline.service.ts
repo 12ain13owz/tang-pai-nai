@@ -27,6 +27,9 @@ export type OfflineState = 'unknown' | 'none' | 'locked' | 'unlocked' | 'elsewhe
 /** `wiped`: that was the 5th wrong PIN in a row, so the local data is gone (rule 3). */
 export type PinCheck = 'ok' | 'wrong' | 'wiped'
 
+/** Keys of `sync_meta` (offline-sync → Data model → Device). */
+export type SyncMetaKey = 'deviceId' | 'userId' | 'cursor' | 'lastSyncedAt' | 'tables'
+
 export const LOCK_URL = '/auth/lock'
 export const OTHER_TAB_URL = '/auth/tab'
 
@@ -69,6 +72,10 @@ export class OfflineService {
   /** The clear-text part of the vault, `null` on an untrusted device. */
   meta = signal<VaultMeta | null>(null)
   isTrusted = computed(() => this.meta() !== null)
+  /** The local database is open: unlocked, or in memory on an untrusted device (rule 1). */
+  isOpen = signal(false)
+  /** Bumped after every local write, so screens re-read the database (rule 8). */
+  changes = signal(0)
   attemptsLeft = computed(() => MAX_PIN_ATTEMPTS - (this.meta()?.failedAttempts ?? 0))
 
   private reading: Promise<VaultMeta | null> | null = null
@@ -123,8 +130,41 @@ export class OfflineService {
   /** A local write (rule 8): one SQLite transaction, then the snapshot is saved. */
   write<T>(work: (db: LocalDatabase) => T): T {
     const result = this.db().transaction(work)
+    this.changes.update((n) => n + 1)
     void this.save()
     return result
+  }
+
+  /**
+   * Rule 1, untrusted device: the same database in memory only, for the signed-in user while the
+   * tab is open. Nothing is ever saved; the next start pulls everything again.
+   */
+  async openUntrusted(): Promise<void> {
+    const user = this.authStore.user()
+    if (this.database || this.meta() || !user) {
+      return
+    }
+    const database = await this.openDatabase()
+    database.transaction((db) => {
+      db.exec('INSERT INTO sync_meta (key, value) VALUES (?, ?), (?, ?)', [
+        'deviceId',
+        crypto.randomUUID(),
+        'userId',
+        user.id,
+      ])
+    })
+    if (this.isOpen() || this.meta()) {
+      database.close() // another call won the race
+      return
+    }
+    this.database = database
+    this.isOpen.set(true)
+  }
+
+  /** A `sync_meta` value of the open database. */
+  syncMeta(key: SyncMetaKey): string | null {
+    const value = this.db().selectValue('SELECT value FROM sync_meta WHERE key = ?', [key])
+    return typeof value === 'string' ? value : null
   }
 
   /**
@@ -154,8 +194,10 @@ export class OfflineService {
       failedAttempts: 0,
     }
     await this.vaultStorage.create(meta, await seal(dataKey, database.export()))
+    this.closeDatabase() // an untrusted in-memory copy, if any
     this.dataKey = dataKey
     this.database = database
+    this.isOpen.set(true)
     this.meta.set(meta)
     this.reading = Promise.resolve(meta)
     this.unlocked()
@@ -174,6 +216,7 @@ export class OfflineService {
       snapshot ? await unseal(result.dataKey, snapshot) : undefined
     )
     this.dataKey = result.dataKey
+    this.isOpen.set(true)
     this.unlocked()
     this.recheckSession()
     return 'ok'
@@ -335,6 +378,7 @@ export class OfflineService {
   private closeDatabase(): void {
     this.database?.close()
     this.database = null
+    this.isOpen.set(false)
     this.dataKey = null
     this.authStore.keepsLocalSession.set(false)
   }

@@ -26,7 +26,8 @@
     "trust": "Use offline",
     "lock": "Locked",
     "otherTab": "Open in another tab",
-    "pin": "PIN"
+    "pin": "PIN",
+    "syncTest": "Sync test"
   },
   "status": {
     "online": "Online",
@@ -111,7 +112,10 @@
     "confirming": "Confirming",
     "reauthFailed": "Couldn't confirm it's you. Try again",
     "phone": "Phone number",
-    "phoneNotAdded": "Not added"
+    "phoneNotAdded": "Not added",
+    "syncTest": "Sync test (dev)",
+    "signOutUnsynced": "{{count}} changes aren't synced yet. Signing out now deletes them",
+    "signOutUnsyncedConfirm": "Sign out and delete them"
   },
   "auth": {
     "signInHeading": "Sign in",
@@ -308,5 +312,64 @@
   "session": {
     "expired": "Sign in again to sync",
     "signIn": "Sign in"
+  },
+  "sync": {
+    "synced": "Synced",
+    "syncing": "Syncing",
+    "pending": "{{count}} to sync",
+    "offline": "Offline",
+    "offlinePending": "Offline · {{count}} waiting",
+    "errors": "{{count}} not saved",
+    "open": "Sync status: {{status}}. Tap for details",
+    "heading": "Sync status",
+    "lastSynced": "Last synced {{time}}",
+    "neverSynced": "Not synced on this device yet",
+    "syncNow": "Sync now",
+    "syncingNow": "Syncing",
+    "needsOnline": "Connect to the internet to sync",
+    "needsSignIn": "Sign in again to sync",
+    "pendingText": "{{count}} changes waiting to go to the server",
+    "allSynced": "Everything is synced",
+    "rejectedHeading": "Not saved",
+    "rejectedHint": "The server refused these, so this device went back to the server's version",
+    "fix": "Fix",
+    "discard": "Discard",
+    "noticesHeading": "Changed elsewhere",
+    "noticeText": "This was changed on another device. The values that were replaced:",
+    "dismiss": "Got it",
+    "deleted": "(deleted)",
+    "close": "Close",
+    "codeCONFLICT": "Clashes with another item",
+    "codeVALIDATION": "Invalid data",
+    "codeID_TAKEN": "The id belongs to another user",
+    "codeUNKNOWN_TABLE": "The server doesn't know this kind of data",
+    "codeREAD_ONLY": "This data can't be changed from a device",
+    "tablesync_probes": "Sync test item",
+    "tablecurrencies": "Currency"
+  },
+  "syncTest": {
+    "devOnly": "Development only: for trying out sync. It goes away once wallets exist",
+    "add": "Add item",
+    "edit": "Edit item",
+    "fixing": "Fix an item that wasn't saved",
+    "title": "Name",
+    "titleRequired": "Enter a name",
+    "amount": "Amount (baht)",
+    "amountInvalid": "Enter a number with at most 2 decimals",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleted": "Deleted",
+    "undo": "Undo",
+    "saved": "Saved",
+    "listHeading": "Items",
+    "empty": "No items yet",
+    "emptyHint": "Add one, then open another device, or go offline and add one",
+    "pending": "Waiting to sync",
+    "editItem": "Edit {{title}}",
+    "deleteItem": "Delete {{title}}",
+    "currenciesHeading": "Active currencies (from the server)",
+    "noCurrencies": "Currencies not pulled yet",
+    "offlineUntrusted": "Offline isn't on for this device, so it can only save while online"
   }
 }

@@ -3,13 +3,59 @@ import type { Database, Sqlite3Static } from '@sqlite.org/sqlite-wasm'
 /** The wasm is copied here by `angular.json` and prefetched by the service worker. */
 const WASM_DIR = '/sqlite/'
 
+/** A value SQLite can bind or return. */
+export type SqlValue = string | number | null
+
 /**
  * Bumped with every schema change below; `PRAGMA user_version` says which steps a snapshot has.
- * 4a.1 only knows the device itself. Synced tables and the outbox come with 4a.2 and later
- * features (offline-sync → Data model → Device).
+ * Never edit a step that shipped: append a new one (offline-sync → Data model → Device).
  */
 const MIGRATIONS: readonly string[] = [
+  // 4a.1: the device itself.
   `CREATE TABLE sync_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL) STRICT`,
+  // 4a.2: the first synced tables, the outbox and conflict notices. `change_seq` is null on a row
+  // the server hasn't seen yet. `sync_probes` is dev only and goes away at #6.
+  `CREATE TABLE currencies (
+    code TEXT PRIMARY KEY,
+    minor_unit INTEGER NOT NULL,
+    is_active INTEGER NOT NULL,
+    sort_order INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    change_seq INTEGER
+  ) STRICT;
+  CREATE TABLE sync_probes (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted_at INTEGER,
+    change_seq INTEGER,
+    updated_by TEXT
+  ) STRICT;
+  CREATE TABLE outbox (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    op_id TEXT NOT NULL UNIQUE,
+    tbl TEXT NOT NULL,
+    row_id TEXT NOT NULL,
+    op TEXT NOT NULL,
+    row TEXT NOT NULL,
+    base_seq INTEGER,
+    created_at INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    code TEXT,
+    error TEXT
+  ) STRICT;
+  CREATE UNIQUE INDEX outbox_pending_row ON outbox (tbl, row_id) WHERE status = 'pending';
+  CREATE TABLE sync_notices (
+    id TEXT PRIMARY KEY,
+    tbl TEXT NOT NULL,
+    row_id TEXT NOT NULL,
+    previous TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    seen_at INTEGER
+  ) STRICT`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null
@@ -69,12 +115,17 @@ export class LocalDatabase {
     return this.db.transaction(() => work(this))
   }
 
-  exec(sql: string, bind?: readonly (string | number | null)[]): void {
+  exec(sql: string, bind?: readonly SqlValue[]): void {
     this.db.exec({ sql, bind: bind ? [...bind] : undefined })
   }
 
-  selectValue(sql: string, bind?: readonly (string | number | null)[]): unknown {
+  selectValue(sql: string, bind?: readonly SqlValue[]): unknown {
     return this.db.selectValue(sql, bind ? [...bind] : undefined)
+  }
+
+  /** Every row as an object keyed by column name. */
+  selectObjects(sql: string, bind?: readonly SqlValue[]): Record<string, SqlValue>[] {
+    return this.db.selectObjects(sql, bind ? [...bind] : undefined) as Record<string, SqlValue>[]
   }
 
   close(): void {

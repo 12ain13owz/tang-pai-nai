@@ -37,7 +37,12 @@ export const shellGuard: CanActivateFn = async (_route, state) => {
   if (status !== 'signedIn') {
     return router.createUrlTree([SIGN_IN_URL], { queryParams })
   }
-  return authStore.freshSignIn() ? router.createUrlTree([TRUST_URL], { queryParams }) : true
+  if (authStore.freshSignIn()) {
+    return router.createUrlTree([TRUST_URL], { queryParams })
+  }
+  // Rule 1: an untrusted device reads the same database, in memory only.
+  await offlineService.openUntrusted()
+  return true
 }
 
 /** The trust step: only for a device that isn't trusted yet (`authGuard` runs first). */

@@ -1,3 +1,7 @@
 export * from './local-database'
 export * from './offline.guard'
 export * from './offline.service'
+export * from './outbox'
+export * from './sync-tables'
+export * from './sync.service'
+export * from './uuid'

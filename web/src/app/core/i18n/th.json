@@ -26,7 +26,8 @@
     "trust": "ใช้งานออฟไลน์",
     "lock": "ล็อกอยู่",
     "otherTab": "เปิดอยู่ในแท็บอื่น",
-    "pin": "PIN"
+    "pin": "PIN",
+    "syncTest": "ทดสอบ sync"
   },
   "status": {
     "online": "ออนไลน์",
@@ -111,7 +112,10 @@
     "confirming": "กำลังยืนยัน",
     "reauthFailed": "ยืนยันตัวตนไม่สำเร็จ ลองใหม่อีกครั้ง",
     "phone": "เบอร์มือถือ",
-    "phoneNotAdded": "ยังไม่ได้เพิ่ม"
+    "phoneNotAdded": "ยังไม่ได้เพิ่ม",
+    "syncTest": "ทดสอบ sync (dev)",
+    "signOutUnsynced": "ยังมี {{count}} รายการที่ยังไม่ได้ sync ออกจากระบบตอนนี้จะลบทิ้ง",
+    "signOutUnsyncedConfirm": "ออกจากระบบและทิ้งรายการ"
   },
   "auth": {
     "signInHeading": "เข้าสู่ระบบ",
@@ -308,5 +312,64 @@
   "session": {
     "expired": "เข้าสู่ระบบอีกครั้งเพื่อ sync",
     "signIn": "เข้าสู่ระบบ"
+  },
+  "sync": {
+    "synced": "sync แล้ว",
+    "syncing": "กำลัง sync",
+    "pending": "รอ sync {{count}}",
+    "offline": "ออฟไลน์",
+    "offlinePending": "ออฟไลน์ · รอ {{count}}",
+    "errors": "บันทึกไม่สำเร็จ {{count}}",
+    "open": "สถานะ sync: {{status}} แตะเพื่อดูรายละเอียด",
+    "heading": "สถานะ sync",
+    "lastSynced": "sync ล่าสุด {{time}}",
+    "neverSynced": "ยังไม่ได้ sync บนเครื่องนี้",
+    "syncNow": "sync ตอนนี้",
+    "syncingNow": "กำลัง sync",
+    "needsOnline": "ต้องต่ออินเทอร์เน็ตก่อนจึงจะ sync ได้",
+    "needsSignIn": "เข้าสู่ระบบอีกครั้งเพื่อ sync",
+    "pendingText": "มี {{count}} รายการรอส่งขึ้นเซิร์ฟเวอร์",
+    "allSynced": "ทุกรายการ sync แล้ว",
+    "rejectedHeading": "บันทึกไม่สำเร็จ",
+    "rejectedHint": "เซิร์ฟเวอร์ไม่รับรายการเหล่านี้ ข้อมูลในเครื่องกลับเป็นแบบที่เซิร์ฟเวอร์มี",
+    "fix": "แก้ไข",
+    "discard": "ทิ้ง",
+    "noticesHeading": "ถูกแก้ไขจากที่อื่น",
+    "noticeText": "รายการนี้ถูกแก้ไขจากอีกเครื่อง ค่าที่ถูกแทนที่:",
+    "dismiss": "รับทราบ",
+    "deleted": "(ลบแล้ว)",
+    "close": "ปิด",
+    "codeCONFLICT": "ซ้ำกับรายการอื่น",
+    "codeVALIDATION": "ข้อมูลไม่ถูกต้อง",
+    "codeID_TAKEN": "รหัสรายการซ้ำกับของผู้ใช้อื่น",
+    "codeUNKNOWN_TABLE": "เซิร์ฟเวอร์ไม่รู้จักข้อมูลชนิดนี้",
+    "codeREAD_ONLY": "ข้อมูลนี้แก้ไขจากเครื่องไม่ได้",
+    "tablesync_probes": "รายการทดสอบ sync",
+    "tablecurrencies": "สกุลเงิน"
+  },
+  "syncTest": {
+    "devOnly": "หน้านี้มีเฉพาะตอนพัฒนา ใช้ทดสอบการ sync และจะถูกลบเมื่อมีกระเป๋าเงิน",
+    "add": "เพิ่มรายการ",
+    "edit": "แก้ไขรายการ",
+    "fixing": "แก้รายการที่บันทึกไม่สำเร็จ",
+    "title": "ชื่อ",
+    "titleRequired": "ใส่ชื่อ",
+    "amount": "จำนวนเงิน (บาท)",
+    "amountInvalid": "ใส่จำนวนเงินเป็นตัวเลข ทศนิยมไม่เกิน 2 ตำแหน่ง",
+    "save": "บันทึก",
+    "cancel": "ยกเลิก",
+    "delete": "ลบ",
+    "deleted": "ลบแล้ว",
+    "undo": "เลิกทำ",
+    "saved": "บันทึกแล้ว",
+    "listHeading": "รายการ",
+    "empty": "ยังไม่มีรายการ",
+    "emptyHint": "เพิ่มรายการแล้วลองเปิดอีกเครื่อง หรือปิดเน็ตแล้วเพิ่ม",
+    "pending": "รอ sync",
+    "editItem": "แก้ไข {{title}}",
+    "deleteItem": "ลบ {{title}}",
+    "currenciesHeading": "สกุลเงินที่เปิดใช้ (จากเซิร์ฟเวอร์)",
+    "noCurrencies": "ยังไม่ได้ดึงสกุลเงิน",
+    "offlineUntrusted": "เครื่องนี้ไม่ได้เปิดใช้งานออฟไลน์ จึงบันทึกได้เฉพาะตอนออนไลน์"
   }
 }
