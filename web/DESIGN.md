@@ -212,15 +212,21 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 
 ## 7. Icons
 
-- **lucide only**, through its Angular package `@ng-icons/lucide` (`NgIcon` + `provideIcons`),
-  outline style. Don't add another icon library. Sizes: 20px in the tab bar and rows, 24px in
+- **lucide**, through its Angular package `@ng-icons/lucide` (`NgIcon` + `provideIcons`),
+  outline style, **plus the app's own SVG set** (registered with `@ng-icons` under a `tpn` prefix,
+  e.g. `tpnCardCredit`, same outline style and stroke as lucide) for what lucide lacks: cards of
+  several kinds, wallets, piggy bank. Don't add another icon library. Sizes: 20px in the tab bar and rows, 24px in
   headers, larger only inside empty-state circles.
 - Decorative icons get `aria-hidden="true"`. An icon that is the whole label of a control needs an
   `aria-label` on the control.
-- **Category and wallet icons**: the user picks from a curated lucide set (food, transport, home,
-  shopping, …) shown as a grid in the picker. They're stored as the lucide name (e.g.
-  `lucideCoffee`), so there's no image upload. The curated list lives in code next to the picker
-  (#6 / #7).
+- **Category, wallet and profile icons**: the user picks from a curated set (lucide + `tpn`
+  icons: food, transport, home, shopping, cards, wallets, …) shown as a grid in the picker, or a
+  **letter badge** (1–2 characters on the item's colour). They're stored as the icon name (e.g.
+  `lucideCoffee`, `tpnWallet`), so there's no image upload. The curated list lives in code next to
+  the picker (#6 / #7).
+- **No brand logos as item icons** (decided with the owner): a TrueMoney or Grab wallet is a
+  letter badge on a similar colour, never the company's logo. Real brand marks are only for
+  sign-in buttons, as the brand's guidelines allow (`shared/components/brand`).
 
 ## 8. Interaction and motion
 

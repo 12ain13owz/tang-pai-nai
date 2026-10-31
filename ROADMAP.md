@@ -70,27 +70,27 @@ merging.
 
 ## Status
 
-| #   | Feature / phase            | API | Web | Notes                                                                                                                     |
-| --- | -------------------------- | --- | --- | ------------------------------------------------------------------------------------------------------------------------- |
-| 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                   |
-| 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                               |
-| 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                |
-| 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                            |
-| 4   | Auth                       | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                              |
-| 4a  | Offline sync foundation    | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md) |
-| 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                       |
-| 6   | **Wallet**                 | ⬜  | ⬜  | **← next.** accounts with a currency + balance; `wallet_members` from day one. [spec](docs/features/wallet.md)            |
-| 7   | Category                   | ⬜  | ⬜  | income/expense, 1 level of sub-categories, default set seeded per user. [spec](docs/features/category.md)                 |
-| 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                             |
-| 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                   |
-| 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                |
-| 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                        |
-| 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                            |
-| 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                                 |
-| 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                        |
-| 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                                           |
-| 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                    |
-| 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                      |
+| #   | Feature / phase            | API | Web | Notes                                                                                                                                                |
+| --- | -------------------------- | --- | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                                              |
+| 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                                                          |
+| 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                                           |
+| 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                                                       |
+| 4   | Auth                       | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                                                         |
+| 4a  | Offline sync foundation    | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                            |
+| 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                  |
+| 6   | **Profile + Wallet**       | ⬜  | ⬜  | **← next.** profiles (separate books) and wallets with a currency + balance. [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
+| 7   | Category                   | ⬜  | ⬜  | income/expense, 1 level of sub-categories, default set seeded per user. [spec](docs/features/category.md)                                            |
+| 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                                                        |
+| 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                                              |
+| 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                           |
+| 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                                                   |
+| 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                                                       |
+| 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                                                            |
+| 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                                                   |
+| 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                                                                      |
+| 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                                               |
+| 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                 |
 
 ✅ done · 🚧 in progress · ⬜ not started · — not applicable
 
@@ -112,8 +112,9 @@ the app usable on local data with a "sign in again to sync" banner.
 | 4a.1 | Trust step, encrypted local DB, PIN lock (keypad), auto-lock, wipe rules, Security › device   | ✅     |
 | 4a.2 | Sync tables, `/sync/push` + `/sync/pull`, outbox, sync status, rejected ops, conflict notices | ✅     |
 
-**Next up is Wallet (#6)**, the first real synced table: it registers a sync handler like
-`sync_probes` does (`api/AGENTS.md` → Sync, `web/AGENTS.md` → Sync) and then **removes the
+**Next up is Profile + Wallet (#6)** (profiles decided with the owner after 4a.2: see the
+locked decision under Money & data and [profile.md](docs/features/profile.md)). Wallet is the
+first real user-data synced table: it registers a sync handler like `sync_probes` does (`api/AGENTS.md` → Sync, `web/AGENTS.md` → Sync) and then **removes the
 dev-only probe** (its feature folder, handler, web page, local table and a migration dropping
 `sync_probes`).
 
@@ -565,7 +566,13 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 - **Currency is a master table** (ISO 4217 code, minor-unit digits, active flag). Only **THB** is
   active at launch; others can be switched on later. Names come from `Intl.DisplayNames` on the web,
   so they aren't stored.
-- **A wallet has exactly one currency.** Its transactions inherit it. There is no FX conversion in
+- **Profiles** (decided after 4a.2): one account holds one or more profiles, each a separate set
+  of books (wallets, categories, transactions, budgets, reports, totals). Every user-data row
+  carries `profileId` beside `userId`; the app opens the profile last used on the device.
+  [profile.md](docs/features/profile.md)
+- **A wallet has exactly one currency.** Its transactions inherit it. It can change only while the
+  wallet has no transactions, or to a currency with the same minor unit after a confirm (wallet
+  spec rule 3). There is no FX conversion in
   the MVP, and totals across currencies are shown per currency.
 - **Every user-owned row carries `userId`** (its owner), and every query is scoped by it. The one
   exception is a wallet shared through `wallet_members`: members reach that wallet and its
@@ -590,7 +597,7 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 - **Conflicts**: the later edit wins between the same user's devices; in a shared wallet **the
   owner always wins**; delete beats edit; the losing version is kept in `change_history` and the
   loser is told.
-- **Shared wallets**: owner = full offline. Editor = view/edit/delete **online only**, but may
+- **Shared wallets** (to revisit at #16: share a wallet or a whole profile): owner = full offline. Editor = view/edit/delete **online only**, but may
   **add** transactions offline. Viewer = online, read only. `wallet_members` exists from #6; the
   sharing UI is #16.
 

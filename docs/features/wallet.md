@@ -4,9 +4,12 @@
 
 ## Purpose
 
-A wallet is where money sits: cash, a bank account, a credit card, an e-wallet. Like Money Lover,
-every transaction belongs to exactly one wallet, and the app shows each wallet's balance plus a
-total.
+A wallet is where money sits: cash, a bank account or debit card, a credit card, an e-wallet
+(TrueMoney, LINE Pay, ShopeePay, Grab…). Like Money Lover, a person has as many wallets as they
+like, every transaction belongs to exactly one wallet, and the app shows each wallet's balance plus
+a total, with a per-wallet switch to leave it out of the total (Money Lover's premium feature,
+free here). Wallets live inside a **profile** ([profile.md](profile.md)): each profile has its own
+wallets and its own total.
 
 ## Out of scope
 
@@ -20,32 +23,44 @@ total.
 
 `src/core/database/schema/wallet.ts`
 
-- **wallets** — `id`, `userId`, `name`, `type` (`cash` | `bank` | `credit_card` | `e_wallet` |
-  `other`), `currencyCode` (FK currencies), `initialBalance` (integer, minor units, may be
+- **wallets** — `id`, `userId`, `profileId` (FK profiles), `name`, `type` (`cash` | `bank` |
+  `credit_card` | `e_wallet` | `other`), `currencyCode` (FK currencies), `initialBalance` (integer, minor units, may be
   negative), `icon`, `color`, `excludeFromTotal` (default `false`), `isArchived` (default
   `false`), `sortOrder`, plus the sync columns (`createdAt`, `updatedAt`, `deletedAt?`, `changeSeq`,
   `updatedBy`; see [offline-sync.md](offline-sync.md)). `userId` is the **owner**.
 - **wallet_members**: `walletId` (FK), `userId` (FK), `role` (`editor` | `viewer`), `addedAt`.
   PK (`walletId`, `userId`). The owner isn't listed here. It stays empty until #16 adds the UI.
 
+`type` is a label and the default icon only; it limits nothing. `bank` covers a bank account and
+its debit card ("ธนาคาร / เดบิต"), since a debit card spends from that account. `credit_card`
+stays apart because it may later get a negative balance view or a statement cycle. `icon` is an
+icon name from the app's own set (Web screens → Icons), never an uploaded image.
+
 **Balance isn't stored.** It's computed as `initialBalance + Σ income − Σ expense ± transfers` for
 the wallet. Add a cached column only if this gets slow.
 
 ## Business rules
 
-1. Every query is scoped to the signed-in user: wallets they own, plus wallets they're a member of
-   (by role). Any other wallet id returns `404`, never `403`.
-2. `name` is 1–50 chars after trimming, and unique per user among non-archived wallets
+1. Every query is scoped to the signed-in user and the current profile: wallets they own, plus
+   wallets they're a member of (by role). Any other wallet id returns `404`, never `403`.
+2. `name` is 1–50 chars after trimming, and unique per profile among non-archived wallets
    (case-insensitive).
-3. `currencyCode` must be active when the wallet is created, and **can't change once the wallet has
-   any transaction**.
+3. `currencyCode` must be active when the wallet is created. Changing it later (decided with the
+   owner before #6): amounts are stored in the currency's minor unit, so the number itself never
+   changes, only the currency it's shown in.
+   - **No transactions yet**: change freely.
+   - **Has transactions, same `minorUnit`** (THB ↔ USD): allowed after a confirm that says the
+     amounts stay the same numbers, only the currency label changes (for fixing a wrong pick, not
+     a conversion).
+   - **Has transactions, different `minorUnit`** (THB ↔ JPY): refused; make a new wallet instead
+     (otherwise ฿65.50 would read as ¥6,550).
 4. `initialBalance` is an integer within ±10¹⁵.
 5. A wallet with transactions can't be deleted, only **archived**. Archived wallets are hidden from
    pickers and from the total, but their history stays in reports. A wallet with no transactions can
    be deleted (soft delete, `deletedAt`). Only the owner can archive or delete.
-6. The total balance ("ยอดรวม") sums non-archived wallets with `excludeFromTotal = false`, **grouped
-   by currency**.
-7. A new user starts with one wallet: "เงินสด" (cash, THB, balance 0).
+6. The total balance ("ยอดรวม") sums the current profile's non-archived wallets with
+   `excludeFromTotal = false`, **grouped by currency**.
+7. Every new profile (so every new user) starts with one wallet: "เงินสด" (cash, THB, balance 0).
 
 ## Endpoints
 
@@ -60,9 +75,16 @@ the wallet. Add a cached column only if this gets slow.
 
 ## Web screens
 
-- **Wallets tab**: the total per currency at the top, then the wallet list (icon, name, balance).
+- **Icons** (decided with the owner before #6): the picker offers a curated lucide set plus the
+  app's **own SVG set** (cards of several kinds, wallets, piggy bank, bank, phone / QR for
+  e-wallets). **No brand logos** for wallets: a wallet for TrueMoney or Grab uses a **letter
+  badge** ("T", "G", up to 2 characters) on a colour the user picks, so nothing copies a
+  trademark. Real brand marks appear only on sign-in buttons (Google), as their brand guidelines
+  allow.
+
+- **Wallets tab** (current profile): the total per currency at the top, then the wallet list (icon, name, balance).
   Tapping a wallet opens its transactions, and long-press/drag reorders.
-- **Wallet form** (bottom sheet): name, type, icon, colour, starting balance, currency (only if more
+- **Wallet form** (bottom sheet): name, type, icon (or letter badge), colour, starting balance, currency (only if more
   than one is active), and an "exclude from total" toggle.
 - **Wallet switcher** in the header of the Transactions tab: "all wallets" or one wallet.
 

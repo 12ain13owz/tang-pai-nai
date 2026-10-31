@@ -17,7 +17,8 @@ of sub-categories ("อาหาร → กาแฟ"), the way Money Lover does
 
 `src/core/database/schema/category.ts`
 
-- **categories** — `id`, `userId`, `type` (`income` | `expense`), `parentId?` (FK categories),
+- **categories** — `id`, `userId`, `profileId` (FK profiles; each profile has its own set,
+  [profile.md](profile.md)), `type` (`income` | `expense`), `parentId?` (FK categories),
   `name`, `icon`, `color`, `isArchived` (default `false`), `sortOrder`, plus the sync columns
   (`createdAt`, `updatedAt`, `deletedAt?`, `changeSeq`, `updatedBy`; see
   [offline-sync.md](offline-sync.md)).

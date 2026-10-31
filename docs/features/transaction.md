@@ -19,7 +19,8 @@ button.
 
 `src/core/database/schema/transaction.ts`
 
-- **transactions** — `id`, `userId`, `walletId` (FK), `categoryId` (FK), `amount` (integer, minor
+- **transactions** — `id`, `userId`, `profileId` (FK profiles, the same as its wallet's and
+  category's, [profile.md](profile.md)), `walletId` (FK), `categoryId` (FK), `amount` (integer, minor
   units, **always > 0**), `occurredOn` (`YYYY-MM-DD`, the user's local date), `occurredAt?` (epoch
   ms, optional time of day), `note?` (≤ 500 chars), `excludeFromReport` (default `false`),
   plus the sync columns (`id` generated on the device, `createdAt`, `updatedAt`, `deletedAt?`,
