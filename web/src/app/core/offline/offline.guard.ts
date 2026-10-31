@@ -42,15 +42,17 @@ export const shellGuard: CanActivateFn = async (_route, state) => {
 
 /** The trust step: only for a device that isn't trusted yet (`authGuard` runs first). */
 export const trustGuard: CanActivateFn = async () => {
+  const router = inject(Router) // before any await: `inject` only works synchronously
   const meta = await inject(OfflineService).ready()
-  return meta ? inject(Router).parseUrl('/') : true
+  return meta ? router.parseUrl('/') : true
 }
 
 /** The lock screen: only while a trusted device is locked. */
 export const lockGuard: CanActivateFn = async () => {
+  const router = inject(Router)
   const offlineService = inject(OfflineService)
   const meta = await offlineService.ready()
-  return meta && offlineService.state() === 'locked' ? true : inject(Router).parseUrl('/')
+  return meta && offlineService.state() === 'locked' ? true : router.parseUrl('/')
 }
 
 /** "Open in another tab": only while another tab holds the app. */
