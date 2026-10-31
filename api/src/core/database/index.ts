@@ -8,5 +8,5 @@ onShutdown(async () => {
   return Promise.resolve()
 })
 
-export { epochMs, id, timestamps } from './columns'
-export type { Database } from './client'
+export { epochMs, id, syncColumns, timestamps } from './columns'
+export type { Database, Executor } from './client'

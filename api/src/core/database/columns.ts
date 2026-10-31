@@ -20,3 +20,14 @@ export const timestamps = {
     .$defaultFn(() => new Date())
     .$onUpdateFn(() => new Date()),
 }
+
+// Columns of every synced table (docs/features/offline-sync.md → Data model). Times stay plain
+// epoch-ms numbers, because devices send and compare them as numbers. `id` comes from the device
+// (UUIDv7), so synced tables use a plain text primary key without a default.
+export const syncColumns = {
+  createdAt: integer().notNull(),
+  updatedAt: integer().notNull(),
+  deletedAt: integer(),
+  changeSeq: integer().notNull(),
+  updatedBy: text().notNull(),
+}

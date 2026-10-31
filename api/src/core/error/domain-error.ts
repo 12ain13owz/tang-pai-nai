@@ -38,6 +38,13 @@ export class BadRequestError extends DomainError {
   }
 }
 
+/** What the client asked for existed once but is gone for good (e.g. a sync cursor past retention). */
+export class GoneError extends DomainError {
+  constructor(message: string, metadata?: ErrorMetadata) {
+    super(message, HttpStatus.GONE, metadata)
+  }
+}
+
 export class ForbiddenError extends DomainError {
   constructor(message: string, metadata?: ErrorMetadata) {
     super(message, HttpStatus.FORBIDDEN, metadata)

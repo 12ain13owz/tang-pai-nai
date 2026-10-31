@@ -23,3 +23,6 @@ export const createDatabase = ({ DATABASE_URL, DATABASE_AUTH_TOKEN }: EnvConfig)
 }
 
 export type Database = ReturnType<typeof createDatabase>['db']
+type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0]
+/** The database or an open transaction on it: what a repository adapter runs its queries on. */
+export type Executor = Database | Transaction
