@@ -206,20 +206,16 @@ export class SyncSheet {
    * Rejected ops to show: a refused profile create carries its refused child rows (category rule
    * 12), which are listed under it rather than one by one.
    */
+  /**
+   * Rejected ops to show: a refused profile create carries its refused child rows (category rule
+   * 12), which are listed under it rather than one by one.
+   */
   protected shown = computed<{ op: OutboxOp; withText: string | null }[]>(() => {
     this.languageService.language()
-    const rejected = this.syncService.rejected()
-    const grouped = new Set<string>()
-    const texts = new Map<string, string>()
-    for (const op of rejected) {
-      if (op.table !== PROFILE_TABLE) {
-        continue
-      }
-      const children = this.profileService.refusedChildren(op.opId)
+    return this.profileService.rejectedItems().map(({ op, children }) => {
       if (children.length === 0) {
-        continue
+        return { op, withText: null }
       }
-      children.forEach((child) => grouped.add(child.opId))
       const count = (table: string) => children.filter((child) => child.table === table).length
       const parts = [
         count('categories') > 0
@@ -229,16 +225,13 @@ export class SyncSheet {
           ? this.transloco.translate('sync.withWallets', { count: count(WALLET_TABLE) })
           : null,
       ].filter((part) => part !== null)
-      texts.set(
-        op.opId,
-        this.transloco.translate('sync.withChildren', {
+      return {
+        op,
+        withText: this.transloco.translate('sync.withChildren', {
           items: parts.join(this.transloco.translate('sync.and')),
-        })
-      )
-    }
-    return rejected
-      .filter((op) => !grouped.has(op.opId))
-      .map((op) => ({ op, withText: texts.get(op.opId) ?? null }))
+        }),
+      }
+    })
   })
 
   protected discard(opId: string, table: string): void {

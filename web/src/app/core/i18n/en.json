@@ -234,7 +234,7 @@
     "profiles": "Profiles",
     "profilesNone": "No profile yet",
     "categories": "Categories",
-    "profilesHint": "{{name}} · {{count}} profiles",
+    "profilesHint": "In use: {{name}} · {{count}} in total",
     "categoriesHint": "Of the profile {{name}}",
     "persistentOnHint": "Storage kept",
     "persistentOffHint": "Storage not kept yet",
@@ -645,6 +645,9 @@
   },
   "sheet": {
     "close": "Close",
+    "back": "Back"
+  },
+  "header": {
     "back": "Back"
   }
 }

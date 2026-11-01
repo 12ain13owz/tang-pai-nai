@@ -5,6 +5,7 @@ import { lucideRefreshCw } from '@ng-icons/lucide'
 import { LanguageService } from '@/core/i18n'
 import { SyncService } from '@/core/offline'
 import type { SyncStatus as Status } from '@/core/offline'
+import { ProfileService } from '@/core/profile'
 import { SyncSheet } from './sync-sheet'
 
 /**
@@ -45,6 +46,7 @@ export class SyncStatus {
   private languageService = inject(LanguageService)
   private transloco = inject(TranslocoService)
   private syncService = inject(SyncService)
+  private profileService = inject(ProfileService)
 
   protected sheetOpen = signal(false)
   protected status = this.syncService.status
@@ -52,7 +54,7 @@ export class SyncStatus {
     this.languageService.language() // re-translate on a language switch
     const pending = this.syncService.pendingCount()
     const keys: Record<Status, [string, object]> = {
-      errors: ['sync.errors', { count: this.syncService.rejected().length }],
+      errors: ['sync.errors', { count: this.profileService.rejectedItems().length }],
       offline: pending > 0 ? ['sync.offlinePending', { count: pending }] : ['sync.offline', {}],
       syncing: ['sync.syncing', {}],
       pending: ['sync.pending', { count: pending }],

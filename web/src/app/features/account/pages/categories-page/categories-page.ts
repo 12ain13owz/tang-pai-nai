@@ -221,12 +221,12 @@ import type { UserIcon } from '@/shared/components/icon-badge'
                 id="categories-archived"
                 class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
               >
-                @for (category of archived(); track category.id) {
+                @for (item of archived(); track item.category.id) {
                   <li>
                     <ng-container
                       *ngTemplateOutlet="
                         row;
-                        context: { $implicit: category, child: false, archived: true }
+                        context: { $implicit: item.category, child: item.child, archived: true }
                       "
                     />
                   </li>
@@ -284,7 +284,7 @@ import type { UserIcon } from '@/shared/components/icon-badge'
             />
             <span class="flex min-w-0 flex-1 flex-col">
               <span class="truncate" [class.text-base]="!child">{{ category.name }}</span>
-              @if (archived && parentName(category); as parent) {
+              @if (archived && !child && parentName(category); as parent) {
                 <span class="text-sm text-muted-foreground">
                   {{ 'categories.subOf' | transloco: { name: parent } }}
                 </span>
@@ -320,12 +320,22 @@ export class CategoriesPage {
   protected showArchived = signal(false)
 
   protected tree = computed(() => this.categoryService.tree(this.type()))
-  /** Archived parents (each followed by its archived children) and archived children of open ones. */
+  /**
+   * Archived parents, each followed by its archived children (indented), then archived children
+   * of open parents (with "under <parent>").
+   */
   protected archived = computed(() => {
     const type = this.type()
     return [
-      ...this.categoryService.tree(type, true).flatMap((node) => [node.category, ...node.children]),
-      ...this.categoryService.archivedChildren(type),
+      ...this.categoryService
+        .tree(type, true)
+        .flatMap((node) => [
+          { category: node.category, child: false },
+          ...node.children.map((category) => ({ category, child: true })),
+        ]),
+      ...this.categoryService
+        .archivedChildren(type)
+        .map((category) => ({ category, child: false })),
     ]
   })
 

@@ -208,6 +208,8 @@ export class ProfileService {
     this.offlineService.write((db) => {
       const current = this.find(db, rowId)
       const live = current?.deletedAt === null ? current : null
+      // Read before the profile's row comes back, which ends the "refused create" state.
+      const refused = fixOpId ? this.refusedChildrenIn(db, fixOpId) : []
       queueWrite(db, PROFILE_TABLE, 'upsert', {
         ...current,
         id: rowId,
@@ -229,7 +231,7 @@ export class ProfileService {
       }
       if (fixOpId) {
         // Category rule 12: the refused create's child rows go again, after the profile.
-        for (const child of this.refusedChildrenIn(db, fixOpId)) {
+        for (const child of refused) {
           queueWrite(db, child.table, 'upsert', {
             ...child.row,
             id: child.rowId,
@@ -264,16 +266,26 @@ export class ProfileService {
   }
 
   /**
-   * Category rule 12: the rejected creates of rows of `PROFILE_CHILD_TABLES` that went with a
-   * rejected profile op (the profile was refused, so they were too). The sync sheet shows them
-   * under the profile; fixing the profile sends them again, discarding it drops them.
+   * The rejected ops as the user sees them (category rule 12): a refused profile create with the
+   * refused child rows that went with it, and every other rejected op on its own.
    */
-  refusedChildren(profileOpId: string): OutboxOp[] {
-    this.offlineService.changes()
-    return this.offlineService.isOpen()
-      ? this.refusedChildrenIn(this.offlineService.db(), profileOpId)
-      : []
-  }
+  rejectedItems = computed<{ op: OutboxOp; children: OutboxOp[] }[]>(() => {
+    const rejected = this.syncService.rejected()
+    if (!this.offlineService.isOpen()) {
+      return []
+    }
+    const db = this.offlineService.db()
+    const grouped = new Map<string, OutboxOp[]>()
+    for (const op of rejected) {
+      if (op.table === PROFILE_TABLE) {
+        grouped.set(op.opId, this.refusedChildrenIn(db, op.opId))
+      }
+    }
+    const inGroup = new Set([...grouped.values()].flat().map((child) => child.opId))
+    return rejected
+      .filter((op) => !inGroup.has(op.opId))
+      .map((op) => ({ op, children: grouped.get(op.opId) ?? [] }))
+  })
 
   /** Discards a rejected profile op with its refused child rows (category rule 12). */
   discardRefused(profileOpId: string): void {

@@ -234,7 +234,7 @@
     "profiles": "โปรไฟล์",
     "profilesNone": "ยังไม่มีโปรไฟล์",
     "categories": "หมวดหมู่",
-    "profilesHint": "{{name}} · {{count}} โปรไฟล์",
+    "profilesHint": "ใช้อยู่: {{name}} · ทั้งหมด {{count}}",
     "categoriesHint": "ของโปรไฟล์ {{name}}",
     "persistentOnHint": "เก็บข้อมูลถาวร",
     "persistentOffHint": "ยังไม่เก็บข้อมูลถาวร",
@@ -645,6 +645,9 @@
   },
   "sheet": {
     "close": "ปิด",
+    "back": "ย้อนกลับ"
+  },
+  "header": {
     "back": "ย้อนกลับ"
   }
 }
