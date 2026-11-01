@@ -19,7 +19,6 @@ const FIX_ROUTES: Readonly<Record<string, string>> = {
   profiles: '/account/profiles',
   // The wallet sheet lives in the shell, so it opens on the tab itself (even its first-wallet step).
   [WALLET_TABLE]: '/wallets',
-  sync_probes: '/account/sync-test',
 }
 
 /**

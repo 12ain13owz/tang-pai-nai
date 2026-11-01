@@ -28,12 +28,3 @@ export interface PhoneCodeFormControls {
   code: FormControl<string>
 }
 export type PhoneCodeFormGroup = FormGroup<PhoneCodeFormControls>
-
-/** The dev-only sync test item (offline-sync → Web screens), removed at #6. */
-export interface SyncProbeFormControls {
-  title: FormControl<string>
-  /** Baht as typed, e.g. `65` or `65.50`. */
-  amount: FormControl<string>
-}
-export type SyncProbeFormGroup = FormGroup<SyncProbeFormControls>
-export type SyncProbeFormValue = ReturnType<SyncProbeFormGroup['getRawValue']>

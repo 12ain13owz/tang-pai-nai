@@ -14,7 +14,7 @@ const MIGRATIONS: readonly string[] = [
   // 4a.1: the device itself.
   `CREATE TABLE sync_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL) STRICT`,
   // 4a.2: the first synced tables, the outbox and conflict notices. `change_seq` is null on a row
-  // the server hasn't seen yet. `sync_probes` is dev only and goes away at #6.
+  // the server hasn't seen yet. `sync_probes` was dev only (dropped in step 5).
   `CREATE TABLE currencies (
     code TEXT PRIMARY KEY,
     minor_unit INTEGER NOT NULL,
@@ -88,6 +88,10 @@ const MIGRATIONS: readonly string[] = [
     updated_by TEXT
   ) STRICT;
   CREATE INDEX wallets_profile ON wallets (profile_id)`,
+  // #6.2: the dev-only sync_probes is gone from the server, with anything still about it.
+  `DROP TABLE sync_probes;
+  DELETE FROM outbox WHERE tbl = 'sync_probes';
+  DELETE FROM sync_notices WHERE tbl = 'sync_probes'`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null

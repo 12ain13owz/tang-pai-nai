@@ -105,11 +105,4 @@ describe('AccountPage', () => {
     expect(authService.signOut).toHaveBeenCalledOnce()
     expect(offlineService.wipe).toHaveBeenCalledOnce()
   })
-
-  it('links the sync test page only while the server syncs the probe table', () => {
-    expect(page().textContent).not.toContain(th.account.syncTest)
-    syncService.serverTables.set(['currencies', 'sync_probes'])
-    fixture.detectChanges()
-    expect(page().querySelector('a[href="/account/sync-test"]')).not.toBeNull()
-  })
 })

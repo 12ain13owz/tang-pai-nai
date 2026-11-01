@@ -27,7 +27,6 @@
     "lock": "Locked",
     "otherTab": "Open in another tab",
     "pin": "PIN",
-    "syncTest": "Sync test",
     "profiles": "Profiles"
   },
   "status": {
@@ -164,7 +163,6 @@
     "reauthFailed": "Couldn't confirm it's you. Try again",
     "phone": "Phone number",
     "phoneNotAdded": "Not added",
-    "syncTest": "Sync test (dev)",
     "signOutUnsynced": "{{count}} changes aren't synced yet. Signing out now deletes them",
     "signOutUnsyncedConfirm": "Sign out and delete them",
     "profiles": "Profiles",
@@ -397,35 +395,9 @@
     "codeID_TAKEN": "The id belongs to another user",
     "codeUNKNOWN_TABLE": "The server doesn't know this kind of data",
     "codeREAD_ONLY": "This data can't be changed from a device",
-    "tablesync_probes": "Sync test item",
     "tablecurrencies": "Currency",
     "tableprofiles": "Profile",
     "tablewallets": "Wallet"
-  },
-  "syncTest": {
-    "devOnly": "Development only: for trying out sync. It goes away once wallets exist",
-    "add": "Add item",
-    "edit": "Edit item",
-    "fixing": "Fix an item that wasn't saved",
-    "title": "Name",
-    "titleRequired": "Enter a name",
-    "amount": "Amount (baht)",
-    "amountInvalid": "Enter a number with at most 2 decimals",
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "deleted": "Deleted",
-    "undo": "Undo",
-    "saved": "Saved",
-    "listHeading": "Items",
-    "empty": "No items yet",
-    "emptyHint": "Add one, then open another device, or go offline and add one",
-    "pending": "Waiting to sync",
-    "editItem": "Edit {{title}}",
-    "deleteItem": "Delete {{title}}",
-    "currenciesHeading": "Active currencies (from the server)",
-    "noCurrencies": "Currencies not pulled yet",
-    "offlineUntrusted": "Offline isn't on for this device, so it can only save while online"
   },
   "colors": {
     "label": "Colour {{number}}"

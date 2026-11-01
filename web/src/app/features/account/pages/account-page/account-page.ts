@@ -4,13 +4,7 @@ import { NonNullableFormBuilder } from '@angular/forms'
 import { Router, RouterLink } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import {
-  lucideChevronRight,
-  lucideFlaskConical,
-  lucideLogOut,
-  lucideShieldCheck,
-  lucideUsers,
-} from '@ng-icons/lucide'
+import { lucideChevronRight, lucideLogOut, lucideShieldCheck, lucideUsers } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { AuthService, AuthStore, SIGN_IN_URL } from '@/core/auth'
@@ -33,7 +27,6 @@ import { PalettePicker } from './palette-picker'
       lucideLogOut,
       lucideChevronRight,
       lucideShieldCheck,
-      lucideFlaskConical,
       lucideUsers,
     }),
   ],
@@ -90,27 +83,6 @@ import { PalettePicker } from './palette-picker'
               {{ 'account.securityHint' | transloco }}
             </span>
           </span>
-          <ng-icon
-            name="lucideChevronRight"
-            size="20"
-            class="text-muted-foreground"
-            aria-hidden="true"
-          />
-        </a>
-      }
-
-      @if (syncService.serverTables().includes('sync_probes')) {
-        <a
-          routerLink="/account/sync-test"
-          class="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground"
-        >
-          <span
-            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
-            aria-hidden="true"
-          >
-            <ng-icon name="lucideFlaskConical" />
-          </span>
-          <span class="flex-1 text-base">{{ 'account.syncTest' | transloco }}</span>
           <ng-icon
             name="lucideChevronRight"
             size="20"
