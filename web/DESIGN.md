@@ -216,8 +216,10 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 
 ## 7. Icons
 
-- **lucide only**, through its Angular package `@ng-icons/lucide` (`NgIcon` + `provideIcons`),
-  outline style. Don't add another icon library. Sizes: 20px in the tab bar and rows, 24px in
+- **lucide**, through its Angular package `@ng-icons/lucide` (`NgIcon` + `provideIcons`),
+  outline style, plus **our own `tpn` SVGs** (from #6.2) where lucide has no clear picture. A
+  `tpn` icon is drawn in lucide's style (24 × 24, 2px round stroke, no fill) so the two mix.
+  Don't add another icon library, and never use a bank's or brand's logo. Sizes: 20px in the tab bar and rows, 24px in
   headers, larger only inside empty-state circles.
 - Decorative icons get `aria-hidden="true"`. An icon that is the whole label of a control needs an
   `aria-label` on the control.
@@ -225,10 +227,12 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   (`PROFILE_ICONS`), on one of 10 `USER_COLORS`, shown by `app-icon-badge` (40px in rows, 28px
   in the header switcher). Never rename or remove a shipped icon; an unknown name shows
   `lucideUser`.
-- **Category and wallet icons**: the user picks from a curated lucide set (food, transport, home,
-  shopping, …) shown as a grid in the picker. They're stored as the lucide name (e.g.
-  `lucideCoffee`), so there's no image upload. The curated list lives in code next to the picker
-  (#6 / #7).
+- **Category and wallet icons**: the user picks from one curated catalogue (lucide + `tpn`),
+  grouped by meaning (money places, cards, cash, food, transport, home, …) and shown as a grid in
+  the picker. Icons say what the thing is at a glance (a buffet, a coffee cup, a bank); there are
+  several bank and card drawings so similar wallets stay apart, and no letter badges. Stored as
+  the export name (`lucideCoffee`, `tpnBankColumns`), so there's no image upload. Each new wallet
+  or category starts with a default icon the user can change (#6.2 / #7).
 
 ## 8. Interaction and motion
 
