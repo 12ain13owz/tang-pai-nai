@@ -128,7 +128,7 @@ describe('ProfileSheet', () => {
     expect(nameInput().value).toBe('  ร้านกาแฟ ')
     await submit()
     expect(profiles.profiles()).toMatchObject([
-      { name: 'ร้านกาแฟ', icon: 'lucideStore', color: '#ea580c' },
+      { name: 'ร้านกาแฟ', icon: 'lucideStore', color: '#c2410c' },
     ])
     expect(profiles.current()?.name).toBe('ร้านกาแฟ')
     expect(profiles.sheet()).toBeNull()

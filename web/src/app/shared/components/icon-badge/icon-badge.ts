@@ -1,6 +1,6 @@
 import { Component, computed, input } from '@angular/core'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { glyphColor } from './user-colors'
+import { glyphColor, userColor } from './user-colors'
 import { FALLBACK_ICON, knownIcon, USER_ICONS } from './user-icons'
 import type { UserIcon } from './user-icons'
 
@@ -15,7 +15,7 @@ import type { UserIcon } from './user-icons'
       class="flex items-center justify-center rounded-full"
       [style.width.px]="size()"
       [style.height.px]="size()"
-      [style.background-color]="color()"
+      [style.background-color]="fill()"
       [style.color]="glyph()"
     >
       <ng-icon [name]="name()" [size]="iconSize()" />
@@ -31,6 +31,7 @@ export class IconBadge {
   fallback = input<UserIcon>(FALLBACK_ICON)
 
   protected name = computed(() => knownIcon(this.icon(), this.fallback()))
-  protected glyph = computed(() => glyphColor(this.color()))
+  protected fill = computed(() => userColor(this.color()))
+  protected glyph = computed(() => glyphColor(this.fill()))
   protected iconSize = computed(() => `${Math.round(this.size() / 2)}`)
 }

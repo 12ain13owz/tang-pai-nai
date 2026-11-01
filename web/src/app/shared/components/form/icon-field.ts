@@ -4,7 +4,7 @@ import { ReactiveFormsModule } from '@angular/forms'
 import type { FormControl } from '@angular/forms'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { glyphColor, USER_ICONS } from '@/shared/components/icon-badge'
+import { glyphColor, USER_ICONS, userColor } from '@/shared/components/icon-badge'
 import type { IconGroup } from '@/shared/components/icon-badge'
 
 let nextId = 0
@@ -45,8 +45,8 @@ let nextId = 0
               class="flex size-11 cursor-pointer items-center justify-center rounded-full has-focus-visible:ring-2 has-focus-visible:ring-ring"
               [class.bg-muted]="!picked"
               [class.text-muted-foreground]="!picked"
-              [style.background-color]="picked ? color() : null"
-              [style.color]="picked ? glyph(color()) : null"
+              [style.background-color]="picked ? userColor(color()) : null"
+              [style.color]="picked ? glyph(userColor(color())) : null"
             >
               <input
                 type="radio"
@@ -75,4 +75,5 @@ export class IconField {
 
   protected radioName = `icon-field-${nextId++}`
   protected glyph = glyphColor
+  protected userColor = userColor
 }

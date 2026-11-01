@@ -107,9 +107,12 @@ because `ThemeService` covers both the mode and the palette. Users only ever see
 changes with the look. `--income` / `--expense` pass 4.5:1 on both `--background` and `--card`.
 Don't reuse `destructive` for expenses: an expense isn't an error.
 
-**User colours** (wallet and category `color`) arrive as data and are the only raw colours allowed.
-Use them for the icon circle's background, with a white or black glyph picked for contrast. Never
-use them for text on the page background.
+**User colours** (profile, wallet and category `color`) arrive as data and are the only raw colours
+allowed. Use them for the icon circle's background with a **white glyph** (owner's choice in #7):
+every colour in `USER_COLORS` gives white at least 4.5:1, so a new colour must too (a test
+checks). Five colours were darkened one step in #7; a row saved with an old one is drawn with the
+new one (`userColor`) and saved with it on its next edit. Never use them for text on the page
+background.
 
 **The accent is for "you are here" and "do this", nothing else**: the ➕, the one primary button,
 the active tab, the selected option, the focus ring. Don't use it for decoration, headings or
