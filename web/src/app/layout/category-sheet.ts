@@ -22,26 +22,31 @@ import type {
   CategoryValues,
 } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
+import { ProfileService } from '@/core/profile'
+import { WalletService } from '@/core/wallet'
 import {
   ColorField,
   FORM_IMPORTS,
   IconField,
   NameIconField,
   SegmentedField,
+  ToggleListField,
   withMessage,
 } from '@/shared/components/form'
+import type { ToggleListItem } from '@/shared/components/form'
 import {
   CATEGORY_ICON_GROUPS,
   IconBadge,
   USER_COLORS,
   userColor,
+  WALLET_DEFAULT_ICON,
 } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
 import type { SelectOption } from '@/shared/types'
 import type { CategoryFormGroup } from './category-form.type'
 
-type View = 'form' | 'icons' | 'parent' | 'confirmDelete' | 'confirmDiscard'
+type View = 'form' | 'icons' | 'parent' | 'wallets' | 'confirmDelete' | 'confirmDiscard'
 
 const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
   nameTaken: 'categories.unarchiveNameTaken',
@@ -65,6 +70,7 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
     NgIcon,
     NameIconField,
     SegmentedField,
+    ToggleListField,
     IconField,
     ColorField,
     IconBadge,
@@ -181,6 +187,30 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
                         aria-hidden="true"
                       />
                     </button>
+                    @if (walletItems().length > 0) {
+                      <button
+                        type="button"
+                        class="flex min-h-12 items-center gap-3 border-t border-border px-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        (click)="view.set('wallets')"
+                      >
+                        <span class="text-muted-foreground">{{
+                          'categories.usedIn' | transloco
+                        }}</span>
+                        <span class="min-w-0 flex-1 truncate text-right">
+                          @if (usedIn().used === usedIn().total) {
+                            {{ 'categories.usedInAll' | transloco }}
+                          } @else {
+                            {{ 'categories.usedInSome' | transloco: usedIn() }}
+                          }
+                        </span>
+                        <ng-icon
+                          name="lucideChevronRight"
+                          size="20"
+                          class="text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      </button>
+                    }
                   </div>
                   @if (childCount() > 0) {
                     <p class="rounded-xl bg-muted px-4 py-3 text-sm">
@@ -221,6 +251,20 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
                   [color]="f.color.value"
                 />
               </div>
+            </app-sheet-frame>
+          }
+          @case ('wallets') {
+            <app-sheet-frame
+              [title]="'categories.usedInHeading' | transloco"
+              leadingIcon="back"
+              [leadingLabel]="'sheet.back' | transloco"
+              (leading)="view.set('form')"
+            >
+              <app-toggle-list-field
+                [control]="f.hiddenIn"
+                [label]="'categories.usedInHeading' | transloco"
+                [items]="walletItems()"
+              />
             </app-sheet-frame>
           }
           @case ('parent') {
@@ -356,6 +400,8 @@ export class CategorySheet {
   private transloco = inject(TranslocoService)
   private languageService = inject(LanguageService)
   protected categoryService = inject(CategoryService)
+  private walletService = inject(WalletService)
+  private profileService = inject(ProfileService)
 
   protected iconGroups = CATEGORY_ICON_GROUPS
   protected defaultIcon = CATEGORY_DEFAULT_ICON as UserIcon
@@ -407,7 +453,40 @@ export class CategorySheet {
     ]
   })
 
-  private formValue = signal({ type: 'expense', parentId: '' })
+  private formValue = signal<{ type: string; parentId: string; hiddenIn: readonly string[] }>({
+    type: 'expense',
+    parentId: '',
+    hiddenIn: [],
+  })
+  /**
+   * Rule 13, "ใช้ในกระเป๋า": the profile's open wallets with a switch each; a wallet that hides
+   * the chosen parent shows this one off, locked.
+   */
+  protected walletItems = computed<ToggleListItem[]>(() => {
+    const profileId = this.profileId() ?? this.profileService.current()?.id
+    if (!profileId) {
+      return []
+    }
+    const parentId = this.formValue().parentId
+    this.languageService.language()
+    const note = this.transloco.translate('categories.hiddenWithParent')
+    return this.walletService.openOf(profileId).map((wallet) => ({
+      id: wallet.id,
+      label: wallet.name,
+      icon: wallet.icon,
+      color: userColor(wallet.color),
+      fallback: WALLET_DEFAULT_ICON,
+      lockedNote: parentId && wallet.hiddenCategoryIds.includes(parentId) ? note : null,
+    }))
+  })
+  protected usedIn = computed(() => {
+    const items = this.walletItems()
+    const off = this.formValue().hiddenIn
+    return {
+      used: items.filter((item) => !item.lockedNote && !off.includes(item.id)).length,
+      total: items.length,
+    }
+  })
   /** The type's top-level open categories, without this one (rule 3). */
   protected parentOptions = computed(() =>
     this.categoryService.parents(this.formValue().type as CategoryType, this.editingId())
@@ -453,6 +532,7 @@ export class CategorySheet {
     color: [USER_COLORS[0] as string],
     type: ['expense'],
     parentId: [''],
+    hiddenIn: this.nnfb.control<string[]>([]),
   })
 
   /** Unsaved input: swiping or tapping the sheet away asks first (DESIGN.md §6). */
@@ -463,8 +543,8 @@ export class CategorySheet {
     this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
       this.dirty.set(this.form.dirty)
       this.refusal.set(null)
-      const { type, parentId } = this.form.getRawValue()
-      this.formValue.set({ type, parentId })
+      const { type, parentId, hiddenIn } = this.form.getRawValue()
+      this.formValue.set({ type, parentId, hiddenIn })
     })
     // Picking an icon is the icon view's answer: back to the form.
     this.form.controls.icon.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
@@ -515,9 +595,9 @@ export class CategorySheet {
       parentId: value.parentId || null,
     }
     if (state.mode === 'fix') {
-      this.categoryService.save(state.id, values, state.opId, state.profileId)
+      this.categoryService.save(state.id, values, state.opId, state.profileId, value.hiddenIn)
     } else {
-      this.categoryService.save(this.editingId(), values)
+      this.categoryService.save(this.editingId(), values, null, undefined, value.hiddenIn)
     }
     toast.success(
       this.transloco.translate(state.mode === 'create' ? 'categories.created' : 'categories.saved')
@@ -628,9 +708,13 @@ export class CategorySheet {
         color: USER_COLORS[USER_COLORS.length - 1],
         type: state.type,
         parentId: state.parentId ?? '',
+        hiddenIn: [],
       })
     } else if (state.mode === 'fix') {
-      this.form.reset(this.toForm(state.values))
+      this.form.reset({
+        ...this.toForm(state.values),
+        hiddenIn: this.categoryService.hiddenIn(state.id, state.profileId),
+      })
       this.form.markAllAsTouched()
       this.form.markAsDirty()
       this.dirty.set(true)
@@ -640,10 +724,13 @@ export class CategorySheet {
         this.state.set(null)
         return
       }
-      this.form.reset(this.toForm(category))
+      this.form.reset({
+        ...this.toForm(category),
+        hiddenIn: this.categoryService.hiddenIn(category.id, category.profileId),
+      })
     }
-    const { type, parentId } = this.form.getRawValue()
-    this.formValue.set({ type, parentId })
+    const { type, parentId, hiddenIn } = this.form.getRawValue()
+    this.formValue.set({ type, parentId, hiddenIn })
     this.syncTypeLock()
   }
 

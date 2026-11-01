@@ -4,11 +4,19 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import type { ValidatorFn } from '@angular/forms'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideArchive, lucideArchiveRestore, lucideTrash2 } from '@ng-icons/lucide'
+import {
+  lucideArchive,
+  lucideArchiveRestore,
+  lucideChevronRight,
+  lucideTrash2,
+} from '@ng-icons/lucide'
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
+import { CATEGORY_DEFAULT_ICON, CategoryService } from '@/core/category'
+import type { CategoryType } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
+import { ProfileService } from '@/core/profile'
 import { WALLET_LIMITS, WalletService } from '@/core/wallet'
 import type { UnarchiveRefusal, WalletSheetState, WalletValues } from '@/core/wallet'
 import {
@@ -18,8 +26,10 @@ import {
   IconField,
   NameIconField,
   SwitchField,
+  ToggleListField,
   withMessage,
 } from '@/shared/components/form'
+import type { ToggleListItem } from '@/shared/components/form'
 import {
   USER_COLORS,
   userColor,
@@ -31,7 +41,9 @@ import type { SelectOption } from '@/shared/types'
 import { parseMajor, toMajorText } from '@/shared/utils'
 import type { WalletFormGroup } from './wallet-form.type'
 
-type View = 'form' | 'icons' | 'confirmDelete' | 'confirmDiscard'
+type View = 'form' | 'icons' | 'categories' | 'confirmDelete' | 'confirmDiscard'
+
+const CATEGORY_TABS: readonly CategoryType[] = ['expense', 'income']
 
 const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
   nameTaken: 'wallets.unarchiveNameTaken',
@@ -55,13 +67,16 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
     NameIconField,
     AmountField,
     SwitchField,
+    ToggleListField,
     IconField,
     ColorField,
     HlmButton,
     HlmDrawerImports,
     SheetFrame,
   ],
-  providers: [provideIcons({ lucideArchive, lucideArchiveRestore, lucideTrash2 })],
+  providers: [
+    provideIcons({ lucideArchive, lucideArchiveRestore, lucideChevronRight, lucideTrash2 }),
+  ],
   template: `
     @let f = form.controls;
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="onClosed()">
@@ -165,6 +180,30 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                     [control]="f.excludeFromTotal"
                     [label]="'wallets.excludeFromTotal' | transloco"
                   />
+                  <div class="-mx-4 -mt-1 flex flex-col border-y border-border">
+                    <button
+                      type="button"
+                      class="flex min-h-12 items-center gap-3 px-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                      (click)="view.set('categories')"
+                    >
+                      <span class="text-muted-foreground">{{
+                        'wallets.categoriesUsed' | transloco
+                      }}</span>
+                      <span class="min-w-0 flex-1 truncate text-right">
+                        @if (hiddenCount() === 0) {
+                          {{ 'wallets.categoriesAll' | transloco }}
+                        } @else {
+                          {{ 'wallets.categoriesHidden' | transloco: { count: hiddenCount() } }}
+                        }
+                      </span>
+                      <ng-icon
+                        name="lucideChevronRight"
+                        size="20"
+                        class="text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </div>
                 </div>
                 <div sheetFooter class="pt-3">
                   <button
@@ -198,6 +237,48 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                   [groups]="iconGroups"
                   [color]="f.color.value"
                 />
+              </div>
+            </app-sheet-frame>
+          }
+          @case ('categories') {
+            <app-sheet-frame
+              [title]="'wallets.categoriesUsed' | transloco"
+              leadingIcon="back"
+              [leadingLabel]="'sheet.back' | transloco"
+              (leading)="view.set('form')"
+            >
+              <div class="flex flex-col gap-4">
+                <div
+                  class="flex rounded-lg bg-muted p-1"
+                  role="tablist"
+                  [attr.aria-label]="'categories.tabsLabel' | transloco"
+                >
+                  @for (tab of categoryTabs; track tab) {
+                    <button
+                      type="button"
+                      role="tab"
+                      class="flex h-10 flex-1 items-center justify-center rounded-md text-sm text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-selected:bg-card aria-selected:font-semibold aria-selected:text-foreground aria-selected:shadow-sm"
+                      [attr.aria-selected]="categoryTab() === tab"
+                      (click)="categoryTab.set(tab)"
+                    >
+                      {{ 'categories.' + tab | transloco }}
+                    </button>
+                  }
+                </div>
+                @if (categoryItems().length > 0) {
+                  <app-toggle-list-field
+                    [control]="f.hiddenCategoryIds"
+                    [label]="'wallets.categoriesUsed' | transloco"
+                    [items]="categoryItems()"
+                  />
+                } @else {
+                  <p class="text-sm text-muted-foreground">
+                    {{
+                      'categories.emptyHeading'
+                        | transloco: { label: 'categories.' + categoryTab() | transloco }
+                    }}
+                  </p>
+                }
               </div>
             </app-sheet-frame>
           }
@@ -258,12 +339,16 @@ export class WalletSheet {
   private transloco = inject(TranslocoService)
   private languageService = inject(LanguageService)
   protected walletService = inject(WalletService)
+  private categoryService = inject(CategoryService)
+  private profileService = inject(ProfileService)
 
   protected iconGroups = WALLET_ICON_GROUPS
   protected defaultIcon = WALLET_DEFAULT_ICON
   protected colors = USER_COLORS
   protected state = this.walletService.sheet
   protected view = signal<View>('form')
+  protected categoryTabs = CATEGORY_TABS
+  protected categoryTab = signal<CategoryType>('expense')
   /** Why the wallet can't come back from the archive (a translation key). */
   protected refusal = signal<string | null>(null)
 
@@ -285,6 +370,43 @@ export class WalletSheet {
       return this.editing()?.profileId ?? state.profileId
     }
     return this.editing()?.profileId ?? null
+  })
+  /** The profile whose categories the wallet picks from (category rule 13). */
+  private categoryProfileId = computed(
+    () => this.profileId() ?? this.profileService.current()?.id ?? null
+  )
+  /** The ids switched off in the categories view (signal copy of the control). */
+  private hidden = signal<readonly string[]>([])
+  /** "ซ่อน n": the profile's open categories hidden here, children of a hidden parent too. */
+  protected hiddenCount = computed(() => {
+    const profileId = this.categoryProfileId()
+    const hidden = this.hidden()
+    if (!profileId || hidden.length === 0) {
+      return 0
+    }
+    return CATEGORY_TABS.flatMap((type) => this.categoryService.treeOf(profileId, type)).flatMap(
+      (node) =>
+        hidden.includes(node.category.id)
+          ? [node.category, ...node.children]
+          : node.children.filter((child) => hidden.includes(child.id))
+    ).length
+  })
+  protected categoryItems = computed<ToggleListItem[]>(() => {
+    const profileId = this.categoryProfileId()
+    if (!profileId) {
+      return []
+    }
+    const hidden = this.hidden()
+    const note = this.transloco.translate('categories.hiddenWithParent')
+    this.languageService.language()
+    return this.categoryService
+      .treeOf(profileId, this.categoryTab())
+      .flatMap((node) => [
+        this.categoryItem(node.category, false, null),
+        ...node.children.map((child) =>
+          this.categoryItem(child, true, hidden.includes(node.category.id) ? note : null)
+        ),
+      ])
   })
   protected heading = computed(() => {
     switch (this.state()?.mode) {
@@ -355,6 +477,7 @@ export class WalletSheet {
     excludeFromTotal: [false],
     icon: [WALLET_DEFAULT_ICON as string],
     color: [USER_COLORS[0] as string],
+    hiddenCategoryIds: this.nnfb.control<string[]>([]),
   })
 
   /** Unsaved input: swiping or tapping the sheet away asks first (DESIGN.md §6). */
@@ -365,6 +488,7 @@ export class WalletSheet {
     this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
       this.dirty.set(this.form.dirty)
       this.refusal.set(null)
+      this.hidden.set(this.form.controls.hiddenCategoryIds.value)
     })
     // Picking an icon is the icon view's answer: back to the form.
     this.form.controls.icon.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
@@ -407,6 +531,7 @@ export class WalletSheet {
       currencyCode: value.currencyCode,
       initialBalance: value.negative && magnitude !== 0 ? -magnitude : magnitude,
       excludeFromTotal: value.excludeFromTotal,
+      hiddenCategoryIds: value.hiddenCategoryIds,
     }
     if (state.mode === 'fix') {
       this.walletService.save(state.id, values, state.opId, state.profileId)
@@ -492,12 +617,29 @@ export class WalletSheet {
     this.state.set(null)
   }
 
+  private categoryItem(
+    category: { id: string; name: string; icon: string; color: string },
+    child: boolean,
+    lockedNote: string | null
+  ): ToggleListItem {
+    return {
+      id: category.id,
+      label: category.name,
+      icon: category.icon,
+      color: userColor(category.color),
+      fallback: CATEGORY_DEFAULT_ICON,
+      child,
+      lockedNote,
+    }
+  }
+
   private minorUnit(): number {
     return this.walletService.minorUnit(this.form.controls.currencyCode.value)
   }
 
   private start(state: WalletSheetState): void {
     this.view.set('form')
+    this.categoryTab.set('expense')
     this.dirty.set(false)
     this.refusal.set(null)
     if (state.mode === 'create') {
@@ -509,6 +651,7 @@ export class WalletSheet {
         excludeFromTotal: false,
         icon: WALLET_DEFAULT_ICON,
         color: USER_COLORS[0],
+        hiddenCategoryIds: [],
       })
       return
     }
@@ -538,6 +681,7 @@ export class WalletSheet {
       excludeFromTotal: values.excludeFromTotal,
       icon: values.icon,
       color: userColor(values.color),
+      hiddenCategoryIds: values.hiddenCategoryIds,
     }
   }
 }

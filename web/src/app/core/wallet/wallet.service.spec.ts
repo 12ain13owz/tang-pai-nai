@@ -80,6 +80,7 @@ describe('WalletService', () => {
     currencyCode: 'THB',
     initialBalance: -1825075,
     excludeFromTotal: false,
+    hiddenCategoryIds: [],
   }
 
   beforeEach(async () => {
@@ -215,6 +216,7 @@ describe('WalletService', () => {
         currencyCode: 'THB',
         initialBalance: 0,
         excludeFromTotal: false,
+        hiddenCategoryIds: [],
       },
     })
     service.openFix('nope')
