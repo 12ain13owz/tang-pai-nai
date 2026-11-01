@@ -20,7 +20,8 @@ properties:
           properties:
             table:
               type: string
-              example: sync_probes
+              description: e.g. `currencies`, `profiles` (rows as in SyncProfileRow)
+              example: profiles
             row:
               $ref: './sync-row.schema.yaml'
       notices:
@@ -42,4 +43,4 @@ properties:
         description: Tables this server syncs (the dev-only sync_probes is absent in production)
         items:
           type: string
-        example: [currencies, sync_probes]
+        example: [currencies, profiles, sync_probes]

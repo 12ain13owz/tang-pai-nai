@@ -27,7 +27,8 @@
     "lock": "ล็อกอยู่",
     "otherTab": "เปิดอยู่ในแท็บอื่น",
     "pin": "PIN",
-    "syncTest": "ทดสอบ sync"
+    "syncTest": "ทดสอบ sync",
+    "profiles": "โปรไฟล์"
   },
   "status": {
     "online": "ออนไลน์",
@@ -41,11 +42,13 @@
     "emptyHeading": "ยังไม่มีธุรกรรม",
     "emptyText": "รายรับรายจ่ายที่บันทึกจะแสดงที่นี่",
     "newHeading": "เพิ่มธุรกรรม",
-    "newText": "ฟอร์มบันทึกรายรับรายจ่ายจะมาในเร็ว ๆ นี้"
+    "newText": "ฟอร์มบันทึกรายรับรายจ่ายจะมาในเร็ว ๆ นี้",
+    "noWalletHeading": "ยังไม่มีกระเป๋าเงิน",
+    "noWalletText": "ขั้นถัดไปคือเพิ่มกระเป๋าเงินให้โปรไฟล์นี้ ซึ่งจะมาในเร็ว ๆ นี้"
   },
   "wallets": {
     "emptyHeading": "ยังไม่มีกระเป๋าเงิน",
-    "emptyText": "เงินสด บัญชีธนาคาร และบัตรต่าง ๆ จะแสดงที่นี่"
+    "emptyText": "ขั้นถัดไปคือเพิ่มกระเป๋าเงินให้โปรไฟล์นี้ ซึ่งจะมาในเร็ว ๆ นี้"
   },
   "reports": {
     "emptyHeading": "ยังไม่มีรายงาน",
@@ -115,7 +118,9 @@
     "phoneNotAdded": "ยังไม่ได้เพิ่ม",
     "syncTest": "ทดสอบ sync (dev)",
     "signOutUnsynced": "ยังมี {{count}} รายการที่ยังไม่ได้ sync ออกจากระบบตอนนี้จะลบทิ้ง",
-    "signOutUnsyncedConfirm": "ออกจากระบบและทิ้งรายการ"
+    "signOutUnsyncedConfirm": "ออกจากระบบและทิ้งรายการ",
+    "profiles": "โปรไฟล์",
+    "profilesNone": "ยังไม่มีโปรไฟล์"
   },
   "auth": {
     "signInHeading": "เข้าสู่ระบบ",
@@ -345,7 +350,8 @@
     "codeUNKNOWN_TABLE": "เซิร์ฟเวอร์ไม่รู้จักข้อมูลชนิดนี้",
     "codeREAD_ONLY": "ข้อมูลนี้แก้ไขจากเครื่องไม่ได้",
     "tablesync_probes": "รายการทดสอบ sync",
-    "tablecurrencies": "สกุลเงิน"
+    "tablecurrencies": "สกุลเงิน",
+    "tableprofiles": "โปรไฟล์"
   },
   "syncTest": {
     "devOnly": "หน้านี้มีเฉพาะตอนพัฒนา ใช้ทดสอบการ sync และจะถูกลบเมื่อมีกระเป๋าเงิน",
@@ -371,5 +377,69 @@
     "currenciesHeading": "สกุลเงินที่เปิดใช้ (จากเซิร์ฟเวอร์)",
     "noCurrencies": "ยังไม่ได้ดึงสกุลเงิน",
     "offlineUntrusted": "เครื่องนี้ไม่ได้เปิดใช้งานออฟไลน์ จึงบันทึกได้เฉพาะตอนออนไลน์"
+  },
+  "colors": {
+    "label": "สีที่ {{number}}"
+  },
+  "profiles": {
+    "firstHeading": "สร้างโปรไฟล์แรก",
+    "firstText": "โปรไฟล์แยกเงินแต่ละเรื่องออกจากกัน เช่น ส่วนตัว ครอบครัว ร้านค้า แต่ละโปรไฟล์มีกระเป๋าเงินและหมวดหมู่ของตัวเอง",
+    "create": "สร้างโปรไฟล์",
+    "createHeading": "สร้างโปรไฟล์",
+    "editHeading": "แก้ไขโปรไฟล์",
+    "fixHeading": "แก้ไขโปรไฟล์ที่บันทึกไม่สำเร็จ",
+    "name": "ชื่อโปรไฟล์",
+    "namePlaceholder": "เช่น ส่วนตัว",
+    "nameRequired": "ใส่ชื่อโปรไฟล์",
+    "nameTaken": "มีโปรไฟล์ชื่อนี้แล้ว",
+    "icon": "ไอคอน",
+    "color": "สี",
+    "save": "บันทึก",
+    "close": "ปิด",
+    "cancel": "ยกเลิก",
+    "created": "สร้างโปรไฟล์แล้ว",
+    "saved": "บันทึกแล้ว",
+    "deleted": "ลบโปรไฟล์ “{{name}}” แล้ว",
+    "delete": "ลบโปรไฟล์",
+    "deleteHeading": "ลบโปรไฟล์ “{{name}}” ใช่ไหม",
+    "deleteText": "กระเป๋าเงินและธุรกรรมในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้",
+    "deleteConfirm": "ลบ",
+    "discardHeading": "ทิ้งที่แก้ไว้ใช่ไหม",
+    "discard": "ทิ้ง",
+    "keepEditing": "แก้ต่อ",
+    "needsOnline": "เครื่องนี้ไม่ได้ใช้งานออฟไลน์ ต่ออินเทอร์เน็ตก่อนจึงจะแก้ไขโปรไฟล์ได้",
+    "switchHeading": "โปรไฟล์",
+    "switchLabel": "โปรไฟล์ {{name}} เปลี่ยนโปรไฟล์",
+    "add": "เพิ่มโปรไฟล์",
+    "manage": "จัดการโปรไฟล์",
+    "pending": "รอ sync",
+    "currentHere": "ใช้อยู่บนเครื่องนี้",
+    "listHeading": "โปรไฟล์ทั้งหมด ({{count}})",
+    "order": "จัดลำดับ",
+    "orderDone": "เสร็จ",
+    "editItem": "แก้ไข {{name}}",
+    "limit": "มีโปรไฟล์ครบ 20 แล้ว ลบโปรไฟล์ที่ไม่ใช้ก่อนจึงจะเพิ่มได้",
+    "deletedElsewhere": "โปรไฟล์ “{{name}}” ถูกลบจากเครื่องอื่น",
+    "loading": "กำลังโหลดโปรไฟล์",
+    "dragItem": "ย้าย {{name}} (กดค้างแล้วลาก หรือใช้ปุ่มลูกศร)",
+    "orderHint": "กดค้างที่ปุ่มจับแล้วลากเพื่อเรียงลำดับ"
+  },
+  "icons": {
+    "lucideUser": "คน",
+    "lucideUsers": "ครอบครัว",
+    "lucideHouse": "บ้าน",
+    "lucideHeart": "หัวใจ",
+    "lucideBaby": "ลูก",
+    "lucideBriefcase": "งาน",
+    "lucideStore": "ร้านค้า",
+    "lucideBuilding2": "บริษัท",
+    "lucideGraduationCap": "การศึกษา",
+    "lucidePlane": "ท่องเที่ยว",
+    "lucideCar": "รถ",
+    "lucidePiggyBank": "เงินออม",
+    "lucideWallet": "กระเป๋าเงิน",
+    "lucideGift": "ของขวัญ",
+    "lucidePawPrint": "สัตว์เลี้ยง",
+    "lucideStar": "ดาว"
   }
 }

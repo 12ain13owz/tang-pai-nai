@@ -195,6 +195,10 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   then type again; a mismatch starts over with one error line). Errors and the attempts warning
   sit in one `role="alert"` line between the heading and the dots. Used by the trust step, the
   lock screen and Account › PIN.
+- **Tab bar**: the active tab is shown by colour alone: icon and label in `text-brand`, the label
+  `font-semibold` and the icon stroke 2.4 (so it doesn't rely on colour only), no pill, fill or
+  border (owner's choice in #6.1, so the gold ➕ stays the bar's one strong shape). Inactive tabs
+  are `text-muted-foreground`. Focus shows a ring around the icon.
 - **Strip under the header**: the update banner and the expired-session banner
   (`layout/session-banner`) share one look: `bg-muted px-4 py-2 text-sm`, the text left and one
   44px button right.
@@ -217,6 +221,10 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   headers, larger only inside empty-state circles.
 - Decorative icons get `aria-hidden="true"`. An icon that is the whole label of a control needs an
   `aria-label` on the control.
+- **Profile icons** (#6.1): 16 curated lucide icons in `shared/components/icon-badge/user-icons.ts`
+  (`PROFILE_ICONS`), on one of 10 `USER_COLORS`, shown by `app-icon-badge` (40px in rows, 28px
+  in the header switcher). Never rename or remove a shipped icon; an unknown name shows
+  `lucideUser`.
 - **Category and wallet icons**: the user picks from a curated lucide set (food, transport, home,
   shopping, …) shown as a grid in the picker. They're stored as the lucide name (e.g.
   `lucideCoffee`), so there's no image upload. The curated list lives in code next to the picker
@@ -227,8 +235,11 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - **Touch targets ≥ 44 × 44px.** Pad small icons out to that size instead of making them bigger.
 - **No hover-only behaviour.** Every hover style also needs a visible `focus-visible` style and must
   work by tap.
-- **Long-press is a shortcut, never the only way** (e.g. wallet reorder also gets an "edit order"
-  mode).
+- **Long-press is a shortcut, never the only way.** Reordering a list is an order mode (a
+  "จัดลำดับ" button) where each row has one grip handle (`lucideGripVertical`, CDK drag-drop):
+  press and hold it for ~0.3 s on touch (at once with a mouse), then drag; the same handle moves
+  its row with ↑ / ↓ for keyboards. Profiles (Account › โปรไฟล์) are the reference; wallets
+  follow.
 - **Motion**: 150–250 ms, ease-out. Sheets slide up, toasts fade and slide. Nothing bounces or
   loops. Honour `prefers-reduced-motion` by dropping the movement and keeping a fade.
 - **Keyboard**: numeric fields use `inputmode="decimal"` or `"numeric"`. Keep the focused field
@@ -283,6 +294,7 @@ WCAG 2.2 AA, as in `AGENTS.md`:
   | Concept          | Thai                                | English          | Note                                          |
   | ---------------- | ----------------------------------- | ---------------- | --------------------------------------------- |
   | Transaction      | ธุรกรรม                             | Transaction      |                                               |
+  | Profile          | โปรไฟล์                             | Profile          | #6.1; a separate area of money                |
   | Wallet           | กระเป๋าเงิน                         | Wallet           | Thai tab bar label shortens to กระเป๋า        |
   | Category         | หมวดหมู่                            | Category         |                                               |
   | Income / expense | รายรับ / รายจ่าย                    | Income / Expense |                                               |

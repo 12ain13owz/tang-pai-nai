@@ -43,6 +43,13 @@
       "when": 1793454077221,
       "tag": "0005_currency_seed",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1793462456248,
+      "tag": "0006_profiles",
+      "breakpoints": true
     }
   ]
 }

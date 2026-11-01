@@ -1,0 +1,49 @@
+type: object
+description: >-
+  A row of the `profiles` table (docs/features/profile.md) as it travels in /sync/pull and in
+  /sync/push. Devices send the whole row on upsert; the server stamps changeSeq and updatedBy.
+  Rules: name 1–30 characters, unique among the user's live profiles (case-insensitive), at most
+  20 live profiles (both answer `CONFLICT`); icon a lucide export name; color `#rrggbb`.
+required: [id, name, icon, color, sortOrder, createdAt, updatedAt, deletedAt, changeSeq, updatedBy]
+properties:
+  id:
+    type: string
+    format: uuid
+    description: UUIDv7 made on the device
+  name:
+    type: string
+    minLength: 1
+    maxLength: 30
+  icon:
+    type: string
+    maxLength: 40
+    pattern: '^lucide[A-Z][A-Za-z0-9]*$'
+  color:
+    type: string
+    pattern: '^#[0-9a-f]{6}$'
+  sortOrder:
+    type: integer
+    minimum: 0
+    maximum: 1000000
+  createdAt:
+    type: integer
+  updatedAt:
+    type: integer
+  deletedAt:
+    type: [integer, 'null']
+    description: Set on a deleted profile (a tombstone)
+  changeSeq:
+    type: integer
+  updatedBy:
+    type: string
+example:
+  id: 0199b000-0000-7000-8000-000000000001
+  name: ส่วนตัว
+  icon: lucideHouse
+  color: '#16a34a'
+  sortOrder: 0
+  createdAt: 1793462516289
+  updatedAt: 1793462516289
+  deletedAt: null
+  changeSeq: 15
+  updatedBy: 01a192b2-0d2a-76a3-a2c6-cefb54a89217

@@ -69,3 +69,19 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Drag to reorder (CDK drag-drop, DESIGN.md §8). The preview is moved to <body>, so it's styled
+   here rather than in the list's component. */
+.tpn-drag-preview {
+  @apply rounded-xl border border-border text-card-foreground shadow-lg;
+}
+.cdk-drag-animating,
+.cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
+  transition: transform 200ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cdk-drag-animating,
+  .cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
+    transition: none;
+  }
+}

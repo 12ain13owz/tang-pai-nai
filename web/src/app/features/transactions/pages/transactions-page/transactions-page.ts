@@ -1,19 +1,20 @@
 import { Component } from '@angular/core'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideReceiptText } from '@ng-icons/lucide'
+import { lucideWallet } from '@ng-icons/lucide'
 import { EmptyState } from '@/shared/components/empty-state'
 
 @Component({
   selector: 'app-transactions-page',
   imports: [TranslocoPipe, NgIcon, EmptyState],
-  providers: [provideIcons({ lucideReceiptText })],
+  providers: [provideIcons({ lucideWallet })],
   template: `
+    <!-- #6.1: a profile exists but no wallet can yet; 6.2 adds the "add wallet" button. -->
     <app-empty-state
-      [heading]="'transactions.emptyHeading' | transloco"
-      [description]="'transactions.emptyText' | transloco"
+      [heading]="'transactions.noWalletHeading' | transloco"
+      [description]="'transactions.noWalletText' | transloco"
     >
-      <ng-icon name="lucideReceiptText" />
+      <ng-icon name="lucideWallet" />
     </app-empty-state>
   `,
 })

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core'
+import { Component, inject } from '@angular/core'
 import { RouterLink, RouterLinkActive } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
@@ -9,6 +9,7 @@ import {
   lucideReceiptText,
   lucideWallet,
 } from '@ng-icons/lucide'
+import { ProfileService } from '@/core/profile'
 
 interface Tab {
   path: string
@@ -34,7 +35,7 @@ interface Tab {
         @if ($index === 2) {
           <div class="flex items-center justify-center">
             <a
-              routerLink="/transactions/new"
+              [routerLink]="profileService.current() ? '/transactions/new' : '/transactions'"
               [attr.aria-label]="'nav.add' | transloco"
               class="-mt-6 flex size-14 items-center justify-center rounded-full bg-primary text-2xl text-primary-foreground shadow-lg ring-4 ring-background focus-visible:ring-ring focus-visible:outline-none"
             >
@@ -47,10 +48,10 @@ interface Tab {
           routerLinkActive="active"
           ariaCurrentWhenActive="page"
           [routerLinkActiveOptions]="{ exact: tab.exact }"
-          class="group flex flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground focus-visible:outline-none [&.active]:font-medium [&.active]:text-brand"
+          class="group flex flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground focus-visible:outline-none [&.active]:font-semibold [&.active]:text-brand [&.active]:[--ng-icon__stroke-width:2.4]"
         >
           <span
-            class="flex h-7 w-12 items-center justify-center rounded-full text-xl group-focus-visible:ring-2 group-focus-visible:ring-ring group-[.active]:bg-muted"
+            class="flex h-7 w-12 items-center justify-center rounded-full text-xl group-focus-visible:ring-2 group-focus-visible:ring-ring"
           >
             <ng-icon [name]="tab.icon" aria-hidden="true" />
           </span>
@@ -61,6 +62,9 @@ interface Tab {
   `,
 })
 export class BottomTabBar {
+  /** With no profile yet, ➕ leads to the create step on the Transactions tab (profile rule 5). */
+  protected profileService = inject(ProfileService)
+
   /** The ➕ sits between the 2nd and 3rd tab. */
   protected readonly tabs: readonly Tab[] = [
     // exact, so the ➕ page (/transactions/new) doesn't light up this tab

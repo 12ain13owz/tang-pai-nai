@@ -27,7 +27,8 @@
     "lock": "Locked",
     "otherTab": "Open in another tab",
     "pin": "PIN",
-    "syncTest": "Sync test"
+    "syncTest": "Sync test",
+    "profiles": "Profiles"
   },
   "status": {
     "online": "Online",
@@ -41,11 +42,13 @@
     "emptyHeading": "No transactions yet",
     "emptyText": "Income and expenses you record will show up here",
     "newHeading": "Add transaction",
-    "newText": "The income / expense form is coming soon"
+    "newText": "The income / expense form is coming soon",
+    "noWalletHeading": "No wallets yet",
+    "noWalletText": "Next, add a wallet to this profile. That is coming soon."
   },
   "wallets": {
     "emptyHeading": "No wallets yet",
-    "emptyText": "Cash, bank accounts and cards will show up here"
+    "emptyText": "Next, add a wallet to this profile. That is coming soon."
   },
   "reports": {
     "emptyHeading": "No reports yet",
@@ -115,7 +118,9 @@
     "phoneNotAdded": "Not added",
     "syncTest": "Sync test (dev)",
     "signOutUnsynced": "{{count}} changes aren't synced yet. Signing out now deletes them",
-    "signOutUnsyncedConfirm": "Sign out and delete them"
+    "signOutUnsyncedConfirm": "Sign out and delete them",
+    "profiles": "Profiles",
+    "profilesNone": "No profile yet"
   },
   "auth": {
     "signInHeading": "Sign in",
@@ -345,7 +350,8 @@
     "codeUNKNOWN_TABLE": "The server doesn't know this kind of data",
     "codeREAD_ONLY": "This data can't be changed from a device",
     "tablesync_probes": "Sync test item",
-    "tablecurrencies": "Currency"
+    "tablecurrencies": "Currency",
+    "tableprofiles": "Profile"
   },
   "syncTest": {
     "devOnly": "Development only: for trying out sync. It goes away once wallets exist",
@@ -371,5 +377,69 @@
     "currenciesHeading": "Active currencies (from the server)",
     "noCurrencies": "Currencies not pulled yet",
     "offlineUntrusted": "Offline isn't on for this device, so it can only save while online"
+  },
+  "colors": {
+    "label": "Colour {{number}}"
+  },
+  "profiles": {
+    "firstHeading": "Create your first profile",
+    "firstText": "A profile keeps one area of your money apart, like personal, family or a shop. Each has its own wallets and categories.",
+    "create": "Create profile",
+    "createHeading": "New profile",
+    "editHeading": "Edit profile",
+    "fixHeading": "Fix a profile that wasn’t saved",
+    "name": "Profile name",
+    "namePlaceholder": "e.g. Personal",
+    "nameRequired": "Enter a profile name",
+    "nameTaken": "You already have a profile with this name",
+    "icon": "Icon",
+    "color": "Colour",
+    "save": "Save",
+    "close": "Close",
+    "cancel": "Cancel",
+    "created": "Profile created",
+    "saved": "Saved",
+    "deleted": "Deleted profile “{{name}}”",
+    "delete": "Delete profile",
+    "deleteHeading": "Delete profile “{{name}}”?",
+    "deleteText": "Its wallets and transactions are deleted too. This can’t be undone.",
+    "deleteConfirm": "Delete",
+    "discardHeading": "Discard your changes?",
+    "discard": "Discard",
+    "keepEditing": "Keep editing",
+    "needsOnline": "This device isn’t set up for offline use. Go online to change profiles.",
+    "switchHeading": "Profiles",
+    "switchLabel": "Profile {{name}}, switch profile",
+    "add": "Add profile",
+    "manage": "Manage profiles",
+    "pending": "Waiting to sync",
+    "currentHere": "In use on this device",
+    "listHeading": "All profiles ({{count}})",
+    "order": "Reorder",
+    "orderDone": "Done",
+    "editItem": "Edit {{name}}",
+    "limit": "You have 20 profiles. Delete one you don’t use to add another.",
+    "deletedElsewhere": "Profile “{{name}}” was deleted on another device",
+    "loading": "Loading profiles",
+    "dragItem": "Move {{name}} (press and hold, then drag, or use the arrow keys)",
+    "orderHint": "Press and hold a handle, then drag to reorder"
+  },
+  "icons": {
+    "lucideUser": "Person",
+    "lucideUsers": "Family",
+    "lucideHouse": "Home",
+    "lucideHeart": "Heart",
+    "lucideBaby": "Child",
+    "lucideBriefcase": "Work",
+    "lucideStore": "Shop",
+    "lucideBuilding2": "Company",
+    "lucideGraduationCap": "Education",
+    "lucidePlane": "Travel",
+    "lucideCar": "Car",
+    "lucidePiggyBank": "Savings",
+    "lucideWallet": "Wallet",
+    "lucideGift": "Gift",
+    "lucidePawPrint": "Pet",
+    "lucideStar": "Star"
   }
 }

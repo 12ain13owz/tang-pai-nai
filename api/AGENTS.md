@@ -153,8 +153,9 @@ Offline sync (spec: [`offline-sync.md`](../docs/features/offline-sync.md) rules 
 write their own data locally and send it through `POST /sync/push`; they read other devices'
 changes with `GET /sync/pull`. Features can't import each other, so **each synced feature
 registers a table handler** in `syncRegistry` (`@/core/sync`) from its own `index.ts`, and
-`features/sync` reads the registry. Reference: `features/sync-probe` (pushable, dev only) and
-`features/currency` (pull-only master data).
+`features/sync` reads the registry. Reference: `features/profile` (pushable user data, the
+first real one; sync-only, no REST routes), `features/sync-probe` (pushable, dev only, removed
+in #6.2) and `features/currency` (pull-only master data).
 
 - **Make a table synced**: give it `id: text().primaryKey()` (the device's UUIDv7, no default),
   `userId`, and `...syncColumns` (`createdAt`, `updatedAt`, `deletedAt`, `changeSeq`,
@@ -172,13 +173,19 @@ registers a table handler** in `syncRegistry` (`@/core/sync`) from its own `inde
   `sync_state` is taken inside it, so rows commit in order), idempotency via `sync_ops`, the
   clock clamp, the conflict rules (later edit wins, tie keeps the server row, delete beats edit)
   and `change_history` for the losing version. A feature never stamps `changeSeq` itself.
+- **The import that registers it**: a sync-only feature has no router, so `routes.ts` and
+  `features/sync/sync.cleanup.ts` import it for its side effect (`import '@/features/profile'`);
+  add a new synced feature to both.
+- **Rules about other rows** (`check`) cover a live row only: a delete runs no check, so a rule
+  like "can't delete a profile with wallets" is kept by the device writing the dependent
+  tombstones in the same local write (profile rule 8).
 - **Master data** registers `pull` only (pushes answer `READ_ONLY`); its rows come from a
   migration that also raises `sync_state.last_seq` (see `0005_currency_seed.sql`).
 - **Cleanup**: `npm run sync:cleanup` purges tombstones and `sync_ops` older than 90 days and
   raises `purgedSeq` (a pull below it answers `410 CURSOR_EXPIRED`).
 - **Testing**: the service on `createMemorySyncRepository()` (any table name; `checks` and
   `shared` options) with a local `createSyncRegistry()`; handlers on a temporary SQLite file with
-  the committed migrations (`sync-probe.repository.drizzle.test.ts`); HTTP with `accessTokens`
+  the committed migrations (`profile.repository.drizzle.test.ts`); HTTP with `accessTokens`
   for the Bearer header (`sync.controller.test.ts`).
 
 ### Notifications (`src/core/notification/`)
