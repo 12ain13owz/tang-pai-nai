@@ -1,0 +1,89 @@
+type: object
+description: >-
+  A row of the `wallets` table (docs/features/wallet.md) as it travels in /sync/pull and in
+  /sync/push. Devices send the whole row on upsert; the server stamps changeSeq and updatedBy.
+  Rules (each answers `CONFLICT`): profileId is one of the user's live profiles and never changes;
+  currencyCode is active when the wallet is created or its currency changes; name is unique
+  (case-insensitive) among the profile's live, non-archived wallets; a profile holds at most 20
+  of those. A tombstone runs none of them.
+required:
+  [
+    id,
+    profileId,
+    name,
+    currencyCode,
+    initialBalance,
+    icon,
+    color,
+    excludeFromTotal,
+    isArchived,
+    sortOrder,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    changeSeq,
+    updatedBy,
+  ]
+properties:
+  id:
+    type: string
+    format: uuid
+    description: UUIDv7 made on the device
+  profileId:
+    type: string
+    format: uuid
+  name:
+    type: string
+    minLength: 1
+    maxLength: 50
+  currencyCode:
+    type: string
+    pattern: '^[A-Z]{3}$'
+  initialBalance:
+    type: integer
+    minimum: -1000000000000000
+    maximum: 1000000000000000
+    description: Minor units of the currency (satang for THB), may be negative
+  icon:
+    type: string
+    maxLength: 40
+    pattern: '^(lucide|tpn)[A-Z][A-Za-z0-9]*$'
+    description: A lucide export name or one of the web app's own `tpn` icons
+  color:
+    type: string
+    pattern: '^#[0-9a-f]{6}$'
+  excludeFromTotal:
+    type: boolean
+  isArchived:
+    type: boolean
+  sortOrder:
+    type: integer
+    minimum: 0
+    maximum: 1000000
+  createdAt:
+    type: integer
+  updatedAt:
+    type: integer
+  deletedAt:
+    type: [integer, 'null']
+    description: Set on a deleted wallet (a tombstone)
+  changeSeq:
+    type: integer
+  updatedBy:
+    type: string
+example:
+  id: 0199b000-0000-7000-8000-000000000101
+  profileId: 0199b000-0000-7000-8000-000000000001
+  name: บัตรเครดิต
+  currencyCode: THB
+  initialBalance: -1825075
+  icon: tpnCardChip
+  color: '#dc2626'
+  excludeFromTotal: false
+  isArchived: false
+  sortOrder: 0
+  createdAt: 1793462516289
+  updatedAt: 1793462516289
+  deletedAt: null
+  changeSeq: 16
+  updatedBy: 01a192b2-0d2a-76a3-a2c6-cefb54a89217

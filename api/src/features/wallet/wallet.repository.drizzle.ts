@@ -50,28 +50,36 @@ const checkWallet = async (
   }
   const profileId = String(row.profileId)
   const currencyCode = String(row.currencyCode)
-  const [stored] = await executor
-    .select({ profileId: wallets.profileId, currencyCode: wallets.currencyCode })
-    .from(wallets)
-    .where(eq(wallets.id, row.id))
+  const stored = (
+    await executor
+      .select({ profileId: wallets.profileId, currencyCode: wallets.currencyCode })
+      .from(wallets)
+      .where(eq(wallets.id, row.id))
+  ).at(0)
   // Rule 2: one of the owner's live profiles, and a wallet never moves.
   if (stored && stored.profileId !== profileId) {
     return WALLET_MESSAGE.PROFILE_FIXED
   }
-  const [profile] = await executor
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(and(eq(profiles.id, profileId), eq(profiles.userId, userId), isNull(profiles.deletedAt)))
+  const profile = (
+    await executor
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(
+        and(eq(profiles.id, profileId), eq(profiles.userId, userId), isNull(profiles.deletedAt))
+      )
+  ).at(0)
   if (!profile) {
     return WALLET_MESSAGE.PROFILE_GONE
   }
   // Rule 4: a new wallet, or a changed currency, needs an active currency. A wallet keeps a
   // currency that was switched off later (currency rule 3).
   if (!stored || stored.currencyCode !== currencyCode) {
-    const [currency] = await executor
-      .select({ code: currencies.code })
-      .from(currencies)
-      .where(and(eq(currencies.code, currencyCode), eq(currencies.isActive, true)))
+    const currency = (
+      await executor
+        .select({ code: currencies.code })
+        .from(currencies)
+        .where(and(eq(currencies.code, currencyCode), eq(currencies.isActive, true)))
+    ).at(0)
     if (!currency) {
       return WALLET_MESSAGE.CURRENCY_INACTIVE
     }
