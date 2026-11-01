@@ -8,27 +8,28 @@ import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
 import { SyncService } from '@/core/offline'
 import type { OutboxOp, SyncNotice } from '@/core/offline'
+import { WalletService } from '@/core/wallet'
 import { SyncSheet } from './sync-sheet'
 
 const rejectedOp: OutboxOp = {
   seq: 1,
   opId: 'op-1',
-  table: 'sync_probes',
+  table: 'profiles',
   rowId: 'p1',
   op: 'upsert',
-  row: { id: 'p1', title: 'ชา' },
+  row: { id: 'p1', name: 'ชา' },
   baseSeq: null,
   createdAt: 1,
   status: 'rejected',
   code: 'CONFLICT',
-  error: 'A sync probe with this title already exists',
+  error: 'A profile with this name already exists',
 }
 
 const notice: SyncNotice = {
   id: 'h1',
-  table: 'sync_probes',
+  table: 'profiles',
   rowId: 'p2',
-  previous: { id: 'p2', title: 'กาแฟเย็น' },
+  previous: { id: 'p2', name: 'กาแฟเย็น' },
   createdAt: 1,
 }
 
@@ -45,6 +46,7 @@ describe('SyncSheet', () => {
     discard: vi.fn(),
     dismissNotice: vi.fn(),
   }
+  const wallets = { openFix: vi.fn() }
 
   const text = () => document.body.textContent
   const button = (label: string) =>
@@ -71,7 +73,10 @@ describe('SyncSheet', () => {
           preloadLangs: true,
         }),
       ],
-      providers: [{ provide: SyncService, useValue: sync }],
+      providers: [
+        { provide: SyncService, useValue: sync },
+        { provide: WalletService, useValue: wallets },
+      ],
     })
     TestBed.inject(AuthStore).status.set('signedIn')
   })
@@ -102,7 +107,18 @@ describe('SyncSheet', () => {
     await open()
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true)
     button(th.sync.fix)?.click()
-    expect(navigate).toHaveBeenCalledWith(['/account/sync-test'], { queryParams: { fix: 'op-1' } })
+    expect(navigate).toHaveBeenCalledWith(['/account/profiles'], { queryParams: { fix: 'op-1' } })
+  })
+
+  it('opens the wallet sheet on the Wallets tab to fix a rejected wallet', async () => {
+    sync.rejected.set([{ ...rejectedOp, table: 'wallets', row: { id: 'w1', name: 'บัตร' } }])
+    await open()
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true)
+    expect(text()).toContain(th.sync.tablewallets)
+    button(th.sync.fix)?.click()
+    expect(navigate).toHaveBeenCalledWith(['/wallets'])
+    await fixture.whenStable()
+    expect(wallets.openFix).toHaveBeenCalledWith('op-1')
   })
 
   it('lists a conflict notice with the replaced values, and dismisses it', async () => {

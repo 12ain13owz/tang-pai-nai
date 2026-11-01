@@ -14,16 +14,17 @@ describe('LocalDatabase', () => {
         'sync_meta',
         'sync_notices',
         'sync_probes',
+        'wallets',
       ])
     )
-    expect(db.selectValue('PRAGMA user_version')).toBe(3)
+    expect(db.selectValue('PRAGMA user_version')).toBe(4)
     db.close()
   })
 
   it('brings a 4a.1 snapshot (schema step 1) up to date and keeps its data', async () => {
     const old = await openTestDatabase()
     old.exec(
-      'DROP TABLE currencies; DROP TABLE sync_probes; DROP TABLE outbox; DROP TABLE sync_notices; DROP TABLE profiles'
+      'DROP TABLE currencies; DROP TABLE sync_probes; DROP TABLE outbox; DROP TABLE sync_notices; DROP TABLE profiles; DROP TABLE wallets'
     )
     old.exec('PRAGMA user_version = 1')
     old.exec(`INSERT INTO sync_meta (key, value) VALUES ('deviceId', 'd1')`)
@@ -31,10 +32,11 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(3)
+    expect(db.selectValue('PRAGMA user_version')).toBe(4)
     expect(db.selectValue(`SELECT value FROM sync_meta WHERE key = 'deviceId'`)).toBe('d1')
     expect(db.selectValue('SELECT count(*) FROM outbox')).toBe(0)
     expect(db.selectValue('SELECT count(*) FROM profiles')).toBe(0)
+    expect(db.selectValue('SELECT count(*) FROM wallets')).toBe(0)
     db.close()
   })
 
