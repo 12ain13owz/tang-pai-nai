@@ -96,7 +96,8 @@ shows when the profile is created (rule 8).
     hides "add" at 200). Archiving frees a place.
 12. **Profile delete** tombstones its categories in the same local write (profile rule 8, through
     `PROFILE_CHILD_TABLES`), and a device that pulls a profile's tombstone tombstones that
-    profile's live categories it holds (wallet rule 11's sweep). The confirm counts wallets only.
+    profile's live categories it holds (wallet rule 11's sweep). The confirm says how many
+    wallets and categories go with it (categories counted from 7.2, owner's request).
     **A refused profile create** (e.g. a name clash with a profile another device made first)
     refuses its default categories and first wallet too: the sync sheet shows **one** item for
     the profile ("และหมวดหมู่ n รายการ"); fixing it re-queues the profile and its child rows in one
@@ -105,8 +106,20 @@ shows when the profile is created (rule 8).
 13. **Hidden per wallet** (7.2): a wallet lists the categories it doesn't use in
     `hiddenCategoryIds`; the transaction form's picker (#8) leaves them out for that wallet. Ids
     the device doesn't know (deleted, another profile's) are ignored, so the server checks only
-    the shape (an array of UUIDs, at most 200). Hiding a parent hides its children. Two devices
-    editing the same wallet follow the usual later-edit-wins for the whole row.
+    the shape (an array of UUIDs, at most 200; a push without the field means `[]`). Settled at
+    the start of 7.2 (owner):
+    - **Hiding a parent stores the parent's id only** and hides its children too, including
+      children added later. While the parent is hidden its children's switches show off and
+      can't be changed; a child's own id stays in the list as it was, so showing the parent
+      again brings back what was hidden before.
+    - An **archived** category's id stays in the list (unarchiving it keeps it hidden). Ids of
+      categories the device knows are tombstones are dropped when the wallet is saved, and
+      duplicates are dropped too.
+    - A wallet **may hide every category of a type** (a credit card with no income); #8's picker
+      then says so and points to the wallet's "หมวดหมู่ที่ใช้".
+    - The row is in the wallet form when **creating and editing**.
+
+    Two devices editing the same wallet follow the usual later-edit-wins for the whole row.
 14. An untrusted device can create, edit, archive and delete categories only while online
     (offline-sync rule 1), as for profiles.
 
@@ -142,8 +155,12 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
   (`FIX_ROUTES` → `/account/categories?fix=<opId>`). Asks before closing with unsaved input.
 - **Category picker** (#8): in the transaction form, the current wallet's non-hidden,
   non-archived categories of the chosen type.
-- **Wallet form** (7.2): a "หมวดหมู่ที่ใช้" row opening a view of the profile's categories with a
-  switch each.
+- **Wallet form** (7.2): a "หมวดหมู่ที่ใช้" row (under "ไม่รวมในยอดรวม", in create and edit;
+  its line says "ใช้ทุกหมวดหมู่" or "ซ่อน n หมวดหมู่", n counting the stored ids the device shows
+  as hidden, and a ›) opening a view in the same sheet (‹ back, no bottom button, like the icon
+  view): tabs รายจ่าย / รายรับ, then the wallet's profile's open categories, parents with their
+  children indented, a switch each (on = used). The choice is part of the form, saved with the
+  form's one button.
 
 ## Interactions
 
@@ -155,6 +172,10 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
   its children.
 
 ## Open questions
+
+Settled at the start of 7.2 (owner): rule 13's details (a parent's id only, archived ids kept,
+a type may be hidden entirely, the row in create and edit), and the profile delete confirm
+counts categories too (rule 12).
 
 Settled while building 7.1 (owner, from mock-ups): white glyphs on every user colour (DESIGN.md
 §3); the Account tab became grouped rows that open pages (option A1), so หมวดหมู่ is one of

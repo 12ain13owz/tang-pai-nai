@@ -30,8 +30,10 @@ per currency, like Money Lover.
   **owner**), `profileId` (FK profiles), `name`, `currencyCode` (FK currencies),
   `initialBalance` (integer, minor units, may be negative), `icon` (rule 8), `color`
   (`#rrggbb`), `excludeFromTotal` (default `false`), `isArchived` (default `false`),
-  `sortOrder`, plus the sync columns (`createdAt`, `updatedAt`, `deletedAt?`, `changeSeq`,
-  `updatedBy`). Indexes (`userId`, `changeSeq`), (`changeSeq`), (`profileId`).
+  `sortOrder`, `hiddenCategoryIds` (7.2: a JSON array of category ids the wallet doesn't use,
+  at most 200, default `[]`; category rule 13), plus the sync columns (`createdAt`,
+  `updatedAt`, `deletedAt?`, `changeSeq`, `updatedBy`). Indexes (`userId`, `changeSeq`),
+  (`changeSeq`), (`profileId`).
 - **wallet_members**: `walletId` (FK), `userId` (FK), `role` (`editor` | `viewer`), `addedAt`.
   PK (`walletId`, `userId`). The owner isn't listed here. Server only (not synced) and empty
   until #16.
@@ -115,7 +117,8 @@ profiles (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets 
   from mock-ups): row 1 the icon on its colour (a button) and the name; row 2 the +/− button, the
   starting balance in large figures and the currency code (a picker chip when more than one
   currency is active; read-only with rule 4's line once there are transactions); row 3 the
-  "ไม่รวมในยอดรวม" switch. No labels above fields and no hints. Tapping the icon opens the
+  "ไม่รวมในยอดรวม" switch; row 4 (7.2) "หมวดหมู่ที่ใช้", opening a view of the profile's
+  categories with a switch each (category.md → Web screens, rule 13). No labels above fields and no hints. Tapping the icon opens the
   "ไอคอนและสี" view: colour swatches, then the catalogue grouped by meaning (ที่เก็บเงิน, บัตร,
   เงินสดและของมีค่า, ดิจิทัล, อื่น ๆ; lucide and `tpn` mixed); picking an icon goes back. Save
   is the one button at the bottom. In edit mode the header holds **archive** (acts at once; the

@@ -93,7 +93,8 @@ Glossary: โปรไฟล์ / Profile (DESIGN.md §11).
 - **Profile form** (a compact sheet, DESIGN.md §6; reworked in #6.2): the icon on its colour and
   the name on one row; tapping the icon opens an "ไอคอนและสี" view (colour swatches, the curated
   lucide grid; picking an icon goes back). Save is the one button at the bottom; in edit mode a
-  trash icon in the header leads to the delete confirm view. Used for create and edit; "fix" of
+  trash icon in the header leads to the delete confirm view, which says how many wallets and
+  categories go with the profile (categories from 7.2). Used for create and edit; "fix" of
   a rejected profile op opens it with the refused values (`FIX_ROUTES` →
   `/account/profiles?fix=<opId>`). Asks before closing with unsaved input.
 - **Profile switcher** (decided at the start of #6.1): on the Transactions, Wallets and Reports
