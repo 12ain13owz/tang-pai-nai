@@ -486,7 +486,14 @@
     "tpnEwalletQr": "e-wallet (QR)",
     "tpnGoldBar": "ทองคำแท่ง",
     "tpnSavingsJar": "โหลออมสิน",
-    "tpnCashEnvelope": "ซองเงินสด"
+    "tpnCashEnvelope": "ซองเงินสด",
+    "tpnBuffet": "บุฟเฟต์",
+    "tpnBubbleTea": "ชานมไข่มุก",
+    "tpnNoodleBowl": "ก๋วยเตี๋ยว",
+    "tpnTuktuk": "ตุ๊กตุ๊ก",
+    "tpnFaucet": "ก๊อกน้ำ",
+    "tpnTemple": "วัด",
+    "tpnPayslip": "สลิปเงินเดือน"
   },
   "iconGroups": {
     "moneyPlaces": "ที่เก็บเงิน",

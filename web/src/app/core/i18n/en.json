@@ -486,7 +486,14 @@
     "tpnEwalletQr": "E-wallet (QR)",
     "tpnGoldBar": "Gold bar",
     "tpnSavingsJar": "Savings jar",
-    "tpnCashEnvelope": "Cash envelope"
+    "tpnCashEnvelope": "Cash envelope",
+    "tpnBuffet": "Buffet",
+    "tpnBubbleTea": "Bubble tea",
+    "tpnNoodleBowl": "Noodle bowl",
+    "tpnTuktuk": "Tuk-tuk",
+    "tpnFaucet": "Water tap",
+    "tpnTemple": "Temple",
+    "tpnPayslip": "Payslip"
   },
   "iconGroups": {
     "moneyPlaces": "Money places",
