@@ -8,6 +8,7 @@ import { lucideTrash2 } from '@ng-icons/lucide'
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
+import { LanguageService } from '@/core/i18n'
 import { PROFILE_LIMITS, ProfileService } from '@/core/profile'
 import type { ProfileSheetState } from '@/core/profile'
 import {
@@ -136,7 +137,7 @@ type View = 'form' | 'icons' | 'confirmDelete' | 'confirmDiscard'
                   {{ 'profiles.deleteHeading' | transloco: { name: editingName() } }}
                 </p>
                 <p class="text-sm text-muted-foreground">
-                  {{ deleteText() | transloco: { count: walletCount() } }}
+                  {{ deleteText() }}
                 </p>
               </div>
               <div sheetFooter class="pt-3">
@@ -181,6 +182,7 @@ type View = 'form' | 'icons' | 'confirmDelete' | 'confirmDiscard'
 export class ProfileSheet {
   private nnfb = inject(NonNullableFormBuilder)
   private transloco = inject(TranslocoService)
+  private languageService = inject(LanguageService)
   protected profileService = inject(ProfileService)
 
   protected icons = PROFILE_ICON_NAMES
@@ -197,20 +199,28 @@ export class ProfileSheet {
     const id = this.editingId()
     return (id && this.profileService.byId(id)?.name) ?? ''
   })
-  /** Rule 8: the confirm step says how many wallets go with the profile. */
-  protected walletCount = computed(() => {
-    const id = this.editingId()
-    return id ? this.profileService.walletCount(id) : 0
-  })
+  /**
+   * Rule 8 (and category rule 12): the confirm step says how many wallets and categories go with
+   * the profile, and the wallets' transactions.
+   */
   protected deleteText = computed(() => {
-    switch (this.walletCount()) {
-      case 0:
-        return 'profiles.deleteText'
-      case 1:
-        return 'profiles.deleteTextWallet'
-      default:
-        return 'profiles.deleteTextWallets'
+    this.languageService.language()
+    const id = this.editingId()
+    const wallets = id ? this.profileService.walletCount(id) : 0
+    const categories = id ? this.profileService.categoryCount(id) : 0
+    const t = (key: string, params?: object) => this.transloco.translate(`profiles.${key}`, params)
+    const walletText = wallets === 1 ? t('deleteWallet') : t('deleteWallets', { count: wallets })
+    const categoryText =
+      categories === 1 ? t('deleteCategory') : t('deleteCategories', { count: categories })
+    if (wallets > 0 && categories > 0) {
+      return t('deleteTextBoth', { wallets: walletText, categories: categoryText })
     }
+    if (wallets > 0) {
+      return t('deleteTextWalletsOnly', { wallets: walletText })
+    }
+    return categories > 0
+      ? t('deleteTextCategoriesOnly', { categories: categoryText })
+      : t('deleteText')
   })
   protected heading = computed(() => {
     switch (this.state()?.mode) {
