@@ -4,8 +4,17 @@ import { toast } from '@spartan-ng/brain/sonner'
 import { AuthStore } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
-import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
-import type { LocalDatabase } from '@/core/offline'
+import {
+  deleteOp,
+  findOp,
+  fromSql,
+  listOps,
+  OfflineService,
+  queueWrite,
+  SyncService,
+  uuidv7,
+} from '@/core/offline'
+import type { LocalDatabase, OutboxOp } from '@/core/offline'
 import { defaultCategoryRows } from './default-categories'
 import {
   DEFAULT_CATEGORY_TABLE,
@@ -219,6 +228,17 @@ export class ProfileService {
         }
       }
       if (fixOpId) {
+        // Category rule 12: the refused create's child rows go again, after the profile.
+        for (const child of this.refusedChildrenIn(db, fixOpId)) {
+          queueWrite(db, child.table, 'upsert', {
+            ...child.row,
+            id: child.rowId,
+            profileId: rowId,
+            updatedAt: now,
+            deletedAt: null,
+          })
+          deleteOp(db, child.opId)
+        }
         deleteOp(db, fixOpId)
       }
     })
@@ -240,6 +260,28 @@ export class ProfileService {
         this.tombstoneChildren(db, id, now)
         queueWrite(db, PROFILE_TABLE, 'delete', { ...current, updatedAt: now, deletedAt: now })
       }
+    })
+  }
+
+  /**
+   * Category rule 12: the rejected creates of rows of `PROFILE_CHILD_TABLES` that went with a
+   * rejected profile op (the profile was refused, so they were too). The sync sheet shows them
+   * under the profile; fixing the profile sends them again, discarding it drops them.
+   */
+  refusedChildren(profileOpId: string): OutboxOp[] {
+    this.offlineService.changes()
+    return this.offlineService.isOpen()
+      ? this.refusedChildrenIn(this.offlineService.db(), profileOpId)
+      : []
+  }
+
+  /** Discards a rejected profile op with its refused child rows (category rule 12). */
+  discardRefused(profileOpId: string): void {
+    this.offlineService.write((db) => {
+      for (const child of this.refusedChildrenIn(db, profileOpId)) {
+        deleteOp(db, child.opId)
+      }
+      deleteOp(db, profileOpId)
     })
   }
 
@@ -300,6 +342,22 @@ export class ProfileService {
         })
       }
     }
+  }
+
+  private refusedChildrenIn(db: LocalDatabase, profileOpId: string): OutboxOp[] {
+    const op = findOp(db, profileOpId)
+    if (!op || op.table !== PROFILE_TABLE || op.status !== 'rejected' || op.op !== 'upsert') {
+      return []
+    }
+    // Only a refused create: the server has no such profile, so the device has no row left.
+    if (this.find(db, op.rowId)) {
+      return []
+    }
+    const tables: readonly string[] = PROFILE_CHILD_TABLES
+    return listOps(db, 'rejected').filter(
+      (child) =>
+        tables.includes(child.table) && child.op === 'upsert' && child.row['profileId'] === op.rowId
+    )
   }
 
   /** Live rows of `table` whose profile is a tombstone here. */

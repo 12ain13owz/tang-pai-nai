@@ -1,6 +1,6 @@
-import { Component, inject, model } from '@angular/core'
+import { Component, computed, inject, model } from '@angular/core'
 import { Router } from '@angular/router'
-import { TranslocoPipe } from '@jsverse/transloco'
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideRefreshCw } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
@@ -10,7 +10,8 @@ import { AuthStore } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
 import { SyncService } from '@/core/offline'
-import type { SyncRow } from '@/core/offline'
+import type { OutboxOp, SyncRow } from '@/core/offline'
+import { PROFILE_TABLE, ProfileService } from '@/core/profile'
 import { WALLET_TABLE, WalletService } from '@/core/wallet'
 import { SheetFrame } from '@/shared/components/sheet'
 
@@ -84,7 +85,8 @@ const FIX_ROUTES: Readonly<Record<string, string>> = {
                   <ul
                     class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
                   >
-                    @for (op of rejected; track op.opId) {
+                    @for (item of shown(); track item.op.opId) {
+                      @let op = item.op;
                       <li class="flex flex-col gap-2 px-4 py-3">
                         <p class="text-sm text-muted-foreground">
                           {{ 'sync.table' + op.table | transloco }}
@@ -95,6 +97,9 @@ const FIX_ROUTES: Readonly<Record<string, string>> = {
                             {{ 'sync.deleted' | transloco }}
                           }
                         </p>
+                        @if (item.withText) {
+                          <p class="text-sm text-muted-foreground">{{ item.withText }}</p>
+                        }
                         <p class="text-sm text-destructive">
                           {{ 'sync.code' + op.code | transloco }}
                         </p>
@@ -115,7 +120,7 @@ const FIX_ROUTES: Readonly<Record<string, string>> = {
                             variant="outline"
                             type="button"
                             class="h-11 flex-1"
-                            (click)="syncService.discard(op.opId)"
+                            (click)="discard(op.opId, op.table)"
                           >
                             {{ 'sync.discard' | transloco }}
                           </button>
@@ -190,10 +195,59 @@ export class SyncSheet {
   private walletService = inject(WalletService)
   private languageService = inject(LanguageService)
   protected syncService = inject(SyncService)
+  private profileService = inject(ProfileService)
+  private transloco = inject(TranslocoService)
   protected networkStatusService = inject(NetworkStatusService)
   protected authStore = inject(AuthStore)
 
   open = model(false)
+
+  /**
+   * Rejected ops to show: a refused profile create carries its refused child rows (category rule
+   * 12), which are listed under it rather than one by one.
+   */
+  protected shown = computed<{ op: OutboxOp; withText: string | null }[]>(() => {
+    this.languageService.language()
+    const rejected = this.syncService.rejected()
+    const grouped = new Set<string>()
+    const texts = new Map<string, string>()
+    for (const op of rejected) {
+      if (op.table !== PROFILE_TABLE) {
+        continue
+      }
+      const children = this.profileService.refusedChildren(op.opId)
+      if (children.length === 0) {
+        continue
+      }
+      children.forEach((child) => grouped.add(child.opId))
+      const count = (table: string) => children.filter((child) => child.table === table).length
+      const parts = [
+        count('categories') > 0
+          ? this.transloco.translate('sync.withCategories', { count: count('categories') })
+          : null,
+        count(WALLET_TABLE) > 0
+          ? this.transloco.translate('sync.withWallets', { count: count(WALLET_TABLE) })
+          : null,
+      ].filter((part) => part !== null)
+      texts.set(
+        op.opId,
+        this.transloco.translate('sync.withChildren', {
+          items: parts.join(this.transloco.translate('sync.and')),
+        })
+      )
+    }
+    return rejected
+      .filter((op) => !grouped.has(op.opId))
+      .map((op) => ({ op, withText: texts.get(op.opId) ?? null }))
+  })
+
+  protected discard(opId: string, table: string): void {
+    if (table === PROFILE_TABLE) {
+      this.profileService.discardRefused(opId)
+      return
+    }
+    this.syncService.discard(opId)
+  }
 
   protected time(at: number): string {
     return new Intl.DateTimeFormat(this.languageService.locale(), {

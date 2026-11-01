@@ -474,7 +474,12 @@
     "codeREAD_ONLY": "This data can't be changed from a device",
     "tablecurrencies": "Currency",
     "tableprofiles": "Profile",
-    "tablewallets": "Wallet"
+    "tablewallets": "Wallet",
+    "withChildren": "With {{items}} that weren’t saved either. Fixing the profile sends them all again.",
+    "tablecategories": "Category",
+    "withCategories": "{{count}} categories",
+    "withWallets": "{{count}} wallets",
+    "and": " and "
   },
   "colors": {
     "label": "Colour {{number}}"

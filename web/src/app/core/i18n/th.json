@@ -474,7 +474,12 @@
     "codeREAD_ONLY": "ข้อมูลนี้แก้ไขจากเครื่องไม่ได้",
     "tablecurrencies": "สกุลเงิน",
     "tableprofiles": "โปรไฟล์",
-    "tablewallets": "กระเป๋าเงิน"
+    "tablewallets": "กระเป๋าเงิน",
+    "withChildren": "พร้อม{{items}}ที่บันทึกไม่สำเร็จด้วย แก้โปรไฟล์แล้วจะส่งทั้งหมดใหม่",
+    "tablecategories": "หมวดหมู่",
+    "withCategories": "หมวดหมู่ {{count}} รายการ",
+    "withWallets": "กระเป๋าเงิน {{count}} ใบ",
+    "and": " และ"
   },
   "colors": {
     "label": "สีที่ {{number}}"
