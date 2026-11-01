@@ -34,6 +34,27 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
       'updatedBy',
     ],
   },
+  wallets: {
+    key: 'id',
+    columns: [
+      'id',
+      'profileId',
+      'name',
+      'currencyCode',
+      'initialBalance',
+      'icon',
+      'color',
+      'excludeFromTotal',
+      'isArchived',
+      'sortOrder',
+      'createdAt',
+      'updatedAt',
+      'deletedAt',
+      'changeSeq',
+      'updatedBy',
+    ],
+    booleans: ['excludeFromTotal', 'isArchived'],
+  },
   // Dev only, removed at #6.2.
   sync_probes: {
     key: 'id',

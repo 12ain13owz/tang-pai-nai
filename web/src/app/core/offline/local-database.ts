@@ -69,6 +69,25 @@ const MIGRATIONS: readonly string[] = [
     change_seq INTEGER,
     updated_by TEXT
   ) STRICT`,
+  // #6.2: wallets (docs/features/wallet.md).
+  `CREATE TABLE wallets (
+    id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    currency_code TEXT NOT NULL,
+    initial_balance INTEGER NOT NULL,
+    icon TEXT NOT NULL,
+    color TEXT NOT NULL,
+    exclude_from_total INTEGER NOT NULL,
+    is_archived INTEGER NOT NULL,
+    sort_order INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted_at INTEGER,
+    change_seq INTEGER,
+    updated_by TEXT
+  ) STRICT;
+  CREATE INDEX wallets_profile ON wallets (profile_id)`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null
