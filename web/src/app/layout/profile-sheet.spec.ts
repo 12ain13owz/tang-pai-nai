@@ -224,6 +224,58 @@ describe('ProfileSheet', () => {
     ])
   })
 
+  it('counts the categories too, with or without wallets (category rule 12)', async () => {
+    pulled('p1', 'Home')
+    const row = (id: string) => ({
+      id,
+      profileId: 'p1',
+      type: 'expense',
+      parentId: null,
+      name: id,
+      icon: 'lucideShapes',
+      color: '#475569',
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 6,
+      updatedBy: 'u1',
+    })
+    for (const id of ['c1', 'c2', 'c3']) {
+      putRow(db, 'categories', row(id))
+    }
+    changes.update((n) => n + 1)
+    await open({ mode: 'edit', id: 'p1' })
+    button(th.profiles.delete)?.click()
+    await settle()
+    expect(body().textContent).toContain(
+      'หมวดหมู่ 3 รายการในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้'
+    )
+    putRow(db, 'wallets', {
+      id: 'w1',
+      profileId: 'p1',
+      name: 'w1',
+      currencyCode: 'THB',
+      initialBalance: 0,
+      icon: 'lucideWallet',
+      color: '#16a34a',
+      excludeFromTotal: false,
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 6,
+      updatedBy: 'u1',
+    })
+    changes.update((n) => n + 1)
+    await settle()
+    expect(body().textContent).toContain(
+      'กระเป๋าเงิน 1 ใบ หมวดหมู่ 3 รายการ และธุรกรรมในโปรไฟล์นี้จะถูกลบไปด้วย'
+    )
+  })
+
   it('opens a fix with the refused values and their error showing', async () => {
     pulled('p1', 'Home')
     await open({

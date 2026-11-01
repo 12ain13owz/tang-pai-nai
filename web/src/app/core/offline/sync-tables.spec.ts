@@ -30,6 +30,33 @@ describe('sync tables', () => {
     expect(getRow(db, 'currencies', 'THB')).toEqual(stored)
   })
 
+  it('stores a JSON column as text and parses it back, [] when the row has none', () => {
+    const wallet = {
+      id: 'w1',
+      profileId: 'p1',
+      name: 'Cash',
+      currencyCode: 'THB',
+      initialBalance: 0,
+      icon: 'lucideWallet',
+      color: '#16a34a',
+      excludeFromTotal: false,
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 1,
+      updatedBy: 'u1',
+    }
+    putRow(db, 'wallets', { ...wallet, hiddenCategoryIds: ['c1', 'c2'] })
+    expect(db.selectValue('SELECT hidden_category_ids FROM wallets')).toBe('["c1","c2"]')
+    expect(getRow(db, 'wallets', 'w1')?.['hiddenCategoryIds']).toEqual(['c1', 'c2'])
+    putRow(db, 'wallets', wallet)
+    expect(getRow(db, 'wallets', 'w1')?.['hiddenCategoryIds']).toEqual([])
+    db.exec(`UPDATE wallets SET hidden_category_ids = 'not json'`)
+    expect(getRow(db, 'wallets', 'w1')?.['hiddenCategoryIds']).toBeNull()
+  })
+
   it('replaces a row with the same key and deletes by key', () => {
     putRow(db, 'currencies', THB)
     putRow(db, 'currencies', { ...THB, isActive: false, changeSeq: 2 })

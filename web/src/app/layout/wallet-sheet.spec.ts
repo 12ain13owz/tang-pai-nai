@@ -99,6 +99,34 @@ describe('WalletSheet', () => {
     })
     changes.update((n) => n + 1)
   }
+  const category = (id: string, extra: object = {}) => {
+    putRow(db, 'categories', {
+      id,
+      profileId: 'p1',
+      type: 'expense',
+      parentId: null,
+      name: id,
+      icon: 'lucideShapes',
+      color: '#475569',
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 5,
+      updatedBy: 'u1',
+      ...extra,
+    })
+    changes.update((n) => n + 1)
+  }
+  /** A row switch of app-toggle-list-field, by the name it shows. */
+  const toggle = (name: string) =>
+    [...body().querySelectorAll('button[role="switch"]')].find((b) =>
+      b.textContent.trim().startsWith(name)
+    ) as HTMLButtonElement
+  /** A row of the form that opens a view, by its label. */
+  const row = (label: string) =>
+    [...body().querySelectorAll('button')].find((b) => b.textContent.trim().startsWith(label))
   const currency = (code: string, minorUnit: number, isActive: boolean, sortOrder: number) =>
     putRow(db, 'currencies', {
       code,
@@ -188,6 +216,58 @@ describe('WalletSheet', () => {
     ])
     expect(wallets.sheet()).toBeNull()
     expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.wallets.created])
+  })
+
+  it('hides categories from their view: a parent locks its children, the row counts them (category rule 13)', async () => {
+    category('Food')
+    category('Coffee', { parentId: 'Food' })
+    category('Tea', { parentId: 'Food', sortOrder: 1 })
+    category('Taxi')
+    category('Salary', { type: 'income' })
+    wallet('w1', { hiddenCategoryIds: ['Tea', 'unknown'] })
+    wallets.open({ mode: 'edit', id: 'w1' })
+    await settle()
+    expect(row(th.wallets.categoriesUsed)?.textContent).toContain('ซ่อน 1')
+    row(th.wallets.categoriesUsed)?.click()
+    await settle()
+    expect(text()).toContain(th.categories.expense)
+    expect(toggle('Tea').getAttribute('aria-checked')).toBe('false')
+    toggle('Food').click()
+    await settle()
+    expect(toggle('Coffee').disabled).toBe(true)
+    expect(toggle('Coffee').getAttribute('aria-checked')).toBe('false')
+    expect(toggle('Coffee').textContent).toContain(th.categories.hiddenWithParent)
+    ;[...body().querySelectorAll('button[role="tab"]')]
+      .find((b) => b.textContent.trim() === th.categories.income)
+      ?.dispatchEvent(new Event('click'))
+    await settle()
+    toggle('Salary').click()
+    await settle()
+    await click(th.sheet.back)
+    expect(row(th.wallets.categoriesUsed)?.textContent).toContain('ซ่อน 4')
+    await submit()
+    expect(wallets.byId('w1')?.hiddenCategoryIds).toEqual(['Tea', 'unknown', 'Food', 'Salary'])
+    expect(listOps(db, 'pending')[0].row['hiddenCategoryIds']).toEqual([
+      'Tea',
+      'unknown',
+      'Food',
+      'Salary',
+    ])
+  })
+
+  it('starts a new wallet with all categories in use, and keeps the choice made', async () => {
+    category('Taxi')
+    wallets.open({ mode: 'create' })
+    await settle()
+    expect(row(th.wallets.categoriesUsed)?.textContent).toContain(th.wallets.categoriesAll)
+    row(th.wallets.categoriesUsed)?.click()
+    await settle()
+    toggle('Taxi').click()
+    await settle()
+    await click(th.sheet.back)
+    await type(th.wallets.name, 'บัตร')
+    await submit()
+    expect(wallets.wallets()[0].hiddenCategoryIds).toEqual(['Taxi'])
   })
 
   it('starts a new wallet with the default icon, colour and an empty balance (rule 8)', async () => {

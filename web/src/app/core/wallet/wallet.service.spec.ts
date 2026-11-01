@@ -186,6 +186,39 @@ describe('WalletService', () => {
     expect(ops()[0]).toMatchObject({ baseSeq: 10 })
   })
 
+  it('saves hiddenCategoryIds cleaned, and the outbox row carries the array (category rule 13)', () => {
+    putRow(db, 'categories', {
+      id: 'gone',
+      profileId: 'p1',
+      type: 'expense',
+      parentId: null,
+      name: 'Gone',
+      icon: 'lucideShapes',
+      color: '#475569',
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: 5,
+      changeSeq: 1,
+      updatedBy: 'u1',
+    })
+    const id = service.save(null, { ...values, hiddenCategoryIds: ['c1', 'gone', 'c1', 'c2'] })
+    expect(service.byId(id)?.hiddenCategoryIds).toEqual(['c1', 'c2'])
+    expect(ops()[0].row['hiddenCategoryIds']).toEqual(['c1', 'c2'])
+    // A pulled row from before 7.2 has none.
+    pulled(wallet('old'))
+    expect(service.byId('old')?.hiddenCategoryIds).toEqual([])
+  })
+
+  it("lists any profile's open wallets (the category form's wallets)", () => {
+    pulled(wallet('a'))
+    pulled(wallet('b', { profileId: 'p2' }))
+    pulled(wallet('c', { profileId: 'p2', isArchived: true }))
+    expect(service.openOf('p1').map((item) => item.id)).toEqual(['a'])
+    expect(service.openOf('p2').map((item) => item.id)).toEqual(['b'])
+  })
+
   it('saves a fix into the given profile and drops the rejected op', () => {
     db.transaction((tx) => queueWrite(tx, 'wallets', 'upsert', wallet('w9', { name: 'Cash' })))
     db.exec(`UPDATE outbox SET status = 'rejected', code = 'CONFLICT'`)

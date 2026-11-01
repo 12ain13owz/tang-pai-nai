@@ -78,6 +78,36 @@ describe('CategorySheet', () => {
     ;(body().querySelector(`input[aria-label="${label}"]`) as HTMLInputElement).click()
     await settle()
   }
+  const wallet = (id: string, extra: object = {}) => {
+    putRow(db, 'wallets', {
+      id,
+      profileId: 'p1',
+      name: id,
+      currencyCode: 'THB',
+      initialBalance: 0,
+      icon: 'lucideWallet',
+      color: '#16a34a',
+      excludeFromTotal: false,
+      isArchived: false,
+      sortOrder: 0,
+      hiddenCategoryIds: [],
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 5,
+      updatedBy: 'u1',
+      ...extra,
+    })
+    changes.update((n) => n + 1)
+  }
+  /** A row switch of app-toggle-list-field, by the name it shows. */
+  const toggle = (name: string) =>
+    [...body().querySelectorAll('button[role="switch"]')].find((b) =>
+      b.textContent.trim().startsWith(name)
+    ) as HTMLButtonElement
+  /** A row of the form that opens a view, by its label. */
+  const row = (label: string) =>
+    [...body().querySelectorAll('button')].find((b) => b.textContent.trim().startsWith(label))
   const category = (id: string, extra: object = {}) => {
     putRow(db, 'categories', {
       id,
@@ -180,6 +210,41 @@ describe('CategorySheet', () => {
     ])
     expect(categories.sheet()).toBeNull()
     expect(toastTitles()).toEqual([th.categories.created])
+  })
+
+  it('chooses the wallets a category is used in; one hiding its parent is locked (rule 13)', async () => {
+    category('Food')
+    category('Coffee', { parentId: 'Food' })
+    wallet('Cash', { hiddenCategoryIds: ['Food'] })
+    wallet('Bank', { sortOrder: 1 })
+    wallet('Old', { isArchived: true })
+    categories.open({ mode: 'edit', id: 'Coffee' })
+    await settle()
+    expect(row(th.categories.usedIn)?.textContent).toContain('1 จาก 2 กระเป๋า')
+    row(th.categories.usedIn)?.click()
+    await settle()
+    expect(toggle('Old')).toBeUndefined()
+    expect(toggle('Cash').disabled).toBe(true)
+    expect(toggle('Cash').textContent).toContain(th.categories.hiddenWithParent)
+    toggle('Bank').click()
+    await settle()
+    await click(th.sheet.back)
+    expect(row(th.categories.usedIn)?.textContent).toContain('0 จาก 2 กระเป๋า')
+    await submit()
+    const hidden = (id: string) =>
+      db.selectValue('SELECT hidden_category_ids FROM wallets WHERE id = ?', [id])
+    expect(hidden('Bank')).toBe('["Coffee"]')
+    expect(hidden('Cash')).toBe('["Food"]')
+    expect(listOps(db, 'pending').map((op) => `${op.table}:${op.rowId}`)).toEqual([
+      'categories:Coffee',
+      'wallets:Bank',
+    ])
+  })
+
+  it('shows no wallets row while the profile has no open wallet', async () => {
+    categories.open({ mode: 'create', type: 'expense', parentId: null })
+    await settle()
+    expect(row(th.categories.usedIn)).toBeUndefined()
   })
 
   it('starts in the tab it was opened from, and another type drops the parent', async () => {

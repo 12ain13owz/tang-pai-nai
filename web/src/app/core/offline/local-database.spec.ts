@@ -79,6 +79,22 @@ describe('LocalDatabase', () => {
     db.close()
   })
 
+  it('adds wallets.hidden_category_ids (step 7) to a 7.1 snapshot, [] for its wallets', async () => {
+    const old = await openTestDatabase()
+    old.exec(`ALTER TABLE wallets DROP COLUMN hidden_category_ids;
+      INSERT INTO wallets (id, profile_id, name, currency_code, initial_balance, icon, color,
+        exclude_from_total, is_archived, sort_order, created_at, updated_at)
+        VALUES ('w1', 'p1', 'Cash', 'THB', 0, 'lucideWallet', '#16a34a', 0, 0, 0, 1, 1);
+      PRAGMA user_version = 6`)
+    const snapshot = old.export()
+    old.close()
+
+    const db = await openTestDatabase(snapshot)
+    expect(db.selectValue('PRAGMA user_version')).toBe(7)
+    expect(db.selectValue('SELECT hidden_category_ids FROM wallets')).toBe('[]')
+    db.close()
+  })
+
   it('rolls a transaction back when the work throws', async () => {
     const db = await openTestDatabase()
     expect(() =>
