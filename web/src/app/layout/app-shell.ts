@@ -4,11 +4,14 @@ import { TranslocoPipe } from '@jsverse/transloco'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { ProfileService } from '@/core/profile'
 import { KeyboardService } from '@/core/viewport'
+import { WalletService } from '@/core/wallet'
 import { AppHeader } from './app-header'
 import { BottomTabBar } from './bottom-tab-bar'
 import { ProfileCreateStep } from './profile-create-step'
-import { currentUrl, isProfileTab } from './profile-routes'
+import { currentUrl, isProfileTab, isWalletTab } from './profile-routes'
 import { ProfileSheet } from './profile-sheet'
+import { WalletFirstStep } from './wallet-first-step'
+import { WalletSheet } from './wallet-sheet'
 
 /** Layout route for the signed-in tabs: header, page, fixed bottom tab bar. */
 @Component({
@@ -21,6 +24,8 @@ import { ProfileSheet } from './profile-sheet'
     BottomTabBar,
     ProfileCreateStep,
     ProfileSheet,
+    WalletFirstStep,
+    WalletSheet,
   ],
   template: `
     <div class="mx-auto flex min-h-dvh max-w-[480px] flex-col">
@@ -34,6 +39,9 @@ import { ProfileSheet } from './profile-sheet'
           }
           @case ('create') {
             <app-profile-create-step />
+          }
+          @case ('firstWallet') {
+            <app-wallet-first-step />
           }
           @default {
             <router-outlet />
@@ -49,18 +57,29 @@ import { ProfileSheet } from './profile-sheet'
     @defer (when profileService.sheet() !== null) {
       <app-profile-sheet />
     }
+    @defer (when walletService.sheet() !== null) {
+      <app-wallet-sheet />
+    }
   `,
 })
 export class AppShell {
   protected keyboardService = inject(KeyboardService)
   protected profileService = inject(ProfileService)
+  protected walletService = inject(WalletService)
   private url = currentUrl()
 
-  /** Profile rule 5: the data tabs need a profile; wait for a new device's first pull. */
+  /**
+   * Profile rule 5: the data tabs need a profile (wait for a new device's first pull); wallet
+   * rule 12: the Transactions and Wallets tabs then need a wallet.
+   */
   protected gate = computed(() => {
-    if (!isProfileTab(this.url()) || this.profileService.current() !== null) {
+    const url = this.url()
+    if (!isProfileTab(url)) {
       return 'page'
     }
-    return this.profileService.ready() ? 'create' : 'loading'
+    if (this.profileService.current() === null) {
+      return this.profileService.ready() ? 'create' : 'loading'
+    }
+    return isWalletTab(url) && !this.walletService.hasWallet() ? 'firstWallet' : 'page'
   })
 }

@@ -7,23 +7,38 @@ import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
 import { ProfileService } from '@/core/profile'
 import { IconBadge } from '@/shared/components/icon-badge'
+import { SheetFrame } from '@/shared/components/sheet'
 
-/** The switcher's sheet: profiles in order, add, manage (profile.md → Web screens). */
+/** The switcher's sheet: profiles in order, add (footer), manage (header icon); profile.md. */
 @Component({
   selector: 'app-profile-switch-sheet',
-  imports: [TranslocoPipe, RouterLink, NgIcon, HlmButton, HlmDrawerImports, IconBadge],
+  imports: [TranslocoPipe, RouterLink, NgIcon, HlmButton, HlmDrawerImports, IconBadge, SheetFrame],
   providers: [provideIcons({ lucideCheck, lucidePlus, lucideSettings2 })],
   template: `
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
-      <hlm-drawer-content *hlmDrawerPortal class="mx-auto max-w-[480px]">
-        <div class="flex max-h-[70vh] flex-col gap-4 px-2 pt-2 pb-4">
-          <h2 hlmDrawerTitle class="text-lg font-semibold">
-            {{ 'profiles.switchHeading' | transloco }}
-          </h2>
-          <ul
-            class="-mx-2 flex flex-col overflow-y-auto px-2"
-            [attr.aria-label]="'profiles.switchHeading' | transloco"
-          >
+      <hlm-drawer-content
+        *hlmDrawerPortal
+        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+      >
+        <app-sheet-frame
+          [title]="'profiles.switchHeading' | transloco"
+          [leadingLabel]="'sheet.close' | transloco"
+          (leading)="open.set(false)"
+        >
+          <div sheetActions class="flex">
+            <a
+              hlmBtn
+              variant="ghost"
+              size="icon"
+              class="size-11"
+              routerLink="/account/profiles"
+              [attr.aria-label]="'profiles.manage' | transloco"
+              (click)="open.set(false)"
+            >
+              <ng-icon name="lucideSettings2" size="20" aria-hidden="true" />
+            </a>
+          </div>
+          <ul class="flex flex-col" [attr.aria-label]="'profiles.switchHeading' | transloco">
             @for (profile of profileService.profiles(); track profile.id) {
               @let current = profile.id === profileService.current()?.id;
               <li>
@@ -50,41 +65,21 @@ import { IconBadge } from '@/shared/components/icon-badge'
               </li>
             }
           </ul>
-          <div class="flex flex-col gap-3">
-            @if (!profileService.atLimit()) {
+          @if (!profileService.atLimit()) {
+            <div sheetFooter class="pt-3">
               <button
                 hlmBtn
-                variant="outline"
                 type="button"
-                class="h-11 w-full"
+                class="h-11 w-full text-base"
                 [disabled]="!profileService.canWrite()"
                 (click)="add()"
               >
                 <ng-icon name="lucidePlus" size="20" aria-hidden="true" />
                 {{ 'profiles.add' | transloco }}
               </button>
-            }
-            <a
-              hlmBtn
-              variant="outline"
-              class="h-11 w-full"
-              routerLink="/account/profiles"
-              (click)="open.set(false)"
-            >
-              <ng-icon name="lucideSettings2" size="20" aria-hidden="true" />
-              {{ 'profiles.manage' | transloco }}
-            </a>
-            <button
-              hlmBtn
-              variant="outline"
-              type="button"
-              class="h-11 w-full"
-              (click)="open.set(false)"
-            >
-              {{ 'profiles.close' | transloco }}
-            </button>
-          </div>
-        </div>
+            </div>
+          }
+        </app-sheet-frame>
       </hlm-drawer-content>
     </hlm-drawer>
   `,

@@ -241,4 +241,84 @@ describe('ProfileService', () => {
     online.set(false)
     expect(service.canWrite()).toBe(false)
   })
+
+  describe('with wallets (wallet rule 11)', () => {
+    const wallet = (id: string, profileId: string, extra: object = {}) => {
+      putRow(db, 'wallets', {
+        id,
+        profileId,
+        name: id,
+        currencyCode: 'THB',
+        initialBalance: 0,
+        icon: 'lucideWallet',
+        color: '#16a34a',
+        excludeFromTotal: false,
+        isArchived: false,
+        sortOrder: 0,
+        createdAt: 1000,
+        updatedAt: 1000,
+        deletedAt: null,
+        changeSeq: 20,
+        updatedBy: 'u1',
+        ...extra,
+      })
+      changes.update((n) => n + 1)
+    }
+    const liveWallets = () =>
+      db
+        .selectObjects('SELECT id FROM wallets WHERE deleted_at IS NULL ORDER BY id')
+        .map((r) => r['id'])
+
+    it('counts the live wallets a delete takes with it, archived ones too', () => {
+      start()
+      pulled(row('p1', 'Home', 0))
+      wallet('w1', 'p1')
+      wallet('w2', 'p1', { isArchived: true })
+      wallet('w3', 'p1', { deletedAt: 5 })
+      wallet('w4', 'p2')
+      expect(service.walletCount('p1')).toBe(2)
+    })
+
+    it("tombstones the profile's wallets in the same write as the profile", () => {
+      start()
+      pulled(row('p1', 'Home', 0))
+      pulled(row('p2', 'Work', 1))
+      wallet('w1', 'p1')
+      wallet('w2', 'p2')
+      service.remove('p1')
+      TestBed.tick()
+      expect(liveWallets()).toEqual(['w2'])
+      expect(ops().map((op) => `${op.table}:${op.rowId}:${op.op}`)).toEqual([
+        'wallets:w1:delete',
+        'profiles:p1:delete',
+      ])
+    })
+
+    it('tombstones live wallets of a profile deleted on another device', () => {
+      start()
+      pulled(row('p1', 'Home', 0))
+      pulled(row('p2', 'Work', 1))
+      wallet('w1', 'p2')
+      wallet('w2', 'p1')
+      TestBed.tick()
+      expect(ops()).toHaveLength(0)
+      pulled(row('p2', 'Work', 1, { deletedAt: 5, changeSeq: 11 }))
+      TestBed.tick()
+      expect(liveWallets()).toEqual(['w2'])
+      expect(ops()).toMatchObject([{ table: 'wallets', rowId: 'w1', op: 'delete', baseSeq: 20 }])
+    })
+
+    it('leaves them for later on an untrusted device that is offline', () => {
+      trusted.set(false)
+      online.set(false)
+      start()
+      pulled(row('p2', 'Work', 1, { deletedAt: 5 }))
+      wallet('w1', 'p2')
+      TestBed.tick()
+      expect(liveWallets()).toEqual(['w1'])
+      online.set(true)
+      TestBed.tick()
+      expect(liveWallets()).toEqual([])
+    })
+  })
 })

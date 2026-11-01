@@ -40,17 +40,19 @@ describe('sync tables', () => {
 
   it('clears the synced tables for a full resync, but keeps the outbox', () => {
     putRow(db, 'currencies', THB)
-    queueWrite(db, 'sync_probes', 'upsert', {
+    queueWrite(db, 'profiles', 'upsert', {
       id: 'p1',
-      title: 'A',
-      amount: 1,
+      name: 'A',
+      icon: 'lucideHouse',
+      color: '#16a34a',
+      sortOrder: 0,
       createdAt: 1,
       updatedAt: 1,
       deletedAt: null,
     })
     clearSyncTables(db)
     expect(getRow(db, 'currencies', 'THB')).toBeNull()
-    expect(getRow(db, 'sync_probes', 'p1')).toBeNull()
+    expect(getRow(db, 'profiles', 'p1')).toBeNull()
     expect(db.selectValue('SELECT count(*) FROM outbox')).toBe(1)
   })
 })

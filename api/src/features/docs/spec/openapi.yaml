@@ -116,6 +116,8 @@ components:
       $ref: './components/models/sync-push.schema.yaml'
     SyncProfileRow:
       $ref: './components/models/sync-profile-row.schema.yaml'
+    SyncWalletRow:
+      $ref: './components/models/sync-wallet-row.schema.yaml'
   responses:
     SuccessResponse:
       $ref: './components/responses/success.response.yaml'

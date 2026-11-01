@@ -3,6 +3,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, Validators } from '@angular/forms'
 import type { ValidatorFn } from '@angular/forms'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
+import { NgIcon, provideIcons } from '@ng-icons/core'
+import { lucideTrash2 } from '@ng-icons/lucide'
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
@@ -12,17 +14,19 @@ import {
   ColorField,
   FORM_IMPORTS,
   IconField,
-  InputField,
+  NameIconField,
   withMessage,
 } from '@/shared/components/form'
 import { PROFILE_ICON_NAMES, USER_COLORS } from '@/shared/components/icon-badge'
+import { SheetFrame } from '@/shared/components/sheet'
 import type { ProfileFormGroup } from './profile-form.type'
 
-type View = 'form' | 'confirmDelete' | 'confirmDiscard'
+type View = 'form' | 'icons' | 'confirmDelete' | 'confirmDiscard'
 
 /**
- * The profile form (docs/features/profile.md → Web screens): create, edit, "fix" a rejected op,
- * and delete after a confirm step. Opened from anywhere through `ProfileService.open()`; the
+ * The profile form (docs/features/profile.md → Web screens), a compact sheet (DESIGN.md §6): icon +
+ * name, the icon opening an icon-and-colour view. Create, edit, "fix" a rejected op, and delete
+ * (header icon) after a confirm view. Opened from anywhere through `ProfileService.open()`; the
  * shell loads it on first use.
  */
 @Component({
@@ -30,37 +34,86 @@ type View = 'form' | 'confirmDelete' | 'confirmDiscard'
   imports: [
     FORM_IMPORTS,
     TranslocoPipe,
-    InputField,
+    NgIcon,
+    NameIconField,
     IconField,
     ColorField,
     HlmButton,
     HlmDrawerImports,
+    SheetFrame,
   ],
+  providers: [provideIcons({ lucideTrash2 })],
   template: `
     @let f = form.controls;
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="onClosed()">
-      <hlm-drawer-content *hlmDrawerPortal class="mx-auto max-w-[480px]">
+      <hlm-drawer-content
+        *hlmDrawerPortal
+        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+      >
         @switch (view()) {
           @case ('form') {
-            <form
-              [formGroup]="form"
-              class="flex min-h-0 flex-1 flex-col gap-4 px-2 pt-2 pb-4"
-              (ngSubmit)="save()"
-            >
-              <h2 hlmDrawerTitle class="text-lg font-semibold">
-                {{ heading() | transloco }}
-              </h2>
-              <div class="-mx-2 flex min-h-0 flex-col gap-6 overflow-y-auto px-2 pb-1">
-                @if (!profileService.canWrite()) {
-                  <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                    {{ 'profiles.needsOnline' | transloco }}
-                  </p>
+            <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
+              <app-sheet-frame
+                [title]="heading() | transloco"
+                [leadingLabel]="'sheet.close' | transloco"
+                (leading)="close()"
+              >
+                @if (editingId()) {
+                  <div sheetActions class="flex">
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      class="size-11 text-destructive"
+                      [disabled]="!profileService.canWrite()"
+                      [attr.aria-label]="'profiles.delete' | transloco"
+                      (click)="view.set('confirmDelete')"
+                    >
+                      <ng-icon name="lucideTrash2" size="20" aria-hidden="true" />
+                    </button>
+                  </div>
                 }
-                <app-input-field
-                  [control]="f.name"
-                  [label]="'profiles.name' | transloco"
-                  [placeholder]="'profiles.namePlaceholder' | transloco"
-                  autocomplete="off"
+                <div class="flex flex-col gap-5">
+                  @if (!profileService.canWrite()) {
+                    <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                      {{ 'profiles.needsOnline' | transloco }}
+                    </p>
+                  }
+                  <app-name-icon-field
+                    [control]="f.name"
+                    [label]="'profiles.name' | transloco"
+                    [icon]="f.icon.value"
+                    [color]="f.color.value"
+                    [iconLabel]="'profiles.changeIcon' | transloco"
+                    (iconClick)="view.set('icons')"
+                  />
+                </div>
+                <div sheetFooter class="pt-3">
+                  <button
+                    hlmBtn
+                    type="submit"
+                    class="h-11 w-full text-base"
+                    [disabled]="!profileService.canWrite()"
+                  >
+                    {{ 'profiles.save' | transloco }}
+                  </button>
+                </div>
+              </app-sheet-frame>
+            </form>
+          }
+          @case ('icons') {
+            <app-sheet-frame
+              [title]="'profiles.iconHeading' | transloco"
+              leadingIcon="back"
+              [leadingLabel]="'sheet.back' | transloco"
+              (leading)="view.set('form')"
+            >
+              <div class="flex flex-col gap-6">
+                <app-color-field
+                  [control]="f.color"
+                  [label]="'profiles.color' | transloco"
+                  [colors]="colors"
                 />
                 <app-icon-field
                   [control]="f.icon"
@@ -68,56 +121,25 @@ type View = 'form' | 'confirmDelete' | 'confirmDiscard'
                   [icons]="icons"
                   [color]="f.color.value"
                 />
-                <app-color-field
-                  [control]="f.color"
-                  [label]="'profiles.color' | transloco"
-                  [colors]="colors"
-                />
               </div>
-              <div class="flex flex-col gap-3">
-                <button
-                  hlmBtn
-                  type="submit"
-                  class="h-11 w-full text-base"
-                  [disabled]="!profileService.canWrite()"
-                >
-                  {{ 'profiles.save' | transloco }}
-                </button>
-                @if (editingId()) {
-                  <button
-                    hlmBtn
-                    variant="outline"
-                    type="button"
-                    class="h-11 w-full text-destructive"
-                    [disabled]="!profileService.canWrite()"
-                    (click)="view.set('confirmDelete')"
-                  >
-                    {{ 'profiles.delete' | transloco }}
-                  </button>
-                }
-                <button
-                  hlmBtn
-                  variant="outline"
-                  type="button"
-                  class="h-11 w-full"
-                  (click)="close()"
-                >
-                  {{ 'profiles.close' | transloco }}
-                </button>
-              </div>
-            </form>
+            </app-sheet-frame>
           }
           @case ('confirmDelete') {
-            <div class="flex flex-col gap-6 px-2 pt-2 pb-4">
+            <app-sheet-frame
+              [title]="'profiles.delete' | transloco"
+              leadingIcon="back"
+              [leadingLabel]="'sheet.back' | transloco"
+              (leading)="view.set('form')"
+            >
               <div class="flex flex-col gap-2">
-                <h2 hlmDrawerTitle class="text-lg font-semibold">
+                <p class="text-base font-semibold">
                   {{ 'profiles.deleteHeading' | transloco: { name: editingName() } }}
-                </h2>
+                </p>
                 <p class="text-sm text-muted-foreground">
-                  {{ 'profiles.deleteText' | transloco }}
+                  {{ deleteText() | transloco: { count: walletCount() } }}
                 </p>
               </div>
-              <div class="flex flex-col gap-3">
+              <div sheetFooter class="pt-3">
                 <button
                   hlmBtn
                   variant="destructive"
@@ -127,24 +149,18 @@ type View = 'form' | 'confirmDelete' | 'confirmDiscard'
                 >
                   {{ 'profiles.deleteConfirm' | transloco }}
                 </button>
-                <button
-                  hlmBtn
-                  variant="outline"
-                  type="button"
-                  class="h-11 w-full"
-                  (click)="view.set('form')"
-                >
-                  {{ 'profiles.cancel' | transloco }}
-                </button>
               </div>
-            </div>
+            </app-sheet-frame>
           }
           @case ('confirmDiscard') {
-            <div class="flex flex-col gap-6 px-2 pt-2 pb-4">
-              <h2 hlmDrawerTitle class="text-lg font-semibold">
-                {{ 'profiles.discardHeading' | transloco }}
-              </h2>
-              <div class="flex flex-col gap-3">
+            <app-sheet-frame
+              [title]="'profiles.discardHeading' | transloco"
+              leadingIcon="back"
+              [leadingLabel]="'profiles.keepEditing' | transloco"
+              (leading)="view.set('form')"
+            >
+              <p class="text-sm text-muted-foreground">{{ 'profiles.discardText' | transloco }}</p>
+              <div sheetFooter class="pt-3">
                 <button
                   hlmBtn
                   variant="destructive"
@@ -154,17 +170,8 @@ type View = 'form' | 'confirmDelete' | 'confirmDiscard'
                 >
                   {{ 'profiles.discard' | transloco }}
                 </button>
-                <button
-                  hlmBtn
-                  variant="outline"
-                  type="button"
-                  class="h-11 w-full"
-                  (click)="view.set('form')"
-                >
-                  {{ 'profiles.keepEditing' | transloco }}
-                </button>
               </div>
-            </div>
+            </app-sheet-frame>
           }
         }
       </hlm-drawer-content>
@@ -189,6 +196,21 @@ export class ProfileSheet {
   protected editingName = computed(() => {
     const id = this.editingId()
     return (id && this.profileService.byId(id)?.name) ?? ''
+  })
+  /** Rule 8: the confirm step says how many wallets go with the profile. */
+  protected walletCount = computed(() => {
+    const id = this.editingId()
+    return id ? this.profileService.walletCount(id) : 0
+  })
+  protected deleteText = computed(() => {
+    switch (this.walletCount()) {
+      case 0:
+        return 'profiles.deleteText'
+      case 1:
+        return 'profiles.deleteTextWallet'
+      default:
+        return 'profiles.deleteTextWallets'
+    }
   })
   protected heading = computed(() => {
     switch (this.state()?.mode) {
@@ -226,6 +248,12 @@ export class ProfileSheet {
   protected open = signal(false)
 
   constructor() {
+    // Picking an icon is the icon view's answer: back to the form.
+    this.form.controls.icon.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      if (this.view() === 'icons') {
+        this.view.set('form')
+      }
+    })
     this.form.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.dirty.set(this.form.dirty))
@@ -261,8 +289,10 @@ export class ProfileSheet {
   protected remove(): void {
     const id = this.editingId()
     if (id) {
+      // Read before the delete: the profile is gone from the list right after.
+      const name = this.editingName()
       this.profileService.remove(id)
-      toast(this.transloco.translate('profiles.deleted', { name: this.editingName() }))
+      toast(this.transloco.translate('profiles.deleted', { name }))
     }
     this.finish()
   }

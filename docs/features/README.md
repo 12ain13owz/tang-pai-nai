@@ -9,7 +9,7 @@ AI can understand a feature without reading its code. These docs are the shared 
 | Auth           | [auth.md](auth.md)                 | Built (4.1–4.4b)     |
 | Currency       | [currency.md](currency.md)         | API with 4a.2        |
 | Profile        | [profile.md](profile.md)           | Built (6.1)          |
-| Wallet         | [wallet.md](wallet.md)             | Spec (revised), #6.2 |
+| Wallet         | [wallet.md](wallet.md)             | Built (6.2)          |
 | Category       | [category.md](category.md)         | Spec — not built yet |
 | Transaction    | [transaction.md](transaction.md)   | Spec — not built yet |
 | Offline & sync | [offline-sync.md](offline-sync.md) | Built (4a.1, 4a.2)   |

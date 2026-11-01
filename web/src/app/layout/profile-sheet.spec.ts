@@ -40,8 +40,11 @@ describe('ProfileSheet', () => {
   }
 
   const body = () => document.body
+  /** A button by its text, or by its aria-label for an icon button. */
   const button = (label: string) =>
-    [...body().querySelectorAll('button')].find((b) => b.textContent.trim() === label)
+    [...body().querySelectorAll('button')].find(
+      (b) => b.textContent.trim() === label || b.getAttribute('aria-label') === label
+    )
   const nameInput = () => body().querySelector('input[autocomplete="off"]') as HTMLInputElement
   const type = (value: string) => {
     nameInput().value = value
@@ -110,12 +113,19 @@ describe('ProfileSheet', () => {
     await open({ mode: 'create' })
     expect(body().textContent).toContain(th.profiles.createHeading)
     type('  ร้านกาแฟ ')
+    button(th.profiles.changeIcon)?.click()
+    await settle()
+    expect(body().textContent).toContain(th.profiles.iconHeading)
+    const orange = body().querySelector('input[aria-label="สีที่ 6"]') as HTMLInputElement
+    orange.click()
+    await settle()
     const store = body().querySelector(
       `input[aria-label="${th.icons.lucideStore}"]`
     ) as HTMLInputElement
     store.click()
-    const orange = body().querySelector('input[aria-label="สีที่ 6"]') as HTMLInputElement
-    orange.click()
+    await settle()
+    // Picking the icon goes back to the form.
+    expect(nameInput().value).toBe('  ร้านกาแฟ ')
     await submit()
     expect(profiles.profiles()).toMatchObject([
       { name: 'ร้านกาแฟ', icon: 'lucideStore', color: '#ea580c' },
@@ -147,13 +157,13 @@ describe('ProfileSheet', () => {
   it('asks before throwing away unsaved input, and can go back to it', async () => {
     await open({ mode: 'create' })
     type('ครอบครัว')
-    button(th.profiles.close)?.click()
+    button(th.sheet.close)?.click()
     await settle()
     expect(body().textContent).toContain(th.profiles.discardHeading)
     button(th.profiles.keepEditing)?.click()
     await settle()
     expect(nameInput().value).toBe('ครอบครัว')
-    button(th.profiles.close)?.click()
+    button(th.sheet.close)?.click()
     await settle()
     button(th.profiles.discard)?.click()
     await settle()
@@ -168,7 +178,7 @@ describe('ProfileSheet', () => {
     button(th.profiles.delete)?.click()
     await settle()
     expect(body().textContent).toContain('ลบโปรไฟล์ “Work” ใช่ไหม')
-    button(th.profiles.cancel)?.click()
+    button(th.sheet.back)?.click()
     await settle()
     expect(profiles.profiles()).toHaveLength(2)
     button(th.profiles.delete)?.click()
@@ -176,6 +186,42 @@ describe('ProfileSheet', () => {
     button(th.profiles.deleteConfirm)?.click()
     await settle()
     expect(profiles.profiles().map((profile) => profile.name)).toEqual(['Home'])
+  })
+
+  it('says how many wallets go with the profile, and deletes them with it', async () => {
+    pulled('p1', 'Home')
+    for (const id of ['w1', 'w2']) {
+      putRow(db, 'wallets', {
+        id,
+        profileId: 'p1',
+        name: id,
+        currencyCode: 'THB',
+        initialBalance: 0,
+        icon: 'lucideWallet',
+        color: '#16a34a',
+        excludeFromTotal: false,
+        isArchived: false,
+        sortOrder: 0,
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+        changeSeq: 6,
+        updatedBy: 'u1',
+      })
+    }
+    changes.update((n) => n + 1)
+    await open({ mode: 'edit', id: 'p1' })
+    button(th.profiles.delete)?.click()
+    await settle()
+    expect(body().textContent).toContain('กระเป๋าเงิน 2 ใบ')
+    button(th.profiles.deleteConfirm)?.click()
+    await settle()
+    expect(db.selectValue('SELECT count(*) FROM wallets WHERE deleted_at IS NULL')).toBe(0)
+    expect(listOps(db, 'pending').map((op) => `${op.table}:${op.op}`)).toEqual([
+      'wallets:delete',
+      'wallets:delete',
+      'profiles:delete',
+    ])
   })
 
   it('opens a fix with the refused values and their error showing', async () => {

@@ -2,7 +2,8 @@
 
 > Status: Built with offline sync 4a.2 (folded in, pull-only). Code in
 > `api/src/features/currency/`; the web app reads the pulled copy from its local database
-> (`currencies` table). The wallet form's picker comes with #6.
+> (`currencies` table). The wallet form shows the currency beside the starting balance, a picker
+> only while more than one is active (#6.2).
 
 ## Purpose
 
@@ -55,8 +56,9 @@ admin role.
 
 ## Web screens
 
-None of its own. The wallet form has a currency picker that shows only when more than one currency is
-active, and defaults to THB.
+None of its own. The wallet form (#6.2) shows the currency code after the starting balance; it
+becomes a picker (a chip with the OS list) only when more than one currency is active, and a new
+wallet defaults to THB.
 
 ## Interactions
 

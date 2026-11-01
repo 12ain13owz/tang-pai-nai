@@ -70,27 +70,27 @@ merging.
 
 ## Status
 
-| #   | Feature / phase            | API | Web | Notes                                                                                                                                                                  |
-| --- | -------------------------- | --- | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                                                                |
-| 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                                                                            |
-| 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                                                             |
-| 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                                                                         |
-| 4   | Auth                       | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                                                                           |
-| 4a  | Offline sync foundation    | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                              |
-| 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                    |
-| 6   | **Profile + Wallet**       | 🚧  | 🚧  | 6.1 profiles ✅; **6.2 wallets ← next** (`profileId`, `wallet_members`, remove `sync_probes`). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
-| 7   | Category                   | ⬜  | ⬜  | income/expense, 1 level of sub-categories, one set per profile (seeded with it). [spec](docs/features/category.md)                                                     |
-| 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                                                                          |
-| 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                                                                |
-| 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                                             |
-| 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                                                                     |
-| 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                                                                         |
-| 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                                                                              |
-| 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                                                                     |
-| 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                                                                                        |
-| 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                                                                 |
-| 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                   |
+| #   | Feature / phase            | API | Web | Notes                                                                                                                                                                    |
+| --- | -------------------------- | --- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                                                                  |
+| 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                                                                              |
+| 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                                                               |
+| 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                                                                           |
+| 4   | Auth                       | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                                                                             |
+| 4a  | Offline sync foundation    | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                |
+| 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                      |
+| 6   | Profile + Wallet           | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
+| 7   | **Category**               | ⬜  | ⬜  | **← next.** income/expense, 1 level of sub-categories, one set per profile (seeded with it). [spec](docs/features/category.md)                                           |
+| 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                                                                            |
+| 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                                                                  |
+| 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                                               |
+| 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                                                                       |
+| 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                                                                           |
+| 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                                                                                |
+| 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                                                                       |
+| 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                                                                                          |
+| 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                                                                   |
+| 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
 
 ✅ done · 🚧 in progress · ⬜ not started · — not applicable
 
@@ -100,7 +100,27 @@ decision "Local-first").
 
 ---
 
-## Now: Profile + Wallet (#6)
+## Next: Category (#7)
+
+Spec: [category.md](docs/features/category.md) (its "To revise at the start of #7" note comes
+first: one set per profile, a wallet can hide categories, the default set written by the device
+that creates the profile). What #6 leaves for it:
+
+- **Data**: `categories.profileId`, a pushable sync handler like `features/wallet` (its checks
+  read the user's live profile); the device table goes in a new local schema step and
+  `SYNC_TABLES`, and into `PROFILE_CHILD_TABLES` (`core/profile`), so deleting a profile
+  tombstones them and the orphan sweep covers them. The per-wallet "hidden categories" table is
+  new with #7. Profiles made before #7 exist only in dev data and get the default set from a
+  one-off script (profile.md → Interactions).
+- **UI**: the category sheet follows DESIGN.md §6 (near-full sheet, header bar, compact form:
+  icon + name, the icon opening the icon-and-colour view). Its catalogue grows in
+  `user-icons.ts` (food, buffet, coffee cup, transport, …), as new `tpn` SVGs where lucide has no
+  clear picture (wallet.md → Open questions); the `user-icons.spec.ts` guard applies.
+- **Transactions (#8)** then makes wallet rules 4 and 6 real (`WalletService.canChangeCurrency`,
+  no delete with transactions) and computes `balance()`; its header layout waits for a mock-up
+  (transaction.md → Open questions).
+
+## Done: Profile + Wallet (#6)
 
 Specs: [profile.md](docs/features/profile.md), [wallet.md](docs/features/wallet.md). **Decided at
 the start of #6**: two parts, one session and PR each, because wallets, categories and
@@ -109,7 +129,7 @@ transactions all carry a `profileId`, so `profiles` must exist first.
 | Part | What                                                                                                               | Status |
 | ---- | ------------------------------------------------------------------------------------------------------------------ | ------ |
 | 6.1  | `profiles` (API table + sync handler; device table), create step, profile form, header switcher, Account › โปรไฟล์ | ✅     |
-| 6.2  | `wallets` + `wallet_members`, Wallets tab, wallet form + icons, first-wallet step, **remove `sync_probes`**        | ⬜     |
+| 6.2  | `wallets` + `wallet_members`, Wallets tab, wallet form + icons, first-wallet step, **remove `sync_probes`**        | ✅     |
 
 Decided with the owner (don't re-ask):
 
@@ -137,15 +157,55 @@ Decided with the owner (don't re-ask):
 - 6.1 leaves out: `wallets` / `wallet_members`, the Wallets tab, the `tpn` icon set and removing
   `sync_probes` (all 6.2).
 
-**Next up is 6.2 Wallet** (new session): wallet.md is revised and its open questions are settled
-(icons, name scope, archive), so start building: `wallets` + `wallet_members` with `profileId` (a
-push is rejected unless the profile is the user's live one), the Wallets tab for the current profile
-(with the "เก็บถาวร" group), the wallet form with the icon catalogue (lucide + the first `tpn` SVGs,
-wallet.md → Open questions), the first-wallet step that replaces the Transactions tab's
-"ยังไม่มีกระเป๋าเงิน" placeholder, deleting a profile also tombstoning its wallets (profile rule 8,
-and the confirm sheet counts them), reorder with the same drag handle as profiles, and finally
-**removing `sync_probes`** (feature folder, handler, `/account/sync-test`, the local table in a new
-schema step, an API migration dropping it).
+6.2 in detail (✅ done, API + web):
+
+- **Decided at its start** (owner, wallet.md → Open questions): at most **20 open wallets per
+  profile** (archiving frees a place); a **+/− button** for a negative starting balance (phone
+  keypads have no minus); a device that pulls a profile's tombstone **tombstones that profile's
+  wallets it holds** (a wallet another device synced survives a delete made where it wasn't
+  known). The revised spec had been pushed after 6.1's PR merged, so 6.2 cherry-picked it.
+- **Decided while building** (owner, from HTML mock-ups): **every sheet is 92dvh** with a header
+  bar (X / ‹ left, title centred, icon actions right) and **one main button pinned at the
+  bottom** (no "ปิด"); the wallet and profile forms are **compact** (icon + name on one row, the
+  icon opening an "ไอคอนและสี" view, no labels or hints); archive and delete are header icons,
+  delete and discard are confirm views, **archiving offers undo** in its toast; the Wallets
+  tab's total sits 12px above the list. The currency stays per wallet (locked decision): the form
+  shows "THB" and becomes a picker only when a second currency is active. DESIGN.md §6–8 hold the
+  rules.
+- **API**: `wallets` + empty `wallet_members` (migration `0007_wallets`; `profileId` FK with
+  cascade, so purging a profile's old tombstone takes its wallets'), `features/wallet` (pushable
+  handler; `check`: the user's live profile, no move between profiles, an active currency for a
+  new or changed one, a unique name among the profile's open wallets, 20 open), OpenAPI
+  `SyncWalletRow`. `sync_probes` removed: feature, schema, `0008` drops the table, custom `0009`
+  deletes its `change_history` rows.
+- **Web**: local schema step 4 (`wallets`) and step 5 (drop `sync_probes` with its ops and
+  notices); `core/wallet` (`WalletService`); `features/wallets` (Wallets tab: totals per
+  currency, list, order mode, folded "เก็บถาวร"); `layout/wallet-sheet` + `wallet-first-step`
+  (the shell's gate on the Transactions and Wallets tabs, ➕ follows); `ProfileService` deletes a
+  profile's wallets in the same write, counts them for the confirm and sweeps orphans
+  (`PROFILE_CHILD_TABLES`); `shared/components/sheet` (`app-sheet-frame`, now under all four
+  sheets), `app-name-icon-field`, `app-amount-field`, the grouped `app-icon-field`, the first
+  `tpn` SVG set + `WALLET_ICON_GROUPS`, `shared/utils/money`. Account › Sync test is gone. The
+  initial bundle warning budget went 620 → 640 kB (the header's icon badge carries every user
+  icon; now 623 kB).
+- **Checked**: curl (create, every validation, `ID_TAKEN`, another user's profile, a deleted
+  profile, a move, inactive / unknown currency, a case-insensitive name clash, an archived
+  duplicate allowed and its unarchive refused, the 21st wallet, `overridden`, pull scoping,
+  `sync:cleanup` cascade; after removal `tables` has no probe and a probe push is
+  `UNKNOWN_TABLE`). Playwright at 375×812 in th/en × light/dark on `npm run build`: create step
+  → profile → first-wallet step → wallets (negative, excluded, archived, every `tpn` icon), totals,
+  order mode by mouse drag, touch long-press (a quick swipe does nothing) and arrow keys, kept
+  after reload; device B (untrusted) sees A's wallets; A offline adds a name B adds online first
+  → rejected → fix from the sync sheet → synced on both; deleting a profile with wallets (the
+  confirm counts them; B's wallet A never saw is swept); untrusted offline blocks writing; a
+  **really offline** reopen (both servers stopped) adds a wallet that syncs once back; archive +
+  undo, unarchive refused, delete and discard confirms, the icon view. Tests: API 468, web 320.
+- **Known**: archived wallets' fold state isn't kept across visits. When the API is down but the
+  browser stays online, the session is re-checked only on an `online` event or an unlock, so a
+  queued op waits for one of those (from 4a; noticed here). The ±10¹⁵ balance check counts the
+  digits typed, so a starting balance never loses precision but a 17-digit paste is refused as a
+  format error. Same local-proxy limits as before (20 sign-in mails per hour, the 60 s cooldown
+  per email).
 
 6.1 in detail (✅ done, API + web):
 
@@ -199,8 +259,8 @@ the app usable on local data with a "sign in again to sync" banner.
 | 4a.1 | Trust step, encrypted local DB, PIN lock (keypad), auto-lock, wipe rules, Security › device   | ✅     |
 | 4a.2 | Sync tables, `/sync/push` + `/sync/pull`, outbox, sync status, rejected ops, conflict notices | ✅     |
 
-**Profile + Wallet (#6)** is the current row; see "Now" above. 6.2 removes the dev-only probe
-(its feature folder, handler, web page, local table and a migration dropping `sync_probes`).
+The dev-only probe below was removed in 6.2 (feature folder, handler, web page, local table, and
+migrations dropping `sync_probes` and its history).
 
 4a.2 in detail (✅ done, API + web):
 
@@ -240,7 +300,7 @@ the app usable on local data with a "sign in again to sync" banner.
   device syncs online and can't write offline; a **really offline** reopen of a trusted device
   (web server stopped) adds a pending row that syncs once back. Tests: API 437, web 242 (specs
   run the real SQLite build from `node_modules`).
-- **Known**: the probe page and table are temporary (see "Next up"). Sharing rules 13–16 (owner
+- **Known**: the probe page and table were temporary (removed in 6.2). Sharing rules 13–16 (owner
   wins, editor offline adds) arrive with #16. `change_history` isn't purged yet. The sync pill
   doesn't say "sign in again" itself; the expired-session banner does.
 

@@ -4,7 +4,7 @@ import { currencyRouter } from '@/features/currency'
 import { docsRouter } from '@/features/docs'
 import { healthRouter } from '@/features/health'
 import '@/features/profile'
-import '@/features/sync-probe'
+import '@/features/wallet'
 import { syncRouter } from '@/features/sync'
 import { todoRouter } from '@/features/todo'
 

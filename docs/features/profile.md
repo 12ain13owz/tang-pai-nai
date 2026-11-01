@@ -1,8 +1,9 @@
 # Profile
 
-> Status: **Built** in #6.1. API: `api/src/features/profile/` (sync handler only). Web:
-> `core/profile` (`ProfileService`), `layout/` (switcher, profile sheet, create step) and
-> `features/account/pages/profiles-page`. Wallets join profiles in #6.2, categories in #7.
+> Status: **Built** in #6.1; wallets joined in #6.2 (delete takes them, rule 8). API:
+> `api/src/features/profile/` (sync handler only). Web: `core/profile` (`ProfileService`),
+> `layout/` (switcher, profile sheet, create step) and `features/account/pages/profiles-page`.
+> Categories join in #7.
 
 ## Purpose
 
@@ -87,21 +88,23 @@ Glossary: โปรไฟล์ / Profile (DESIGN.md §11).
   line on what a profile is and a "สร้างโปรไฟล์" button that opens the profile form. The Wallets
   and Reports tabs show the same empty state, and the ➕ button goes to the Transactions tab
   while there is no profile.
-- **No wallet yet** (6.1): once a profile exists, the Transactions tab shows "ยังไม่มีกระเป๋าเงิน"
-  saying the next step is adding a wallet. Its button arrives with #6.2.
-- **Profile form** (bottom sheet, content height): name, icon grid (curated lucide set), colour
-  swatches, Save. Used for create and edit; "fix" of a rejected profile op opens it with the
-  refused values (`FIX_ROUTES` → `/account/profiles?fix=<opId>`). Asks before closing with
-  unsaved input.
+- **No wallet yet**: once a profile exists, the Transactions and Wallets tabs show the
+  first-wallet step (wallet rule 12, #6.2).
+- **Profile form** (a compact sheet, DESIGN.md §6; reworked in #6.2): the icon on its colour and
+  the name on one row; tapping the icon opens an "ไอคอนและสี" view (colour swatches, the curated
+  lucide grid; picking an icon goes back). Save is the one button at the bottom; in edit mode a
+  trash icon in the header leads to the delete confirm view. Used for create and edit; "fix" of
+  a rejected profile op opens it with the refused values (`FIX_ROUTES` →
+  `/account/profiles?fix=<opId>`). Asks before closing with unsaved input.
 - **Profile switcher** (decided at the start of #6.1): on the Transactions, Wallets and Reports
   tabs the header's left side shows the current profile (24px icon circle, name, chevron) instead
   of the page title (the tab bar already says which tab it is; the document title stays the page
-  title). Tapping it opens a sheet: the profiles in order with a check on the current one, "เพิ่ม
-  โปรไฟล์" (hidden at 20) and "จัดการโปรไฟล์". The Account tab keeps its page title.
+  title). Tapping it opens a sheet: the profiles in order with a check on the current one, "จัดการ
+  โปรไฟล์" as a header icon and "เพิ่มโปรไฟล์" (hidden at 20) as the sheet's button. The Account tab keeps its page title.
 - **Account › โปรไฟล์** `/account/profiles`: the list in order (icon, name, "รอ sync" on a
-  pending row). Tap a row to edit it in the form, which also holds "ลบโปรไฟล์" (destructive) →
-  confirm sheet naming the profile (and, from #6.2, how many wallets and transactions go with
-  it). "จัดลำดับ" switches the list to an order mode with one grip handle per row (decided
+  pending row). Tap a row to edit it in the form, whose header trash icon ("ลบโปรไฟล์") opens
+  the confirm view naming the profile and how many wallets (and from #8 transactions) go with
+  it. "จัดลำดับ" switches the list to an order mode with one grip handle per row (decided
   while building 6.1): press and hold it (~0.3 s on touch, at once with a mouse), then drag;
   the handle also moves its row with the ↑ / ↓ keys (DESIGN.md §8).
 
@@ -115,8 +118,8 @@ Glossary: โปรไฟล์ / Profile (DESIGN.md §11).
   devices never seed one profile twice). Profiles made before #7 exist only in dev data and get
   the set from a one-off script at #7.
 - **Transaction (#8)**, reports, budgets: filtered by the current profile through its wallets.
-- **Offline sync**: `profiles` is a pushable synced table (`core/sync` handler like
-  `sync-probe`'s; device schema step + `SYNC_TABLES` entry).
+- **Offline sync**: `profiles` is a pushable synced table (`core/sync` handler, the reference
+  for `wallets`; device schema step + `SYNC_TABLES` entry).
 
 ## Open questions
 

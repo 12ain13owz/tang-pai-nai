@@ -5,7 +5,12 @@ import { AuthStore } from '@/core/auth'
 import { NetworkStatusService } from '@/core/network'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
-import { PROFILE_KEY_PREFIX, PROFILE_LIMITS, PROFILE_TABLE } from './profile.type'
+import {
+  PROFILE_CHILD_TABLES,
+  PROFILE_KEY_PREFIX,
+  PROFILE_LIMITS,
+  PROFILE_TABLE,
+} from './profile.type'
 import type { Profile, ProfileSheetState, ProfileValues } from './profile.type'
 
 const ORDER = 'ORDER BY sort_order, created_at, id'
@@ -117,6 +122,20 @@ export class ProfileService {
         this.select(this.current()?.id ?? null)
       })
     })
+    // Wallet rule 11: a profile deleted on a device that didn't know all its wallets leaves live
+    // ones behind; whichever device sees that tombstones the ones it holds.
+    effect(() => {
+      this.offlineService.changes()
+      if (!this.canWrite()) {
+        return
+      }
+      untracked(() => {
+        const db = this.offlineService.db()
+        if (PROFILE_CHILD_TABLES.some((table) => this.orphans(db, table).length > 0)) {
+          this.offlineService.write((tx) => this.tombstoneChildren(tx, null, Date.now()))
+        }
+      })
+    })
   }
 
   open(state: ProfileSheetState): void {
@@ -195,7 +214,7 @@ export class ProfileService {
     return rowId
   }
 
-  /** Rule 8: a tombstone (from #6.2 with the profile's wallets and transactions). */
+  /** Rule 8: a tombstone, with its wallets' (and from #8 their transactions') in one write. */
   remove(id: string): void {
     const now = Date.now()
     if (this.current()?.id === id) {
@@ -204,9 +223,25 @@ export class ProfileService {
     this.offlineService.write((db) => {
       const current = this.find(db, id)
       if (current) {
+        this.tombstoneChildren(db, id, now)
         queueWrite(db, PROFILE_TABLE, 'delete', { ...current, updatedAt: now, deletedAt: now })
       }
     })
+  }
+
+  /** How many live wallets go with the profile (the delete confirm, rule 8). */
+  walletCount(id: string): number {
+    this.offlineService.changes()
+    if (!this.offlineService.isOpen()) {
+      return 0
+    }
+    return Number(
+      this.offlineService
+        .db()
+        .selectValue(`SELECT count(*) FROM wallets WHERE profile_id = ? AND deleted_at IS NULL`, [
+          id,
+        ])
+    )
   }
 
   /** Rule 7: moves a profile to `to` (an index in the list); rewrites `sortOrder` where it changed. */
@@ -226,6 +261,41 @@ export class ProfileService {
         }
       })
     })
+  }
+
+  /**
+   * Tombstones the live child rows of `profileId`, or (null) of every deleted profile on the
+   * device (wallet rule 11).
+   */
+  private tombstoneChildren(db: LocalDatabase, profileId: string | null, now: number): void {
+    for (const table of PROFILE_CHILD_TABLES) {
+      const rows =
+        profileId === null
+          ? this.orphans(db, table)
+          : db
+              .selectObjects(`SELECT * FROM ${table} WHERE profile_id = ? AND deleted_at IS NULL`, [
+                profileId,
+              ])
+              .map((row) => fromSql(table, row))
+      for (const row of rows) {
+        queueWrite(db, table, 'delete', {
+          ...row,
+          id: String(row['id']),
+          updatedAt: now,
+          deletedAt: now,
+        })
+      }
+    }
+  }
+
+  /** Live rows of `table` whose profile is a tombstone here. */
+  private orphans(db: LocalDatabase, table: string): Record<string, unknown>[] {
+    return db
+      .selectObjects(
+        `SELECT c.* FROM ${table} c JOIN ${PROFILE_TABLE} p ON p.id = c.profile_id
+         WHERE c.deleted_at IS NULL AND p.deleted_at IS NOT NULL`
+      )
+      .map((row) => fromSql(table, row))
   }
 
   private find(db: LocalDatabase, id: string): Profile | null {

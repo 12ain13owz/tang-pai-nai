@@ -82,7 +82,8 @@ layout    ->  core, shared
 - App-wide device state lives in `core/` as signal services: `ThemeService` (`core/theme`),
   `LanguageService` (`core/i18n`), `NetworkStatusService` (`core/network`), `KeyboardService`
   (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`), `OfflineService`
-  and `SyncService` (`core/offline`), `ProfileService` (`core/profile`).
+  and `SyncService` (`core/offline`), `ProfileService` (`core/profile`), `WalletService`
+  (`core/wallet`).
 - The service worker (`ngsw-config.json`) caches the **app shell only**. Never add `dataGroups`:
   data comes from the local DB ([offline-sync](../docs/features/offline-sync.md) → Layers). It is
   off in `ng serve`, so check PWA behaviour against `npm run build` output served with an SPA
@@ -117,7 +118,8 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 1–7.
   `aria-label` (`profile-sheet.spec.ts`). For real SQL use
   `openTestDatabase()` (`core/offline/testing-db.ts`, the wasm from `node_modules`), as
   `OPEN_LOCAL_DATABASE` or behind a fake `OfflineService` (`sync.service.spec.ts`,
-  `sync-test-page.spec.ts`); `offline.service.spec.ts` uses a key/value fake. Stub
+  `wallet.service.spec.ts`, `wallet-sheet.spec.ts`; their test database has no pulled
+  currencies, so put the ones you need with `putRow`); `offline.service.spec.ts` uses a key/value fake. Stub
   `DeviceStorageService` for the shell (`app.spec.ts`). `vi.mock` doesn't work with Angular's
   bundled Vitest runner; inject seams instead.
 
@@ -141,7 +143,9 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
   `discard(opId)`, `rejectedOp(opId)`, `dismissNotice(id)`.
 - **Rejected ops**: the local row already went back to the server's version; the op keeps the
   refused values. "Fix" opens the table's form via `FIX_ROUTES` in `layout/sync-sheet.ts` with
-  `?fix=<opId>`; saving queues a new op and deletes the rejected one.
+  `?fix=<opId>` (a wallet goes to `/wallets` and calls `WalletService.openFix(opId)` itself,
+  because the Wallets tab may be showing the first-wallet step); saving queues a new op and
+  deletes the rejected one.
 - The header pill is `layout/sync-status.ts`; its sheet (`layout/sync-sheet.ts`, spartan drawer)
   is `@defer`red until first opened.
 
@@ -167,10 +171,41 @@ reports) shows the **current profile's** data.
   `cdkDrag` / `cdkDragHandle`, `cdkDragStartDelay` `{ touch: 300, mouse: 0 }`,
   `cdkDragPreviewClass="tpn-drag-preview"`) plus ↑ / ↓ on the handle; see
   `features/account/pages/profiles-page`.
-- User icons and colours: `@/shared/components/icon-badge` (`app-icon-badge`, `PROFILE_ICONS`,
-  `USER_COLORS`, `glyphColor`); pick them with `app-icon-field` / `app-color-field`.
+- User icons and colours: `@/shared/components/icon-badge` (`app-icon-badge` with a `fallback`,
+  `USER_ICONS` = the curated lucide icons + our `TPN_ICONS` SVG strings, `PROFILE_ICONS`,
+  `WALLET_ICON_GROUPS`, `USER_COLORS`, `glyphColor`, `knownIcon(name, fallback)`); pick them in
+  the sheet's icon-and-colour view with `app-icon-field` (flat `icons` or titled `groups`) and
+  `app-color-field`. A `tpn` icon is an SVG string in `tpn-icons.ts` drawn in lucide's style
+  (24 × 24, `stroke-width="2"`, round caps, `fill="none"`); `user-icons.spec.ts` checks that.
 - Sheets with unsaved input: spartan's `disableClose` is read only when the drawer opens, so a
   dirty sheet re-opens on `(closed)` with its "discard?" question (`layout/profile-sheet`).
+- **Sheets** (DESIGN.md §6): `hlm-drawer-content class="mx-auto h-[92dvh] w-full max-w-[480px]
+data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"` holding one `app-sheet-frame`
+  (`@/shared/components/sheet`: `title`, `leadingIcon` `close` | `back`, `leadingLabel`,
+  `(leading)`; project `[sheetActions]` icon buttons and a `[sheetFooter]` with the main button).
+  A sheet with more than one step switches views inside the same drawer (`form` / `icons` /
+  `confirmDelete` / `confirmDiscard`, see `layout/wallet-sheet`). Specs find icon buttons by
+  `aria-label`.
+
+### Wallets (`core/wallet`, #6.2)
+
+Spec: [wallet.md](../docs/features/wallet.md).
+
+- `WalletService`: `wallets()` (the current profile's live wallets in order, archived too),
+  `openWallets()`, `archived()`, `hasWallet()`, `atLimit()` (20 open), `totals()` (per currency),
+  `currencies()` / `activeCurrencies()` / `minorUnit(code)` / `defaultCurrency()` (from the
+  pulled `currencies`), `balance(wallet)` (= `initialBalance` until #8),
+  `canChangeCurrency(id)` (true until #8), `nameTaken()`, `byId()`, `save(id | null, values,
+fixOpId?, profileId?)`, `setArchived(id, archived)` (answers `nameTaken` / `limit` when coming
+  back is refused), `remove(id)`, `moveTo(id, index)`, `sheet` / `open()` / `openFix()`.
+- The shell renders `layout/wallet-first-step` instead of the Transactions and Wallets pages
+  while the profile has no wallet (`isWalletTab()`), the ➕ leads there, and
+  `layout/wallet-sheet` is `@defer`red like the profile sheet. `features/wallets` holds only the
+  Wallets tab page.
+- `ProfileService.remove()` tombstones the rows of `PROFILE_CHILD_TABLES` (tables with
+  `profile_id`) in the same write, and an effect tombstones live child rows of a profile that is
+  a tombstone here (deleted on a device that didn't know them, wallet rule 11). Add #7's
+  categories to that list.
 
 ### Inside a feature
 
@@ -293,16 +328,18 @@ initialValue })`.
 - **Render fields with the shared wrappers** in `@/shared/components/form`. Never hand-build
   `<label>` + input + error markup in a feature:
 
-  | Field                | Control type           | Use for                                    |
-  | -------------------- | ---------------------- | ------------------------------------------ |
-  | `app-input-field`    | `FormControl<string>`  | text / email / tel / url / search          |
-  | `app-password-field` | `FormControl<string>`  | password with show/hide                    |
-  | `app-textarea-field` | `FormControl<string>`  | multi-line note                            |
-  | `app-select-field`   | `FormControl<T \| ''>` | short fixed list (native picker on phones) |
-  | `app-otp-field`      | `FormControl<string>`  | 6-digit email / SMS code (`one-time-code`) |
-  | `app-switch-field`   | `FormControl<boolean>` | on/off setting row                         |
-  | `app-icon-field`     | `FormControl<string>`  | pick a curated lucide icon (radio grid)    |
-  | `app-color-field`    | `FormControl<string>`  | pick a user colour (radio swatches)        |
+  | Field                 | Control type           | Use for                                    |
+  | --------------------- | ---------------------- | ------------------------------------------ |
+  | `app-input-field`     | `FormControl<string>`  | text / email / tel / url / search          |
+  | `app-password-field`  | `FormControl<string>`  | password with show/hide                    |
+  | `app-textarea-field`  | `FormControl<string>`  | multi-line note                            |
+  | `app-select-field`    | `FormControl<T \| ''>` | short fixed list (native picker on phones) |
+  | `app-otp-field`       | `FormControl<string>`  | 6-digit email / SMS code (`one-time-code`) |
+  | `app-switch-field`    | `FormControl<boolean>` | on/off setting row                         |
+  | `app-icon-field`      | `FormControl<string>`  | pick a curated icon (radio grid, groups)   |
+  | `app-color-field`     | `FormControl<string>`  | pick a user colour (radio swatches)        |
+  | `app-name-icon-field` | `FormControl<string>`  | compact sheet: icon button + name          |
+  | `app-amount-field`    | text + `negative` bool | money in major units, +/− button, currency |
 
   Every field takes `[control]` (the typed control, so templates are type-checked) plus `label`,
   and optionally `hint` / `placeholder`. Labels are linked to the control automatically, so there's
@@ -387,7 +424,9 @@ are on, so don't disable them.
 ### Money & dates
 
 - Amounts arrive from the API as **integers in minor units** (satang for THB) together with a currency
-  code. Never do float maths on amounts. Format them for display only, with `Intl.NumberFormat`
+  code. Never do float maths on amounts. `@/shared/utils` has `parseMajor(text, minorUnit)`
+  (typed text → minor units, through strings), `toMajorText()` (back, grouped) and
+  `formatMoney(minor, code, minorUnit, locale)`. Format them for display only, with `Intl.NumberFormat`
   using `LanguageService.locale()` (`th-TH` / `en-GB`), the currency's minor-unit digits and
   `currencyDisplay: 'narrowSymbol'` (so English shows ฿, not "THB").
 - Dates: the API sends ISO strings. Display them with `Intl.DateTimeFormat(locale())`: Thai gets the

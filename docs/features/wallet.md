@@ -1,9 +1,9 @@
 # Wallet
 
-> Status: Spec, revised for #6.2 (decisions from the start of #6: ROADMAP → "Now: Profile +
-> Wallet"). Code will live in `api/src/features/wallet/` and, on the web, the Wallets tab
-> (`features/wallets`). The points under [Open questions](#open-questions) are settled at the
-> start of 6.2, before any code.
+> Status: **Built** in #6.2. API: `api/src/features/wallet/` (sync handler only; tables `wallets`
+> and `wallet_members`). Web: `core/wallet` (`WalletService`), `features/wallets` (Wallets tab),
+> `layout/` (wallet sheet, first-wallet step). Rules 4's and 6's "has transactions" become real
+> with #8; members (#16).
 
 ## Purpose
 
@@ -49,7 +49,9 @@ the wallet, from the local database. Until transactions exist (#8) it equals `in
    while this one added a wallet offline). A wallet never moves to another profile.
 3. `name` is 1–50 characters after trimming, unique among the **profile's** non-archived wallets
    (case-insensitive; server check, `CONFLICT`). The same name may exist in another profile
-   (decided before 6.2).
+   (decided before 6.2). A profile holds at most **20 non-archived wallets** (server check,
+   `CONFLICT`; the web hides "add" at 20, and unarchiving at 20 is refused; decided at the start
+   of 6.2). Archiving frees a place.
 4. **Currency** (decided at the start of #6, with its message): `currencyCode` must be active
    when the wallet is created. It may change only while the wallet has **no transactions**. Once
    it has some, the form shows the currency read-only with a line saying why ("เปลี่ยนสกุลเงิน
@@ -57,7 +59,9 @@ the wallet, from the local database. Until transactions exist (#8) it equals `in
    transactions, so its currency can't change. Create a new wallet for another currency."). The
    picker shows only when more than one currency is active; otherwise the wallet is THB.
 5. `initialBalance` is an integer within ±10¹⁵, entered in the currency's major unit and stored in
-   minor units (no floats).
+   minor units (no floats). It may be negative (a card's debt): phone decimal keypads have no
+   minus key, so the field has a **+/− button** on its left that flips the sign (decided at the
+   start of 6.2).
 6. **Archive and delete** (built in 6.2, decided before it): a wallet with transactions can't be
    deleted, only archived (the device
    enforces this, because the server runs no check on a delete: offline-sync rule 10). Archived
@@ -83,7 +87,12 @@ the wallet, from the local database. Until transactions exist (#8) it equals `in
 10. **Order**: `sortOrder` ascending, then `createdAt`, then `id`, within the profile. Reordering
     uses the same order mode and drag handle as profiles (DESIGN.md §8).
 11. **Deleting a profile** tombstones its wallets in the same local write (profile rule 8); the
-    profile's confirm sheet says how many wallets go with it.
+    profile's confirm sheet says how many wallets go with it. A device only tombstones the
+    wallets it knows, so a wallet another device synced that this one hadn't pulled yet would
+    stay live under a deleted profile. Therefore **a device that pulls a profile's tombstone
+    tombstones its own live wallets of that profile** too (decided at the start of 6.2; a
+    delete of a row already deleted is `applied` and changes nothing, so devices doing it twice
+    is harmless).
 12. **First wallet step**: while the current profile has no live wallet, the Transactions tab
     shows "เพิ่มกระเป๋าเงินใบแรก" with a button that opens the wallet form (replacing the 6.1
     placeholder), the Wallets tab shows the same, and ➕ leads there.
@@ -96,14 +105,25 @@ profiles (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets 
 
 ## Web screens
 
-- **Wallets tab** (current profile): the total per currency at the top, then the wallet list
-  (40px icon badge, name, balance), then an "เก็บถาวร" group, collapsed. Tapping a wallet opens
-  it in the form for now (its transactions list comes with #8). "จัดลำดับ" = the drag-handle
-  order mode.
-- **Wallet form** (bottom sheet, like the profile sheet): name, icon (the catalogue grouped by
-  meaning: money places, cards, cash, …; lucide and `tpn` mixed), colour, starting balance, currency (rule 4), "exclude from total", and in edit
-  mode archive / delete. "Fix" of a rejected op opens it (`FIX_ROUTES`).
-- **First wallet step** (rule 12).
+- **Wallets tab** (current profile): the total per currency ("ยอดรวม", ฿0.00 while nothing
+  counts), 12px above the "กระเป๋าที่ใช้อยู่ (n)" heading and the wallet list (40px icon badge,
+  name, "ไม่รวมในยอดรวม" / "รอ sync" under it, balance on the right, negative in the expense
+  colour), "เพิ่มกระเป๋าเงิน" (a line saying why at 20), then a folded "เก็บถาวร (n)" group.
+  Tapping a wallet opens it in the form for now (its transactions list comes with #8).
+  "จัดลำดับ" = the drag-handle order mode (open wallets only).
+- **Wallet form** (a compact sheet, DESIGN.md §6; decided with the owner while building 6.2,
+  from mock-ups): row 1 the icon on its colour (a button) and the name; row 2 the +/− button, the
+  starting balance in large figures and the currency code (a picker chip when more than one
+  currency is active; read-only with rule 4's line once there are transactions); row 3 the
+  "ไม่รวมในยอดรวม" switch. No labels above fields and no hints. Tapping the icon opens the
+  "ไอคอนและสี" view: colour swatches, then the catalogue grouped by meaning (ที่เก็บเงิน, บัตร,
+  เงินสดและของมีค่า, ดิจิทัล, อื่น ๆ; lucide and `tpn` mixed); picking an icon goes back. Save
+  is the one button at the bottom. In edit mode the header holds **archive** (acts at once; the
+  toast offers "เลิกทำ"; coming back may be refused, rule 3, said under the header) and
+  **delete** (a confirm view). "Fix" of a rejected op opens it on the Wallets tab
+  (`FIX_ROUTES`).
+- **First wallet step** (rule 12): "เพิ่มกระเป๋าเงินใบแรก", one line on what a wallet is, and
+  "เพิ่มกระเป๋าเงิน".
 
 ## Interactions
 
@@ -134,6 +154,14 @@ Settled before 6.2 (owner, in the 6.1 session):
   in #7 (food, buffet, coffee cup, …). Kept as SVG strings in code beside the picker
   (`shared/components/icon-badge`), registered like lucide's.
 - **Name scope**: unique within the profile (rule 3).
+- **Decided while building 6.2** (owner, from mock-ups): every sheet is the same near-full
+  height with a header bar (close / back left, title centred, icon actions right) and one main
+  button pinned at the bottom; the wallet and profile forms are compact (icon + name on one row,
+  the icon opening an icon-and-colour view); archive and delete are header icons, and archiving
+  offers undo in its toast. Recorded in DESIGN.md §6.
+- **Settled at the start of 6.2** (owner): at most 20 non-archived wallets per profile (rule 3);
+  a +/− button for a negative starting balance (rule 5); a device that pulls a profile's
+  tombstone also tombstones that profile's wallets it holds (rule 11).
 - **Archive**: built in 6.2 (rule 6). The `isArchived` column must exist from the first
   migration anyway, so the toggle and the "เก็บถาวร" group cost little now; the "has
   transactions, so no delete" gate becomes real in #8.

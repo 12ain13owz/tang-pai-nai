@@ -9,7 +9,7 @@ import {
   lucideReceiptText,
   lucideWallet,
 } from '@ng-icons/lucide'
-import { ProfileService } from '@/core/profile'
+import { WalletService } from '@/core/wallet'
 
 interface Tab {
   path: string
@@ -35,7 +35,7 @@ interface Tab {
         @if ($index === 2) {
           <div class="flex items-center justify-center">
             <a
-              [routerLink]="profileService.current() ? '/transactions/new' : '/transactions'"
+              [routerLink]="walletService.hasWallet() ? '/transactions/new' : '/transactions'"
               [attr.aria-label]="'nav.add' | transloco"
               class="-mt-6 flex size-14 items-center justify-center rounded-full bg-primary text-2xl text-primary-foreground shadow-lg ring-4 ring-background focus-visible:ring-ring focus-visible:outline-none"
             >
@@ -62,8 +62,11 @@ interface Tab {
   `,
 })
 export class BottomTabBar {
-  /** With no profile yet, ➕ leads to the create step on the Transactions tab (profile rule 5). */
-  protected profileService = inject(ProfileService)
+  /**
+   * With no profile or no wallet yet, ➕ leads to the create step or the first-wallet step on the
+   * Transactions tab (profile rule 5, wallet rule 12).
+   */
+  protected walletService = inject(WalletService)
 
   /** The ➕ sits between the 2nd and 3rd tab. */
   protected readonly tabs: readonly Tab[] = [

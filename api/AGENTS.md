@@ -154,8 +154,9 @@ write their own data locally and send it through `POST /sync/push`; they read ot
 changes with `GET /sync/pull`. Features can't import each other, so **each synced feature
 registers a table handler** in `syncRegistry` (`@/core/sync`) from its own `index.ts`, and
 `features/sync` reads the registry. Reference: `features/profile` (pushable user data, the
-first real one; sync-only, no REST routes), `features/sync-probe` (pushable, dev only, removed
-in #6.2) and `features/currency` (pull-only master data).
+first real one; sync-only, no REST routes), `features/wallet` (pushable, with checks that read
+other tables: the user's live profile, an active currency) and `features/currency` (pull-only
+master data).
 
 - **Make a table synced**: give it `id: text().primaryKey()` (the device's UUIDv7, no default),
   `userId`, and `...syncColumns` (`createdAt`, `updatedAt`, `deletedAt`, `changeSeq`,
@@ -178,14 +179,20 @@ in #6.2) and `features/currency` (pull-only master data).
   add a new synced feature to both.
 - **Rules about other rows** (`check`) cover a live row only: a delete runs no check, so a rule
   like "can't delete a profile with wallets" is kept by the device writing the dependent
-  tombstones in the same local write (profile rule 8).
+  tombstones in the same local write (profile rule 8). A row that keeps a parent alive the
+  server can't check (a wallet's profile) gets an `onDelete: 'cascade'` FK, so purging the
+  parent's old tombstone takes the children's with it.
+- **Data cleanup in a migration** (rows, not schema): `npx drizzle-kit generate --custom --name
+<what>` gives an empty migration to write the SQL in, with a comment saying why (see
+  `0009_purge_sync_probe_history.sql`); never edit the generated schema migration for it.
 - **Master data** registers `pull` only (pushes answer `READ_ONLY`); its rows come from a
   migration that also raises `sync_state.last_seq` (see `0005_currency_seed.sql`).
 - **Cleanup**: `npm run sync:cleanup` purges tombstones and `sync_ops` older than 90 days and
   raises `purgedSeq` (a pull below it answers `410 CURSOR_EXPIRED`).
 - **Testing**: the service on `createMemorySyncRepository()` (any table name; `checks` and
   `shared` options) with a local `createSyncRegistry()`; handlers on a temporary SQLite file with
-  the committed migrations (`profile.repository.drizzle.test.ts`); HTTP with `accessTokens`
+  the committed migrations (`profile.repository.drizzle.test.ts`; `wallet.repository.drizzle.test.ts`
+  inserts the profiles its checks read); HTTP with `accessTokens`
   for the Bearer header (`sync.controller.test.ts`).
 
 ### Notifications (`src/core/notification/`)
