@@ -31,6 +31,12 @@ export default [
       import('./pages/profiles-page/profiles-page').then((m) => m.ProfilesPage),
   },
   {
+    path: 'categories',
+    title: 'title.categories',
+    loadComponent: async () =>
+      import('./pages/categories-page/categories-page').then((m) => m.CategoriesPage),
+  },
+  {
     // Turn offline on (choose a PIN) or change the PIN (offline-sync rules 1 and 4).
     path: 'pin',
     title: 'title.pin',

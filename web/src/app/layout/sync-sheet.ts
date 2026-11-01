@@ -17,6 +17,7 @@ import { SheetFrame } from '@/shared/components/sheet'
 /** Where "fix" opens a rejected op's values, per table. */
 const FIX_ROUTES: Readonly<Record<string, string>> = {
   profiles: '/account/profiles',
+  categories: '/account/categories',
   // The wallet sheet lives in the shell, so it opens on the tab itself (even its first-wallet step).
   [WALLET_TABLE]: '/wallets',
 }

@@ -2,10 +2,13 @@ import { computed, DOCUMENT, effect, inject, Service, signal, untracked } from '
 import { TranslocoService } from '@jsverse/transloco'
 import { toast } from '@spartan-ng/brain/sonner'
 import { AuthStore } from '@/core/auth'
+import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
+import { defaultCategoryRows } from './default-categories'
 import {
+  DEFAULT_CATEGORY_TABLE,
   PROFILE_CHILD_TABLES,
   PROFILE_KEY_PREFIX,
   PROFILE_LIMITS,
@@ -27,6 +30,7 @@ export class ProfileService {
   private networkStatusService = inject(NetworkStatusService)
   private offlineService = inject(OfflineService)
   private syncService = inject(SyncService)
+  private languageService = inject(LanguageService)
 
   /** Live profiles in order (rule 7). */
   profiles = computed(() =>
@@ -79,6 +83,8 @@ export class ProfileService {
   atLimit = computed(() => this.profiles().length >= PROFILE_LIMITS.PER_USER)
   /** The open profile sheet (layout/profile-sheet), if any. */
   sheet = signal<ProfileSheetState | null>(null)
+  /** Whether the switch sheet (layout/profile-switch-sheet) is open: the header and Account › หมวดหมู่ open it. */
+  switchSheet = signal(false)
 
   private storedId = signal<string | null>(null)
   private roundEnded = signal(false)
@@ -204,6 +210,14 @@ export class ProfileService {
         updatedAt: now,
         deletedAt: null,
       })
+      // Category rule 8: a profile made here comes with the default set, in the same write.
+      // A fixed refused create gets its refused child rows back instead (category rule 12).
+      if (!current && !fixOpId) {
+        const language = this.languageService.language().id
+        for (const row of defaultCategoryRows(rowId, language, now, () => uuidv7())) {
+          queueWrite(db, DEFAULT_CATEGORY_TABLE, 'upsert', row)
+        }
+      }
       if (fixOpId) {
         deleteOp(db, fixOpId)
       }
