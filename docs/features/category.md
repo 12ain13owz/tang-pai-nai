@@ -1,10 +1,11 @@
 # Category
 
-> Status: Spec, revised at the start of #7 (one set per profile, the default set written with the
-> profile, a wallet can hide categories). Built in two parts (decided at the start of #7): **7.1**
-> categories, the default set and the manage screen; **7.2** hiding categories per wallet (rule
-> 13). API: `api/src/features/category/` (sync handler only). Web: `core/category`
-> (`CategoryService`), `layout/category-sheet`, `features/account/pages/categories-page`.
+> Status: **7.1 built** (categories, the default set, Account › หมวดหมู่); **7.2** (hiding per
+> wallet, rule 13) next. Revised at the start of #7 (one set per profile, the default set written
+> with the profile, a wallet can hide categories) and built in two parts. API:
+> `api/src/features/category/` (sync handler only). Web: `core/category` (`CategoryService`),
+> `core/profile/default-categories.ts`, `layout/category-sheet`,
+> `features/account/pages/categories-page`.
 
 ## Purpose
 
@@ -154,6 +155,10 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
   its children.
 
 ## Open questions
+
+Settled while building 7.1 (owner, from mock-ups): white glyphs on every user colour (DESIGN.md
+§3); the Account tab became grouped rows that open pages (option A1), so หมวดหมู่ is one of
+them. The default set's colours are the darker palette.
 
 Settled at the start of #7 (owner): split into 7.1 / 7.2; the default set follows the app's
 language at creation; manage screen at Account › หมวดหมู่ with the current profile at its top;
