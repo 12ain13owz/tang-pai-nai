@@ -1,10 +1,11 @@
-import { signal } from '@angular/core'
+import { computed, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import type { ComponentFixture } from '@angular/core/testing'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import th from '@/core/i18n/th.json'
 import { SyncService } from '@/core/offline'
 import type { OutboxOp, SyncStatus as Status } from '@/core/offline'
+import { ProfileService } from '@/core/profile'
 import { SyncStatus } from './sync-status'
 
 describe('SyncStatus', () => {
@@ -33,7 +34,15 @@ describe('SyncStatus', () => {
           preloadLangs: true,
         }),
       ],
-      providers: [{ provide: SyncService, useValue: sync }],
+      providers: [
+        { provide: SyncService, useValue: sync },
+        {
+          provide: ProfileService,
+          useValue: {
+            rejectedItems: computed(() => sync.rejected().map((op) => ({ op, children: [] }))),
+          },
+        },
+      ],
     })
     fixture = TestBed.createComponent(SyncStatus)
   })

@@ -22,6 +22,7 @@ import {
 } from '@/shared/components/form'
 import {
   USER_COLORS,
+  userColor,
   WALLET_DEFAULT_ICON,
   WALLET_ICON_GROUPS,
 } from '@/shared/components/icon-badge'
@@ -536,7 +537,7 @@ export class WalletSheet {
       currencyCode: values.currencyCode,
       excludeFromTotal: values.excludeFromTotal,
       icon: values.icon,
-      color: values.color,
+      color: userColor(values.color),
     }
   }
 }

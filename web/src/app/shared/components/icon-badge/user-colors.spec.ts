@@ -1,4 +1,4 @@
-import { glyphColor, USER_COLORS } from './user-colors'
+import { glyphColor, USER_COLORS, userColor } from './user-colors'
 import { FALLBACK_ICON, knownIcon, PROFILE_ICON_NAMES } from './user-icons'
 
 describe('glyphColor', () => {
@@ -13,6 +13,10 @@ describe('glyphColor', () => {
     expect(glyphColor('red')).toBe('#ffffff')
   })
 
+  it('draws a white glyph on every palette colour', () => {
+    expect(USER_COLORS.every((color) => glyphColor(color) === '#ffffff')).toBe(true)
+  })
+
   it('gives every palette colour a glyph of at least 4.5:1 contrast', () => {
     const channel = (hex: string, at: number) => {
       const v = parseInt(hex.slice(at, at + 2), 16) / 255
@@ -24,6 +28,15 @@ describe('glyphColor', () => {
       const [a, b] = [lum(color), lum(glyphColor(color))].sort((x, y) => y - x)
       expect((a + 0.05) / (b + 0.05)).toBeGreaterThanOrEqual(4.5)
     }
+  })
+})
+
+describe('userColor', () => {
+  it('draws an old palette colour with its darker one and keeps the rest', () => {
+    expect(userColor('#ca8a04')).toBe('#a16207')
+    expect(userColor('#0D9488')).toBe('#0f766e')
+    expect(userColor('#2563eb')).toBe('#2563eb')
+    expect(userColor('#123456')).toBe('#123456')
   })
 })
 

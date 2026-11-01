@@ -20,7 +20,7 @@ properties:
           properties:
             table:
               type: string
-              description: e.g. `currencies`, `profiles`, `wallets` (rows as in SyncProfileRow, SyncWalletRow)
+              description: e.g. `currencies`, `profiles`, `wallets`, `categories` (rows as in SyncProfileRow, SyncWalletRow, SyncCategoryRow)
               example: profiles
             row:
               $ref: './sync-row.schema.yaml'

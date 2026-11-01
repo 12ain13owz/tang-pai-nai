@@ -101,3 +101,19 @@ export const queueWrite = (
 export const deleteOp = (db: LocalDatabase, opId: string): void => {
   db.exec('DELETE FROM outbox WHERE op_id = ?', [opId])
 }
+
+/**
+ * Moves the pending op of a row to the end of the outbox, so it is pushed after rows it now
+ * depends on (a category put under a parent made after it). Only for a row nothing else
+ * depends on yet.
+ */
+export const moveOpLast = (db: LocalDatabase, table: string, rowId: string): void => {
+  const pending = findPending(db, table, rowId)
+  if (!pending) {
+    return
+  }
+  const last = Number(db.selectValue('SELECT max(seq) FROM outbox'))
+  if (pending.seq !== last) {
+    db.exec('UPDATE outbox SET seq = ? WHERE seq = ?', [last + 1, pending.seq])
+  }
+}

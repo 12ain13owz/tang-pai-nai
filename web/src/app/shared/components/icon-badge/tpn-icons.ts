@@ -74,6 +74,34 @@ export const TPN_ICONS = {
   tpnCashEnvelope: svg(
     `<path d="M6 9V4h12v5"/><path d="M10 6.5h4"/><rect x="2" y="9" width="20" height="12" rx="2"/><path d="m2 11 10 6 10-6"/>`
   ),
+  /** A buffet counter with two serving domes (#7). */
+  tpnBuffet: svg(
+    `<path d="M2 14h20"/><path d="M3 14a4 4 0 0 1 8 0"/><path d="M13 14a4 4 0 0 1 8 0"/><path d="M7 8.5V10"/><path d="M17 8.5V10"/><path d="M4 14v7"/><path d="M20 14v7"/><path d="M4 18h16"/>`
+  ),
+  /** A bubble tea: a domed cup with a straw and pearls. */
+  tpnBubbleTea: svg(
+    `<path d="M5 9h14"/><path d="M6 9a6 4.5 0 0 1 12 0"/><path d="m6.5 9 1.5 12h8l1.5-12"/><path d="m12 4.5 2-3"/><path d="M10 17h.01"/><path d="M14 17h.01"/><path d="M12 19h.01"/>`
+  ),
+  /** A noodle bowl with chopsticks. */
+  tpnNoodleBowl: svg(
+    `<path d="M3 12h18a9 8 0 0 1-18 0Z"/><path d="M9 21h6"/><path d="m11 12 8-9"/><path d="m14 12 7-7"/><path d="M6 9.5c1-1 2 1 3 0"/>`
+  ),
+  /** A tuk-tuk: a three-wheeler with a canopy. */
+  tpnTuktuk: svg(
+    `<path d="M3 15V7a1 1 0 0 1 1-1h11l4 6v3"/><path d="M3 11h16"/><path d="M9 6v5"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="17" r="2"/><path d="M8 17h8"/>`
+  ),
+  /** A water tap with a drop (the water bill). */
+  tpnFaucet: svg(
+    `<path d="M10 3h6"/><path d="M13 3v4"/><path d="M4 7h11a4 4 0 0 1 4 4v2"/><path d="M4 11h9a2 2 0 0 1 2 2"/><path d="M4 6v6"/><path d="M17 16s-1.5 1.7-1.5 2.8a1.5 1.5 0 0 0 3 0c0-1.1-1.5-2.8-1.5-2.8z"/>`
+  ),
+  /** A Thai temple: a spire over two roof tiers (merit and donations). */
+  tpnTemple: svg(
+    `<path d="M12 2v3"/><path d="m6 10 6-5 6 5"/><path d="m3 15 9-7 9 7"/><path d="M5 13.5V21h14v-7.5"/><path d="M10 21v-4h4v4"/><path d="M3 21h18"/>`
+  ),
+  /** A payslip with a baht sign (salary). */
+  tpnPayslip: svg(
+    `<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h6"/><path d="M8 7h3"/>${baht(14.5, 6)}`
+  ),
 } as const
 
 export type TpnIcon = keyof typeof TPN_ICONS

@@ -42,4 +42,7 @@ export const PROFILE_KEY_PREFIX = 'tpn-profile:'
  * Device tables whose rows carry `profile_id` and go with their profile (profile rule 8). Their
  * tombstones are written in the same local write as the profile's.
  */
-export const PROFILE_CHILD_TABLES = ['wallets'] as const
+export const PROFILE_CHILD_TABLES = ['wallets', 'categories'] as const
+
+/** The device table of categories, which a new profile is written with (category rule 8). */
+export const DEFAULT_CATEGORY_TABLE = 'categories'

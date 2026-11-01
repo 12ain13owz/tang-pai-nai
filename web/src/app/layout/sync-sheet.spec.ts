@@ -1,4 +1,4 @@
-import { signal } from '@angular/core'
+import { computed, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import type { ComponentFixture } from '@angular/core/testing'
 import { Router } from '@angular/router'
@@ -8,6 +8,7 @@ import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
 import { SyncService } from '@/core/offline'
 import type { OutboxOp, SyncNotice } from '@/core/offline'
+import { ProfileService } from '@/core/profile'
 import { WalletService } from '@/core/wallet'
 import { SyncSheet } from './sync-sheet'
 
@@ -47,6 +48,22 @@ describe('SyncSheet', () => {
     dismissNotice: vi.fn(),
   }
   const wallets = { openFix: vi.fn() }
+  /** Child ops grouped under a refused profile create, by the profile op's id. */
+  const children = signal<Record<string, OutboxOp[]>>({})
+  const profiles = {
+    rejectedItems: computed(() => {
+      const grouped = new Set(
+        Object.values(children())
+          .flat()
+          .map((op) => op.opId)
+      )
+      return sync
+        .rejected()
+        .filter((op) => !grouped.has(op.opId))
+        .map((op) => ({ op, children: children()[op.opId] ?? [] }))
+    }),
+    discardRefused: vi.fn(),
+  }
 
   const text = () => document.body.textContent
   const button = (label: string) =>
@@ -63,6 +80,7 @@ describe('SyncSheet', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     sync.rejected.set([])
+    children.set({})
     sync.notices.set([])
     sync.pendingCount.set(0)
     TestBed.configureTestingModule({
@@ -76,6 +94,7 @@ describe('SyncSheet', () => {
       providers: [
         { provide: SyncService, useValue: sync },
         { provide: WalletService, useValue: wallets },
+        { provide: ProfileService, useValue: profiles },
       ],
     })
     TestBed.inject(AuthStore).status.set('signedIn')
@@ -99,7 +118,37 @@ describe('SyncSheet', () => {
     expect(text()).toContain(th.sync.codeCONFLICT)
     expect(text()).not.toContain('already exists')
     button(th.sync.discard)?.click()
+    // A profile op is discarded with any child rows refused with it (category rule 12).
+    expect(profiles.discardRefused).toHaveBeenCalledWith('op-1')
+  })
+
+  it('discards any other rejected op on its own', async () => {
+    sync.rejected.set([{ ...rejectedOp, table: 'categories', row: { id: 'c1', name: 'กาแฟ' } }])
+    await open()
+    expect(text()).toContain(th.sync.tablecategories)
+    button(th.sync.discard)?.click()
     expect(sync.discard).toHaveBeenCalledWith('op-1')
+  })
+
+  it("lists a refused profile's refused categories and wallet under it, once (category rule 12)", async () => {
+    const child = (opId: string, table: string): OutboxOp => ({
+      ...rejectedOp,
+      opId,
+      table,
+      rowId: opId,
+      row: { id: opId, name: opId, profileId: 'p1' },
+    })
+    const kids = [child('c1', 'categories'), child('c2', 'categories'), child('w1', 'wallets')]
+    sync.rejected.set([rejectedOp, ...kids])
+    children.set({ 'op-1': kids })
+    await open()
+    expect(text()).toContain('พร้อมหมวดหมู่ 2 รายการ และกระเป๋าเงิน 1 ใบที่บันทึกไม่สำเร็จด้วย')
+    expect(text()).not.toContain('c1')
+    expect(
+      [...document.body.querySelectorAll('button')].filter(
+        (b) => b.textContent.trim() === th.sync.fix
+      )
+    ).toHaveLength(1)
   })
 
   it('opens the fix form for a rejected op', async () => {

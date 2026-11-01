@@ -31,8 +31,8 @@ describe('user icons', () => {
     expect(new Set(names).size).toBe(names.length)
     expect(names.every((name) => name in USER_ICONS)).toBe(true)
     expect(names).toContain(WALLET_DEFAULT_ICON)
-    expect(names.filter((name) => name.startsWith('tpn')).sort()).toEqual(
-      Object.keys(TPN_ICONS).sort()
+    expect(names.filter((name) => name.startsWith('tpn')).every((name) => name in TPN_ICONS)).toBe(
+      true
     )
     for (const group of WALLET_ICON_GROUPS) {
       expect(th.iconGroups).toHaveProperty(group.key)

@@ -16,6 +16,15 @@ export const isProfileTab = (url: string): boolean => under(PROFILE_TABS, url)
 
 export const isWalletTab = (url: string): boolean => under(WALLET_TABS, url)
 
+/**
+ * Where the header's ‹ goes from a page inside the Account tab (`/account/<page>` → `/account`),
+ * or null on a tab's own page.
+ */
+export const parentOf = (url: string): string | null => {
+  const path = url.split(/[?#]/)[0]
+  return /^\/account\/[^/]+/.test(path) ? '/account' : null
+}
+
 /** The current URL as a signal (call in an injection context). */
 export const currentUrl = () => {
   const router = inject(Router)

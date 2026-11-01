@@ -80,7 +80,7 @@ merging.
 | 4a  | Offline sync foundation    | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                |
 | 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                      |
 | 6   | Profile + Wallet           | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
-| 7   | **Category**               | ⬜  | ⬜  | **← next.** income/expense, 1 level of sub-categories, one set per profile (seeded with it). [spec](docs/features/category.md)                                           |
+| 7   | **Category**               | 🚧  | 🚧  | 7.1 ✅ categories, default set, Account › หมวดหมู่; **7.2 ← next**: hide per wallet. [spec](docs/features/category.md)                                                   |
 | 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                                                                            |
 | 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                                                                  |
 | 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                                               |
@@ -100,25 +100,79 @@ decision "Local-first").
 
 ---
 
-## Next: Category (#7)
+## Next: Category 7.2 (#7)
 
-Spec: [category.md](docs/features/category.md) (its "To revise at the start of #7" note comes
-first: one set per profile, a wallet can hide categories, the default set written by the device
-that creates the profile). What #6 leaves for it:
+Spec: [category.md](docs/features/category.md) (revised at the start of #7). **Decided at the
+start of #7**: two parts, one session and PR each, like #6.
 
-- **Data**: `categories.profileId`, a pushable sync handler like `features/wallet` (its checks
-  read the user's live profile); the device table goes in a new local schema step and
-  `SYNC_TABLES`, and into `PROFILE_CHILD_TABLES` (`core/profile`), so deleting a profile
-  tombstones them and the orphan sweep covers them. The per-wallet "hidden categories" table is
-  new with #7. Profiles made before #7 exist only in dev data and get the default set from a
-  one-off script (profile.md → Interactions).
-- **UI**: the category sheet follows DESIGN.md §6 (near-full sheet, header bar, compact form:
-  icon + name, the icon opening the icon-and-colour view). Its catalogue grows in
-  `user-icons.ts` (food, buffet, coffee cup, transport, …), as new `tpn` SVGs where lucide has no
-  clear picture (wallet.md → Open questions); the `user-icons.spec.ts` guard applies.
-- **Transactions (#8)** then makes wallet rules 4 and 6 real (`WalletService.canChangeCurrency`,
-  no delete with transactions) and computes `balance()`; its header layout waits for a mock-up
-  (transaction.md → Open questions).
+| Part | What                                                                                                                   | Status |
+| ---- | ---------------------------------------------------------------------------------------------------------------------- | ------ |
+| 7.1  | `categories` (API handler, device table), default set written with the profile, one-off dev script, Account › หมวดหมู่ | ✅     |
+| 7.2  | hide categories per wallet (`wallets.hiddenCategoryIds`, the wallet form's "หมวดหมู่ที่ใช้" row)                       | ⬜     |
+
+**What 7.2 does** (category rule 13, decided at the start of #7: a column, not a table):
+`wallets.hiddenCategoryIds` (JSON array of UUIDs, at most 200, default `[]`) in an API migration
+and the wallet schema / handler (shape check only: unknown ids are ignored), a local schema step
+adding the column + `SYNC_TABLES` (a JSON column: `putRow` already stringifies non-scalars;
+reading needs a parse), and a "หมวดหมู่ที่ใช้" row in the wallet sheet opening a view of the
+profile's categories with a switch each (hiding a parent hides its children). It has no visible
+effect until #8's category picker reads it; check with a mock-up first like 7.1.
+
+**For #8** (unchanged from #6): wallet rules 4 and 6 become real (`WalletService.canChangeCurrency`,
+no delete with transactions), `balance()` is computed, category rules 4 and 6 gain "has
+transactions" (archive only), and the Transactions header waits for a mock-up
+(transaction.md → Open questions).
+
+## Done: Category 7.1 (#7)
+
+- **Decided at the start of #7** (owner, category.md → Open questions): split 7.1 / 7.2; the
+  default set follows the app's language when the profile is created; the manage screen is
+  Account › หมวดหมู่ with the current profile on top (tap to switch); hiding per wallet is a
+  `wallets` column; a refused profile create groups its refused child rows (categories, first
+  wallet) under one sync-sheet item, fixed or discarded together. Proposed in the revision and
+  kept: archived categories hold no name, at most 200 open per profile, a pulled parent
+  tombstone takes its children, unarchiving a parent brings its children back.
+- **Decided while building** (owner, from HTML mock-ups): **white glyphs on every user colour**:
+  five palette colours went one step darker so white reaches 4.5:1 on all ten (`userColor` draws
+  a row's old colour as its new one; DESIGN.md §3). The **Account tab is grouped rows that open
+  pages** (option A1: ข้อมูลของฉัน — โปรไฟล์, หมวดหมู่; บัญชีและความปลอดภัย — ความปลอดภัย;
+  การตั้งค่า — การแสดงผล, เครื่องนี้), and a page inside it has a ‹ in the header. The buffet
+  icon doesn't read well yet; the owner is fine to redraw icons later.
+- **API**: `categories` (migration `0010_categories`; `profileId` and self `parentId` FKs with
+  cascade), `features/category` (pushable handler; `check`: the user's live profile and no move,
+  a live top-level parent of the same profile and type, open for an open child, a parent with
+  live children stays top-level and keeps its type, a unique name among open siblings, 200
+  open), OpenAPI `SyncCategoryRow`, `scripts/seed-default-categories.ts` (one-off, Thai, for
+  profiles with no category rows).
+- **Web**: local schema step 6 (`categories`) + `SYNC_TABLES`, joined `PROFILE_CHILD_TABLES`;
+  `core/category` (`CategoryService`); `ProfileService.save` writes the default set
+  (`core/profile/default-categories.ts`) with a new profile, `rejectedItems()` /
+  `discardRefused()` and the fix re-sending refused child rows, `switchSheet` (the switch sheet
+  moved to the shell); `outbox.moveOpLast` (a category put under a parent made after it is pushed
+  after it); `layout/category-sheet` + `app-segmented-field`; `features/account` pages
+  categories / appearance / device and the grouped account page; the header's ‹
+  (`parentOf`); 7 new `tpn` icons and `CATEGORY_ICON_GROUPS` (8 groups). The initial bundle
+  warning budget went 640 → 680 kB (the header's icon badge now carries the category icons;
+  662 kB).
+- **Checked**: curl (create, every parent rule, sibling clash in any case, other type / parent /
+  profile free, archived name free and its unarchive refused, archive with children, child of
+  an archived parent refused, the 201st open, another user's profile and id, a move between
+  profiles, a deleted profile or parent, pull scoping, the one-off script twice, `sync:cleanup`
+  cascade). Playwright at 375×812 in th/en × light/dark on `npm run build`: the default set,
+  tabs, add a sub-category through the icon and parent views, name clash, discard, a parent
+  with children (type and delete locked), archive + undo, the archived fold, a child refused
+  while its parent is archived, unarchive brings children back, delete confirm, order mode by
+  mouse drag (parents and children), arrow keys and touch long-press (a quick swipe does
+  nothing); device B (untrusted) sees A's set; A offline adds a category and a profile whose
+  names B takes first → back online, two items in the sync sheet (the profile "with 27
+  categories"), both fixed → synced, B sees the fixed profile with its 27; deleting a profile
+  tombstones its 29 categories on the server; a **really offline** reopen (both servers
+  stopped) adds a category that syncs once back; untrusted offline blocks adding. Found and
+  fixed while checking: fixing a refused profile left its children rejected, and the pill
+  counted them one by one. Tests: API 491, web 366.
+- **Known**: the profile delete confirm counts wallets, not categories (category rule 12 as
+  written). Same local-proxy limits as before (20 sign-in mails per hour, the 60 s cooldown
+  per email).
 
 ## Done: Profile + Wallet (#6)
 

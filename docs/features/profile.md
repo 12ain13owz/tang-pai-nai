@@ -3,7 +3,7 @@
 > Status: **Built** in #6.1; wallets joined in #6.2 (delete takes them, rule 8). API:
 > `api/src/features/profile/` (sync handler only). Web: `core/profile` (`ProfileService`),
 > `layout/` (switcher, profile sheet, create step) and `features/account/pages/profiles-page`.
-> Categories join in #7.
+> Categories joined in #7.1 (a new profile comes with the default set; delete takes them).
 
 ## Purpose
 
@@ -60,7 +60,7 @@ they make their first profile, then its first wallet.
    (`max + 1`). Reordering writes `sortOrder` on each profile whose position changed (one op per
    row, the usual later-edit-wins on conflict).
 8. **Delete** is a soft delete after a confirm sheet (no undo: from #6.2 it removes the profile's
-   wallets and transactions too, as tombstones in the **same local write**, because the server
+   wallets, from #7.1 its categories, and from #8 its transactions too, as tombstones in the **same local write**, because the server
    runs no rule check on a delete, offline-sync rule 10). The last profile may be deleted; the
    app then shows the create step. Deleting the current profile switches to the first remaining
    one.
@@ -115,8 +115,10 @@ Glossary: โปรไฟล์ / Profile (DESIGN.md §11).
 - **Category (#7)**: one category set per profile, `categories.profileId`; a wallet can hide
   categories it doesn't use. The default set is written **by the device that creates the
   profile**, in the same local write as the profile (decided at the start of #6.1, so two
-  devices never seed one profile twice). Profiles made before #7 exist only in dev data and get
-  the set from a one-off script at #7.
+  devices never seed one profile twice; built in #7.1, in the app's language). Profiles made
+  before #7 exist only in dev data and get the set from `api/scripts/seed-default-categories.ts`.
+  A refused profile create refuses its categories and first wallet too; the sync sheet shows
+  them under the profile (category rule 12).
 - **Transaction (#8)**, reports, budgets: filtered by the current profile through its wallets.
 - **Offline sync**: `profiles` is a pushable synced table (`core/sync` handler, the reference
   for `wallets`; device schema step + `SYNC_TABLES` entry).

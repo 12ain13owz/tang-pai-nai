@@ -107,9 +107,12 @@ because `ThemeService` covers both the mode and the palette. Users only ever see
 changes with the look. `--income` / `--expense` pass 4.5:1 on both `--background` and `--card`.
 Don't reuse `destructive` for expenses: an expense isn't an error.
 
-**User colours** (wallet and category `color`) arrive as data and are the only raw colours allowed.
-Use them for the icon circle's background, with a white or black glyph picked for contrast. Never
-use them for text on the page background.
+**User colours** (profile, wallet and category `color`) arrive as data and are the only raw colours
+allowed. Use them for the icon circle's background with a **white glyph** (owner's choice in #7):
+every colour in `USER_COLORS` gives white at least 4.5:1, so a new colour must too (a test
+checks). Five colours were darkened one step in #7; a row saved with an old one is drawn with the
+new one (`userColor`) and saved with it on its next edit. Never use them for text on the page
+background.
 
 **The accent is for "you are here" and "do this", nothing else**: the ➕, the one primary button,
 the active tab, the selected option, the focus ring. Don't use it for decoration, headings or
@@ -186,6 +189,13 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   undo in its toast.
 - **Toasts** sit above the tab bar, last about 4s, say one short thing, and have at most one action
   (เลิกทำ).
+- **Account tab** (owner's choice A1 in #7): who is signed in on top, then titled groups of
+  rows (ข้อมูลของฉัน, บัญชีและความปลอดภัย, การตั้งค่า), each row a link with a 40px muted icon
+  square, its name, one muted line on what's there and a chevron; settings live on their own
+  pages (การแสดงผล, เครื่องนี้), never inline. A page inside the tab shows ‹ in the header.
+- **Segmented control** (`app-segmented-field`): two or three short choices in a `bg-muted` track,
+  the chosen one a `bg-card` chip with `font-semibold` (รายจ่าย / รายรับ). The same look serves
+  as tabs above a list (`role="tab"`, Account › หมวดหมู่).
 - **List rows**: at least 56px tall. A 40px icon circle on the left (category/wallet colour), title
   and a muted subtitle (note) in the middle, amount on the right. Tap opens; there are no swipe-only
   actions.
@@ -252,8 +262,12 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   อื่น ๆ), default `lucideWallet` (also shown for an unknown name). The first `tpn` set
   (`tpn-icons.ts`): banks (columns with ฿, tower, branch with awning, ATM), cards (chip,
   contactless, two stacked), baht coin, baht note, e-wallet QR, gold bar, savings jar, cash
-  envelope. #7 adds food, transport and the like to the same catalogue, as `tpn` where lucide
-  has no clear picture. A new `tpn` icon is checked at 20px in a 40px badge beside lucide's
+  envelope.
+- **Category icons** (#7.1): `CATEGORY_ICON_GROUPS` (อาหารและเครื่องดื่ม, การเดินทาง,
+  บ้านและค่าใช้จ่าย, ช้อปปิ้ง, บันเทิงและสุขภาพ, ครอบครัวและชีวิต, รายรับ, อื่น ๆ), default
+  `lucideShapes`. `tpn` adds buffet, bubble tea, noodle bowl, tuk-tuk, water tap, temple and
+  payslip (the buffet doesn't read well yet; redraw when there's a better idea). Sub-categories
+  show a 32px badge indented under their parent's 40px one. A new `tpn` icon is checked at 20px in a 40px badge beside lucide's
   before it ships.
 
 ## 8. Interaction and motion
@@ -318,22 +332,23 @@ WCAG 2.2 AA, as in `AGENTS.md`:
   `เกิดข้อผิดพลาด`.
 - **Glossary**: use these words everywhere, so the same thing is never called two names.
 
-  | Concept          | Thai                                | English          | Note                                          |
-  | ---------------- | ----------------------------------- | ---------------- | --------------------------------------------- |
-  | Transaction      | ธุรกรรม                             | Transaction      |                                               |
-  | Profile          | โปรไฟล์                             | Profile          | #6.1; a separate area of money                |
-  | Wallet           | กระเป๋าเงิน                         | Wallet           | Thai tab bar label shortens to กระเป๋า        |
-  | Category         | หมวดหมู่                            | Category         |                                               |
-  | Income / expense | รายรับ / รายจ่าย                    | Income / Expense |                                               |
-  | Balance          | คงเหลือ (summary), ยอดเงิน (wallet) | Balance          |                                               |
-  | Transfer         | โอนเงิน                             | Transfer         | #9                                            |
-  | Budget           | งบประมาณ                            | Budget           | #11                                           |
-  | Report           | รายงาน                              | Report           |                                               |
-  | Account (user)   | บัญชีผู้ใช้                         | Account          | Not บัญชี alone (could mean a bank account)   |
-  | Online / offline | ออนไลน์ / ออฟไลน์                   | Online / Offline |                                               |
-  | Sync             | sync                                | Sync             | Stays English in Thai: "รอ sync", "sync แล้ว" |
-  | Undo             | เลิกทำ                              | Undo             |                                               |
-  | Theme / mode     | ธีม / โหมดสี                        | Theme / Mode     | Theme names themselves stay English           |
+  | Concept          | Thai                                 | English          | Note                                          |
+  | ---------------- | ------------------------------------ | ---------------- | --------------------------------------------- |
+  | Transaction      | ธุรกรรม                              | Transaction      |                                               |
+  | Profile          | โปรไฟล์                              | Profile          | #6.1; a separate area of money                |
+  | Wallet           | กระเป๋าเงิน                          | Wallet           | Thai tab bar label shortens to กระเป๋า        |
+  | Category         | หมวดหมู่                             | Category         |                                               |
+  | Sub-category     | หมวดหมู่ย่อย / หมวดหมู่หลัก (parent) | Sub-category     | #7; "Parent category" in English              |
+  | Income / expense | รายรับ / รายจ่าย                     | Income / Expense |                                               |
+  | Balance          | คงเหลือ (summary), ยอดเงิน (wallet)  | Balance          |                                               |
+  | Transfer         | โอนเงิน                              | Transfer         | #9                                            |
+  | Budget           | งบประมาณ                             | Budget           | #11                                           |
+  | Report           | รายงาน                               | Report           |                                               |
+  | Account (user)   | บัญชีผู้ใช้                          | Account          | Not บัญชี alone (could mean a bank account)   |
+  | Online / offline | ออนไลน์ / ออฟไลน์                    | Online / Offline |                                               |
+  | Sync             | sync                                 | Sync             | Stays English in Thai: "รอ sync", "sync แล้ว" |
+  | Undo             | เลิกทำ                               | Undo             |                                               |
+  | Theme / mode     | ธีม / โหมดสี                         | Theme / Mode     | Theme names themselves stay English           |
 
 ## 12. Before opening a PR with UI changes
 

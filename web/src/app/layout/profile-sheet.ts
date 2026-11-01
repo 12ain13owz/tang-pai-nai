@@ -17,7 +17,7 @@ import {
   NameIconField,
   withMessage,
 } from '@/shared/components/form'
-import { PROFILE_ICON_NAMES, USER_COLORS } from '@/shared/components/icon-badge'
+import { PROFILE_ICON_NAMES, USER_COLORS, userColor } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
 import type { ProfileFormGroup } from './profile-form.type'
 
@@ -347,6 +347,6 @@ export class ProfileSheet {
       this.state.set(null)
       return
     }
-    this.form.reset({ name: profile.name, icon: profile.icon, color: profile.color })
+    this.form.reset({ name: profile.name, icon: profile.icon, color: userColor(profile.color) })
   }
 }

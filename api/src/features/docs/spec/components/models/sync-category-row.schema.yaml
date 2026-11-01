@@ -1,0 +1,86 @@
+type: object
+description: >-
+  A row of the `categories` table (docs/features/category.md) as it travels in /sync/pull and in
+  /sync/push. Devices send the whole row on upsert; the server stamps changeSeq and updatedBy.
+  Rules (each answers `CONFLICT`): profileId is one of the user's live profiles and never changes;
+  parentId, when set, is a live top-level category of the same profile and type, not archived
+  unless this row is archived too; a category with live children stays top-level and keeps its
+  type; name is unique (case-insensitive) among its open siblings (same profile, type and
+  parentId); a profile holds at most 200 open categories. A tombstone runs none of them.
+required:
+  [
+    id,
+    profileId,
+    type,
+    parentId,
+    name,
+    icon,
+    color,
+    isArchived,
+    sortOrder,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    changeSeq,
+    updatedBy,
+  ]
+properties:
+  id:
+    type: string
+    format: uuid
+    description: UUIDv7 made on the device
+  profileId:
+    type: string
+    format: uuid
+  type:
+    type: string
+    enum: [income, expense]
+  parentId:
+    type: [string, 'null']
+    format: uuid
+    description: The parent category; null for a top-level one (one level only)
+  name:
+    type: string
+    minLength: 1
+    maxLength: 40
+  icon:
+    type: string
+    maxLength: 40
+    pattern: '^(lucide|tpn)[A-Z][A-Za-z0-9]*$'
+    description: A lucide export name or one of the web app's own `tpn` icons
+  color:
+    type: string
+    pattern: '^#[0-9a-f]{6}$'
+  isArchived:
+    type: boolean
+  sortOrder:
+    type: integer
+    minimum: 0
+    maximum: 1000000
+    description: Order among siblings
+  createdAt:
+    type: integer
+  updatedAt:
+    type: integer
+  deletedAt:
+    type: [integer, 'null']
+    description: Set on a deleted category (a tombstone)
+  changeSeq:
+    type: integer
+  updatedBy:
+    type: string
+example:
+  id: 0199b000-0000-7000-8000-000000000202
+  profileId: 0199b000-0000-7000-8000-000000000001
+  type: expense
+  parentId: 0199b000-0000-7000-8000-000000000201
+  name: กาแฟ
+  icon: lucideCoffee
+  color: '#a16207'
+  isArchived: false
+  sortOrder: 0
+  createdAt: 1767225600000
+  updatedAt: 1767225600000
+  deletedAt: null
+  changeSeq: 128
+  updatedBy: 0199b000-0000-7000-8000-0000000000aa

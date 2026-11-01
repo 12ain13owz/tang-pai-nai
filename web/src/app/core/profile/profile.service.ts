@@ -2,10 +2,22 @@ import { computed, DOCUMENT, effect, inject, Service, signal, untracked } from '
 import { TranslocoService } from '@jsverse/transloco'
 import { toast } from '@spartan-ng/brain/sonner'
 import { AuthStore } from '@/core/auth'
+import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
-import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
-import type { LocalDatabase } from '@/core/offline'
 import {
+  deleteOp,
+  findOp,
+  fromSql,
+  listOps,
+  OfflineService,
+  queueWrite,
+  SyncService,
+  uuidv7,
+} from '@/core/offline'
+import type { LocalDatabase, OutboxOp } from '@/core/offline'
+import { defaultCategoryRows } from './default-categories'
+import {
+  DEFAULT_CATEGORY_TABLE,
   PROFILE_CHILD_TABLES,
   PROFILE_KEY_PREFIX,
   PROFILE_LIMITS,
@@ -27,6 +39,7 @@ export class ProfileService {
   private networkStatusService = inject(NetworkStatusService)
   private offlineService = inject(OfflineService)
   private syncService = inject(SyncService)
+  private languageService = inject(LanguageService)
 
   /** Live profiles in order (rule 7). */
   profiles = computed(() =>
@@ -79,6 +92,8 @@ export class ProfileService {
   atLimit = computed(() => this.profiles().length >= PROFILE_LIMITS.PER_USER)
   /** The open profile sheet (layout/profile-sheet), if any. */
   sheet = signal<ProfileSheetState | null>(null)
+  /** Whether the switch sheet (layout/profile-switch-sheet) is open: the header and Account › หมวดหมู่ open it. */
+  switchSheet = signal(false)
 
   private storedId = signal<string | null>(null)
   private roundEnded = signal(false)
@@ -193,6 +208,8 @@ export class ProfileService {
     this.offlineService.write((db) => {
       const current = this.find(db, rowId)
       const live = current?.deletedAt === null ? current : null
+      // Read before the profile's row comes back, which ends the "refused create" state.
+      const refused = fixOpId ? this.refusedChildrenIn(db, fixOpId) : []
       queueWrite(db, PROFILE_TABLE, 'upsert', {
         ...current,
         id: rowId,
@@ -204,7 +221,26 @@ export class ProfileService {
         updatedAt: now,
         deletedAt: null,
       })
+      // Category rule 8: a profile made here comes with the default set, in the same write.
+      // A fixed refused create gets its refused child rows back instead (category rule 12).
+      if (!current && !fixOpId) {
+        const language = this.languageService.language().id
+        for (const row of defaultCategoryRows(rowId, language, now, () => uuidv7())) {
+          queueWrite(db, DEFAULT_CATEGORY_TABLE, 'upsert', row)
+        }
+      }
       if (fixOpId) {
+        // Category rule 12: the refused create's child rows go again, after the profile.
+        for (const child of refused) {
+          queueWrite(db, child.table, 'upsert', {
+            ...child.row,
+            id: child.rowId,
+            profileId: rowId,
+            updatedAt: now,
+            deletedAt: null,
+          })
+          deleteOp(db, child.opId)
+        }
         deleteOp(db, fixOpId)
       }
     })
@@ -226,6 +262,38 @@ export class ProfileService {
         this.tombstoneChildren(db, id, now)
         queueWrite(db, PROFILE_TABLE, 'delete', { ...current, updatedAt: now, deletedAt: now })
       }
+    })
+  }
+
+  /**
+   * The rejected ops as the user sees them (category rule 12): a refused profile create with the
+   * refused child rows that went with it, and every other rejected op on its own.
+   */
+  rejectedItems = computed<{ op: OutboxOp; children: OutboxOp[] }[]>(() => {
+    const rejected = this.syncService.rejected()
+    if (!this.offlineService.isOpen()) {
+      return []
+    }
+    const db = this.offlineService.db()
+    const grouped = new Map<string, OutboxOp[]>()
+    for (const op of rejected) {
+      if (op.table === PROFILE_TABLE) {
+        grouped.set(op.opId, this.refusedChildrenIn(db, op.opId))
+      }
+    }
+    const inGroup = new Set([...grouped.values()].flat().map((child) => child.opId))
+    return rejected
+      .filter((op) => !inGroup.has(op.opId))
+      .map((op) => ({ op, children: grouped.get(op.opId) ?? [] }))
+  })
+
+  /** Discards a rejected profile op with its refused child rows (category rule 12). */
+  discardRefused(profileOpId: string): void {
+    this.offlineService.write((db) => {
+      for (const child of this.refusedChildrenIn(db, profileOpId)) {
+        deleteOp(db, child.opId)
+      }
+      deleteOp(db, profileOpId)
     })
   }
 
@@ -286,6 +354,22 @@ export class ProfileService {
         })
       }
     }
+  }
+
+  private refusedChildrenIn(db: LocalDatabase, profileOpId: string): OutboxOp[] {
+    const op = findOp(db, profileOpId)
+    if (!op || op.table !== PROFILE_TABLE || op.status !== 'rejected' || op.op !== 'upsert') {
+      return []
+    }
+    // Only a refused create: the server has no such profile, so the device has no row left.
+    if (this.find(db, op.rowId)) {
+      return []
+    }
+    const tables: readonly string[] = PROFILE_CHILD_TABLES
+    return listOps(db, 'rejected').filter(
+      (child) =>
+        tables.includes(child.table) && child.op === 'upsert' && child.row['profileId'] === op.rowId
+    )
   }
 
   /** Live rows of `table` whose profile is a tombstone here. */

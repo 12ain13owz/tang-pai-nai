@@ -92,6 +92,24 @@ const MIGRATIONS: readonly string[] = [
   `DROP TABLE sync_probes;
   DELETE FROM outbox WHERE tbl = 'sync_probes';
   DELETE FROM sync_notices WHERE tbl = 'sync_probes'`,
+  // #7.1: categories, one set per profile (docs/features/category.md).
+  `CREATE TABLE categories (
+    id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    parent_id TEXT,
+    name TEXT NOT NULL,
+    icon TEXT NOT NULL,
+    color TEXT NOT NULL,
+    is_archived INTEGER NOT NULL,
+    sort_order INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted_at INTEGER,
+    change_seq INTEGER,
+    updated_by TEXT
+  ) STRICT;
+  CREATE INDEX categories_profile ON categories (profile_id)`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null

@@ -1,150 +1,98 @@
 import { Component, computed, inject, signal } from '@angular/core'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { NonNullableFormBuilder } from '@angular/forms'
 import { Router, RouterLink } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideChevronRight, lucideLogOut, lucideShieldCheck, lucideUsers } from '@ng-icons/lucide'
+import {
+  lucideChevronRight,
+  lucideLogOut,
+  lucidePalette,
+  lucideShapes,
+  lucideShieldCheck,
+  lucideSmartphone,
+  lucideUsers,
+} from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { AuthService, AuthStore, SIGN_IN_URL } from '@/core/auth'
-import { LANGUAGES, LanguageService } from '@/core/i18n'
-import type { Language } from '@/core/i18n'
+import { LanguageService } from '@/core/i18n'
 import { OfflineService, SyncService } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
 import { DeviceStorageService } from '@/core/pwa'
-import { PALETTES, ThemeService } from '@/core/theme'
-import type { PaletteId, ThemePreference } from '@/core/theme'
-import { SelectField } from '@/shared/components/form'
-import type { SelectOption } from '@/shared/types'
-import { PalettePicker } from './palette-picker'
+import { ThemeService } from '@/core/theme'
+
+/** A row of the account page: a page to go to, with a short line on what's there. */
+interface AccountItem {
+  link: string
+  icon: string
+  label: string
+  hint: string
+}
 
 @Component({
   selector: 'app-account-page',
-  imports: [TranslocoPipe, RouterLink, SelectField, PalettePicker, NgIcon, HlmButton, HlmSpinner],
+  imports: [TranslocoPipe, RouterLink, NgIcon, HlmButton, HlmSpinner],
   providers: [
     provideIcons({
-      lucideLogOut,
       lucideChevronRight,
+      lucideLogOut,
+      lucidePalette,
+      lucideShapes,
       lucideShieldCheck,
+      lucideSmartphone,
       lucideUsers,
     }),
   ],
   template: `
     <div class="flex flex-col gap-6 p-4">
       @if (authStore.user(); as user) {
-        <section class="flex flex-col gap-3" aria-labelledby="profile-heading">
-          <h2 id="profile-heading" class="text-sm font-medium text-muted-foreground">
-            {{ 'account.signedInAs' | transloco }}
-          </h2>
-          <div class="rounded-xl border border-border bg-card px-4 py-3 text-card-foreground">
-            <p class="text-base font-medium break-all">{{ user.displayName }}</p>
+        <div class="flex items-center gap-3">
+          <span
+            class="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-lg font-semibold"
+            aria-hidden="true"
+            >{{ initial(user.displayName) }}</span
+          >
+          <div class="flex min-w-0 flex-col">
+            <p class="text-base font-semibold break-all">{{ user.displayName }}</p>
             <p class="text-sm break-all text-muted-foreground">{{ user.email }}</p>
           </div>
-        </section>
-
-        <a
-          routerLink="/account/profiles"
-          class="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground"
-        >
-          <span
-            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
-            aria-hidden="true"
-          >
-            <ng-icon name="lucideUsers" />
-          </span>
-          <span class="flex min-w-0 flex-1 flex-col">
-            <span class="text-base">{{ 'account.profiles' | transloco }}</span>
-            <span class="truncate text-sm text-muted-foreground">
-              {{ profileService.current()?.name ?? ('account.profilesNone' | transloco) }}
-            </span>
-          </span>
-          <ng-icon
-            name="lucideChevronRight"
-            size="20"
-            class="text-muted-foreground"
-            aria-hidden="true"
-          />
-        </a>
-
-        <a
-          routerLink="/account/security"
-          class="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground"
-        >
-          <span
-            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
-            aria-hidden="true"
-          >
-            <ng-icon name="lucideShieldCheck" />
-          </span>
-          <span class="flex min-w-0 flex-1 flex-col">
-            <span class="text-base">{{ 'account.security' | transloco }}</span>
-            <span class="text-sm text-muted-foreground">
-              {{ 'account.securityHint' | transloco }}
-            </span>
-          </span>
-          <ng-icon
-            name="lucideChevronRight"
-            size="20"
-            class="text-muted-foreground"
-            aria-hidden="true"
-          />
-        </a>
+        </div>
       }
-
-      <section class="flex flex-col gap-3" aria-labelledby="appearance-heading">
-        <h2 id="appearance-heading" class="text-sm font-medium text-muted-foreground">
-          {{ 'account.appearance' | transloco }}
-        </h2>
-        <app-select-field
-          [control]="languageControl"
-          [label]="'account.language' | transloco"
-          [options]="languageOptions"
-        />
-        <app-select-field
-          [control]="themeControl"
-          [label]="'account.mode' | transloco"
-          [options]="themeOptions()"
-        />
-        <app-palette-picker [control]="paletteControl" [palettes]="palettes" />
-      </section>
-
-      <section class="flex flex-col gap-3" aria-labelledby="device-heading">
-        <h2 id="device-heading" class="text-sm font-medium text-muted-foreground">
-          {{ 'account.device' | transloco }}
-        </h2>
-        <dl
-          class="divide-y divide-border rounded-xl border border-border bg-card text-sm text-card-foreground"
-        >
-          <div class="flex items-center justify-between gap-4 px-4 py-3">
-            <dt>{{ 'account.installed' | transloco }}</dt>
-            <dd class="text-muted-foreground">
-              {{
-                (deviceStorageService.isInstalled()
-                  ? 'account.installedYes'
-                  : 'account.installedNo'
-                ) | transloco
-              }}
-            </dd>
-          </div>
-          <div class="flex items-center justify-between gap-4 px-4 py-3">
-            <dt>{{ 'account.persistent' | transloco }}</dt>
-            <dd class="text-muted-foreground">
-              @switch (deviceStorageService.isPersisted()) {
-                @case (true) {
-                  {{ 'account.persistentOn' | transloco }}
-                }
-                @case (false) {
-                  {{ 'account.persistentOff' | transloco }}
-                }
-                @default {
-                  {{ 'account.persistentUnknown' | transloco }}
-                }
-              }
-            </dd>
-          </div>
-        </dl>
-      </section>
+      @for (group of groups(); track group.key) {
+        <section class="flex flex-col gap-3" [attr.aria-labelledby]="'account-' + group.key">
+          <h2 [id]="'account-' + group.key" class="text-sm font-medium text-muted-foreground">
+            {{ 'account.group.' + group.key | transloco }}
+          </h2>
+          <ul
+            class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
+          >
+            @for (item of group.items; track item.link) {
+              <li>
+                <a
+                  class="flex min-h-14 items-center gap-3 px-4 py-2 first:rounded-t-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  [routerLink]="item.link"
+                >
+                  <span
+                    class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl text-muted-foreground"
+                    aria-hidden="true"
+                  >
+                    <ng-icon [name]="item.icon" />
+                  </span>
+                  <span class="flex min-w-0 flex-1 flex-col">
+                    <span class="text-base">{{ item.label | transloco }}</span>
+                    <span class="truncate text-sm text-muted-foreground">{{ item.hint }}</span>
+                  </span>
+                  <ng-icon
+                    name="lucideChevronRight"
+                    size="20"
+                    class="text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                </a>
+              </li>
+            }
+          </ul>
+        </section>
+      }
 
       <section class="flex flex-col gap-3">
         <button
@@ -199,13 +147,16 @@ import { PalettePicker } from './palette-picker'
     </div>
   `,
 })
+/**
+ * The Account tab (owner's choice A1 in #7): who is signed in, then grouped rows that each open a
+ * page (my data, account and security, settings), and sign-out.
+ */
 export class AccountPage {
   protected profileService = inject(ProfileService)
-  private nnfb = inject(NonNullableFormBuilder)
   private transloco = inject(TranslocoService)
   private themeService = inject(ThemeService)
   private languageService = inject(LanguageService)
-  protected deviceStorageService = inject(DeviceStorageService)
+  private deviceStorageService = inject(DeviceStorageService)
   private router = inject(Router)
   private authService = inject(AuthService)
   private offlineService = inject(OfflineService)
@@ -217,43 +168,91 @@ export class AccountPage {
   /** Ops that would be lost by signing out now (still pending or rejected after a push). */
   protected unsynced = signal(0)
 
-  protected readonly palettes = PALETTES
-  // Language names are shown in their own language, so they never need translating.
-  protected readonly languageOptions: readonly SelectOption<Language>[] = LANGUAGES.map(
-    (language) => ({ value: language.id, label: language.label })
-  )
-  protected themeOptions = computed<readonly SelectOption<ThemePreference>[]>(() => {
+  protected groups = computed<{ key: string; items: AccountItem[] }[]>(() => {
     this.languageService.language() // re-translate on a language switch
+    const t = (key: string, params?: Record<string, unknown>) =>
+      this.transloco.translate(key, params)
+    const profile = this.profileService.current()
+    const count = this.profileService.profiles().length
+    const persisted = this.deviceStorageService.isPersisted()
     return [
-      { value: 'system', label: this.transloco.translate('account.modeSystem') },
-      { value: 'light', label: this.transloco.translate('account.modeLight') },
-      { value: 'dark', label: this.transloco.translate('account.modeDark') },
+      {
+        key: 'data',
+        items: [
+          {
+            link: '/account/profiles',
+            icon: 'lucideUsers',
+            label: 'account.profiles',
+            hint: profile
+              ? t('account.profilesHint', { name: profile.name, count })
+              : t('account.profilesNone'),
+          },
+          {
+            link: '/account/categories',
+            icon: 'lucideShapes',
+            label: 'account.categories',
+            hint: profile
+              ? t('account.categoriesHint', { name: profile.name })
+              : t('account.profilesNone'),
+          },
+        ],
+      },
+      {
+        key: 'security',
+        items: [
+          {
+            link: '/account/security',
+            icon: 'lucideShieldCheck',
+            label: 'account.security',
+            hint: t('account.securityHint'),
+          },
+        ],
+      },
+      {
+        key: 'settings',
+        items: [
+          {
+            link: '/account/appearance',
+            icon: 'lucidePalette',
+            label: 'account.appearance',
+            hint: [
+              this.languageService.language().label,
+              t(`account.mode${capitalize(this.themeService.preference())}`),
+              this.themeService.palette().label,
+            ].join(' · '),
+          },
+          {
+            link: '/account/device',
+            icon: 'lucideSmartphone',
+            label: 'account.device',
+            hint: [
+              t(
+                this.deviceStorageService.isInstalled()
+                  ? 'account.installedYes'
+                  : 'account.installedNo'
+              ),
+              t(
+                persisted === true
+                  ? 'account.persistentOnHint'
+                  : persisted === false
+                    ? 'account.persistentOffHint'
+                    : 'account.persistentUnknownHint'
+              ),
+            ].join(' · '),
+          },
+        ],
+      },
     ]
   })
-
-  protected languageControl = this.nnfb.control<Language | ''>(this.languageService.language().id)
-  protected themeControl = this.nnfb.control<ThemePreference | ''>(this.themeService.preference())
-  protected paletteControl = this.nnfb.control<PaletteId>(this.themeService.palette().id)
 
   constructor() {
     // Fresh profile; the one from sign-in is shown meanwhile, and offline it simply stays.
     this.authService.loadMe().catch(() => undefined)
+  }
 
-    this.languageControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((language) => {
-      if (language) {
-        this.languageService.setLanguage(language).catch((error: unknown) => {
-          console.error('Language switch failed', error)
-        })
-      }
-    })
-    this.themeControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((preference) => {
-      if (preference) {
-        this.themeService.setPreference(preference)
-      }
-    })
-    this.paletteControl.valueChanges
-      .pipe(takeUntilDestroyed())
-      .subscribe((id) => this.themeService.setPalette(id))
+  /** The avatar's letter: the name's first character (Thai or Latin). */
+  protected initial(name: string): string {
+    return [...name.trim()].at(0)?.toUpperCase() ?? ''
   }
 
   protected async signOut(confirmed: boolean): Promise<void> {
@@ -278,3 +277,5 @@ export class AccountPage {
     }
   }
 }
+
+const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1)

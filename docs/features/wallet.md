@@ -128,8 +128,9 @@ profiles (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets 
 ## Interactions
 
 - **Profile**: `wallets.profileId`; deleting a profile takes its wallets (rule 11).
-- **Category (#7)**: one set per profile; a wallet can hide categories it doesn't use (the table
-  for that comes with #7).
+- **Category (#7)**: one set per profile; a wallet can hide categories it doesn't use, as a
+  `hiddenCategoryIds` column on `wallets` (decided at the start of #7; built in 7.2, category
+  rule 13).
 - **Transaction (#8)**: requires `walletId` and inherits the wallet's currency; rule 4's
   "has transactions" and rule 6 become real then.
 - Reports and budgets filter by wallet.
