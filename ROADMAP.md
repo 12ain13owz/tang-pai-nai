@@ -130,14 +130,14 @@ Decided with the owner (don't re-ask):
 - 6.1 leaves out: `wallets` / `wallet_members`, the Wallets tab, the `tpn` icon set and removing
   `sync_probes` (all 6.2).
 
-**Next up is 6.2 Wallet** (new session): revise wallet.md first (the "To revise" note at its
-top), then `wallets` + `wallet_members` with `profileId` (a push is rejected unless the profile is
-the user's live one), the Wallets tab for the current profile, the wallet form (icons: lucide +
-`tpn` SVG set + letter badge), the first-wallet step that replaces the Transactions tab's
-"ยังไม่มีกระเป๋าเงิน" placeholder, deleting a profile also tombstoning its wallets (profile rule
-8, and the confirm sheet counts them), reorder with the same drag handle as profiles, and finally
-**removing `sync_probes`** (feature folder, handler, `/account/sync-test`, the local table in a
-new schema step, an API migration dropping it).
+**Next up is 6.2 Wallet** (new session): wallet.md is already revised for 6.2; start by settling its
+"Open questions" with the owner, then `wallets` + `wallet_members` with `profileId` (a push is
+rejected unless the profile is the user's live one), the Wallets tab for the current profile, the
+wallet form (icons: lucide + `tpn` SVG set + letter badge), the first-wallet step that replaces the
+Transactions tab's "ยังไม่มีกระเป๋าเงิน" placeholder, deleting a profile also tombstoning its
+wallets (profile rule 8, and the confirm sheet counts them), reorder with the same drag handle as
+profiles, and finally **removing `sync_probes`** (feature folder, handler, `/account/sync-test`, the
+local table in a new schema step, an API migration dropping it).
 
 6.1 in detail (✅ done, API + web):
 
