@@ -2,8 +2,7 @@
 
 > Status: Spec, revised for #6.2 (decisions from the start of #6: ROADMAP → "Now: Profile +
 > Wallet"). Code will live in `api/src/features/wallet/` and, on the web, the Wallets tab
-> (`features/wallets`). The points under [Open questions](#open-questions) are settled at the
-> start of 6.2, before any code.
+> (`features/wallets`). Every point under [Open questions](#open-questions) is settled.
 
 ## Purpose
 
@@ -49,7 +48,9 @@ the wallet, from the local database. Until transactions exist (#8) it equals `in
    while this one added a wallet offline). A wallet never moves to another profile.
 3. `name` is 1–50 characters after trimming, unique among the **profile's** non-archived wallets
    (case-insensitive; server check, `CONFLICT`). The same name may exist in another profile
-   (decided before 6.2).
+   (decided before 6.2). A profile holds at most **20 non-archived wallets** (server check,
+   `CONFLICT`; the web hides "add" at 20, and unarchiving at 20 is refused; decided at the start
+   of 6.2). Archiving frees a place.
 4. **Currency** (decided at the start of #6, with its message): `currencyCode` must be active
    when the wallet is created. It may change only while the wallet has **no transactions**. Once
    it has some, the form shows the currency read-only with a line saying why ("เปลี่ยนสกุลเงิน
@@ -57,7 +58,9 @@ the wallet, from the local database. Until transactions exist (#8) it equals `in
    transactions, so its currency can't change. Create a new wallet for another currency."). The
    picker shows only when more than one currency is active; otherwise the wallet is THB.
 5. `initialBalance` is an integer within ±10¹⁵, entered in the currency's major unit and stored in
-   minor units (no floats).
+   minor units (no floats). It may be negative (a card's debt): phone decimal keypads have no
+   minus key, so the field has a **+/− button** on its left that flips the sign (decided at the
+   start of 6.2).
 6. **Archive and delete** (built in 6.2, decided before it): a wallet with transactions can't be
    deleted, only archived (the device
    enforces this, because the server runs no check on a delete: offline-sync rule 10). Archived
@@ -83,7 +86,12 @@ the wallet, from the local database. Until transactions exist (#8) it equals `in
 10. **Order**: `sortOrder` ascending, then `createdAt`, then `id`, within the profile. Reordering
     uses the same order mode and drag handle as profiles (DESIGN.md §8).
 11. **Deleting a profile** tombstones its wallets in the same local write (profile rule 8); the
-    profile's confirm sheet says how many wallets go with it.
+    profile's confirm sheet says how many wallets go with it. A device only tombstones the
+    wallets it knows, so a wallet another device synced that this one hadn't pulled yet would
+    stay live under a deleted profile. Therefore **a device that pulls a profile's tombstone
+    tombstones its own live wallets of that profile** too (decided at the start of 6.2; a
+    delete of a row already deleted is `applied` and changes nothing, so devices doing it twice
+    is harmless).
 12. **First wallet step**: while the current profile has no live wallet, the Transactions tab
     shows "เพิ่มกระเป๋าเงินใบแรก" with a button that opens the wallet form (replacing the 6.1
     placeholder), the Wallets tab shows the same, and ➕ leads there.
@@ -134,6 +142,9 @@ Settled before 6.2 (owner, in the 6.1 session):
   in #7 (food, buffet, coffee cup, …). Kept as SVG strings in code beside the picker
   (`shared/components/icon-badge`), registered like lucide's.
 - **Name scope**: unique within the profile (rule 3).
+- **Settled at the start of 6.2** (owner): at most 20 non-archived wallets per profile (rule 3);
+  a +/− button for a negative starting balance (rule 5); a device that pulls a profile's
+  tombstone also tombstones that profile's wallets it holds (rule 11).
 - **Archive**: built in 6.2 (rule 6). The `isArchived` column must exist from the first
   migration anyway, so the toggle and the "เก็บถาวร" group cost little now; the "has
   transactions, so no delete" gate becomes real in #8.
