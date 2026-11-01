@@ -166,13 +166,24 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   buttons always have an `aria-label`.
 - **Forms**: always the shared `*-field` wrappers (`AGENTS.md` → Forms). Fields stack vertically,
   full width, `gap-4`. Inside a field the label sits 12px above the input, and the hint and the
-  error 4px under it, so a message reads as part of its field. In a sheet, the Save button stays fixed at the bottom, above the keyboard.
-- **Create / edit / pick = bottom sheet** (spartan `drawer`), never a centred dialog. Use a
-  full-height sheet for the transaction form and a content-height sheet for pickers and small forms.
-  Dismiss by swiping down or tapping the backdrop. If the sheet holds unsaved input, ask first.
+  error 4px under it, so a message reads as part of its field. In a sheet, the Save button stays
+  fixed at the bottom, above the keyboard.
+- **Compact sheet forms** (owner's choice in #6.2, Money Lover style): a create / edit sheet for
+  a named thing with an icon (wallet, profile, later category) has no labels above its fields
+  and no hints. Row 1 is the icon on its colour (a 52px button with a small pencil) and the name
+  across the rest (`app-name-icon-field`, the label read by screen readers and shown as the
+  placeholder); tapping the icon opens an "ไอคอนและสี" view in the same sheet (colours, then the
+  icon grid; picking an icon goes back). Further rows are one line each (an amount with its +/−
+  button and currency, a switch). Errors still show under their row, one at a time. Long forms
+  (password, phone, transaction) keep labels.
+- **Create / edit / pick = bottom sheet** (spartan `drawer`), never a centred dialog. Dismiss by
+  swiping down or tapping the backdrop. If the sheet holds unsaved input, ask first (a confirm
+  view in the same sheet).
 - **Delete**: act at once, then offer **undo** in a toast (spartan `sonner`). Confirm first only
-  when undo is impossible (wiping local data, removing a shared member, deleting a wallet together
-  with its transactions).
+  when undo is impossible (wiping local data, removing a shared member, deleting a profile or a
+  wallet, which go as tombstones other devices act on). The confirm is a view in the same sheet
+  (‹ back, a line on what goes with it, a destructive button). **Archive** acts at once and offers
+  undo in its toast.
 - **Toasts** sit above the tab bar, last about 4s, say one short thing, and have at most one action
   (เลิกทำ).
 - **List rows**: at least 56px tall. A 40px icon circle on the left (category/wallet colour), title
@@ -209,10 +220,14 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   the same red pill, "บันทึกไม่สำเร็จ 1". Status changes are announced politely
   (`role="status"`). The pill is a 44px button that opens the sync sheet (last sync, "sync
   ตอนนี้", rejected items with fix / discard, conflict notices).
-- **Bottom sheet**: spartan `hlm-drawer` with `hlm-drawer-content` (`mx-auto max-w-[480px]`), a
-  `hlmDrawerTitle` heading, content that scrolls inside `max-h-[70vh]`, and the main action plus a
-  "ปิด" outline button at the bottom. Load a sheet that isn't needed at start with `@defer`
-  (see `layout/sync-sheet`).
+- **Bottom sheet** (owner's choice in #6.2): **every sheet is the same near-full height**
+  (`92dvh`, the page's header still showing above it), so its main action always sits in the same
+  place. Inside, `app-sheet-frame`: a header bar with **close (X) on the left** (or **‹ back** in
+  a sheet's later view), the **title centred**, and the sheet's other actions as 44px **icon
+  buttons on the right** (e.g. archive, delete in red, manage), each with an `aria-label`; the
+  body scrolls; **one main button is pinned at the bottom** (no "ปิด" button: X closes). A view
+  with nothing to confirm (the icon picker) has no bottom button. Load a sheet that isn't needed
+  at start with `@defer` (see `layout/sync-sheet`).
 
 ## 7. Icons
 
@@ -233,6 +248,13 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   several bank and card drawings so similar wallets stay apart, and no letter badges. Stored as
   the export name (`lucideCoffee`, `tpnBankColumns`), so there's no image upload. Each new wallet
   or category starts with a default icon the user can change (#6.2 / #7).
+- **Wallet icons** (#6.2): `WALLET_ICON_GROUPS` (ที่เก็บเงิน, บัตร, เงินสดและของมีค่า, ดิจิทัล,
+  อื่น ๆ), default `lucideWallet` (also shown for an unknown name). The first `tpn` set
+  (`tpn-icons.ts`): banks (columns with ฿, tower, branch with awning, ATM), cards (chip,
+  contactless, two stacked), baht coin, baht note, e-wallet QR, gold bar, savings jar, cash
+  envelope. #7 adds food, transport and the like to the same catalogue, as `tpn` where lucide
+  has no clear picture. A new `tpn` icon is checked at 20px in a 40px badge beside lucide's
+  before it ships.
 
 ## 8. Interaction and motion
 
@@ -242,7 +264,8 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - **Long-press is a shortcut, never the only way.** Reordering a list is an order mode (a
   "จัดลำดับ" button) where each row has one grip handle (`lucideGripVertical`, CDK drag-drop):
   press and hold it for ~0.3 s on touch (at once with a mouse), then drag; the same handle moves
-  its row with ↑ / ↓ for keyboards. Profiles (Account › โปรไฟล์) are the reference; wallets
+  its row with ↑ / ↓ for keyboards (the place is read at key press, so quick presses add up).
+  Profiles (Account › โปรไฟล์) are the reference; wallets
   follow.
 - **Motion**: 150–250 ms, ease-out. Sheets slide up, toasts fade and slide. Nothing bounces or
   loops. Honour `prefers-reduced-motion` by dropping the movement and keeping a fade.

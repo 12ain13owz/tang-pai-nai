@@ -1,8 +1,9 @@
 # Wallet
 
-> Status: Spec, revised for #6.2 (decisions from the start of #6: ROADMAP → "Now: Profile +
-> Wallet"). Code will live in `api/src/features/wallet/` and, on the web, the Wallets tab
-> (`features/wallets`). Every point under [Open questions](#open-questions) is settled.
+> Status: **Built** in #6.2. API: `api/src/features/wallet/` (sync handler only; tables `wallets`
+> and `wallet_members`). Web: `core/wallet` (`WalletService`), `features/wallets` (Wallets tab),
+> `layout/` (wallet sheet, first-wallet step). Rules 4's and 6's "has transactions" become real
+> with #8; members (#16).
 
 ## Purpose
 
@@ -104,14 +105,25 @@ profiles (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets 
 
 ## Web screens
 
-- **Wallets tab** (current profile): the total per currency at the top, then the wallet list
-  (40px icon badge, name, balance), then an "เก็บถาวร" group, collapsed. Tapping a wallet opens
-  it in the form for now (its transactions list comes with #8). "จัดลำดับ" = the drag-handle
-  order mode.
-- **Wallet form** (bottom sheet, like the profile sheet): name, icon (the catalogue grouped by
-  meaning: money places, cards, cash, …; lucide and `tpn` mixed), colour, starting balance, currency (rule 4), "exclude from total", and in edit
-  mode archive / delete. "Fix" of a rejected op opens it (`FIX_ROUTES`).
-- **First wallet step** (rule 12).
+- **Wallets tab** (current profile): the total per currency ("ยอดรวม", ฿0.00 while nothing
+  counts), 12px above the "กระเป๋าที่ใช้อยู่ (n)" heading and the wallet list (40px icon badge,
+  name, "ไม่รวมในยอดรวม" / "รอ sync" under it, balance on the right, negative in the expense
+  colour), "เพิ่มกระเป๋าเงิน" (a line saying why at 20), then a folded "เก็บถาวร (n)" group.
+  Tapping a wallet opens it in the form for now (its transactions list comes with #8).
+  "จัดลำดับ" = the drag-handle order mode (open wallets only).
+- **Wallet form** (a compact sheet, DESIGN.md §6; decided with the owner while building 6.2,
+  from mock-ups): row 1 the icon on its colour (a button) and the name; row 2 the +/− button, the
+  starting balance in large figures and the currency code (a picker chip when more than one
+  currency is active; read-only with rule 4's line once there are transactions); row 3 the
+  "ไม่รวมในยอดรวม" switch. No labels above fields and no hints. Tapping the icon opens the
+  "ไอคอนและสี" view: colour swatches, then the catalogue grouped by meaning (ที่เก็บเงิน, บัตร,
+  เงินสดและของมีค่า, ดิจิทัล, อื่น ๆ; lucide and `tpn` mixed); picking an icon goes back. Save
+  is the one button at the bottom. In edit mode the header holds **archive** (acts at once; the
+  toast offers "เลิกทำ"; coming back may be refused, rule 3, said under the header) and
+  **delete** (a confirm view). "Fix" of a rejected op opens it on the Wallets tab
+  (`FIX_ROUTES`).
+- **First wallet step** (rule 12): "เพิ่มกระเป๋าเงินใบแรก", one line on what a wallet is, and
+  "เพิ่มกระเป๋าเงิน".
 
 ## Interactions
 
@@ -142,6 +154,11 @@ Settled before 6.2 (owner, in the 6.1 session):
   in #7 (food, buffet, coffee cup, …). Kept as SVG strings in code beside the picker
   (`shared/components/icon-badge`), registered like lucide's.
 - **Name scope**: unique within the profile (rule 3).
+- **Decided while building 6.2** (owner, from mock-ups): every sheet is the same near-full
+  height with a header bar (close / back left, title centred, icon actions right) and one main
+  button pinned at the bottom; the wallet and profile forms are compact (icon + name on one row,
+  the icon opening an icon-and-colour view); archive and delete are header icons, and archiving
+  offers undo in its toast. Recorded in DESIGN.md §6.
 - **Settled at the start of 6.2** (owner): at most 20 non-archived wallets per profile (rule 3);
   a +/− button for a negative starting balance (rule 5); a device that pulls a profile's
   tombstone also tombstones that profile's wallets it holds (rule 11).

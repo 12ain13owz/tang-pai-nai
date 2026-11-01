@@ -76,8 +76,12 @@ No user-data table exists before #6, so 4a.2 syncs:
   itself exists everywhere (migrations are global). It lets the web app prove push, outbox,
   offline, conflicts and rejected ops end to end before a real table exists. Server-only rule:
   a `title` is unique among the user's live probes, which a device can't check offline, so it is
-  how a rejection happens for real. **Removed** (handler, web page, local table, plus a migration
-  dropping it) once Wallet (#6) syncs.
+  how a rejection happens for real. **Removed in #6.2** once wallets synced: the handler, the web
+  page, the local table (device schema step 5, which also drops its outbox ops and notices) and
+  the server table (migration `0008`; `0009` deletes its `change_history` rows).
+
+The real user-data tables since then: **profiles** (#6.1) and **wallets** (#6.2; `wallet_members`
+exists beside it, server only, empty until #16).
 
 ### Server: sync tables
 
@@ -109,8 +113,8 @@ No user-data table exists before #6, so 4a.2 syncs:
   `userId`, the PBKDF2 salt and iterations, the wrapped data key, and the wrong-PIN count.
 - It holds **only the signed-in user's own data plus master data**. It never holds data of wallets
   shared with them, apart from their own pending adds (rule 14).
-- The tables mirror the server's synced tables (snake_case columns; 4a.2: `currencies`,
-  `sync_probes`), plus:
+- The tables mirror the server's synced tables (snake_case columns: `currencies`, `profiles`,
+  `wallets`), plus:
   - **outbox**: ordered ops `{ opId, table, rowId, op: upsert | delete, row, baseSeq, createdAt,
 status: pending | rejected, error? }`. It keeps **one pending op per row**: a newer local write
     of the same row replaces the pending op's `row` and `op` and gives it a new `opId` (the old
@@ -192,8 +196,8 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
    it clears its synced tables (the outbox stays), sets the cursor to 0 and pulls again.
    - A pulled row never overwrites a local row that has a **pending** op: that op is pushed next
      round with its old `baseSeq`, and the server settles it (rule 12).
-   - Pull also returns `tables` (the tables this server syncs), so a device knows, for example,
-     whether the dev-only probe exists.
+   - Pull also returns `tables` (the tables this server syncs), so a device knows which tables
+     the server syncs (it once told the web app whether the dev-only probe existed).
 10. **Push** (`POST /sync/push`) sends outbox ops in order, in batches.
     - For each op the server checks access and **runs the feature's own validation** (same service
       rules as the feature specs), applies it, stamps `changeSeq`, clamps `updatedAt` to the
@@ -275,7 +279,7 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
   in the same order: `row` is the server's row after the op (the winner when `overridden`, the
   current one when `rejected`), `notice` the `change_history` entry when `overridden`.
 - Rejection `code`s: `VALIDATION` (the feature's rules, with its message), `CONFLICT` (a feature
-  rule about other rows, e.g. a probe title in use), `ID_TAKEN` (row `id` or `opId` of another
+  rule about other rows, e.g. a profile or wallet name in use), `ID_TAKEN` (row `id` or `opId` of another
   user), `UNKNOWN_TABLE`, `READ_ONLY` (a pull-only table such as currencies).
 - **Cleanup**: `npm run sync:cleanup` deletes tombstones and `sync_ops` older than 90 days and
   raises `purgedSeq` (a Vercel Cron endpoint replaces it at deploy, #17, like `auth:cleanup`).
@@ -304,9 +308,8 @@ opens.
   (dismiss). An untrusted device shows the same pill.
 - **Sign-out with unsynced changes** (4a.2, rule 7): sign-out pushes first; if ops are still
   pending or rejected afterwards, the confirm sheet says how many will be lost.
-- **Sync test page** `/account/sync-test` (4a.2, dev only, temporary): reachable from Account only
-  when the last pull listed `sync_probes`. It lists probes (with "รอ sync" on pending rows) and
-  adds, edits and deletes them (with undo), and shows the pulled currencies. Removed at #6.
+- **Sync test page** `/account/sync-test` (4a.2, dev only): removed in #6.2 with `sync_probes`;
+  profiles and wallets are tried for real instead.
 - **Account → Security** (4a.1): a "This device" group with "Use offline on this device" (turn on:
   set a PIN; turn off: asks, then wipes local data) and "Change PIN" (current PIN, then the new
   one twice), beside the devices list (auth sessions).
