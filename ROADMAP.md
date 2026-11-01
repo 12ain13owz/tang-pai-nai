@@ -80,7 +80,7 @@ merging.
 | 4a  | Offline sync foundation    | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                |
 | 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                      |
 | 6   | Profile + Wallet           | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
-| 7   | **Category**               | ⬜  | ⬜  | **← next.** income/expense, 1 level of sub-categories, one set per profile (seeded with it). [spec](docs/features/category.md)                                           |
+| 7   | **Category**               | 🚧  | 🚧  | **← now.** 7.1 categories + default set + manage screen; 7.2 hide per wallet. [spec](docs/features/category.md)                                                       |
 | 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                                                                            |
 | 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                                                                  |
 | 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                                               |
@@ -102,9 +102,23 @@ decision "Local-first").
 
 ## Next: Category (#7)
 
-Spec: [category.md](docs/features/category.md) (its "To revise at the start of #7" note comes
-first: one set per profile, a wallet can hide categories, the default set written by the device
-that creates the profile). What #6 leaves for it:
+Spec: [category.md](docs/features/category.md) (revised at the start of #7). **Decided at the
+start of #7**: two parts, one session and PR each, like #6.
+
+| Part | What                                                                                                                   | Status |
+| ---- | ---------------------------------------------------------------------------------------------------------------------- | ------ |
+| 7.1  | `categories` (API handler, device table), default set written with the profile, one-off dev script, Account › หมวดหมู่ | 🚧     |
+| 7.2  | hide categories per wallet (`wallets.hiddenCategoryIds`, the wallet form's "หมวดหมู่ที่ใช้" row)                       | ⬜     |
+
+Decided with the owner (don't re-ask): the default set uses the app's language when the profile
+is created; the manage screen is Account › หมวดหมู่ (the current profile shown at its top, tap to
+switch); hiding per wallet is a column on `wallets`, not a table; a refused profile create groups
+its refused child rows (categories, first wallet) under one sync-sheet item that is fixed or
+discarded together (category rule 12). Proposed in the revision: archived categories hold no
+name, at most 200 open per profile, a pulled parent tombstone takes its children, unarchiving a
+parent brings its children back.
+
+What #6 leaves for it:
 
 - **Data**: `categories.profileId`, a pushable sync handler like `features/wallet` (its checks
   read the user's live profile); the device table goes in a new local schema step and
