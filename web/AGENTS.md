@@ -121,7 +121,7 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 1–7.
   `openTestDatabase()` (`core/offline/testing-db.ts`, the wasm from `node_modules`), as
   `OPEN_LOCAL_DATABASE` or behind a fake `OfflineService` (`sync.service.spec.ts`,
   `wallet.service.spec.ts`, `wallet-sheet.spec.ts`, `category.service.spec.ts`,
-  `category-sheet.spec.ts`; their test database has no pulled
+  `category-sheet.spec.ts`, `hidden-categories.spec.ts`; their test database has no pulled
   currencies, so put the ones you need with `putRow`); `offline.service.spec.ts` uses a key/value fake. Stub
   `DeviceStorageService` for the shell (`app.spec.ts`), and `ProfileService` for the sync pill
   and sheet (`rejectedItems`; `sync-status.spec.ts`). `vi.mock` doesn't work with Angular's
@@ -139,7 +139,11 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
   op's `baseSeq`. Ids are `uuidv7()`. Screens list rows `WHERE deleted_at IS NULL`.
 - **A synced table on the device** = a schema step in `MIGRATIONS` (snake_case columns,
   `change_seq INTEGER` nullable) + an entry in `SYNC_TABLES` (`sync-tables.ts`: key, camelCase
-  columns, booleans, `readOnly` for master data). `putRow` / `getRow` / `fromSql` map between them.
+  columns, booleans, `json` columns, `readOnly` for master data). `putRow` / `getRow` / `fromSql`
+  map between them. A **JSON column** (an array, e.g. `wallets.hiddenCategoryIds`) is stored as
+  text, `'[]'` when the row has none, and parsed by `fromSql`; a typed reader still checks the
+  shape (`toWallet` in `core/wallet`). A new column on a shipped table is an `ALTER TABLE` step
+  with a default, and specs that rebuild an older snapshot drop it first.
 - `SyncService` runs the rounds (push, then pull, `tpn-sync` Web Lock) by itself; screens don't
   call the API for own data. It exposes `status()` (`errors` / `offline` / `syncing` /
   `pending` / `synced`), `pendingCount()`, `rejected()`, `notices()`, `lastSyncedAt()`,
@@ -205,8 +209,9 @@ Spec: [wallet.md](../docs/features/wallet.md).
   `openWallets()`, `archived()`, `hasWallet()`, `atLimit()` (20 open), `totals()` (per currency),
   `currencies()` / `activeCurrencies()` / `minorUnit(code)` / `defaultCurrency()` (from the
   pulled `currencies`), `balance(wallet)` (= `initialBalance` until #8),
-  `canChangeCurrency(id)` (true until #8), `nameTaken()`, `byId()`, `save(id | null, values,
-fixOpId?, profileId?)`, `setArchived(id, archived)` (answers `nameTaken` / `limit` when coming
+  `canChangeCurrency(id)` (true until #8), `nameTaken()`, `byId()`, `openOf(profileId)`,
+  `save(id | null, values, fixOpId?, profileId?)` (`values.hiddenCategoryIds` goes through
+  `cleanHidden`), `setArchived(id, archived)` (answers `nameTaken` / `limit` when coming
   back is refused), `remove(id)`, `moveTo(id, index)`, `sheet` / `open()` / `openFix()`.
 - The shell renders `layout/wallet-first-step` instead of the Transactions and Wallets pages
   while the profile has no wallet (`isWalletTab()`), the ➕ leads there, and
@@ -216,6 +221,11 @@ fixOpId?, profileId?)`, `setArchived(id, archived)` (answers `nameTaken` / `limi
   `profile_id`) in the same write, and an effect tombstones live child rows of a profile that is
   a tombstone here (deleted on a device that didn't know them, wallet rule 11). Categories are
   in that list since #7.1.
+- **Hidden categories** (7.2, category rule 13): `core/wallet/hidden-categories.ts` holds
+  `isHiddenIn(hidden, category)` (own id or the parent's: the one check #8's picker needs),
+  `cleanHidden(db, ids)` (no duplicates, no known tombstones, at most 200), `toWallet` and
+  `findWallet`. `core/category` builds on it (it reads `wallets` by name); `core/wallet` never
+  imports `core/category`.
 
 ### Categories (`core/category`, #7.1)
 
@@ -224,8 +234,10 @@ Spec: [category.md](../docs/features/category.md).
 - `CategoryService`: `categories()` (the current profile's live ones in order, archived too),
   `openCategories()`, `tree(type, archived?)` (parents with children), `archivedChildren(type)`,
   `openCount(type)`, `parents(type, exceptId)`, `childrenOf(id)`, `atLimit()` (200 open),
-  `nameTaken(name, type, parentId, exceptId, profileId?)`, `byId()`, `save(id | null, values,
-fixOpId?, profileId?)` (a row that changes siblings goes last among the new ones),
+  `nameTaken(name, type, parentId, exceptId, profileId?)`, `byId()`, `treeOf(profileId, type)`,
+  `hiddenIn(categoryId, profileId)` (open wallets listing its own id), `save(id | null, values,
+fixOpId?, profileId?, hiddenIn?)` (a row that changes siblings goes last among the new ones;
+  `hiddenIn` rewrites the open wallets whose list changes, in the same write),
   `setArchived(id, archived)` (a parent takes / brings back its children; answers `nameTaken` /
   `limit` / `parentArchived`), `remove(id)` (only without live children), `moveTo(id, index)`
   (among open siblings), `sheet` / `open()` / `openFix()`. An effect tombstones live children
@@ -234,10 +246,12 @@ fixOpId?, profileId?)` (a row that changes siblings goes last among the new ones
 - **Outbox order matters** when a row points at another: a category put under a parent queued
   after it calls `moveOpLast()` (`core/offline/outbox.ts`) so the parent is pushed first, and
   unarchiving a parent moves its children's ops after its own.
-- `layout/category-sheet` (views `form` / `icons` / `parent` / `confirmDelete` /
+- `layout/category-sheet` (views `form` / `icons` / `parent` / `wallets` / `confirmDelete` /
   `confirmDiscard`; `app-segmented-field` for the type, disabled while it follows a parent or
   the row has children) is `@defer`red by the shell; `features/account/pages/categories-page`
   is Account › หมวดหมู่ with a two-level order mode (an inner `cdkDropList` per parent).
+  `layout/wallet-sheet` has a `categories` view (tabs + `app-toggle-list-field`) for the
+  wallet's `hiddenCategoryIds`.
 
 ### Inside a feature
 
@@ -360,19 +374,20 @@ initialValue })`.
 - **Render fields with the shared wrappers** in `@/shared/components/form`. Never hand-build
   `<label>` + input + error markup in a feature:
 
-  | Field                 | Control type           | Use for                                       |
-  | --------------------- | ---------------------- | --------------------------------------------- |
-  | `app-input-field`     | `FormControl<string>`  | text / email / tel / url / search             |
-  | `app-password-field`  | `FormControl<string>`  | password with show/hide                       |
-  | `app-textarea-field`  | `FormControl<string>`  | multi-line note                               |
-  | `app-select-field`    | `FormControl<T \| ''>` | short fixed list (native picker on phones)    |
-  | `app-otp-field`       | `FormControl<string>`  | 6-digit email / SMS code (`one-time-code`)    |
-  | `app-switch-field`    | `FormControl<boolean>` | on/off setting row                            |
-  | `app-icon-field`      | `FormControl<string>`  | pick a curated icon (radio grid, groups)      |
-  | `app-color-field`     | `FormControl<string>`  | pick a user colour (radio swatches)           |
-  | `app-name-icon-field` | `FormControl<string>`  | compact sheet: icon button + name             |
-  | `app-amount-field`    | text + `negative` bool | money in major units, +/− button, currency    |
-  | `app-segmented-field` | `FormControl<string>`  | two or three short options (รายจ่าย / รายรับ) |
+  | Field                   | Control type            | Use for                                       |
+  | ----------------------- | ----------------------- | --------------------------------------------- |
+  | `app-input-field`       | `FormControl<string>`   | text / email / tel / url / search             |
+  | `app-password-field`    | `FormControl<string>`   | password with show/hide                       |
+  | `app-textarea-field`    | `FormControl<string>`   | multi-line note                               |
+  | `app-select-field`      | `FormControl<T \| ''>`  | short fixed list (native picker on phones)    |
+  | `app-otp-field`         | `FormControl<string>`   | 6-digit email / SMS code (`one-time-code`)    |
+  | `app-switch-field`      | `FormControl<boolean>`  | on/off setting row                            |
+  | `app-icon-field`        | `FormControl<string>`   | pick a curated icon (radio grid, groups)      |
+  | `app-color-field`       | `FormControl<string>`   | pick a user colour (radio swatches)           |
+  | `app-name-icon-field`   | `FormControl<string>`   | compact sheet: icon button + name             |
+  | `app-amount-field`      | text + `negative` bool  | money in major units, +/− button, currency    |
+  | `app-segmented-field`   | `FormControl<string>`   | two or three short options (รายจ่าย / รายรับ) |
+  | `app-toggle-list-field` | `FormControl<string[]>` | rows with a switch each; holds the ids off    |
 
   Every field takes `[control]` (the typed control, so templates are type-checked) plus `label`,
   and optionally `hint` / `placeholder`. Labels are linked to the control automatically, so there's

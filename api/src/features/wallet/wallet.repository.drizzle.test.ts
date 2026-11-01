@@ -35,6 +35,7 @@ const wallet = (
   excludeFromTotal: false,
   isArchived: false,
   sortOrder: 0,
+  hiddenCategoryIds: [] as string[],
   createdAt: 1000,
   updatedAt: 1000,
   deletedAt: null,
@@ -93,6 +94,18 @@ describe('walletSyncHandler', () => {
       row: wallet('w1', 'Card', 16, { isArchived: true }),
     })
     expect(await push.find(db, 'nope')).toBeNull()
+  })
+
+  it('stores and pulls hiddenCategoryIds as an array (category rule 13)', async () => {
+    const ids = ['c1', 'c2']
+    expect(
+      await push.write(db, 'alice', wallet('w1', 'Cash', 15, { hiddenCategoryIds: ids }))
+    ).toEqual(wallet('w1', 'Cash', 15, { hiddenCategoryIds: ids }))
+    const [pulled] = await walletSyncHandler.pull(db, 'alice', 0, 10)
+    expect(pulled['hiddenCategoryIds']).toEqual(ids)
+    // A row without the field (validate defaults it) is written as none hidden.
+    const { hiddenCategoryIds: _omit, ...bare } = wallet('w2', 'Card', 16)
+    expect((await push.write(db, 'alice', bare))['hiddenCategoryIds']).toEqual([])
   })
 
   it("pulls only the user's wallets after the cursor, tombstones included", async () => {

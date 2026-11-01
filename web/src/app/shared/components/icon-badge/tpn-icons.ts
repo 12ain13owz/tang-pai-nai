@@ -74,9 +74,24 @@ export const TPN_ICONS = {
   tpnCashEnvelope: svg(
     `<path d="M6 9V4h12v5"/><path d="M10 6.5h4"/><rect x="2" y="9" width="20" height="12" rx="2"/><path d="m2 11 10 6 10-6"/>`
   ),
-  /** A buffet counter with two serving domes (#7). */
+  /**
+   * A buffet: a chafing dish (domed lid on a pan, on legs, a small flame under it). Redrawn in
+   * 7.2; the first drawing lives on as `tpnServingDomes`.
+   */
   tpnBuffet: svg(
+    `<path d="M12 6.5V8"/><path d="M4 13a8 5 0 0 1 16 0"/><path d="M2.5 13h19"/><path d="M4 13v3h16v-3"/><path d="M6 16v4"/><path d="M18 16v4"/><path d="M12 17.5c-1 1-1 2 0 2.5 1-.5 1-1.5 0-2.5Z"/>`
+  ),
+  /** Two serving domes on a table (the first buffet drawing, #7). */
+  tpnServingDomes: svg(
     `<path d="M2 14h20"/><path d="M3 14a4 4 0 0 1 8 0"/><path d="M13 14a4 4 0 0 1 8 0"/><path d="M7 8.5V10"/><path d="M17 8.5V10"/><path d="M4 14v7"/><path d="M20 14v7"/><path d="M4 18h16"/>`
+  ),
+  /** A buffet line: a sneeze guard over three covered dishes on a counter (7.2). */
+  tpnBuffetLine: svg(
+    `<path d="M3 7h18"/><path d="M5 7v6"/><path d="M19 7v6"/><path d="M2 17h20"/><path d="M3.5 17a2.5 2.5 0 0 1 5 0"/><path d="M9.5 17a2.5 2.5 0 0 1 5 0"/><path d="M15.5 17a2.5 2.5 0 0 1 5 0"/><path d="M4 17v4"/><path d="M20 17v4"/>`
+  ),
+  /** All you can eat: a plate with ∞, a fork and a spoon (7.2). */
+  tpnAllYouCanEat: svg(
+    `<circle cx="12" cy="12" r="6"/><path d="M9.6 12c0-.9.6-1.4 1.2-1.4.9 0 1.5 1.4 2.4 1.4.6 0 1.2-.5 1.2-1.4"/><path d="M9.6 12c0 .9.6 1.4 1.2 1.4.9 0 1.5-1.4 2.4-1.4.6 0 1.2.5 1.2 1.4"/><path d="M3 3v5a1 1 0 0 0 2 0V3"/><path d="M4 9v12"/><path d="M20 3a1.5 2.5 0 0 0 0 5 1.5 2.5 0 0 0 0-5Z"/><path d="M20 8v13"/>`
   ),
   /** A bubble tea: a domed cup with a straw and pearls. */
   tpnBubbleTea: svg(

@@ -1,7 +1,7 @@
 # Wallet
 
-> Status: **Built** in #6.2. API: `api/src/features/wallet/` (sync handler only; tables `wallets`
-> and `wallet_members`). Web: `core/wallet` (`WalletService`), `features/wallets` (Wallets tab),
+> Status: **Built** in #6.2; `hiddenCategoryIds` and the "หมวดหมู่ที่ใช้" row in 7.2. API:
+> `api/src/features/wallet/` (sync handler only; tables `wallets` and `wallet_members`). Web: `core/wallet` (`WalletService`), `features/wallets` (Wallets tab),
 > `layout/` (wallet sheet, first-wallet step). Rules 4's and 6's "has transactions" become real
 > with #8; members (#16).
 
@@ -30,8 +30,10 @@ per currency, like Money Lover.
   **owner**), `profileId` (FK profiles), `name`, `currencyCode` (FK currencies),
   `initialBalance` (integer, minor units, may be negative), `icon` (rule 8), `color`
   (`#rrggbb`), `excludeFromTotal` (default `false`), `isArchived` (default `false`),
-  `sortOrder`, plus the sync columns (`createdAt`, `updatedAt`, `deletedAt?`, `changeSeq`,
-  `updatedBy`). Indexes (`userId`, `changeSeq`), (`changeSeq`), (`profileId`).
+  `sortOrder`, `hiddenCategoryIds` (7.2: a JSON array of category ids the wallet doesn't use,
+  at most 200, default `[]`; category rule 13), plus the sync columns (`createdAt`,
+  `updatedAt`, `deletedAt?`, `changeSeq`, `updatedBy`). Indexes (`userId`, `changeSeq`),
+  (`changeSeq`), (`profileId`).
 - **wallet_members**: `walletId` (FK), `userId` (FK), `role` (`editor` | `viewer`), `addedAt`.
   PK (`walletId`, `userId`). The owner isn't listed here. Server only (not synced) and empty
   until #16.
@@ -115,7 +117,8 @@ profiles (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets 
   from mock-ups): row 1 the icon on its colour (a button) and the name; row 2 the +/− button, the
   starting balance in large figures and the currency code (a picker chip when more than one
   currency is active; read-only with rule 4's line once there are transactions); row 3 the
-  "ไม่รวมในยอดรวม" switch. No labels above fields and no hints. Tapping the icon opens the
+  "ไม่รวมในยอดรวม" switch; row 4 (7.2) "หมวดหมู่ที่ใช้", opening a view of the profile's
+  categories with a switch each (category.md → Web screens, rule 13). No labels above fields and no hints. Tapping the icon opens the
   "ไอคอนและสี" view: colour swatches, then the catalogue grouped by meaning (ที่เก็บเงิน, บัตร,
   เงินสดและของมีค่า, ดิจิทัล, อื่น ๆ; lucide and `tpn` mixed); picking an icon goes back. Save
   is the one button at the bottom. In edit mode the header holds **archive** (acts at once; the
@@ -130,7 +133,7 @@ profiles (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets 
 - **Profile**: `wallets.profileId`; deleting a profile takes its wallets (rule 11).
 - **Category (#7)**: one set per profile; a wallet can hide categories it doesn't use, as a
   `hiddenCategoryIds` column on `wallets` (decided at the start of #7; built in 7.2, category
-  rule 13).
+  rule 13); the category form can also choose its wallets, writing their lists.
 - **Transaction (#8)**: requires `walletId` and inherits the wallet's currency; rule 4's
   "has transactions" and rule 6 become real then.
 - Reports and budgets filter by wallet.

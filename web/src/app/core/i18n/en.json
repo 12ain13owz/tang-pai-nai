@@ -98,7 +98,10 @@
     "iconHeading": "Icon and colour",
     "changeIcon": "Change icon and colour",
     "discardText": "What you changed in this form will be lost.",
-    "undo": "Undo"
+    "undo": "Undo",
+    "categoriesUsed": "Categories used",
+    "categoriesAll": "All",
+    "categoriesHidden": "{{count}} hidden"
   },
   "categories": {
     "title": "Categories",
@@ -161,7 +164,13 @@
     "editItem": "Edit {{name}}",
     "subOf": "Under {{name}}",
     "limit": "200 categories are in use. Archive or delete ones you don't use to add more.",
-    "undo": "Undo"
+    "undo": "Undo",
+    "hiddenWithParent": "Hidden with its parent",
+    "usedIn": "Used in",
+    "usedInHeading": "Used in wallets",
+    "usedInAll": "All wallets",
+    "usedInSome": "{{used}} of {{total}} wallets",
+    "tabsLabel": "Category type"
   },
   "reports": {
     "emptyHeading": "No reports yet",
@@ -524,11 +533,16 @@
     "loading": "Loading profiles",
     "dragItem": "Move {{name}} (press and hold, then drag, or use the arrow keys)",
     "orderHint": "Press and hold a handle, then drag to reorder",
-    "deleteTextWallets": "Its {{count}} wallets and their transactions go with it. This can’t be undone.",
-    "deleteTextWallet": "Its wallet and the wallet’s transactions go with it. This can’t be undone.",
     "iconHeading": "Icon and colour",
     "changeIcon": "Change icon and colour",
-    "discardText": "What you changed in this form will be lost."
+    "discardText": "What you changed in this form will be lost.",
+    "deleteWallet": "1 wallet",
+    "deleteWallets": "{{count}} wallets",
+    "deleteCategory": "1 category",
+    "deleteCategories": "{{count}} categories",
+    "deleteTextWalletsOnly": "Its {{wallets}} and their transactions go with it. This can’t be undone.",
+    "deleteTextCategoriesOnly": "Its {{categories}} go with it. This can’t be undone.",
+    "deleteTextBoth": "Its {{wallets}}, {{categories}} and their transactions go with it. This can’t be undone."
   },
   "icons": {
     "lucideUser": "Person",
@@ -570,6 +584,9 @@
     "tpnSavingsJar": "Savings jar",
     "tpnCashEnvelope": "Cash envelope",
     "tpnBuffet": "Buffet",
+    "tpnBuffetLine": "Buffet line",
+    "tpnAllYouCanEat": "All you can eat",
+    "tpnServingDomes": "Serving domes",
     "tpnBubbleTea": "Bubble tea",
     "tpnNoodleBowl": "Noodle bowl",
     "tpnTuktuk": "Tuk-tuk",

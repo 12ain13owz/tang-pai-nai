@@ -14,6 +14,7 @@ export * from './segmented-field'
 export * from './select-field'
 export * from './switch-field'
 export * from './textarea-field'
+export * from './toggle-list-field'
 
 /** Import in every component that renders a `<form [formGroup]>`, then add the fields it uses. */
 export const FORM_IMPORTS = [ReactiveFormsModule, MarkTouchedOnSubmit] as const

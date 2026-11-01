@@ -10,6 +10,8 @@ export interface WalletFormControls {
   excludeFromTotal: FormControl<boolean>
   icon: FormControl<string>
   color: FormControl<string>
+  /** Category rule 13: the ids switched off in the categories view. */
+  hiddenCategoryIds: FormControl<string[]>
 }
 export type WalletFormGroup = FormGroup<WalletFormControls>
 export type WalletFormValue = ReturnType<WalletFormGroup['getRawValue']>
