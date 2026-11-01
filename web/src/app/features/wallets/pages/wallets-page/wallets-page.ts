@@ -47,89 +47,91 @@ import { formatMoney } from '@/shared/utils'
           {{ 'wallets.needsOnline' | transloco }}
         </p>
       }
-      <section
-        class="flex flex-col gap-1 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground"
-        aria-labelledby="wallets-total"
-      >
-        <h2 id="wallets-total" class="text-sm text-muted-foreground">
-          {{ 'wallets.total' | transloco }}
-        </h2>
-        @for (line of totals(); track line.currencyCode) {
-          <p class="text-2xl font-semibold tabular-nums" [class.text-expense]="line.amount < 0">
-            {{ line.text }}
-          </p>
-        }
-      </section>
-
-      @if (open.length > 0) {
-        <section class="flex flex-col gap-3" aria-labelledby="wallets-open">
-          <div class="flex items-center justify-between gap-3">
-            <h2 id="wallets-open" class="text-sm font-medium text-muted-foreground">
-              {{ 'wallets.listHeading' | transloco: { count: open.length } }}
-            </h2>
-            @if (open.length > 1) {
-              <button
-                hlmBtn
-                variant="ghost"
-                type="button"
-                class="-mr-2 h-11"
-                [attr.aria-pressed]="ordering()"
-                [disabled]="!walletService.canWrite()"
-                (click)="ordering.set(!ordering())"
-              >
-                {{ (ordering() ? 'wallets.orderDone' : 'wallets.order') | transloco }}
-              </button>
-            }
-          </div>
-          <ul
-            class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
-            cdkDropList
-            cdkDropListLockAxis="y"
-            [cdkDropListDisabled]="!ordering()"
-            (cdkDropListDropped)="drop($event)"
-          >
-            @for (wallet of open; track wallet.id) {
-              <li
-                class="flex min-h-14 items-center gap-3 bg-card py-2 pr-2 pl-4 first:rounded-t-xl last:rounded-b-xl"
-                cdkDrag
-                [cdkDragStartDelay]="dragDelay"
-                cdkDragPreviewClass="tpn-drag-preview"
-              >
-                <div
-                  *cdkDragPlaceholder
-                  class="min-h-14 border-2 border-dashed border-border bg-muted"
-                ></div>
-                @if (ordering()) {
-                  <app-icon-badge
-                    [icon]="wallet.icon"
-                    [color]="wallet.color"
-                    [fallback]="defaultIcon"
-                  />
-                  <span class="min-w-0 flex-1 truncate text-base">{{ wallet.name }}</span>
-                  <button
-                    hlmBtn
-                    variant="ghost"
-                    size="icon"
-                    type="button"
-                    class="size-11 touch-none"
-                    cdkDragHandle
-                    [attr.aria-label]="'wallets.dragItem' | transloco: { name: wallet.name }"
-                    (keydown.arrowup)="moveBy($event, wallet.id, -1)"
-                    (keydown.arrowdown)="moveBy($event, wallet.id, 1)"
-                  >
-                    <ng-icon name="lucideGripVertical" size="20" aria-hidden="true" />
-                  </button>
-                } @else {
-                  <ng-container *ngTemplateOutlet="row; context: { $implicit: wallet }" />
-                }
-              </li>
-            }
-          </ul>
-          @if (ordering()) {
-            <p class="text-sm text-muted-foreground">{{ 'wallets.orderHint' | transloco }}</p>
+      <div class="flex flex-col gap-3">
+        <section
+          class="flex flex-col gap-1 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground"
+          aria-labelledby="wallets-total"
+        >
+          <h2 id="wallets-total" class="text-sm text-muted-foreground">
+            {{ 'wallets.total' | transloco }}
+          </h2>
+          @for (line of totals(); track line.currencyCode) {
+            <p class="text-2xl font-semibold tabular-nums" [class.text-expense]="line.amount < 0">
+              {{ line.text }}
+            </p>
           }
         </section>
-      }
+
+        @if (open.length > 0) {
+          <section class="flex flex-col gap-3" aria-labelledby="wallets-open">
+            <div class="flex items-center justify-between gap-3">
+              <h2 id="wallets-open" class="text-sm font-medium text-muted-foreground">
+                {{ 'wallets.listHeading' | transloco: { count: open.length } }}
+              </h2>
+              @if (open.length > 1) {
+                <button
+                  hlmBtn
+                  variant="ghost"
+                  type="button"
+                  class="-my-3 -mr-2 h-11"
+                  [attr.aria-pressed]="ordering()"
+                  [disabled]="!walletService.canWrite()"
+                  (click)="ordering.set(!ordering())"
+                >
+                  {{ (ordering() ? 'wallets.orderDone' : 'wallets.order') | transloco }}
+                </button>
+              }
+            </div>
+            <ul
+              class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
+              cdkDropList
+              cdkDropListLockAxis="y"
+              [cdkDropListDisabled]="!ordering()"
+              (cdkDropListDropped)="drop($event)"
+            >
+              @for (wallet of open; track wallet.id) {
+                <li
+                  class="flex min-h-14 items-center gap-3 bg-card py-2 pr-2 pl-4 first:rounded-t-xl last:rounded-b-xl"
+                  cdkDrag
+                  [cdkDragStartDelay]="dragDelay"
+                  cdkDragPreviewClass="tpn-drag-preview"
+                >
+                  <div
+                    *cdkDragPlaceholder
+                    class="min-h-14 border-2 border-dashed border-border bg-muted"
+                  ></div>
+                  @if (ordering()) {
+                    <app-icon-badge
+                      [icon]="wallet.icon"
+                      [color]="wallet.color"
+                      [fallback]="defaultIcon"
+                    />
+                    <span class="min-w-0 flex-1 truncate text-base">{{ wallet.name }}</span>
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      class="size-11 touch-none"
+                      cdkDragHandle
+                      [attr.aria-label]="'wallets.dragItem' | transloco: { name: wallet.name }"
+                      (keydown.arrowup)="moveBy($event, wallet.id, -1)"
+                      (keydown.arrowdown)="moveBy($event, wallet.id, 1)"
+                    >
+                      <ng-icon name="lucideGripVertical" size="20" aria-hidden="true" />
+                    </button>
+                  } @else {
+                    <ng-container *ngTemplateOutlet="row; context: { $implicit: wallet }" />
+                  }
+                </li>
+              }
+            </ul>
+            @if (ordering()) {
+              <p class="text-sm text-muted-foreground">{{ 'wallets.orderHint' | transloco }}</p>
+            }
+          </section>
+        }
+      </div>
 
       @if (!walletService.atLimit()) {
         <button

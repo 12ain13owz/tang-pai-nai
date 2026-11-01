@@ -31,15 +31,16 @@ export const parseMajor = (text: string, minorUnit: number): ParsedAmount => {
   return { ok: true, minor: Number(digits) }
 }
 
-/** A non-negative minor amount as plain major text for an input: `150050` (2) → `1500.50`. */
+/**
+ * A minor amount's size as major text for an input, grouped with commas (which `parseMajor`
+ * reads back): `1825075` (2) → `18,250.75`, `150000` (2) → `1,500`.
+ */
 export const toMajorText = (minor: number, minorUnit: number): string => {
   const digits = String(Math.abs(Math.trunc(minor))).padStart(minorUnit + 1, '0')
-  if (minorUnit === 0) {
-    return digits
-  }
-  const whole = digits.slice(0, -minorUnit)
-  const fraction = digits.slice(-minorUnit)
-  return /^0+$/.test(fraction) ? whole : `${whole}.${fraction}`
+  const whole = minorUnit === 0 ? digits : digits.slice(0, -minorUnit)
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  const fraction = minorUnit === 0 ? '' : digits.slice(-minorUnit)
+  return fraction === '' || /^0+$/.test(fraction) ? grouped : `${grouped}.${fraction}`
 }
 
 /** A signed minor amount as an exact decimal string for `Intl.NumberFormat`: `-5` (2) → `-0.05`. */

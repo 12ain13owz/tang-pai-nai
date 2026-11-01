@@ -1,8 +1,10 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { NonNullableFormBuilder, Validators } from '@angular/forms'
+import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import type { ValidatorFn } from '@angular/forms'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
+import { NgIcon, provideIcons } from '@ng-icons/core'
+import { lucideArchive, lucideArchiveRestore, lucideTrash2 } from '@ng-icons/lucide'
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
@@ -14,8 +16,7 @@ import {
   ColorField,
   FORM_IMPORTS,
   IconField,
-  InputField,
-  SelectField,
+  NameIconField,
   SwitchField,
   withMessage,
 } from '@/shared/components/form'
@@ -24,11 +25,12 @@ import {
   WALLET_DEFAULT_ICON,
   WALLET_ICON_GROUPS,
 } from '@/shared/components/icon-badge'
+import { SheetFrame } from '@/shared/components/sheet'
 import type { SelectOption } from '@/shared/types'
 import { parseMajor, toMajorText } from '@/shared/utils'
 import type { WalletFormGroup } from './wallet-form.type'
 
-type View = 'form' | 'confirmDelete' | 'confirmDiscard'
+type View = 'form' | 'icons' | 'confirmDelete' | 'confirmDiscard'
 
 const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
   nameTaken: 'wallets.unarchiveNameTaken',
@@ -36,76 +38,158 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
 }
 
 /**
- * The wallet form (docs/features/wallet.md → Web screens): create, edit, "fix" a rejected op,
- * archive, and delete after a confirm step. Opened from anywhere through `WalletService.open()`;
- * the shell loads it on first use.
+ * The wallet form (docs/features/wallet.md → Web screens), a compact sheet (DESIGN.md §6): icon +
+ * name, starting balance + currency, "exclude from total"; the icon opens an icon-and-colour view.
+ * Create, edit, "fix" a rejected op; in edit mode the header holds archive and delete (after a
+ * confirm view). Opened from anywhere through `WalletService.open()`; the shell loads it on first
+ * use.
  */
 @Component({
   selector: 'app-wallet-sheet',
   imports: [
     FORM_IMPORTS,
+    ReactiveFormsModule,
     TranslocoPipe,
-    InputField,
+    NgIcon,
+    NameIconField,
     AmountField,
-    SelectField,
     SwitchField,
     IconField,
     ColorField,
     HlmButton,
     HlmDrawerImports,
+    SheetFrame,
   ],
+  providers: [provideIcons({ lucideArchive, lucideArchiveRestore, lucideTrash2 })],
   template: `
     @let f = form.controls;
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="onClosed()">
-      <hlm-drawer-content *hlmDrawerPortal class="mx-auto max-w-[480px]">
+      <hlm-drawer-content
+        *hlmDrawerPortal
+        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+      >
         @switch (view()) {
           @case ('form') {
-            <form
-              [formGroup]="form"
-              class="flex min-h-0 flex-1 flex-col gap-4 px-2 pt-2 pb-4"
-              (ngSubmit)="save()"
-            >
-              <h2 hlmDrawerTitle class="text-lg font-semibold">
-                {{ heading() | transloco }}
-              </h2>
-              <div class="-mx-2 flex min-h-0 flex-col gap-6 overflow-y-auto px-2 pb-1">
-                @if (!walletService.canWrite()) {
-                  <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                    {{ 'wallets.needsOnline' | transloco }}
-                  </p>
-                }
-                <app-input-field
-                  [control]="f.name"
-                  [label]="'wallets.name' | transloco"
-                  [placeholder]="'wallets.namePlaceholder' | transloco"
-                  autocomplete="off"
-                />
-                <app-amount-field
-                  [control]="f.initialBalance"
-                  [negative]="f.negative"
-                  [label]="'wallets.initialBalance' | transloco"
-                  [hint]="'wallets.initialBalanceHint' | transloco"
-                  [suffix]="f.currencyCode.value"
-                />
-                @if (currencyLocked()) {
-                  <div class="flex flex-col gap-1">
-                    <p class="text-sm font-medium">{{ 'wallets.currency' | transloco }}</p>
-                    <p class="text-base">{{ currencyLabel(f.currencyCode.value) }}</p>
-                    <p class="text-sm text-muted-foreground">
-                      {{ 'wallets.currencyLocked' | transloco }}
-                    </p>
+            <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
+              <app-sheet-frame
+                [title]="heading() | transloco"
+                [leadingLabel]="'sheet.close' | transloco"
+                (leading)="close()"
+              >
+                @if (editing(); as wallet) {
+                  <div sheetActions class="flex">
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      class="size-11"
+                      [disabled]="!walletService.canWrite()"
+                      [attr.aria-label]="
+                        (wallet.isArchived ? 'wallets.unarchive' : 'wallets.archive') | transloco
+                      "
+                      (click)="toggleArchive()"
+                    >
+                      <ng-icon
+                        [name]="wallet.isArchived ? 'lucideArchiveRestore' : 'lucideArchive'"
+                        size="20"
+                        aria-hidden="true"
+                      />
+                    </button>
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      class="size-11 text-destructive"
+                      [disabled]="!walletService.canWrite()"
+                      [attr.aria-label]="'wallets.delete' | transloco"
+                      (click)="view.set('confirmDelete')"
+                    >
+                      <ng-icon name="lucideTrash2" size="20" aria-hidden="true" />
+                    </button>
                   </div>
-                } @else if (currencyOptions().length > 1) {
-                  <app-select-field
-                    [control]="f.currencyCode"
-                    [label]="'wallets.currency' | transloco"
-                    [options]="currencyOptions()"
-                  />
                 }
-                <app-switch-field
-                  [control]="f.excludeFromTotal"
-                  [label]="'wallets.excludeFromTotal' | transloco"
-                  [hint]="'wallets.excludeFromTotalHint' | transloco"
+                <div class="flex flex-col gap-5">
+                  @if (!walletService.canWrite()) {
+                    <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                      {{ 'wallets.needsOnline' | transloco }}
+                    </p>
+                  }
+                  @if (refusal()) {
+                    <p role="alert" class="text-sm text-destructive">
+                      {{ refusal() | transloco }}
+                    </p>
+                  }
+                  <app-name-icon-field
+                    [control]="f.name"
+                    [label]="'wallets.name' | transloco"
+                    [icon]="f.icon.value"
+                    [color]="f.color.value"
+                    [fallback]="defaultIcon"
+                    [iconLabel]="'wallets.changeIcon' | transloco"
+                    (iconClick)="view.set('icons')"
+                  />
+                  <div class="flex flex-col gap-1">
+                    <app-amount-field
+                      [control]="f.initialBalance"
+                      [negative]="f.negative"
+                      [label]="'wallets.initialBalance' | transloco"
+                    >
+                      @if (!currencyLocked() && currencyOptions().length > 1) {
+                        <select
+                          amountSuffix
+                          class="h-9 max-w-28 shrink-0 rounded-full bg-muted px-3 text-sm font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                          [formControl]="f.currencyCode"
+                          [attr.aria-label]="'wallets.currency' | transloco"
+                        >
+                          @for (option of currencyOptions(); track option.value) {
+                            <option [value]="option.value">{{ option.label }}</option>
+                          }
+                        </select>
+                      } @else {
+                        <span amountSuffix class="shrink-0 text-sm text-muted-foreground">
+                          {{ f.currencyCode.value }}
+                        </span>
+                      }
+                    </app-amount-field>
+                    @if (currencyLocked()) {
+                      <p class="pl-14 text-sm text-muted-foreground">
+                        {{ 'wallets.currencyLocked' | transloco }}
+                      </p>
+                    }
+                  </div>
+                  <div class="-mx-4 border-t border-border"></div>
+                  <app-switch-field
+                    [control]="f.excludeFromTotal"
+                    [label]="'wallets.excludeFromTotal' | transloco"
+                  />
+                </div>
+                <div sheetFooter class="pt-3">
+                  <button
+                    hlmBtn
+                    type="submit"
+                    class="h-11 w-full text-base"
+                    [disabled]="!walletService.canWrite()"
+                  >
+                    {{ 'wallets.save' | transloco }}
+                  </button>
+                </div>
+              </app-sheet-frame>
+            </form>
+          }
+          @case ('icons') {
+            <app-sheet-frame
+              [title]="'wallets.iconHeading' | transloco"
+              leadingIcon="back"
+              [leadingLabel]="'sheet.back' | transloco"
+              (leading)="view.set('form')"
+            >
+              <div class="flex flex-col gap-6">
+                <app-color-field
+                  [control]="f.color"
+                  [label]="'wallets.color' | transloco"
+                  [colors]="colors"
                 />
                 <app-icon-field
                   [control]="f.icon"
@@ -113,79 +197,23 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                   [groups]="iconGroups"
                   [color]="f.color.value"
                 />
-                <app-color-field
-                  [control]="f.color"
-                  [label]="'wallets.color' | transloco"
-                  [colors]="colors"
-                />
-                @if (editing(); as wallet) {
-                  <div class="flex flex-col gap-3 border-t border-border pt-6">
-                    <button
-                      hlmBtn
-                      variant="outline"
-                      type="button"
-                      class="h-11 w-full"
-                      [disabled]="!walletService.canWrite()"
-                      (click)="toggleArchive()"
-                    >
-                      {{
-                        (wallet.isArchived ? 'wallets.unarchive' : 'wallets.archive') | transloco
-                      }}
-                    </button>
-                    @if (refusal()) {
-                      <p role="alert" class="-mt-1 text-sm text-destructive">
-                        {{ refusal() | transloco }}
-                      </p>
-                    } @else {
-                      <p class="-mt-1 text-sm text-muted-foreground">
-                        {{ 'wallets.archiveHint' | transloco }}
-                      </p>
-                    }
-                    <button
-                      hlmBtn
-                      variant="outline"
-                      type="button"
-                      class="h-11 w-full text-destructive"
-                      [disabled]="!walletService.canWrite()"
-                      (click)="view.set('confirmDelete')"
-                    >
-                      {{ 'wallets.delete' | transloco }}
-                    </button>
-                  </div>
-                }
               </div>
-              <div class="flex flex-col gap-3">
-                <button
-                  hlmBtn
-                  type="submit"
-                  class="h-11 w-full text-base"
-                  [disabled]="!walletService.canWrite()"
-                >
-                  {{ 'wallets.save' | transloco }}
-                </button>
-                <button
-                  hlmBtn
-                  variant="outline"
-                  type="button"
-                  class="h-11 w-full"
-                  (click)="close()"
-                >
-                  {{ 'wallets.close' | transloco }}
-                </button>
-              </div>
-            </form>
+            </app-sheet-frame>
           }
           @case ('confirmDelete') {
-            <div class="flex flex-col gap-6 px-2 pt-2 pb-4">
+            <app-sheet-frame
+              [title]="'wallets.delete' | transloco"
+              leadingIcon="back"
+              [leadingLabel]="'sheet.back' | transloco"
+              (leading)="view.set('form')"
+            >
               <div class="flex flex-col gap-2">
-                <h2 hlmDrawerTitle class="text-lg font-semibold">
+                <p class="text-base font-semibold">
                   {{ 'wallets.deleteHeading' | transloco: { name: editingName() } }}
-                </h2>
-                <p class="text-sm text-muted-foreground">
-                  {{ 'wallets.deleteText' | transloco }}
                 </p>
+                <p class="text-sm text-muted-foreground">{{ 'wallets.deleteText' | transloco }}</p>
               </div>
-              <div class="flex flex-col gap-3">
+              <div sheetFooter class="pt-3">
                 <button
                   hlmBtn
                   variant="destructive"
@@ -195,24 +223,18 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                 >
                   {{ 'wallets.deleteConfirm' | transloco }}
                 </button>
-                <button
-                  hlmBtn
-                  variant="outline"
-                  type="button"
-                  class="h-11 w-full"
-                  (click)="view.set('form')"
-                >
-                  {{ 'wallets.cancel' | transloco }}
-                </button>
               </div>
-            </div>
+            </app-sheet-frame>
           }
           @case ('confirmDiscard') {
-            <div class="flex flex-col gap-6 px-2 pt-2 pb-4">
-              <h2 hlmDrawerTitle class="text-lg font-semibold">
-                {{ 'wallets.discardHeading' | transloco }}
-              </h2>
-              <div class="flex flex-col gap-3">
+            <app-sheet-frame
+              [title]="'wallets.discardHeading' | transloco"
+              leadingIcon="back"
+              [leadingLabel]="'wallets.keepEditing' | transloco"
+              (leading)="view.set('form')"
+            >
+              <p class="text-sm text-muted-foreground">{{ 'wallets.discardText' | transloco }}</p>
+              <div sheetFooter class="pt-3">
                 <button
                   hlmBtn
                   variant="destructive"
@@ -222,17 +244,8 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                 >
                   {{ 'wallets.discard' | transloco }}
                 </button>
-                <button
-                  hlmBtn
-                  variant="outline"
-                  type="button"
-                  class="h-11 w-full"
-                  (click)="view.set('form')"
-                >
-                  {{ 'wallets.keepEditing' | transloco }}
-                </button>
               </div>
-            </div>
+            </app-sheet-frame>
           }
         }
       </hlm-drawer-content>
@@ -246,6 +259,7 @@ export class WalletSheet {
   protected walletService = inject(WalletService)
 
   protected iconGroups = WALLET_ICON_GROUPS
+  protected defaultIcon = WALLET_DEFAULT_ICON
   protected colors = USER_COLORS
   protected state = this.walletService.sheet
   protected view = signal<View>('form')
@@ -351,6 +365,12 @@ export class WalletSheet {
       this.dirty.set(this.form.dirty)
       this.refusal.set(null)
     })
+    // Picking an icon is the icon view's answer: back to the form.
+    this.form.controls.icon.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      if (this.view() === 'icons') {
+        this.view.set('form')
+      }
+    })
     // The balance's allowed decimals follow the currency.
     this.form.controls.currencyCode.valueChanges
       .pipe(takeUntilDestroyed())
@@ -398,21 +418,36 @@ export class WalletSheet {
     this.finish()
   }
 
-  /** Rule 6: archive at once; coming back may be refused (rule 3). Unsaved edits stay. */
+  /**
+   * Rule 6: archive (or bring back) at once, with "undo" in the toast; coming back may be refused
+   * (rule 3). Unsaved edits keep the sheet open.
+   */
   protected toggleArchive(): void {
     const wallet = this.editing()
     if (!wallet) {
       return
     }
-    const refusal = this.walletService.setArchived(wallet.id, !wallet.isArchived)
+    const archived = !wallet.isArchived
+    const refusal = this.walletService.setArchived(wallet.id, archived)
     if (refusal) {
       this.refusal.set(REFUSAL_KEYS[refusal])
       return
     }
     toast(
-      this.transloco.translate(wallet.isArchived ? 'wallets.unarchived' : 'wallets.archived', {
+      this.transloco.translate(archived ? 'wallets.archived' : 'wallets.unarchived', {
         name: wallet.name,
-      })
+      }),
+      {
+        action: {
+          label: this.transloco.translate('wallets.undo'),
+          onClick: () => {
+            const undone = this.walletService.setArchived(wallet.id, !archived)
+            if (undone) {
+              toast.error(this.transloco.translate(REFUSAL_KEYS[undone]))
+            }
+          },
+        },
+      }
     )
     if (!this.form.dirty) {
       this.finish()

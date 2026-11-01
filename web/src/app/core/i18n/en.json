@@ -56,24 +56,19 @@
     "nameRequired": "Enter a wallet name",
     "nameTaken": "This profile already has a wallet with this name",
     "initialBalance": "Starting balance",
-    "initialBalanceHint": "What’s in it now. For a debt (e.g. a credit card), tap + to make it −.",
     "balanceFormat": "Enter a number, e.g. 1500 or 1,500.50",
     "balanceDecimals": "Too many decimal places for this currency",
     "balanceTooBig": "That amount is too large",
     "currency": "Currency",
     "currencyLocked": "This wallet has transactions, so its currency can’t change. Create a new wallet for another currency.",
     "excludeFromTotal": "Exclude from total",
-    "excludeFromTotalHint": "This wallet’s balance isn’t counted in the total",
     "icon": "Icon",
     "color": "Colour",
     "save": "Save",
-    "close": "Close",
-    "cancel": "Cancel",
     "created": "Wallet added",
     "saved": "Saved",
     "archive": "Archive",
     "unarchive": "Unarchive",
-    "archiveHint": "Archived wallets are hidden from pickers and the total; their history stays in reports.",
     "archived": "“{{name}}” archived",
     "unarchived": "“{{name}}” is back in use",
     "unarchiveNameTaken": "Can’t unarchive: a wallet in use has this name. Rename one first.",
@@ -97,7 +92,11 @@
     "orderHint": "Press and hold a handle, then drag to reorder",
     "dragItem": "Move {{name}} (press and hold, then drag, or use the arrow keys)",
     "editItem": "Edit {{name}}, balance {{balance}}",
-    "limit": "This profile uses 20 wallets. Archive or delete one you don’t use to add another."
+    "limit": "This profile uses 20 wallets. Archive or delete one you don’t use to add another.",
+    "iconHeading": "Icon and colour",
+    "changeIcon": "Change icon and colour",
+    "discardText": "What you changed in this form will be lost.",
+    "undo": "Undo"
   },
   "reports": {
     "emptyHeading": "No reports yet",
@@ -393,7 +392,6 @@
     "noticeText": "This was changed on another device. The values that were replaced:",
     "dismiss": "Got it",
     "deleted": "(deleted)",
-    "close": "Close",
     "codeCONFLICT": "Clashes with another item",
     "codeVALIDATION": "Invalid data",
     "codeID_TAKEN": "The id belongs to another user",
@@ -446,8 +444,6 @@
     "icon": "Icon",
     "color": "Colour",
     "save": "Save",
-    "close": "Close",
-    "cancel": "Cancel",
     "created": "Profile created",
     "saved": "Saved",
     "deleted": "Deleted profile “{{name}}”",
@@ -475,7 +471,10 @@
     "dragItem": "Move {{name}} (press and hold, then drag, or use the arrow keys)",
     "orderHint": "Press and hold a handle, then drag to reorder",
     "deleteTextWallets": "Its {{count}} wallets and their transactions go with it. This can’t be undone.",
-    "deleteTextWallet": "Its wallet and the wallet’s transactions go with it. This can’t be undone."
+    "deleteTextWallet": "Its wallet and the wallet’s transactions go with it. This can’t be undone.",
+    "iconHeading": "Icon and colour",
+    "changeIcon": "Change icon and colour",
+    "discardText": "What you changed in this form will be lost."
   },
   "icons": {
     "lucideUser": "Person",
@@ -523,5 +522,9 @@
     "cash": "Cash and valuables",
     "digital": "Digital",
     "other": "Other"
+  },
+  "sheet": {
+    "close": "Close",
+    "back": "Back"
   }
 }
