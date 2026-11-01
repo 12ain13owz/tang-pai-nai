@@ -123,21 +123,29 @@ Decided with the owner (don't re-ask):
 - **Categories**: one set per profile, and a wallet can hide categories it doesn't use. The
   default set (category rule 8) comes with #7, written by the device that creates the profile
   in the same local write; 6.1 writes no categories.
-- **For 6.2** (update wallet.md at its start): wallets have **no type** (drop `type`); icons are
-  lucide **plus our own `tpn` SVG set plus a letter badge** (no bank or brand logos), so
-  DESIGN.md §7's "lucide only" changes with it; the currency can change only while the wallet
-  has no transactions, and the form says why when it can't.
+- **For 6.2** (wallet.md revised before it): wallets have **no type** (drop `type`); icons are
+  lucide **plus our own `tpn` SVGs** in lucide's style where lucide lacks a clear picture, chosen
+  to say what the thing is (several bank and card drawings instead of bank logos; **no letter
+  badges**, dropped before 6.2), so DESIGN.md §7's "lucide only" changes with it; a new wallet
+  gets a default icon the user can change; names are unique within the profile; archive is
+  built in 6.2; the currency can change only while the wallet has no transactions, and the form
+  says why when it can't.
+- **For #8** (owner's direction): the Transactions tab's wallet switcher sits at the header
+  centre and a ⋮ menu at the right holds the time range (day / month by default / quarter / year
+  / all / custom); layout confirmed with a mock-up at #8's start (transaction.md → Open
+  questions).
 - 6.1 leaves out: `wallets` / `wallet_members`, the Wallets tab, the `tpn` icon set and removing
   `sync_probes` (all 6.2).
 
-**Next up is 6.2 Wallet** (new session): revise wallet.md first (the "To revise" note at its
-top), then `wallets` + `wallet_members` with `profileId` (a push is rejected unless the profile is
-the user's live one), the Wallets tab for the current profile, the wallet form (icons: lucide +
-`tpn` SVG set + letter badge), the first-wallet step that replaces the Transactions tab's
-"ยังไม่มีกระเป๋าเงิน" placeholder, deleting a profile also tombstoning its wallets (profile rule
-8, and the confirm sheet counts them), reorder with the same drag handle as profiles, and finally
-**removing `sync_probes`** (feature folder, handler, `/account/sync-test`, the local table in a
-new schema step, an API migration dropping it).
+**Next up is 6.2 Wallet** (new session): wallet.md is revised and its open questions are settled
+(icons, name scope, archive), so start building: `wallets` + `wallet_members` with `profileId` (a
+push is rejected unless the profile is the user's live one), the Wallets tab for the current profile
+(with the "เก็บถาวร" group), the wallet form with the icon catalogue (lucide + the first `tpn` SVGs,
+wallet.md → Open questions), the first-wallet step that replaces the Transactions tab's
+"ยังไม่มีกระเป๋าเงิน" placeholder, deleting a profile also tombstoning its wallets (profile rule 8,
+and the confirm sheet counts them), reorder with the same drag handle as profiles, and finally
+**removing `sync_probes`** (feature folder, handler, `/account/sync-test`, the local table in a new
+schema step, an API migration dropping it).
 
 6.1 in detail (✅ done, API + web):
 

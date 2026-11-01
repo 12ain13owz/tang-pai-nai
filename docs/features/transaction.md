@@ -60,7 +60,8 @@ category flips it. The currency comes from the wallet.
 
 ## Web screens
 
-- **Transactions tab** (home): a wallet switcher, swipeable month tabs (… เดือนก่อน / เดือนนี้ /
+- **Transactions tab** (home): a wallet switcher at the header centre and a ⋮ menu at the header
+  right for the time range (see Open questions), swipeable period tabs (… เดือนก่อน / เดือนนี้ /
   อนาคต), a summary card (รายรับ / รายจ่าย / คงเหลือ), and a day-grouped list (date header with
   the day total, rows with category icon, name, note, amount in green or red). Tap a row to open it.
 - **Add / edit transaction** (full-height bottom sheet from the ➕ tab): a big amount field with a
@@ -78,3 +79,14 @@ shared wallet may **add** offline but edit/delete online only. Conflict rules ar
 
 - Reads wallet (currency, ownership) and category (type, ownership).
 - Wallet balance, reports (#10) and budgets (#11) are all computed from this table.
+
+## Open questions
+
+- **Header layout** (owner's direction before #6.2, Money Lover style): wallet switcher at the
+  **centre** ("ทุกกระเป๋า ▾" or one wallet), a **⋮ menu** at the right with "ดูตาม" day / month
+  (default: the current month) / quarter / year / all / custom range, and swipeable period tabs
+  under the header that follow the chosen range. The header's left already holds the profile
+  switcher (#6.1) and the right the sync pill, so at 375px: proposal = the profile switcher
+  shrinks to its 28px icon on this tab (name in the sheet), the centre holds the wallet switcher,
+  and the right holds the sync pill (dot + short word) and ⋮. Confirm with a mock-up at the
+  start of #8.
