@@ -72,7 +72,7 @@ import { IconBadge } from '@/shared/components/icon-badge'
             [cdkDropListDisabled]="!ordering()"
             (cdkDropListDropped)="drop($event)"
           >
-            @for (profile of profiles; track profile.id; let index = $index) {
+            @for (profile of profiles; track profile.id) {
               <li
                 class="flex min-h-14 items-center gap-3 bg-card py-2 pr-2 pl-4 first:rounded-t-xl last:rounded-b-xl"
                 cdkDrag
@@ -94,8 +94,8 @@ import { IconBadge } from '@/shared/components/icon-badge'
                     class="size-11 touch-none"
                     cdkDragHandle
                     [attr.aria-label]="'profiles.dragItem' | transloco: { name: profile.name }"
-                    (keydown.arrowup)="moveBy($event, profile.id, index, -1)"
-                    (keydown.arrowdown)="moveBy($event, profile.id, index, 1)"
+                    (keydown.arrowup)="moveBy($event, profile.id, -1)"
+                    (keydown.arrowdown)="moveBy($event, profile.id, 1)"
                   >
                     <ng-icon name="lucideGripVertical" size="20" aria-hidden="true" />
                   </button>
@@ -183,8 +183,10 @@ export class ProfilesPage {
   }
 
   /** The handle's keyboard way (DESIGN.md §8: a drag is never the only way). */
-  protected moveBy(event: Event, id: string, index: number, step: -1 | 1): void {
+  protected moveBy(event: Event, id: string, step: -1 | 1): void {
     event.preventDefault()
+    // The row's place now, not the rendered one: a second press may come before the re-render.
+    const index = this.profileService.profiles().findIndex((item) => item.id === id)
     this.profileService.moveTo(id, index + step)
     const target = event.target
     // The row re-renders in its new place; keep the focus on its handle.
