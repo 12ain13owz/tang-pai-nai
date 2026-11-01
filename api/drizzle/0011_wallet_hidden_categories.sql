@@ -1,0 +1,1 @@
+ALTER TABLE `wallets` ADD `hidden_category_ids` text DEFAULT '[]' NOT NULL;

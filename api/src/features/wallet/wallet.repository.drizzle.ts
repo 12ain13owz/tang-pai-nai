@@ -141,6 +141,10 @@ export const walletSyncHandler: SyncTableHandler = {
             excludeFromTotal: row.excludeFromTotal === true,
             isArchived: row.isArchived === true,
             sortOrder: Number(row.sortOrder),
+            // `validate` made it an array of UUIDs.
+            hiddenCategoryIds: Array.isArray(row.hiddenCategoryIds)
+              ? row.hiddenCategoryIds.map(String)
+              : [],
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
             deletedAt: row.deletedAt,

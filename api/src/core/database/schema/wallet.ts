@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { syncColumns } from '@/core/database/columns'
 import { users } from '@/core/database/schema/auth'
@@ -30,6 +31,14 @@ export const wallets = sqliteTable(
     excludeFromTotal: integer({ mode: 'boolean' }).notNull(),
     isArchived: integer({ mode: 'boolean' }).notNull(),
     sortOrder: integer().notNull(),
+    /**
+     * Categories this wallet doesn't use (category rule 13, 7.2): a JSON array of category ids,
+     * at most 200. Only the shape is checked; ids the device doesn't know are ignored there.
+     */
+    hiddenCategoryIds: text({ mode: 'json' })
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'`),
     ...syncColumns,
   },
   (table) => [
