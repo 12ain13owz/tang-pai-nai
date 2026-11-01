@@ -11,10 +11,13 @@ import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
 import { SyncService } from '@/core/offline'
 import type { SyncRow } from '@/core/offline'
+import { WALLET_TABLE, WalletService } from '@/core/wallet'
 
 /** Where "fix" opens a rejected op's values, per table. */
 const FIX_ROUTES: Readonly<Record<string, string>> = {
   profiles: '/account/profiles',
+  // The wallet sheet lives in the shell, so it opens on the tab itself (even its first-wallet step).
+  [WALLET_TABLE]: '/wallets',
   sync_probes: '/account/sync-test',
 }
 
@@ -185,6 +188,7 @@ const FIX_ROUTES: Readonly<Record<string, string>> = {
 })
 export class SyncSheet {
   private router = inject(Router)
+  private walletService = inject(WalletService)
   private languageService = inject(LanguageService)
   protected syncService = inject(SyncService)
   protected networkStatusService = inject(NetworkStatusService)
@@ -209,6 +213,10 @@ export class SyncSheet {
   }
 
   protected fix(table: string, opId: string): void {
+    if (table === WALLET_TABLE) {
+      void this.router.navigate([FIX_ROUTES[table]]).then(() => this.walletService.openFix(opId))
+      return
+    }
     void this.router.navigate([FIX_ROUTES[table]], { queryParams: { fix: opId } })
   }
 

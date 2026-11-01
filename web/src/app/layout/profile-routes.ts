@@ -6,8 +6,15 @@ import { filter, map } from 'rxjs'
 /** The tabs that show a profile's data: the switcher and the create step live there. */
 const PROFILE_TABS = ['/transactions', '/wallets', '/reports']
 
-export const isProfileTab = (url: string): boolean =>
-  PROFILE_TABS.some((tab) => url === tab || url.startsWith(`${tab}/`) || url.startsWith(`${tab}?`))
+/** The tabs that need a wallet: the first-wallet step lives there (wallet rule 12). */
+const WALLET_TABS = ['/transactions', '/wallets']
+
+const under = (tabs: readonly string[], url: string): boolean =>
+  tabs.some((tab) => url === tab || url.startsWith(`${tab}/`) || url.startsWith(`${tab}?`))
+
+export const isProfileTab = (url: string): boolean => under(PROFILE_TABS, url)
+
+export const isWalletTab = (url: string): boolean => under(WALLET_TABS, url)
 
 /** The current URL as a signal (call in an injection context). */
 export const currentUrl = () => {
