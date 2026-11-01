@@ -19,7 +19,9 @@ properties:
           description: Made on the device; a retried opId answers the stored result
         table:
           type: string
-          description: A pushable table: `profiles` or `wallets` (row as in SyncProfileRow, SyncWalletRow)
+          description: >-
+            A pushable table: `profiles`, `wallets` or `categories` (row as in SyncProfileRow,
+            SyncWalletRow, SyncCategoryRow)
           example: profiles
         op:
           type: string
