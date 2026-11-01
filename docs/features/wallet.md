@@ -18,7 +18,7 @@ per currency, like Money Lover.
   this feature on (see [offline-sync.md](offline-sync.md) rules 13–16), empty until then.
 - A wallet **type** (cash / bank / card / …). Dropped at the start of #6: the icon says what the
   wallet is.
-- Bank or brand logos. Icons are generic (rule 8).
+- Bank or brand logos, and letter badges. Icons are drawings of what the wallet is (rule 8).
 - Savings goals, credit-card statement cycles, bank sync.
 - Moving a wallet to another profile.
 
@@ -48,7 +48,8 @@ the wallet, from the local database. Until transactions exist (#8) it equals `in
    created or edited (server check, `CONFLICT`; e.g. the profile was deleted on another device
    while this one added a wallet offline). A wallet never moves to another profile.
 3. `name` is 1–50 characters after trimming, unique among the **profile's** non-archived wallets
-   (case-insensitive; server check, `CONFLICT`).
+   (case-insensitive; server check, `CONFLICT`). The same name may exist in another profile
+   (decided before 6.2).
 4. **Currency** (decided at the start of #6, with its message): `currencyCode` must be active
    when the wallet is created. It may change only while the wallet has **no transactions**. Once
    it has some, the form shows the currency read-only with a line saying why ("เปลี่ยนสกุลเงิน
@@ -57,22 +58,25 @@ the wallet, from the local database. Until transactions exist (#8) it equals `in
    picker shows only when more than one currency is active; otherwise the wallet is THB.
 5. `initialBalance` is an integer within ±10¹⁵, entered in the currency's major unit and stored in
    minor units (no floats).
-6. **Archive and delete**: a wallet with transactions can't be deleted, only archived (the device
+6. **Archive and delete** (built in 6.2, decided before it): a wallet with transactions can't be
+   deleted, only archived (the device
    enforces this, because the server runs no check on a delete: offline-sync rule 10). Archived
    wallets are hidden from pickers and the total but keep their history in reports. A wallet
    with no transactions is deleted as a tombstone, after a confirm sheet. Only the owner can
    archive or delete (rule 13 of offline-sync, from #16).
 7. **Total** ("ยอดรวม") sums the current profile's non-archived wallets with
    `excludeFromTotal = false`, **grouped by currency**.
-8. **Icons** (decided at the start of #6): `icon` is one of
-   - a curated lucide export name (`lucideWallet`, …),
-   - a name from our own **`tpn` SVG set** (`tpn` + PascalCase, e.g. `tpnBank`), generic
-     drawings of money places, never a bank's or brand's logo,
-   - a **letter badge** `letter:<text>` (1–2 characters, e.g. `letter:K`), drawn as text on the
-     wallet's colour.
+8. **Icons** (decided at the start of #6, refined before 6.2: no letter badges): `icon` is
+   either a curated **lucide** export name (`lucideWallet`, …) or a name from our own **`tpn`
+   SVG set** (`tpn` + PascalCase, e.g. `tpnBankColumns`), drawn where lucide has no clear
+   picture. Icons say **what the thing is at a glance** (a bank, a card, cash, a coffee cup, a
+   buffet), never a bank's or brand's logo. Because there are no logos, the set offers **several
+   bank and card drawings** (and the user's colour), so someone with debit cards at three banks
+   can tell them apart. A new wallet starts with a default icon (`lucideWallet`) and colour; the
+   user picks another from the catalogue at any time.
 
-   The server checks only the shape (`^(lucide|tpn)[A-Z][A-Za-z0-9]*$` or `^letter:.{1,2}$`, ≤ 40
-   characters); a name the web doesn't know shows a default icon, as for profiles.
+   The server checks only the shape (`^(lucide|tpn)[A-Z][A-Za-z0-9]*$`, ≤ 40 characters); a name
+   the web doesn't know shows the default icon, as for profiles.
 
 9. **No automatic wallet** (replaces "a new user starts with เงินสด"). After creating a profile,
    the user creates its first wallet (rule 12).
@@ -96,8 +100,8 @@ profiles (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets 
   (40px icon badge, name, balance), then an "เก็บถาวร" group, collapsed. Tapping a wallet opens
   it in the form for now (its transactions list comes with #8). "จัดลำดับ" = the drag-handle
   order mode.
-- **Wallet form** (bottom sheet, like the profile sheet): name, icon (tabs or groups for lucide /
-  `tpn` / letter), colour, starting balance, currency (rule 4), "exclude from total", and in edit
+- **Wallet form** (bottom sheet, like the profile sheet): name, icon (the catalogue grouped by
+  meaning: money places, cards, cash, …; lucide and `tpn` mixed), colour, starting balance, currency (rule 4), "exclude from total", and in edit
   mode archive / delete. "Fix" of a rejected op opens it (`FIX_ROUTES`).
 - **First wallet step** (rule 12).
 
@@ -117,17 +121,24 @@ The owner's wallets live in the local database and change through sync (offline-
 
 ## Open questions
 
-Settle these at the start of 6.2 (proposals):
+Settled before 6.2 (owner, in the 6.1 session):
 
-- **`tpn` icon set**: which drawings, and who draws them. Proposal: about 12 simple outline SVGs in
-  lucide's style (24px grid, 2px stroke): bank building, card, coins, cash note, QR / e-wallet,
-  piggy bank, safe, envelope, gold bar, phone wallet, shopping bag, savings jar; kept in
-  `web/public/icons/tpn/` or as strings in code beside the picker.
-- **Letter badge text**: the user types it, or it's the name's first character. Proposal: the
-  first character by default, editable to 1–2 characters.
-- **Name uniqueness scope**: per profile (rule 3, proposed) or per user.
-- **Wallet filter on the Transactions tab**: the header's left side is now the profile switcher.
-  Proposal: an "ทุกกระเป๋า ▾" chip under the header, built with #8.
-- **Archive in 6.2**: with no transactions yet every wallet can be deleted, so archive is only
-  reachable once #8 exists. Proposal: build the column and the toggle now, the "has
-  transactions" gate with #8.
+- **Icons**: no letter badge; lucide where it fits, our own `tpn` SVGs where it doesn't (rule 8).
+  `tpn` style: lucide's (24 × 24 grid, 2px round stroke, no fill), so both mix in one grid.
+  First wallet set, to draw in 6.2 (lucide covers piggy bank `lucidePiggyBank`, card
+  `lucideCreditCard`, cash `lucideBanknote`, coins `lucideCoins`, phone `lucideSmartphone`,
+  safe `lucideVault`, columns `lucideLandmark`): `tpn` adds several **bank** buildings
+  (columns with ฿, modern tower, branch with awning, ATM), several **cards** (debit with chip,
+  contactless, two stacked cards), a **baht coin** and **baht note**, **e-wallet with QR**,
+  **gold bar**, **savings jar**, **envelope of cash**. The same catalogue grows for categories
+  in #7 (food, buffet, coffee cup, …). Kept as SVG strings in code beside the picker
+  (`shared/components/icon-badge`), registered like lucide's.
+- **Name scope**: unique within the profile (rule 3).
+- **Archive**: built in 6.2 (rule 6). The `isArchived` column must exist from the first
+  migration anyway, so the toggle and the "เก็บถาวร" group cost little now; the "has
+  transactions, so no delete" gate becomes real in #8.
+- **Wallet filter and time range on the Transactions tab** (#8, owner's direction, Money
+  Lover style): the wallet switcher sits at the **header centre**, and a **⋮ menu** at the
+  header right holds the filters: view by day / month (default, the current month) / quarter /
+  year / all / custom range. Layout to confirm at the start of #8 (see transaction.md → Open
+  questions).
