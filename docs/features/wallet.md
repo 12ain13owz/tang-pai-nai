@@ -1,7 +1,7 @@
 # Wallet
 
-> Status: **Built** in #6.2. API: `api/src/features/wallet/` (sync handler only; tables `wallets`
-> and `wallet_members`). Web: `core/wallet` (`WalletService`), `features/wallets` (Wallets tab),
+> Status: **Built** in #6.2; `hiddenCategoryIds` and the "หมวดหมู่ที่ใช้" row in 7.2. API:
+> `api/src/features/wallet/` (sync handler only; tables `wallets` and `wallet_members`). Web: `core/wallet` (`WalletService`), `features/wallets` (Wallets tab),
 > `layout/` (wallet sheet, first-wallet step). Rules 4's and 6's "has transactions" become real
 > with #8; members (#16).
 
@@ -133,7 +133,7 @@ profiles (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets 
 - **Profile**: `wallets.profileId`; deleting a profile takes its wallets (rule 11).
 - **Category (#7)**: one set per profile; a wallet can hide categories it doesn't use, as a
   `hiddenCategoryIds` column on `wallets` (decided at the start of #7; built in 7.2, category
-  rule 13).
+  rule 13); the category form can also choose its wallets, writing their lists.
 - **Transaction (#8)**: requires `walletId` and inherits the wallet's currency; rule 4's
   "has transactions" and rule 6 become real then.
 - Reports and budgets filter by wallet.

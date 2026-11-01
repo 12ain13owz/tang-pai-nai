@@ -1,11 +1,12 @@
 # Category
 
-> Status: **7.1 built** (categories, the default set, Account › หมวดหมู่); **7.2** (hiding per
-> wallet, rule 13) next. Revised at the start of #7 (one set per profile, the default set written
-> with the profile, a wallet can hide categories) and built in two parts. API:
-> `api/src/features/category/` (sync handler only). Web: `core/category` (`CategoryService`),
-> `core/profile/default-categories.ts`, `layout/category-sheet`,
-> `features/account/pages/categories-page`.
+> Status: **Built** in #7: 7.1 (categories, the default set, Account › หมวดหมู่) and 7.2
+> (hiding per wallet, rule 13, from the wallet form and the category form). Revised at the start
+> of #7 (one set per profile, the default set written with the profile, a wallet can hide
+> categories). API: `api/src/features/category/` (sync handler only), `wallets.hiddenCategoryIds`
+> in `features/wallet`. Web: `core/category` (`CategoryService`),
+> `core/profile/default-categories.ts`, `core/wallet/hidden-categories.ts`,
+> `layout/category-sheet`, `layout/wallet-sheet`, `features/account/pages/categories-page`.
 
 ## Purpose
 
@@ -118,8 +119,12 @@ shows when the profile is created (rule 8).
     - A wallet **may hide every category of a type** (a credit card with no income); #8's picker
       then says so and points to the wallet's "หมวดหมู่ที่ใช้".
     - The row is in the wallet form when **creating and editing**.
+    - **The category form chooses its wallets too** (decided while building 7.2, owner's idea):
+      saving a category writes the profile's open wallets whose list changes (its own id added
+      or removed) in the same local write.
 
     Two devices editing the same wallet follow the usual later-edit-wins for the whole row.
+
 14. An untrusted device can create, edit, archive and delete categories only while online
     (offline-sync rule 1), as for profiles.
 
@@ -155,12 +160,16 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
   (`FIX_ROUTES` → `/account/categories?fix=<opId>`). Asks before closing with unsaved input.
 - **Category picker** (#8): in the transaction form, the current wallet's non-hidden,
   non-archived categories of the chosen type.
-- **Wallet form** (7.2): a "หมวดหมู่ที่ใช้" row (under "ไม่รวมในยอดรวม", in create and edit;
-  its line says "ใช้ทุกหมวดหมู่" or "ซ่อน n หมวดหมู่", n counting the stored ids the device shows
-  as hidden, and a ›) opening a view in the same sheet (‹ back, no bottom button, like the icon
-  view): tabs รายจ่าย / รายรับ, then the wallet's profile's open categories, parents with their
-  children indented, a switch each (on = used). The choice is part of the form, saved with the
-  form's one button.
+- **Wallet form** (7.2): a "หมวดหมู่ที่ใช้" row under "ไม่รวมในยอดรวม" (create and edit), drawn
+  like "หมวดหมู่หลัก": the label left, "ทั้งหมด" or "ซ่อน n" right (n = the profile's open
+  categories hidden here, children of a hidden parent included), a ›. It opens a view in the
+  same sheet (‹ back, no bottom button, no explanation line): tabs รายจ่าย / รายรับ, then the
+  wallet's profile's open categories, parents with their children indented, a switch each (on =
+  used; a child of a hidden parent shows off, locked, "ซ่อนตามหมวดหมู่หลัก"). The choice is part
+  of the form, saved with its one button.
+- **Category form** (7.2): row 4 "ใช้ในกระเป๋า" (shown while the profile has an open wallet):
+  "ทุกกระเป๋า" or "n จาก m กระเป๋า", opening a view of the profile's open wallets with a switch
+  each (a wallet that hides the chosen parent shows off, locked). Saved with the category.
 
 ## Interactions
 
@@ -175,7 +184,9 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
 
 Settled at the start of 7.2 (owner): rule 13's details (a parent's id only, archived ids kept,
 a type may be hidden entirely, the row in create and edit), and the profile delete confirm
-counts categories too (rule 12).
+counts categories too (rule 12). Settled while building 7.2 (owner, from mock-ups): no
+explanation line in the categories view, the category form chooses its wallets too, the buffet
+icon became a chafing dish (the other drawings kept as icons of their own).
 
 Settled while building 7.1 (owner, from mock-ups): white glyphs on every user colour (DESIGN.md
 §3); the Account tab became grouped rows that open pages (option A1), so หมวดหมู่ is one of
