@@ -114,7 +114,7 @@ type View = 'form' | 'confirmDelete' | 'confirmDiscard'
                   {{ 'profiles.deleteHeading' | transloco: { name: editingName() } }}
                 </h2>
                 <p class="text-sm text-muted-foreground">
-                  {{ 'profiles.deleteText' | transloco }}
+                  {{ deleteText() | transloco: { count: walletCount() } }}
                 </p>
               </div>
               <div class="flex flex-col gap-3">
@@ -190,6 +190,21 @@ export class ProfileSheet {
     const id = this.editingId()
     return (id && this.profileService.byId(id)?.name) ?? ''
   })
+  /** Rule 8: the confirm step says how many wallets go with the profile. */
+  protected walletCount = computed(() => {
+    const id = this.editingId()
+    return id ? this.profileService.walletCount(id) : 0
+  })
+  protected deleteText = computed(() => {
+    switch (this.walletCount()) {
+      case 0:
+        return 'profiles.deleteText'
+      case 1:
+        return 'profiles.deleteTextWallet'
+      default:
+        return 'profiles.deleteTextWallets'
+    }
+  })
   protected heading = computed(() => {
     switch (this.state()?.mode) {
       case 'edit':
@@ -261,8 +276,10 @@ export class ProfileSheet {
   protected remove(): void {
     const id = this.editingId()
     if (id) {
+      // Read before the delete: the profile is gone from the list right after.
+      const name = this.editingName()
       this.profileService.remove(id)
-      toast(this.transloco.translate('profiles.deleted', { name: this.editingName() }))
+      toast(this.transloco.translate('profiles.deleted', { name }))
     }
     this.finish()
   }

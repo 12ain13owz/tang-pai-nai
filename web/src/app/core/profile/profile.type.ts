@@ -37,3 +37,9 @@ export const PROFILE_LIMITS = {
 
 /** Where the device keeps its current profile (profile rule 6). */
 export const PROFILE_KEY_PREFIX = 'tpn-profile:'
+
+/**
+ * Device tables whose rows carry `profile_id` and go with their profile (profile rule 8). Their
+ * tombstones are written in the same local write as the profile's.
+ */
+export const PROFILE_CHILD_TABLES = ['wallets'] as const
