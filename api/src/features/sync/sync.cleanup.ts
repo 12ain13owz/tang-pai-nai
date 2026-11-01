@@ -1,6 +1,5 @@
 import '@/features/currency'
 import '@/features/profile'
-import '@/features/sync-probe'
 import '@/features/wallet'
 import { client } from '@/core/database'
 import { logger } from '@/core/logger'

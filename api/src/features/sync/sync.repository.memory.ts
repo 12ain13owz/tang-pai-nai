@@ -13,7 +13,7 @@ interface MemoryState {
 type CheckRule = (rows: SyncRow[], userId: string, row: SyncRowInput) => string | null
 
 export interface MemorySyncOptions {
-  /** A feature rule per table (like the probe's unique title): the message when broken. */
+  /** A feature rule per table (like a unique profile or wallet name): the message when broken. */
   checks?: Record<string, CheckRule>
   /** Rows per table that every user may pull (master data). */
   shared?: Record<string, SyncRow[]>

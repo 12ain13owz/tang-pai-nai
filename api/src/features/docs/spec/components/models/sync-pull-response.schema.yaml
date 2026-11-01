@@ -40,7 +40,7 @@ properties:
         type: boolean
       tables:
         type: array
-        description: Tables this server syncs (the dev-only sync_probes is absent in production)
+        description: Tables this server syncs
         items:
           type: string
-        example: [currencies, profiles, sync_probes]
+        example: [currencies, profiles, wallets]
