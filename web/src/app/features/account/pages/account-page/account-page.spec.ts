@@ -48,7 +48,10 @@ describe('AccountPage', () => {
         { provide: AuthService, useValue: authService },
         { provide: OfflineService, useValue: offlineService },
         { provide: SyncService, useValue: syncService },
-        { provide: ProfileService, useValue: { current: signal({ name: 'ส่วนตัว' }) } },
+        {
+          provide: ProfileService,
+          useValue: { current: signal({ name: 'ส่วนตัว' }), profiles: signal([{}, {}]) },
+        },
         {
           provide: DeviceStorageService,
           useValue: { isInstalled: signal(false), isPersisted: signal(null) },
@@ -74,7 +77,28 @@ describe('AccountPage', () => {
     fixture.detectChanges()
     const link = page().querySelector('a[href="/account/profiles"]')
     expect(link?.textContent).toContain(th.account.profiles)
-    expect(link?.textContent).toContain('ส่วนตัว')
+    expect(link?.textContent).toContain('ใช้อยู่: ส่วนตัว · ทั้งหมด 2')
+  })
+
+  it('groups rows that each open a page, with a line on what is there (A1)', () => {
+    const headings = [...page().querySelectorAll('h2')].map((h) => h.textContent.trim())
+    expect(headings).toEqual([
+      th.account.group.data,
+      th.account.group.security,
+      th.account.group.settings,
+    ])
+    const links = [...page().querySelectorAll('a')].map((a) => a.getAttribute('href'))
+    expect(links).toEqual([
+      '/account/profiles',
+      '/account/categories',
+      '/account/security',
+      '/account/appearance',
+      '/account/device',
+    ])
+    const text = page().textContent
+    expect(text).toContain('ของโปรไฟล์ ส่วนตัว')
+    expect(text).toContain('ไทย · ตามระบบ · Midnight Gold')
+    expect(text).toContain('เปิดในเบราว์เซอร์ · ไม่รองรับการเก็บถาวร')
   })
 
   it('pushes first, then signs out and wipes when everything is synced (rule 7)', async () => {

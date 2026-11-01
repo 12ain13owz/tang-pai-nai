@@ -1,4 +1,4 @@
-import { countOps, deleteOp, findOp, findPending, listOps, queueWrite } from './outbox'
+import { countOps, deleteOp, findOp, findPending, listOps, moveOpLast, queueWrite } from './outbox'
 import { getRow } from './sync-tables'
 import { openTestDatabase } from './testing-db'
 import type { LocalDatabase } from './local-database'
@@ -91,5 +91,23 @@ describe('outbox', () => {
     expect(findOp(db, opId)?.rowId).toBe('p1')
     deleteOp(db, opId)
     expect(findOp(db, opId)).toBeNull()
+  })
+})
+
+describe('moveOpLast', () => {
+  let db: LocalDatabase
+  beforeEach(async () => {
+    db = await openTestDatabase()
+  })
+  afterEach(() => db.close())
+
+  it("moves a row's pending op after every other op, and leaves the last one alone", () => {
+    queueWrite(db, 'profiles', 'upsert', profile('p1', 'A'))
+    queueWrite(db, 'profiles', 'upsert', profile('p2', 'B'))
+    moveOpLast(db, 'profiles', 'p1')
+    expect(listOps(db, 'pending').map((op) => op.rowId)).toEqual(['p2', 'p1'])
+    moveOpLast(db, 'profiles', 'p1')
+    moveOpLast(db, 'profiles', 'nope')
+    expect(listOps(db, 'pending').map((op) => op.rowId)).toEqual(['p2', 'p1'])
   })
 })

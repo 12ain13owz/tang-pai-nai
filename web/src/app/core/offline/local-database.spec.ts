@@ -8,6 +8,7 @@ describe('LocalDatabase', () => {
       .map((row) => row['name'])
     expect(tables).toEqual(
       expect.arrayContaining([
+        'categories',
         'currencies',
         'outbox',
         'profiles',
@@ -17,14 +18,14 @@ describe('LocalDatabase', () => {
       ])
     )
     expect(tables).not.toContain('sync_probes')
-    expect(db.selectValue('PRAGMA user_version')).toBe(5)
+    expect(db.selectValue('PRAGMA user_version')).toBe(6)
     db.close()
   })
 
   it('brings a 4a.1 snapshot (schema step 1) up to date and keeps its data', async () => {
     const old = await openTestDatabase()
     old.exec(
-      'DROP TABLE currencies; DROP TABLE outbox; DROP TABLE sync_notices; DROP TABLE profiles; DROP TABLE wallets'
+      'DROP TABLE currencies; DROP TABLE outbox; DROP TABLE sync_notices; DROP TABLE profiles; DROP TABLE wallets; DROP TABLE categories'
     )
     old.exec('PRAGMA user_version = 1')
     old.exec(`INSERT INTO sync_meta (key, value) VALUES ('deviceId', 'd1')`)
@@ -32,17 +33,19 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(5)
+    expect(db.selectValue('PRAGMA user_version')).toBe(6)
     expect(db.selectValue(`SELECT value FROM sync_meta WHERE key = 'deviceId'`)).toBe('d1')
     expect(db.selectValue('SELECT count(*) FROM outbox')).toBe(0)
     expect(db.selectValue('SELECT count(*) FROM profiles')).toBe(0)
     expect(db.selectValue('SELECT count(*) FROM wallets')).toBe(0)
+    expect(db.selectValue('SELECT count(*) FROM categories')).toBe(0)
     db.close()
   })
 
   it('drops the dev-only sync_probes with its ops and notices (step 5), keeping the rest', async () => {
     const old = await openTestDatabase()
-    old.exec(`CREATE TABLE sync_probes (id TEXT PRIMARY KEY, title TEXT NOT NULL) STRICT;
+    old.exec(`DROP TABLE categories;
+      CREATE TABLE sync_probes (id TEXT PRIMARY KEY, title TEXT NOT NULL) STRICT;
       INSERT INTO sync_probes VALUES ('p1', 'Tea');
       INSERT INTO outbox (op_id, tbl, row_id, op, row, created_at)
         VALUES ('o1', 'sync_probes', 'p1', 'upsert', '{}', 1), ('o2', 'profiles', 'x', 'upsert', '{}', 1);
@@ -56,6 +59,21 @@ describe('LocalDatabase', () => {
     expect(db.selectValue(`SELECT count(*) FROM sqlite_master WHERE name = 'sync_probes'`)).toBe(0)
     expect(db.selectObjects('SELECT op_id FROM outbox')).toEqual([{ op_id: 'o2' }])
     expect(db.selectObjects('SELECT id FROM sync_notices')).toEqual([{ id: 'n2' }])
+    db.close()
+  })
+
+  it('adds categories (step 6) to a 6.2 snapshot', async () => {
+    const old = await openTestDatabase()
+    old.exec(`DROP TABLE categories;
+      INSERT INTO sync_meta (key, value) VALUES ('deviceId', 'd1');
+      PRAGMA user_version = 5`)
+    const snapshot = old.export()
+    old.close()
+
+    const db = await openTestDatabase(snapshot)
+    expect(db.selectValue('PRAGMA user_version')).toBe(6)
+    expect(db.selectValue('SELECT count(*) FROM categories')).toBe(0)
+    expect(db.selectValue(`SELECT value FROM sync_meta WHERE key = 'deviceId'`)).toBe('d1')
     db.close()
   })
 

@@ -1,4 +1,4 @@
-import { signal } from '@angular/core'
+import { computed, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { toastState } from '@spartan-ng/brain/sonner'
@@ -39,6 +39,10 @@ describe('ProfileService', () => {
     isSyncing,
     lastSyncedAt,
     rejectedOp: (opId: string) => findOp(db, opId),
+    rejected: computed(() => {
+      changes()
+      return listOps(db, 'rejected')
+    }),
   }
 
   const row = (id: string, name: string, sortOrder: number, extra: object = {}) => ({
@@ -122,7 +126,7 @@ describe('ProfileService', () => {
     pulled(row('p1', 'Home', 4))
     const id = service.save(null, values)
     expect(service.byId(id)).toMatchObject({ name: 'Shop', sortOrder: 5, deletedAt: null })
-    expect(ops().map((op) => [op.rowId, op.op, op.baseSeq])).toEqual([[id, 'upsert', null]])
+    expect(ops()[0]).toMatchObject({ table: 'profiles', rowId: id, op: 'upsert', baseSeq: null })
     expect(service.current()?.id).toBe(id)
     expect(localStorage.getItem('tpn-profile:u1')).toBe(id)
   })
@@ -319,6 +323,151 @@ describe('ProfileService', () => {
       online.set(true)
       TestBed.tick()
       expect(liveWallets()).toEqual([])
+    })
+  })
+
+  describe('with categories (category rules 8, 12)', () => {
+    const categories = () =>
+      db
+        .selectObjects(
+          'SELECT name, type, parent_id FROM categories WHERE deleted_at IS NULL ORDER BY rowid'
+        )
+        .map((r) => [r['name'], r['type'], r['parent_id'] === null ? 'top' : 'child'])
+
+    it('writes the default set with a new profile, parents first, in the same write', () => {
+      start()
+      const id = service.save(null, values)
+      const all = categories()
+      expect(all).toHaveLength(27)
+      expect(all.slice(0, 3)).toEqual([
+        ['อาหารและเครื่องดื่ม', 'expense', 'top'],
+        ['กาแฟ', 'expense', 'child'],
+        ['ร้านอาหาร', 'expense', 'child'],
+      ])
+      expect(all.filter(([, type]) => type === 'income')).toHaveLength(6)
+      const pushed = ops().map((op) => op.table)
+      expect(pushed[0]).toBe('profiles')
+      expect(pushed.filter((table) => table === 'categories')).toHaveLength(27)
+      expect(db.selectValue('SELECT count(*) FROM categories WHERE profile_id = ?', [id])).toBe(27)
+    })
+
+    it('names the default set in the language the app shows', () => {
+      localStorage.setItem('tpn-lang', 'en')
+      start()
+      service.save(null, values)
+      expect(categories().slice(0, 2)).toEqual([
+        ['Food & drink', 'expense', 'top'],
+        ['Coffee', 'expense', 'child'],
+      ])
+    })
+
+    it('writes no set for an edit', () => {
+      start()
+      pulled(row('p1', 'Home', 0))
+      service.save('p1', values)
+      expect(categories()).toHaveLength(0)
+    })
+
+    it('tombstones its categories with a deleted profile, and those of one deleted elsewhere', () => {
+      start()
+      const mine = service.save(null, values)
+      const other = service.save(null, { ...values, name: 'Other' })
+      db.exec('DELETE FROM outbox')
+      service.remove(mine)
+      TestBed.tick()
+      expect(
+        db.selectValue(
+          'SELECT count(*) FROM categories WHERE profile_id = ? AND deleted_at IS NULL',
+          [mine]
+        )
+      ).toBe(0)
+      pulled(row(other, 'Other', 1, { deletedAt: 5 }))
+      TestBed.tick()
+      expect(categories()).toHaveLength(0)
+    })
+
+    /** A refused create of profile `p9` with two refused categories and one refused wallet. */
+    const refusedCreate = () => {
+      const insert = (opId: string, table: string, rowId: string, row: object) =>
+        db.exec(
+          `INSERT INTO outbox (op_id, tbl, row_id, op, row, base_seq, created_at, status, code)
+           VALUES (?, ?, ?, 'upsert', ?, NULL, 1, 'rejected', 'CONFLICT')`,
+          [
+            opId,
+            table,
+            rowId,
+            JSON.stringify({ id: rowId, createdAt: 1, updatedAt: 1, deletedAt: null, ...row }),
+          ]
+        )
+      insert('o1', 'profiles', 'p9', { name: 'Home', icon: 'lucideStar', color: '#2563eb' })
+      const category = {
+        profileId: 'p9',
+        type: 'expense',
+        icon: 'lucideShapes',
+        color: '#475569',
+        isArchived: false,
+      }
+      insert('o2', 'categories', 'c1', { ...category, parentId: null, name: 'Food', sortOrder: 0 })
+      insert('o3', 'categories', 'c2', { ...category, parentId: 'c1', name: 'Tea', sortOrder: 0 })
+      insert('o4', 'wallets', 'w1', {
+        profileId: 'p9',
+        name: 'Cash',
+        currencyCode: 'THB',
+        initialBalance: 0,
+        icon: 'lucideWallet',
+        color: '#2563eb',
+        excludeFromTotal: false,
+        isArchived: false,
+        sortOrder: 0,
+      })
+      insert('o5', 'categories', 'c3', {
+        ...category,
+        profileId: 'p1',
+        parentId: null,
+        name: 'X',
+        sortOrder: 0,
+      })
+      changes.update((n) => n + 1)
+    }
+
+    it('groups the refused child rows of a refused profile create under it', () => {
+      start()
+      pulled(row('p1', 'Work', 0))
+      refusedCreate()
+      expect(
+        service
+          .rejectedItems()
+          .map(({ op, children }) => [op.opId, children.map((child) => child.opId)])
+      ).toEqual([
+        ['o1', ['o2', 'o3', 'o4']],
+        ['o5', []],
+      ])
+    })
+
+    it('sends the refused child rows again when the profile is fixed, with no new set', () => {
+      start()
+      pulled(row('p1', 'Work', 0))
+      refusedCreate()
+      service.save('p9', { ...values, name: 'Home 2' }, 'o1')
+      expect(listOps(db, 'rejected').map((op) => op.opId)).toEqual(['o5'])
+      expect(ops().map((op) => `${op.table}:${op.rowId}`)).toEqual([
+        'profiles:p9',
+        'categories:c1',
+        'categories:c2',
+        'wallets:w1',
+      ])
+      expect(categories()).toEqual([
+        ['Food', 'expense', 'top'],
+        ['Tea', 'expense', 'child'],
+      ])
+    })
+
+    it('discards a refused profile with its refused child rows', () => {
+      start()
+      pulled(row('p1', 'Work', 0))
+      refusedCreate()
+      service.discardRefused('o1')
+      expect(listOps(db, 'rejected').map((op) => op.opId)).toEqual(['o5'])
     })
   })
 })
