@@ -10,7 +10,7 @@ import { NetworkStatusService } from '@/core/network'
 import { findOp, getRow, listOps, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
-import { TransactionService } from '@/core/transaction'
+import { QuickAmountsService, TransactionService } from '@/core/transaction'
 import { TransactionSheet } from './transaction-sheet'
 
 describe('TransactionSheet', () => {
@@ -253,6 +253,129 @@ describe('TransactionSheet', () => {
     expect(text()).toContain(th.transactions.excludeFromReport)
     await open({ mode: 'create' })
     expect(text()).not.toContain(th.transactions.excludeFromReport)
+  })
+
+  const keypad = () => body().querySelector(`[role="group"][aria-label="${th.keypad.label}"]`)
+  const quickRow = () =>
+    body().querySelector(`[role="group"][aria-label="${th.keypad.quickLabel}"]`)
+  const quick = async (amount: string) => click(th.keypad.quickAdd.replace('{{ amount }}', amount))
+  const coffeeRow = (id: string, extra: object = {}) => {
+    putRow(db, 'transactions', {
+      ...base,
+      id,
+      profileId: 'p1',
+      walletId: 'Card',
+      categoryId: 'Coffee',
+      amount: 6500,
+      occurredOn: '2026-11-01',
+      note: 'ลาเต้เย็น',
+      excludeFromReport: false,
+      ...extra,
+    })
+    changes.update((n) => n + 1)
+  }
+
+  it('adds quick amounts like counting notes (8.2)', async () => {
+    await open({ mode: 'create' })
+    expect(quickRow()).not.toBeNull()
+    await quick('500')
+    await quick('100')
+    expect(text()).toContain('500+100')
+    expect(text()).toContain('= 600.00')
+  })
+
+  it('leaves the quick amounts out when they are turned off', async () => {
+    TestBed.inject(QuickAmountsService).setEnabled(false)
+    await open({ mode: 'create' })
+    expect(keypad()).not.toBeNull()
+    expect(quickRow()).toBeNull()
+  })
+
+  it('closes the keypad when another control is used, and opens it again on the amount row', async () => {
+    await open({ mode: 'create' })
+    await keys('1', '2', '0', 'เครื่องหมายบวก', '6', '5')
+    button(th.transactions.dayBefore)?.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    await settle()
+    expect(keypad()).toBeNull()
+    expect(text()).toContain('185')
+    expect(text()).not.toContain('120+65')
+    await click(th.transactions.amount, true)
+    expect(keypad()).not.toBeNull()
+    // A tap on blank space keeps it.
+    body()
+      .querySelector('form .flex.flex-col.gap-4')
+      ?.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    await settle()
+    expect(keypad()).not.toBeNull()
+  })
+
+  it('saves and stays for the next one: same wallet, category and date, empty amount (8.2)', async () => {
+    await open({ mode: 'create', walletId: 'Card', occurredOn: '2026-10-31' })
+    await quick('50')
+    await click('หมวดหมู่ ', true)
+    await click('Coffee')
+    await click(th.transactions.saveAndAdd)
+    expect(listOps(db, 'pending')).toHaveLength(1)
+    expect(transactions.sheet()?.mode).toBe('create')
+    expect(keypad()).not.toBeNull()
+    expect(button('หมวดหมู่ Coffee')).toBeDefined()
+    await quick('20')
+    await submit()
+    const rows = listOps(db, 'pending').map((op) => getRow(db, 'transactions', op.rowId))
+    expect(
+      rows.map((row) => [
+        row?.['walletId'],
+        row?.['categoryId'],
+        row?.['amount'],
+        row?.['occurredOn'],
+      ])
+    ).toEqual([
+      ['Card', 'Coffee', 5000, '2026-10-31'],
+      ['Card', 'Coffee', 2000, '2026-10-31'],
+    ])
+    expect(transactions.sheet()).toBeNull()
+  })
+
+  it('copies a row as a new one dated today, leaving the row as it was (8.2)', async () => {
+    transactions.today.set('2026-11-02')
+    coffeeRow('t1')
+    await open({ mode: 'edit', id: 't1' })
+    await click(th.transactions.copy)
+    expect(transactions.sheet()?.mode).toBe('create')
+    expect(text()).toContain(th.transactions.createHeading)
+    await submit()
+    const [op] = listOps(db, 'pending')
+    expect(op.rowId).not.toBe('t1')
+    expect(getRow(db, 'transactions', op.rowId)).toMatchObject({
+      walletId: 'Card',
+      categoryId: 'Coffee',
+      amount: 6500,
+      occurredOn: '2026-11-02',
+      note: 'ลาเต้เย็น',
+    })
+    expect(transactions.byId('t1')?.occurredOn).toBe('2026-11-01')
+  })
+
+  it('shows the most used categories on top of the picker, the tree in its own order (8.2)', async () => {
+    transactions.today.set('2026-11-02')
+    await open({ mode: 'create' })
+    await click('หมวดหมู่ ', true)
+    expect(text()).not.toContain(th.transactions.frequent)
+    await click(th.sheet.back)
+    coffeeRow('t1')
+    coffeeRow('t2', { categoryId: 'Old' }) // archived: not offered
+    await click('หมวดหมู่ ', true)
+    const frequent = body().querySelector(`ul[aria-label="${th.transactions.frequent}"]`)
+    expect(frequent?.textContent).toContain('Coffee')
+    expect(frequent?.textContent).not.toContain('Old')
+  })
+
+  it('starts on the type of the last one added', async () => {
+    transactions.rememberType('income')
+    await open({ mode: 'create' })
+    await click('หมวดหมู่ ', true)
+    expect(text()).toContain('Salary')
+    expect(text()).not.toContain('Coffee')
   })
 
   it('blocks saving on an untrusted device offline, and says why', async () => {

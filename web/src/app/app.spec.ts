@@ -73,4 +73,13 @@ describe('App', () => {
     expect(compiled.querySelector('nav button')?.getAttribute('aria-label')).toBe('เพิ่มธุรกรรม')
     expect(compiled.querySelector('h1')?.textContent).toContain('ธุรกรรม')
   })
+
+  it('keeps the toaster beside <body>, so an open sheet neither hides it nor closes on its taps', async () => {
+    const fixture = TestBed.createComponent(App)
+    await fixture.whenStable()
+    const toaster = document.querySelector('hlm-toaster')
+    expect(toaster?.parentElement).toBe(document.documentElement)
+    fixture.destroy()
+    toaster?.remove()
+  })
 })

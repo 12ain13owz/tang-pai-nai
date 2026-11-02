@@ -1,4 +1,4 @@
-import { evaluate, hasOperator, pressKey } from './calc'
+import { addQuickAmount, evaluate, hasOperator, pressKey } from './calc'
 import type { CalcKey } from './calc'
 
 const type = (keys: CalcKey[], minorUnit = 2) =>
@@ -53,5 +53,23 @@ describe('hasOperator', () => {
   it('says whether "=" has something to work out', () => {
     expect(hasOperator('120')).toBe(false)
     expect(hasOperator('120+5')).toBe(true)
+  })
+})
+
+describe('addQuickAmount', () => {
+  it('takes the amount when empty, "0" or after an operator', () => {
+    expect(addQuickAmount('', 500, 2)).toBe('500')
+    expect(addQuickAmount('0', 100, 2)).toBe('100')
+    expect(addQuickAmount('500×', 2, 2)).toBe('500×2')
+  })
+
+  it('adds otherwise, like counting notes', () => {
+    expect(addQuickAmount('500', 100, 2)).toBe('500+100')
+    expect(addQuickAmount('500+100', 1000, 2)).toBe('500+100+1000')
+    expect(addQuickAmount('12.', 20, 2)).toBe('12+20')
+    expect(evaluate(addQuickAmount(addQuickAmount('', 500, 2), 100, 2), 2)).toEqual({
+      ok: true,
+      minor: 60000,
+    })
   })
 })

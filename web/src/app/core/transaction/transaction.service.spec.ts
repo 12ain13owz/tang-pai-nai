@@ -217,6 +217,31 @@ describe('TransactionService', () => {
     expect(service.defaultWalletId()).toBe('cash')
   })
 
+  it('ranks "ใช้บ่อย" by uses in the last 90 days of the type, ties to the one recorded last', () => {
+    service.today.set('2026-11-02')
+    category('coffee', 'expense')
+    category('fuel', 'expense')
+    transaction('t1', { categoryId: 'coffee', createdAt: 10 })
+    transaction('t2', { categoryId: 'coffee', createdAt: 11 })
+    transaction('t3', { categoryId: 'food', createdAt: 12 })
+    transaction('t4', { categoryId: 'fuel', createdAt: 13 })
+    transaction('t5', { categoryId: 'fuel', occurredOn: '2026-08-01' }) // older than 90 days
+    transaction('t6', { categoryId: 'food', deletedAt: 20 })
+    transaction('t7', { categoryId: 'salary' })
+    transaction('t8', { categoryId: 'food', profileId: 'p2' })
+    expect(service.frequentCategoryIds('p1', 'expense')).toEqual(['coffee', 'fuel', 'food'])
+    expect(service.frequentCategoryIds('p1', 'income')).toEqual(['salary'])
+    expect(service.frequentCategoryIds('p1', 'expense', 90, 1)).toEqual(['coffee'])
+    expect(service.frequentCategoryIds('', 'expense')).toEqual([])
+  })
+
+  it('remembers the type of the last one added, per profile', () => {
+    expect(service.lastType()).toBe('expense')
+    service.rememberType('income')
+    expect(service.lastType()).toBe('income')
+    expect(service.lastType('p2')).toBe('expense')
+  })
+
   it('tombstones live transactions whose wallet or category was deleted elsewhere (rule 10)', () => {
     transaction('t1', { walletId: 'card' })
     transaction('t2', { categoryId: 'salary' })
