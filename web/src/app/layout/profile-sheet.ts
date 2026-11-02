@@ -205,27 +205,33 @@ export class ProfileSheet {
     return (id && this.profileService.byId(id)?.name) ?? ''
   })
   /**
-   * Rule 8 (and category rule 12): the confirm step says how many wallets and categories go with
-   * the profile, and the wallets' transactions.
+   * Rule 8 (category rule 12, transaction rule 9): the confirm step says how many wallets,
+   * categories and transactions go with the profile.
    */
   protected deleteText = computed(() => {
     this.languageService.language()
     const id = this.editingId()
-    const wallets = id ? this.profileService.walletCount(id) : 0
-    const categories = id ? this.profileService.categoryCount(id) : 0
     const t = (key: string, params?: object) => this.transloco.translate(`profiles.${key}`, params)
-    const walletText = wallets === 1 ? t('deleteWallet') : t('deleteWallets', { count: wallets })
-    const categoryText =
-      categories === 1 ? t('deleteCategory') : t('deleteCategories', { count: categories })
-    if (wallets > 0 && categories > 0) {
-      return t('deleteTextBoth', { wallets: walletText, categories: categoryText })
+    // [one, many] translation keys and how many go with the profile.
+    const counts: [string, string, number][] = [
+      ['deleteWallet', 'deleteWallets', id ? this.profileService.walletCount(id) : 0],
+      ['deleteCategory', 'deleteCategories', id ? this.profileService.categoryCount(id) : 0],
+      [
+        'deleteTransaction',
+        'deleteTransactions',
+        id ? this.profileService.transactionCount(id) : 0,
+      ],
+    ]
+    const items = counts
+      .filter(([, , count]) => count > 0)
+      .map(([one, many, count]) => (count === 1 ? t(one) : t(many, { count })))
+    if (items.length === 0) {
+      return t('deleteText')
     }
-    if (wallets > 0) {
-      return t('deleteTextWalletsOnly', { wallets: walletText })
-    }
-    return categories > 0
-      ? t('deleteTextCategoriesOnly', { categories: categoryText })
-      : t('deleteText')
+    const and = this.transloco.translate('sync.and')
+    const list =
+      items.length === 1 ? items[0] : `${items.slice(0, -1).join(', ')}${and}${items.at(-1)}`
+    return t('deleteTextWith', { items: list })
   })
   protected heading = computed(() => {
     switch (this.state()?.mode) {

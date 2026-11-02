@@ -7,6 +7,7 @@ import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { AuthStore } from '@/core/auth'
+import { CategoryService } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
 import { SyncService } from '@/core/offline'
@@ -14,6 +15,7 @@ import type { OutboxOp, SyncRow } from '@/core/offline'
 import { PROFILE_TABLE, ProfileService } from '@/core/profile'
 import { WALLET_TABLE, WalletService } from '@/core/wallet'
 import { SheetFrame } from '@/shared/components/sheet'
+import { formatAmount } from '@/shared/utils'
 
 /** Where "fix" opens a rejected op's values, per table. */
 const FIX_ROUTES: Readonly<Record<string, string>> = {
@@ -21,6 +23,7 @@ const FIX_ROUTES: Readonly<Record<string, string>> = {
   categories: '/account/categories',
   // The wallet sheet lives in the shell, so it opens on the tab itself (even its first-wallet step).
   [WALLET_TABLE]: '/wallets',
+  transactions: '/transactions',
 }
 
 /**
@@ -197,6 +200,7 @@ const FIX_ROUTES: Readonly<Record<string, string>> = {
 export class SyncSheet {
   private router = inject(Router)
   private walletService = inject(WalletService)
+  private categoryService = inject(CategoryService)
   private languageService = inject(LanguageService)
   protected syncService = inject(SyncService)
   private profileService = inject(ProfileService)
@@ -228,6 +232,9 @@ export class SyncSheet {
         count(WALLET_TABLE) > 0
           ? this.transloco.translate('sync.withWallets', { count: count(WALLET_TABLE) })
           : null,
+        count('transactions') > 0
+          ? this.transloco.translate('sync.withTransactions', { count: count('transactions') })
+          : null,
       ].filter((part) => part !== null)
       return {
         op,
@@ -255,7 +262,22 @@ export class SyncSheet {
 
   protected summary(row: SyncRow): string {
     const title = row['title'] ?? row['name']
-    return typeof title === 'string' ? title : String(row['id'])
+    if (typeof title === 'string') {
+      return title
+    }
+    // A transaction has no name: its category and amount (and note) say which one it is.
+    if (typeof row['amount'] === 'number' && typeof row['categoryId'] === 'string') {
+      const wallet =
+        typeof row['walletId'] === 'string' ? this.walletService.byId(row['walletId']) : null
+      const minorUnit = this.walletService.minorUnit(wallet?.currencyCode ?? '')
+      const parts = [
+        this.categoryService.byId(row['categoryId'])?.name,
+        formatAmount(row['amount'], minorUnit, this.languageService.locale()),
+        typeof row['note'] === 'string' ? row['note'] : '',
+      ]
+      return parts.filter((part) => part).join(' · ')
+    }
+    return String(row['id'])
   }
 
   protected fixRoute(table: string): string | undefined {

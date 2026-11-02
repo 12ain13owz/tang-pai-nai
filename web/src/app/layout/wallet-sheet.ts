@@ -118,7 +118,7 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                       size="icon"
                       type="button"
                       class="size-11 text-destructive"
-                      [disabled]="!walletService.canWrite()"
+                      [disabled]="!walletService.canWrite() || currencyLocked()"
                       [attr.aria-label]="'wallets.delete' | transloco"
                       (click)="view.set('confirmDelete')"
                     >
@@ -209,6 +209,11 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                       />
                     </button>
                   </div>
+                  @if (editing() && currencyLocked()) {
+                    <p class="rounded-xl bg-muted px-4 py-3 text-sm">
+                      {{ 'wallets.deleteUsed' | transloco }}
+                    </p>
+                  }
                 </div>
                 <div sheetFooter class="pt-3">
                   <button
@@ -673,6 +678,9 @@ export class WalletSheet {
       return
     }
     this.form.reset(this.toForm(wallet))
+    if (state.view === 'categories') {
+      this.view.set('categories')
+    }
   }
 
   private toForm(values: WalletValues) {

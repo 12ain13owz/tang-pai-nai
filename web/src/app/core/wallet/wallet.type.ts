@@ -39,7 +39,8 @@ export interface WalletValues {
 /** Which wallet sheet is open: create, edit one, or "fix" a rejected op's refused values. */
 export type WalletSheetState =
   | { mode: 'create' }
-  | { mode: 'edit'; id: string }
+  /** `view: 'categories'` opens on "หมวดหมู่ที่ใช้" (from the transaction form's picker). */
+  | { mode: 'edit'; id: string; view?: 'categories' }
   | { mode: 'fix'; opId: string; id: string; profileId: string; values: WalletValues }
 
 /** A currency the device pulled (docs/features/currency.md). */

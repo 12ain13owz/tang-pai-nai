@@ -6,7 +6,11 @@ import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } fr
 import type { LocalDatabase, SqlValue } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
 import { WALLET_TABLE, WalletService } from '@/core/wallet'
+import type { Wallet } from '@/core/wallet'
+import { toDay } from '@/shared/utils'
+import { PERIOD_UNITS, periodRange, periodTabs } from './period'
 import { TRANSACTION_PREF_PREFIX, TRANSACTION_TABLE } from './transaction.type'
+import type { PeriodTab, PeriodUnit } from './period'
 import type {
   DayRange,
   MoneySummary,
@@ -53,7 +57,71 @@ export class TransactionService {
   /** The open transaction sheet (layout/transaction-sheet), if any. */
   sheet = signal<TransactionSheetState | null>(null)
 
+  // The Transactions tab's view (transaction.md → Web screens), shared by the header (wallet
+  // switcher, ⋮ "ดูตาม") and the page. The wallet and the unit are remembered per profile.
+  /** The chosen wallet, or null for "ทุกกระเป๋า". */
+  viewWalletId = signal<string | null>(null)
+  unit = signal<PeriodUnit>('month')
+  tab = signal<PeriodTab>(0)
+  custom = signal<DayRange>({ from: null, to: null })
+  /** The header's wallet switcher sheet and the custom range sheet. */
+  walletSheet = signal(false)
+  customSheet = signal(false)
+  /** The device's date, refreshed when the app comes back and every minute. */
+  today = signal(toDay())
+
+  /** The chosen wallet while it's live, else null ("ทุกกระเป๋า"). */
+  viewWallet = computed<Wallet | null>(() => {
+    const id = this.viewWalletId()
+    return this.walletService.wallets().find((wallet) => wallet.id === id) ?? null
+  })
+  /**
+   * Rule 11's "all wallets": the profile's wallets without `excludeFromTotal`, archived ones
+   * included (their history stays); or the one chosen.
+   */
+  viewWalletIds = computed<string[]>(() => {
+    const wallet = this.viewWallet()
+    if (wallet) {
+      return [wallet.id]
+    }
+    return this.walletService
+      .wallets()
+      .filter((item) => !item.excludeFromTotal)
+      .map((item) => item.id)
+  })
+  /** The profile's oldest transaction day, where the period tabs start. */
+  firstDay = computed<string | null>(() => {
+    const profileId = this.profileService.current()?.id
+    if (!profileId) {
+      return null
+    }
+    return this.read((db) => {
+      const value = db.selectValue(
+        `SELECT min(occurred_on) FROM ${TRANSACTION_TABLE} WHERE profile_id = ? AND deleted_at IS NULL`,
+        [profileId]
+      )
+      return typeof value === 'string' ? value : null
+    }, null)
+  })
+  tabs = computed(() => periodTabs(this.unit(), this.today(), this.firstDay()))
+  range = computed(() => periodRange(this.unit(), this.tab(), this.today(), this.custom()))
+  items = computed(() => this.list(this.range(), this.viewWalletIds()))
+  summaryLines = computed(() => this.summary(this.range(), this.viewWalletIds()))
+
   constructor() {
+    // Each profile has its own remembered wallet and unit; a new profile starts on "ทุกกระเป๋า".
+    effect(() => {
+      const profileId = this.profileService.current()?.id ?? ''
+      untracked(() => {
+        const saved = this.readView(profileId)
+        this.viewWalletId.set(saved.walletId)
+        this.unit.set(saved.unit)
+        this.tab.set(0)
+      })
+    })
+    const refresh = () => this.today.set(toDay())
+    this.window?.document.addEventListener('visibilitychange', refresh)
+    this.window?.setInterval(refresh, 60_000)
     // Rule 10: a wallet or category deleted on a device that didn't know all its transactions
     // leaves live ones behind; whichever device sees that tombstones the ones it holds.
     effect(() => {
@@ -216,6 +284,25 @@ export class TransactionService {
     })
   }
 
+  /** Chooses the wallet the tab shows (null: "ทุกกระเป๋า"); remembered for the profile. */
+  selectWallet(id: string | null): void {
+    this.viewWalletId.set(id)
+    this.writeView()
+  }
+
+  /** Chooses "ดูตาม"; the tabs start again on the current period. */
+  selectUnit(unit: PeriodUnit): void {
+    this.unit.set(unit)
+    this.tab.set(0)
+    this.writeView()
+  }
+
+  /** A custom range (from ≤ to). */
+  selectCustom(range: DayRange): void {
+    this.custom.set(range)
+    this.selectUnit('custom')
+  }
+
   /** The wallet a new transaction starts on: the last one used here, if still open. */
   defaultWalletId(profileId = this.profileService.current()?.id ?? ''): string | null {
     const open = this.walletService.openWallets()
@@ -278,6 +365,42 @@ export class TransactionService {
       params.push(...walletIds)
     }
     return { sql: parts.join(' AND '), params }
+  }
+
+  private readView(profileId: string): { walletId: string | null; unit: PeriodUnit } {
+    try {
+      const raw = this.storage()?.getItem(`${TRANSACTION_PREF_PREFIX}view:${profileId}`)
+      const parsed: unknown = raw ? JSON.parse(raw) : null
+      if (parsed && typeof parsed === 'object') {
+        const { walletId, unit } = parsed as Record<string, unknown>
+        return {
+          walletId: typeof walletId === 'string' ? walletId : null,
+          // A custom range isn't kept, so it comes back as a month.
+          unit:
+            PERIOD_UNITS.includes(unit as PeriodUnit) && unit !== 'custom'
+              ? (unit as PeriodUnit)
+              : 'month',
+        }
+      }
+    } catch {
+      // A blocked or broken storage only loses the convenience.
+    }
+    return { walletId: null, unit: 'month' }
+  }
+
+  private writeView(): void {
+    const profileId = this.profileService.current()?.id
+    if (!profileId) {
+      return
+    }
+    try {
+      this.storage()?.setItem(
+        `${TRANSACTION_PREF_PREFIX}view:${profileId}`,
+        JSON.stringify({ walletId: this.viewWalletId(), unit: this.unit() })
+      )
+    } catch {
+      // As above.
+    }
   }
 
   private rememberWallet(profileId: string, walletId: string): void {
