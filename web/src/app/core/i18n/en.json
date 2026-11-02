@@ -588,7 +588,8 @@
     "unreachableText": "Can’t reach the server. It will try again by itself.",
     "serverDownWrite": "Can’t reach the server. This device isn’t set up for offline use, so saving waits until the server is back.",
     "withTransactions": "{{count}} transactions",
-    "tabletransactions": "Transaction"
+    "tabletransactions": "Transaction",
+    "tabletransfers": "Transfer"
   },
   "colors": {
     "label": "Colour {{number}}"

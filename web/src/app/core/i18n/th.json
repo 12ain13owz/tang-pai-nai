@@ -588,7 +588,8 @@
     "unreachableText": "ติดต่อเซิร์ฟเวอร์ไม่ได้ จะลองใหม่เองเป็นระยะ",
     "serverDownWrite": "ติดต่อเซิร์ฟเวอร์ไม่ได้ เครื่องนี้ไม่ได้ใช้งานออฟไลน์ จึงบันทึกได้เมื่อเซิร์ฟเวอร์กลับมา",
     "withTransactions": "ธุรกรรม {{count}} รายการ",
-    "tabletransactions": "ธุรกรรม"
+    "tabletransactions": "ธุรกรรม",
+    "tabletransfers": "การโอนเงิน"
   },
   "colors": {
     "label": "สีที่ {{number}}"
