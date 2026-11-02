@@ -108,17 +108,18 @@ is no way to fold it into another. **7.3 adds "ผสาน"** (category rule 15
 transactions to another one of the same type, then delete it, from the category form in Account
 › หมวดหมู่ (a header icon beside archive / delete, views in the same sheet).
 
-- **Spec written, waiting for the owner** (category.md rule 15 + Open questions → 7.3, mock-up
-  `docs/features/mockups/category-merge.html`): same type only; a sub-category into another
-  sub-category or any parent (its own included); a parent into another parent, its children
-  moved under the target (a name clash merges into the same-named child) or all merged in; a confirm view, no undo;
-  merged ids leave `hiddenCategoryIds`; the "can't delete" line offers the merge.
-- **Sync** (the part to settle first): a pulled category tombstone deletes the transactions
-  still on it (transaction rule 10), so a transaction another device added offline would be
-  deleted rather than moved. The tombstone carries `mergedIntoId` and late rows follow it. Open:
-  whether the **server** moves the transactions when the tombstone lands (proposed: one op, no
-  gap for rows the merging device never saw) or the device pushes one op per row before the
-  tombstone (thousands of ops, 100 per request).
+- **Decided at the start of 7.3** (owner; category.md rule 15, mock-up
+  `docs/features/mockups/category-merge.html`): a category merges into **any** category of the
+  same profile and type, top-level or sub-category, except itself and its own children (as in
+  Money Lover: "ค่าน้ำ" into "ค่าข้าว" or into "อาหาร"); a parent's children move under the
+  target (or the target's parent) with a name clash merging, or all merge in; a confirm view,
+  no undo; merged ids leave `hiddenCategoryIds`; the "can't delete" line offers the merge.
+- **Sync, decided** (owner): the device merges locally and queues **one** op (the tombstone
+  with `mergedIntoId`); the **server** moves the transactions (and leftover children) when it
+  lands, and moves a late transaction pushed to the merged category instead of refusing it. No
+  network needed to merge. A merge only meets a row it didn't move when one user's two devices
+  are both offline (later-edit-wins can't settle it: different rows), so shared wallets (#16)
+  stay on the roadmap.
 - Then API (migration `0014`, `categories.merged_into_id`, the handler's follow-ups, the
   transaction check's redirect), web (local schema step, `CategoryService.merge`, the sweep, the
   sheet's `merge` / `confirmMerge` views), tests, and this file.
