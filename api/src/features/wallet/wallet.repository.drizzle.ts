@@ -2,6 +2,7 @@ import { and, asc, count, eq, gt, isNull, lt, max, ne, sql } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
 import { currencies } from '@/core/database/schema/currency'
 import { profiles } from '@/core/database/schema/profile'
+import { transactions } from '@/core/database/schema/transaction'
 import { wallets } from '@/core/database/schema/wallet'
 import { wrapUnexpected } from '@/core/error'
 import type { SyncRowInput, SyncTableHandler } from '@/core/sync'
@@ -82,6 +83,17 @@ const checkWallet = async (
     ).at(0)
     if (!currency) {
       return WALLET_MESSAGE.CURRENCY_INACTIVE
+    }
+  }
+  // Rule 4: the currency is fixed once the wallet has live transactions.
+  if (stored && stored.currencyCode !== currencyCode) {
+    const used = await executor
+      .select({ id: transactions.id })
+      .from(transactions)
+      .where(and(eq(transactions.walletId, row.id), isNull(transactions.deletedAt)))
+      .limit(1)
+    if (used.length > 0) {
+      return WALLET_MESSAGE.CURRENCY_FIXED
     }
   }
   // Rule 3: archived wallets neither hold a name nor count toward the 20.

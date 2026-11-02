@@ -22,6 +22,7 @@ export const CATEGORY_MESSAGE = {
   PARENT_ARCHIVED: 'The parent category is archived',
   HAS_CHILDREN: 'A category with sub-categories cannot have a parent',
   TYPE_FIXED: 'A category with sub-categories cannot change its type',
+  TYPE_USED: 'A category with transactions cannot change its type',
   NAME_TAKEN: 'A category with this name already exists here',
   TOO_MANY: `A profile can have at most ${CATEGORY_LIMITS.PER_PROFILE} categories`,
 } as const
