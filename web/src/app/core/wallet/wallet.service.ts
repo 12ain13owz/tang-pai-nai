@@ -2,6 +2,7 @@ import { computed, inject, Service, signal } from '@angular/core'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
+import { cleanHidden, findWallet, toWallet } from './hidden-categories'
 import { DEFAULT_CURRENCY, WALLET_LIMITS, WALLET_TABLE } from './wallet.type'
 import type {
   Currency,
@@ -37,7 +38,7 @@ export class WalletService {
             `SELECT * FROM ${WALLET_TABLE} WHERE profile_id = ? AND deleted_at IS NULL ${ORDER}`,
             [profileId]
           )
-          .map((row) => fromSql(WALLET_TABLE, row) as unknown as Wallet),
+          .map((row) => toWallet(fromSql(WALLET_TABLE, row))),
       []
     )
   })
@@ -157,6 +158,9 @@ export class WalletService {
         currencyCode: text('currencyCode', this.defaultCurrency()),
         initialBalance: typeof row['initialBalance'] === 'number' ? row['initialBalance'] : 0,
         excludeFromTotal: row['excludeFromTotal'] === true,
+        hiddenCategoryIds: Array.isArray(row['hiddenCategoryIds'])
+          ? row['hiddenCategoryIds'].filter((item): item is string => typeof item === 'string')
+          : [],
       },
     })
   }
@@ -205,6 +209,7 @@ export class WalletService {
         currencyCode: values.currencyCode,
         initialBalance: values.initialBalance,
         excludeFromTotal: values.excludeFromTotal,
+        hiddenCategoryIds: cleanHidden(db, values.hiddenCategoryIds),
         isArchived: live?.isArchived ?? false,
         sortOrder: live?.sortOrder ?? this.nextSortOrder(db, profileId),
         createdAt: current?.createdAt ?? now,
@@ -284,7 +289,7 @@ export class WalletService {
   }
 
   /** A profile's open wallets (the current one's from the signal, others from the database). */
-  private openOf(profileId: string): Wallet[] {
+  openOf(profileId: string): Wallet[] {
     if (profileId === this.profileService.current()?.id) {
       return this.openWallets()
     }
@@ -296,7 +301,7 @@ export class WalletService {
              WHERE profile_id = ? AND deleted_at IS NULL AND is_archived = 0`,
             [profileId]
           )
-          .map((row) => fromSql(WALLET_TABLE, row) as unknown as Wallet),
+          .map((row) => toWallet(fromSql(WALLET_TABLE, row))),
       []
     )
   }
@@ -311,8 +316,7 @@ export class WalletService {
   }
 
   private find(db: LocalDatabase, id: string): Wallet | null {
-    const row = db.selectObjects(`SELECT * FROM ${WALLET_TABLE} WHERE id = ?`, [id]).at(0)
-    return row ? (fromSql(WALLET_TABLE, row) as unknown as Wallet) : null
+    return findWallet(db, id)
   }
 
   private read<T>(work: (db: LocalDatabase) => T, fallback: T): T {

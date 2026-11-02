@@ -10,6 +10,7 @@ import {
 } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
+import { cleanHidden, toWallet, WALLET_TABLE } from '@/core/wallet'
 import { CATEGORY_LIMITS, CATEGORY_TABLE } from './category.type'
 import type {
   Category,
@@ -85,7 +86,20 @@ export class CategoryService {
 
   /** The open (or archived) tree of one type: parents with their children, in order. */
   tree(type: CategoryType, archived = false): CategoryNode[] {
-    const all = this.categories().filter((category) => category.type === type)
+    return this.toTree(this.categories(), type, archived)
+  }
+
+  /** `tree()` of any profile on this device (a wallet being fixed may be another profile's). */
+  treeOf(profileId: string, type: CategoryType): CategoryNode[] {
+    const categories =
+      profileId === this.profileService.current()?.id
+        ? this.categories()
+        : this.ofProfile(profileId)
+    return this.toTree(categories, type, false)
+  }
+
+  private toTree(categories: Category[], type: CategoryType, archived: boolean): CategoryNode[] {
+    const all = categories.filter((category) => category.type === type)
     return all
       .filter((category) => category.parentId === null && category.isArchived === archived)
       .map((category) => ({
@@ -189,12 +203,15 @@ export class CategoryService {
   /**
    * Creates (`id` null) or updates a category in `profileId` (the current profile by default); a
    * fix also drops the rejected op. A category that changes siblings goes last among the new ones.
+   * `hiddenIn` (the form's "ใช้ในกระเป๋า", rule 13): the profile's open wallets that list this
+   * category's own id; the ones that change are written in the same write. Null leaves them.
    */
   save(
     id: string | null,
     values: CategoryValues,
     fixOpId: string | null = null,
-    profileId = this.currentProfileId()
+    profileId = this.currentProfileId(),
+    hiddenIn: readonly string[] | null = null
   ): string {
     const now = Date.now()
     const rowId = id ?? uuidv7(now)
@@ -226,11 +243,59 @@ export class CategoryService {
       if (values.parentId !== null) {
         moveOpLast(db, CATEGORY_TABLE, rowId)
       }
+      if (hiddenIn) {
+        this.writeHiddenIn(db, owner, rowId, hiddenIn, now)
+      }
       if (fixOpId) {
         deleteOp(db, fixOpId)
       }
     })
     return rowId
+  }
+
+  /** The profile's open wallets that list the category's own id (rule 13). */
+  hiddenIn(categoryId: string, profileId: string): string[] {
+    return this.read(
+      (db) =>
+        this.openWallets(db, profileId)
+          .filter((wallet) => wallet.hiddenCategoryIds.includes(categoryId))
+          .map((wallet) => wallet.id),
+      []
+    )
+  }
+
+  private writeHiddenIn(
+    db: LocalDatabase,
+    profileId: string,
+    categoryId: string,
+    hiddenIn: readonly string[],
+    now: number
+  ): void {
+    for (const wallet of this.openWallets(db, profileId)) {
+      const listed = wallet.hiddenCategoryIds.includes(categoryId)
+      const wanted = hiddenIn.includes(wallet.id)
+      if (listed === wanted) {
+        continue
+      }
+      const ids = wanted
+        ? [...wallet.hiddenCategoryIds, categoryId]
+        : wallet.hiddenCategoryIds.filter((other) => other !== categoryId)
+      queueWrite(db, WALLET_TABLE, 'upsert', {
+        ...wallet,
+        hiddenCategoryIds: cleanHidden(db, ids),
+        updatedAt: now,
+      })
+    }
+  }
+
+  private openWallets(db: LocalDatabase, profileId: string) {
+    return db
+      .selectObjects(
+        `SELECT * FROM ${WALLET_TABLE}
+         WHERE profile_id = ? AND deleted_at IS NULL AND is_archived = 0`,
+        [profileId]
+      )
+      .map((row) => toWallet(fromSql(WALLET_TABLE, row)))
   }
 
   /**

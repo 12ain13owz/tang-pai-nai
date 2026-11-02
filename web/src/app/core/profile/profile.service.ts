@@ -299,6 +299,15 @@ export class ProfileService {
 
   /** How many live wallets go with the profile (the delete confirm, rule 8). */
   walletCount(id: string): number {
+    return this.childCount('wallets', id)
+  }
+
+  /** The profile's live categories (rule 8's confirm, category rule 12). */
+  categoryCount(id: string): number {
+    return this.childCount('categories', id)
+  }
+
+  private childCount(table: (typeof PROFILE_CHILD_TABLES)[number], id: string): number {
     this.offlineService.changes()
     if (!this.offlineService.isOpen()) {
       return 0
@@ -306,7 +315,7 @@ export class ProfileService {
     return Number(
       this.offlineService
         .db()
-        .selectValue(`SELECT count(*) FROM wallets WHERE profile_id = ? AND deleted_at IS NULL`, [
+        .selectValue(`SELECT count(*) FROM ${table} WHERE profile_id = ? AND deleted_at IS NULL`, [
           id,
         ])
     )

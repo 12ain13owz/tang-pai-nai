@@ -8,6 +8,8 @@ export interface SyncTable {
   key: string
   columns: readonly string[]
   booleans?: readonly string[]
+  /** Arrays, stored as JSON text (`[]` when absent) and parsed back on read. */
+  json?: readonly string[]
   /** Pull-only master data: no outbox ops, no tombstones. */
   readOnly?: boolean
 }
@@ -47,6 +49,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
       'excludeFromTotal',
       'isArchived',
       'sortOrder',
+      'hiddenCategoryIds',
       'createdAt',
       'updatedAt',
       'deletedAt',
@@ -54,6 +57,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
       'updatedBy',
     ],
     booleans: ['excludeFromTotal', 'isArchived'],
+    json: ['hiddenCategoryIds'],
   },
   categories: {
     key: 'id',
@@ -85,6 +89,10 @@ const toSql = (table: SyncTable, column: string, value: unknown): SqlValue => {
   if (table.booleans?.includes(column)) {
     return value ? 1 : 0
   }
+  if (table.json?.includes(column)) {
+    // JSON columns hold arrays; a row from before the column existed has none.
+    return JSON.stringify(value ?? [])
+  }
   if (value === undefined || value === null) {
     return null
   }
@@ -115,13 +123,31 @@ export const getRow = (db: LocalDatabase, name: string, id: string): SyncRow | n
   return row ? fromSql(name, row) : null
 }
 
-/** A stored row back to camelCase (booleans as booleans). */
+/** JSON text back to its value; null for anything that isn't JSON. */
+const parseJson = (value: SqlValue): unknown => {
+  if (typeof value !== 'string') {
+    return null
+  }
+  try {
+    return JSON.parse(value) as unknown
+  } catch {
+    return null
+  }
+}
+
+/** A stored row back to camelCase (booleans as booleans, JSON columns parsed). */
 export const fromSql = (name: string, row: Record<string, SqlValue>): SyncRow => {
   const table = SYNC_TABLES[name]
   const out: SyncRow = {}
   for (const column of table.columns) {
     const value = row[snake(column)]
-    out[column] = table.booleans?.includes(column) ? value === 1 : value
+    if (table.booleans?.includes(column)) {
+      out[column] = value === 1
+    } else if (table.json?.includes(column)) {
+      out[column] = parseJson(value)
+    } else {
+      out[column] = value
+    }
   }
   return out
 }

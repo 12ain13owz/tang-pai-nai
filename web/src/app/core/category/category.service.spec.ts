@@ -142,6 +142,63 @@ describe('CategoryService', () => {
     expect(ops()).toMatchObject([{ table: 'categories', rowId: id, op: 'upsert', baseSeq: null }])
   })
 
+  it("writes only the wallets whose list changes with the form's choice (rule 13)", () => {
+    const wallet = (id: string, extra: object = {}) =>
+      putRow(db, 'wallets', {
+        id,
+        profileId: 'p1',
+        name: id,
+        currencyCode: 'THB',
+        initialBalance: 0,
+        icon: 'lucideWallet',
+        color: '#16a34a',
+        excludeFromTotal: false,
+        isArchived: false,
+        sortOrder: 0,
+        hiddenCategoryIds: [],
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+        changeSeq: 3,
+        updatedBy: 'u1',
+        ...extra,
+      })
+    wallet('cash')
+    wallet('bank', { hiddenCategoryIds: ['Food', 'x'] })
+    wallet('card')
+    wallet('old', { isArchived: true })
+    wallet('other', { profileId: 'p2' })
+    pulled(category('Food'))
+    expect(service.hiddenIn('Food', 'p1')).toEqual(['bank'])
+
+    service.save('Food', { ...values, name: 'Food' }, null, undefined, ['cash'])
+    const walletOps = ops().filter((op) => op.table === 'wallets')
+    expect(walletOps.map((op) => op.rowId).sort()).toEqual(['bank', 'cash'])
+    expect(service.hiddenIn('Food', 'p1')).toEqual(['cash'])
+    const stored = (id: string) =>
+      db.selectValue(`SELECT hidden_category_ids FROM wallets WHERE id = ?`, [id])
+    expect(stored('bank')).toBe('["x"]')
+    expect(stored('cash')).toBe('["Food"]')
+
+    // A new category hidden in one wallet; null leaves the wallets alone.
+    const id = service.save(null, values, null, undefined, ['card', 'cash'])
+    expect(service.hiddenIn(id, 'p1').sort()).toEqual(['card', 'cash'])
+    const all = () => db.selectObjects('SELECT id, hidden_category_ids, updated_at FROM wallets')
+    const before = all()
+    service.save(id, values)
+    expect(all()).toEqual(before)
+  })
+
+  it("builds any profile's tree, the current one's from the signal", () => {
+    pulled(category('Food'))
+    pulled(category('Elsewhere', { profileId: 'p2' }))
+    pulled(category('Child', { profileId: 'p2', parentId: 'Elsewhere' }))
+    expect(service.treeOf('p1', 'expense').map((node) => node.category.id)).toEqual(['Food'])
+    expect(
+      service.treeOf('p2', 'expense').map((node) => [node.category.id, node.children.length])
+    ).toEqual([['Elsewhere', 1]])
+  })
+
   it('moves a category to the end of its new siblings, keeping its place otherwise', () => {
     pulled(category('Food'))
     pulled(category('Home', { sortOrder: 1 }))

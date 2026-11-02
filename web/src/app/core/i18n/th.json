@@ -98,7 +98,10 @@
     "iconHeading": "ไอคอนและสี",
     "changeIcon": "เปลี่ยนไอคอนและสี",
     "discardText": "สิ่งที่แก้ไว้ในฟอร์มนี้จะหายไป",
-    "undo": "เลิกทำ"
+    "undo": "เลิกทำ",
+    "categoriesUsed": "หมวดหมู่ที่ใช้",
+    "categoriesAll": "ทั้งหมด",
+    "categoriesHidden": "ซ่อน {{count}}"
   },
   "categories": {
     "title": "หมวดหมู่",
@@ -161,7 +164,13 @@
     "editItem": "แก้ไข {{name}}",
     "subOf": "ใต้ {{name}}",
     "limit": "มีหมวดหมู่ที่ใช้อยู่ครบ 200 รายการแล้ว เก็บถาวรหรือลบที่ไม่ใช้ก่อนจึงจะเพิ่มได้",
-    "undo": "เลิกทำ"
+    "undo": "เลิกทำ",
+    "hiddenWithParent": "ซ่อนตามหมวดหมู่หลัก",
+    "usedIn": "ใช้ในกระเป๋า",
+    "usedInHeading": "ใช้ในกระเป๋า",
+    "usedInAll": "ทุกกระเป๋า",
+    "usedInSome": "{{used}} จาก {{total}} กระเป๋า",
+    "tabsLabel": "ประเภทหมวดหมู่"
   },
   "reports": {
     "emptyHeading": "ยังไม่มีรายงาน",
@@ -524,11 +533,16 @@
     "loading": "กำลังโหลดโปรไฟล์",
     "dragItem": "ย้าย {{name}} (กดค้างแล้วลาก หรือใช้ปุ่มลูกศร)",
     "orderHint": "กดค้างที่ปุ่มจับแล้วลากเพื่อเรียงลำดับ",
-    "deleteTextWallets": "กระเป๋าเงิน {{count}} ใบและธุรกรรมในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้",
-    "deleteTextWallet": "กระเป๋าเงิน 1 ใบและธุรกรรมในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้",
     "iconHeading": "ไอคอนและสี",
     "changeIcon": "เปลี่ยนไอคอนและสี",
-    "discardText": "สิ่งที่แก้ไว้ในฟอร์มนี้จะหายไป"
+    "discardText": "สิ่งที่แก้ไว้ในฟอร์มนี้จะหายไป",
+    "deleteWallet": "กระเป๋าเงิน 1 ใบ",
+    "deleteWallets": "กระเป๋าเงิน {{count}} ใบ",
+    "deleteCategory": "หมวดหมู่ 1 รายการ",
+    "deleteCategories": "หมวดหมู่ {{count}} รายการ",
+    "deleteTextWalletsOnly": "{{wallets}} และธุรกรรมในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้",
+    "deleteTextCategoriesOnly": "{{categories}}ในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้",
+    "deleteTextBoth": "{{wallets}} {{categories}} และธุรกรรมในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้"
   },
   "icons": {
     "lucideUser": "คน",
@@ -570,6 +584,9 @@
     "tpnSavingsJar": "โหลออมสิน",
     "tpnCashEnvelope": "ซองเงินสด",
     "tpnBuffet": "บุฟเฟต์",
+    "tpnBuffetLine": "ไลน์บุฟเฟต์",
+    "tpnAllYouCanEat": "กินไม่อั้น",
+    "tpnServingDomes": "ฝาครอบอาหาร",
     "tpnBubbleTea": "ชานมไข่มุก",
     "tpnNoodleBowl": "ก๋วยเตี๋ยว",
     "tpnTuktuk": "ตุ๊กตุ๊ก",

@@ -97,7 +97,7 @@ describe('ProfileService', () => {
     isSyncing.set(false)
     lastSyncedAt.set(null)
     user.set({ id: 'u1' } as AuthUser)
-    toastState.toasts().forEach((toast) => toastState.dismiss(toast.id))
+    toastState.dismiss()
   })
 
   afterEach(() => db.close())

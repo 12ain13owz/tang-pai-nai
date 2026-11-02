@@ -80,8 +80,8 @@ merging.
 | 4a  | Offline sync foundation    | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                |
 | 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                      |
 | 6   | Profile + Wallet           | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
-| 7   | **Category**               | 🚧  | 🚧  | 7.1 ✅ categories, default set, Account › หมวดหมู่; **7.2 ← next**: hide per wallet. [spec](docs/features/category.md)                                                   |
-| 8   | Transaction                | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                                                                            |
+| 7   | Category                   | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms). [spec](docs/features/category.md)                                                     |
+| 8   | **Transaction** ← next     | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                                                                            |
 | 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                                                                  |
 | 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                                               |
 | 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                                                                       |
@@ -100,28 +100,52 @@ decision "Local-first").
 
 ---
 
-## Next: Category 7.2 (#7)
+## Next: Transaction (#8)
 
-Spec: [category.md](docs/features/category.md) (revised at the start of #7). **Decided at the
-start of #7**: two parts, one session and PR each, like #6.
+Spec: [transaction.md](docs/features/transaction.md). Start by revising the spec with the owner
+(step 0) and agreeing on the Transactions header from a mock-up (transaction.md → Open
+questions). **Carried over from #6 and #7**: wallet rules 4 and 6 become real
+(`WalletService.canChangeCurrency`, no delete with transactions), `balance()` is computed,
+category rules 4 and 6 gain "has transactions" (archive only), and the transaction form's
+category picker shows the chosen wallet's open categories that aren't hidden there
+(`isHiddenIn(wallet.hiddenCategoryIds, category)` from `@/core/wallet`; a type with none left
+says so and points to the wallet's "หมวดหมู่ที่ใช้", category rule 13).
 
-| Part | What                                                                                                                   | Status |
-| ---- | ---------------------------------------------------------------------------------------------------------------------- | ------ |
-| 7.1  | `categories` (API handler, device table), default set written with the profile, one-off dev script, Account › หมวดหมู่ | ✅     |
-| 7.2  | hide categories per wallet (`wallets.hiddenCategoryIds`, the wallet form's "หมวดหมู่ที่ใช้" row)                       | ⬜     |
+## Done: Category 7.2 (#7)
 
-**What 7.2 does** (category rule 13, decided at the start of #7: a column, not a table):
-`wallets.hiddenCategoryIds` (JSON array of UUIDs, at most 200, default `[]`) in an API migration
-and the wallet schema / handler (shape check only: unknown ids are ignored), a local schema step
-adding the column + `SYNC_TABLES` (a JSON column: `putRow` already stringifies non-scalars;
-reading needs a parse), and a "หมวดหมู่ที่ใช้" row in the wallet sheet opening a view of the
-profile's categories with a switch each (hiding a parent hides its children). It has no visible
-effect until #8's category picker reads it; check with a mock-up first like 7.1.
-
-**For #8** (unchanged from #6): wallet rules 4 and 6 become real (`WalletService.canChangeCurrency`,
-no delete with transactions), `balance()` is computed, category rules 4 and 6 gain "has
-transactions" (archive only), and the Transactions header waits for a mock-up
-(transaction.md → Open questions).
+- **Decided at the start of 7.2** (owner, category.md rule 13): hiding a parent stores the
+  parent's id only (children follow, also later ones; their switches show off and locked), an
+  archived category's id stays, ids of known tombstones and duplicates are dropped on save, a
+  wallet may hide every category of a type, and the row is in the wallet form when creating and
+  editing. The profile delete confirm counts categories too (rule 12, owner's request).
+- **Decided while building** (owner, from HTML mock-ups): no explanation line in the categories
+  view; the form rows look like "หมวดหมู่หลัก" (label left, value right, ›); **the category form
+  also chooses its wallets** ("ใช้ในกระเป๋า", owner's idea: a new category used only on a credit
+  card in one go), written to those wallets' `hiddenCategoryIds` in the same local write
+  (later-edit-wins per wallet row as usual). The buffet icon is redrawn as a chafing dish
+  (`tpnBuffet`, pick A); the first drawing stays as `tpnServingDomes`, and `tpnBuffetLine` and
+  `tpnAllYouCanEat` joined the food group ("keep them all").
+- **API**: migration `0011_wallet_hidden_categories` (`wallets.hidden_category_ids`, JSON text,
+  default `'[]'`), the wallet schema checks the shape only (UUIDs, at most 200; absent = `[]`),
+  the handler writes / pulls the array, OpenAPI `SyncWalletRow.hiddenCategoryIds`.
+- **Web**: local schema step 7 + `SYNC_TABLES.wallets.json` (JSON columns: `putRow` writes
+  `[]` when absent, `fromSql` parses); `core/wallet/hidden-categories.ts` (`isHiddenIn`,
+  `cleanHidden`, `toWallet`, `findWallet`); `WalletService.openOf(profileId)`;
+  `CategoryService.treeOf()`, `hiddenIn()`, `save(..., hiddenIn)`; the shared
+  `app-toggle-list-field`; wallet sheet view `categories`, category sheet view `wallets`;
+  `ProfileService.categoryCount()`.
+- **Checked**: curl (no field → `[]`, two ids, 200 ok, 201 / not a UUID / not an array / null
+  refused, pull, two devices from one `baseSeq`: the later edit wins and the loser's array is
+  in `change_history`). Playwright at 375×812 in th/en × light/dark on `npm run build`: hide a
+  parent (children locked, "ซ่อน 7" counts them), the income tab, save and reopen, the category
+  form's "ใช้ในกระเป๋า" (a wallet hiding the parent is locked), the profile delete confirm
+  ("กระเป๋าเงิน 2 ใบ หมวดหมู่ 27 รายการ"), the icon picker. Two devices: A offline edits first,
+  B online later → B wins and A shows B's list; B first, A offline later → A wins the whole row.
+  Server really stopped: a new category used only in one wallet queues 2 ops and syncs once the
+  server is back. An untrusted device offline can't save. Tests: API 497, web 381.
+- **Known**: with the network up but the API down, the app retries only on a write, a visibility
+  change, "sync ตอนนี้" or the 5-minute timer (a real offline → online change syncs at once);
+  unchanged from #4a.
 
 ## Done: Category 7.1 (#7)
 
@@ -170,8 +194,7 @@ transactions" (archive only), and the Transactions header waits for a mock-up
   stopped) adds a category that syncs once back; untrusted offline blocks adding. Found and
   fixed while checking: fixing a refused profile left its children rejected, and the pill
   counted them one by one. Tests: API 491, web 366.
-- **Known**: the profile delete confirm counts wallets, not categories (category rule 12 as
-  written). Same local-proxy limits as before (20 sign-in mails per hour, the 60 s cooldown
+- **Known**: the profile delete confirm counted wallets only (fixed in 7.2). Same local-proxy limits as before (20 sign-in mails per hour, the 60 s cooldown
   per email).
 
 ## Done: Profile + Wallet (#6)

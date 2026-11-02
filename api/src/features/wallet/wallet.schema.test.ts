@@ -20,8 +20,19 @@ describe('validateWallet', () => {
   it('accepts a wallet, trims the name and defaults deletedAt to null', () => {
     expect(validateWallet(valid)).toEqual({
       ok: true,
-      row: { ...valid, name: 'เงินสด', deletedAt: null },
+      row: { ...valid, name: 'เงินสด', hiddenCategoryIds: [], deletedAt: null },
     })
+  })
+
+  it('keeps hiddenCategoryIds as sent, any ids of the right shape (category rule 13)', () => {
+    const ids = ['0199a000-0000-7000-8000-000000000201', '0199a000-0000-7000-8000-000000000202']
+    const result = validateWallet({ ...valid, hiddenCategoryIds: ids })
+    expect(result.ok && result.row['hiddenCategoryIds']).toEqual(ids)
+    const many = Array.from(
+      { length: 200 },
+      (_, i) => `0199a000-0000-7000-8000-${String(i).padStart(12, '0')}`
+    )
+    expect(validateWallet({ ...valid, hiddenCategoryIds: many }).ok).toBe(true)
   })
 
   it('ignores server columns a device sends', () => {
@@ -32,6 +43,7 @@ describe('validateWallet', () => {
       'currencyCode',
       'deletedAt',
       'excludeFromTotal',
+      'hiddenCategoryIds',
       'icon',
       'id',
       'initialBalance',
@@ -70,6 +82,19 @@ describe('validateWallet', () => {
     ['a missing archive flag', { isArchived: undefined }, 'Is archived must be of type boolean'],
     ['a negative sort order', { sortOrder: -1 }, 'Invalid sortOrder format'],
     ['an id that is not a UUID', { id: 'abc' }, 'Invalid id format'],
+    ['hidden ids that are not UUIDs', { hiddenCategoryIds: ['abc'] }, 'Invalid hiddenCategoryIds'],
+    ['hidden ids that are not an array', { hiddenCategoryIds: 'x' }, 'Invalid hiddenCategoryIds'],
+    ['null hidden ids', { hiddenCategoryIds: null }, 'Invalid hiddenCategoryIds'],
+    [
+      'more than 200 hidden ids',
+      {
+        hiddenCategoryIds: Array.from(
+          { length: 201 },
+          (_, i) => `0199a000-0000-7000-8000-${String(i).padStart(12, '0')}`
+        ),
+      },
+      'Invalid hiddenCategoryIds',
+    ],
   ])('refuses %s', (_name, change, message) => {
     const result = validateWallet({ ...valid, ...change })
     expect(result.ok).toBe(false)

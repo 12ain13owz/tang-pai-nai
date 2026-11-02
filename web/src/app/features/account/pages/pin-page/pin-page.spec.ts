@@ -45,7 +45,7 @@ describe('PinPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     offline.check = 'ok'
-    toastState.toasts().forEach((toast) => toastState.dismiss(toast.id))
+    toastState.dismiss()
     TestBed.configureTestingModule({
       imports: [
         TranslocoTestingModule.forRoot({

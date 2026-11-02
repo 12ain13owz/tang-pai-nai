@@ -187,6 +187,10 @@ self-referencing parent: checks on other rows of its own table) and `features/cu
 - **One-off data scripts** for dev data live in `scripts/` and talk to the database with
   `@libsql/client` directly, taking `sync_state.last_seq` per row in one transaction (see
   `seed-default-categories.ts`).
+- **An array column** (e.g. `wallets.hiddenCategoryIds`): a `text({ mode: 'json' })` column
+  typed `string[]`, not null with a `'[]'` SQL default (see `schema/wallet.ts`); in the Zod
+  schema an array with `.max()` and `.default([])`, so a device from before the column still
+  pushes; the handler writes the array as is.
 - **Data cleanup in a migration** (rows, not schema): `npx drizzle-kit generate --custom --name
 <what>` gives an empty migration to write the SQL in, with a comment saying why (see
   `0009_purge_sync_probe_history.sql`); never edit the generated schema migration for it.

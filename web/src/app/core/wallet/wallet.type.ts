@@ -14,6 +14,8 @@ export interface Wallet {
   excludeFromTotal: boolean
   isArchived: boolean
   sortOrder: number
+  /** Categories this wallet doesn't use (category rule 13); a parent's id hides its children. */
+  hiddenCategoryIds: string[]
   createdAt: number
   updatedAt: number
   deletedAt: number | null
@@ -30,6 +32,8 @@ export interface WalletValues {
   /** Minor units. */
   initialBalance: number
   excludeFromTotal: boolean
+  /** Category rule 13. */
+  hiddenCategoryIds: string[]
 }
 
 /** Which wallet sheet is open: create, edit one, or "fix" a rejected op's refused values. */
@@ -63,6 +67,8 @@ export const WALLET_LIMITS = {
   NAME_MAX: 50,
   /** Non-archived wallets per profile (wallet rule 3). */
   PER_PROFILE: 20,
+  /** Ids in `hiddenCategoryIds` (category rule 13). */
+  HIDDEN_CATEGORIES_MAX: 200,
   /** ±10¹⁵ minor units (wallet rule 5). */
   BALANCE_MAX: 1_000_000_000_000_000,
 } as const

@@ -196,6 +196,12 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - **Segmented control** (`app-segmented-field`): two or three short choices in a `bg-muted` track,
   the chosen one a `bg-card` chip with `font-semibold` (รายจ่าย / รายรับ). The same look serves
   as tabs above a list (`role="tab"`, Account › หมวดหมู่).
+- **Switch list** (`app-toggle-list-field`, #7.2): a card of rows (40px badge, name, a switch
+  on the right; children 32px and indented), the whole row is the switch (`role="switch"`). A
+  row that follows something else (a child of a hidden parent) shows off, dimmed and disabled,
+  with one muted line saying why ("ซ่อนตามหมวดหมู่หลัก"). It sits in a sheet's later view, opened
+  from a form row drawn like "หมวดหมู่หลัก" (label left, value right, ›), and saves with the
+  form. Used for the wallet's "หมวดหมู่ที่ใช้" and the category's "ใช้ในกระเป๋า".
 - **List rows**: at least 56px tall. A 40px icon circle on the left (category/wallet colour), title
   and a muted subtitle (note) in the middle, amount on the right. Tap opens; there are no swipe-only
   actions.
@@ -266,7 +272,8 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - **Category icons** (#7.1): `CATEGORY_ICON_GROUPS` (อาหารและเครื่องดื่ม, การเดินทาง,
   บ้านและค่าใช้จ่าย, ช้อปปิ้ง, บันเทิงและสุขภาพ, ครอบครัวและชีวิต, รายรับ, อื่น ๆ), default
   `lucideShapes`. `tpn` adds buffet, bubble tea, noodle bowl, tuk-tuk, water tap, temple and
-  payslip (the buffet doesn't read well yet; redraw when there's a better idea). Sub-categories
+  payslip; in 7.2 the buffet became a chafing dish (owner's pick), and the first drawing
+  (`tpnServingDomes`), a buffet line and "all you can eat" joined the food group. Sub-categories
   show a 32px badge indented under their parent's 40px one. A new `tpn` icon is checked at 20px in a 40px badge beside lucide's
   before it ships.
 

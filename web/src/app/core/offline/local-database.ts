@@ -110,6 +110,8 @@ const MIGRATIONS: readonly string[] = [
     updated_by TEXT
   ) STRICT;
   CREATE INDEX categories_profile ON categories (profile_id)`,
+  // #7.2: the categories a wallet doesn't use, a JSON array (category rule 13).
+  `ALTER TABLE wallets ADD COLUMN hidden_category_ids TEXT NOT NULL DEFAULT '[]'`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null

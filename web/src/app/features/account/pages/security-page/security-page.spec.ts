@@ -110,6 +110,8 @@ describe('SecurityPage', () => {
   }
 
   beforeEach(async () => {
+    // Toasts are module state: a spec file run before this one in the same worker may leave some.
+    toastState.dismiss()
     await TestBed.configureTestingModule({
       imports: [
         SecurityPage,
@@ -131,7 +133,7 @@ describe('SecurityPage', () => {
 
   afterEach(() => {
     http.verify()
-    toastState.toasts().forEach((toast) => toastState.dismiss(toast.id))
+    toastState.dismiss()
   })
 
   it('shows the phone row as a link to /account/phone, with the number the Thai way', async () => {

@@ -15,6 +15,8 @@ export type Wallet = {
   excludeFromTotal: boolean
   isArchived: boolean
   sortOrder: number
+  /** Category ids this wallet doesn't use (category rule 13). */
+  hiddenCategoryIds: string[]
   createdAt: number
   updatedAt: number
   deletedAt: number | null

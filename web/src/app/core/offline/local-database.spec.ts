@@ -18,7 +18,7 @@ describe('LocalDatabase', () => {
       ])
     )
     expect(tables).not.toContain('sync_probes')
-    expect(db.selectValue('PRAGMA user_version')).toBe(6)
+    expect(db.selectValue('PRAGMA user_version')).toBe(7)
     db.close()
   })
 
@@ -33,7 +33,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(6)
+    expect(db.selectValue('PRAGMA user_version')).toBe(7)
     expect(db.selectValue(`SELECT value FROM sync_meta WHERE key = 'deviceId'`)).toBe('d1')
     expect(db.selectValue('SELECT count(*) FROM outbox')).toBe(0)
     expect(db.selectValue('SELECT count(*) FROM profiles')).toBe(0)
@@ -45,6 +45,7 @@ describe('LocalDatabase', () => {
   it('drops the dev-only sync_probes with its ops and notices (step 5), keeping the rest', async () => {
     const old = await openTestDatabase()
     old.exec(`DROP TABLE categories;
+      ALTER TABLE wallets DROP COLUMN hidden_category_ids;
       CREATE TABLE sync_probes (id TEXT PRIMARY KEY, title TEXT NOT NULL) STRICT;
       INSERT INTO sync_probes VALUES ('p1', 'Tea');
       INSERT INTO outbox (op_id, tbl, row_id, op, row, created_at)
@@ -65,15 +66,32 @@ describe('LocalDatabase', () => {
   it('adds categories (step 6) to a 6.2 snapshot', async () => {
     const old = await openTestDatabase()
     old.exec(`DROP TABLE categories;
+      ALTER TABLE wallets DROP COLUMN hidden_category_ids;
       INSERT INTO sync_meta (key, value) VALUES ('deviceId', 'd1');
       PRAGMA user_version = 5`)
     const snapshot = old.export()
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(6)
+    expect(db.selectValue('PRAGMA user_version')).toBe(7)
     expect(db.selectValue('SELECT count(*) FROM categories')).toBe(0)
     expect(db.selectValue(`SELECT value FROM sync_meta WHERE key = 'deviceId'`)).toBe('d1')
+    db.close()
+  })
+
+  it('adds wallets.hidden_category_ids (step 7) to a 7.1 snapshot, [] for its wallets', async () => {
+    const old = await openTestDatabase()
+    old.exec(`ALTER TABLE wallets DROP COLUMN hidden_category_ids;
+      INSERT INTO wallets (id, profile_id, name, currency_code, initial_balance, icon, color,
+        exclude_from_total, is_archived, sort_order, created_at, updated_at)
+        VALUES ('w1', 'p1', 'Cash', 'THB', 0, 'lucideWallet', '#16a34a', 0, 0, 0, 1, 1);
+      PRAGMA user_version = 6`)
+    const snapshot = old.export()
+    old.close()
+
+    const db = await openTestDatabase(snapshot)
+    expect(db.selectValue('PRAGMA user_version')).toBe(7)
+    expect(db.selectValue('SELECT hidden_category_ids FROM wallets')).toBe('[]')
     db.close()
   })
 

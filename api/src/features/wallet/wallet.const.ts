@@ -6,6 +6,8 @@ export const WALLET_LIMITS = {
   BALANCE_MAX: 1_000_000_000_000_000,
   /** Non-archived wallets per profile (wallet rule 3). */
   PER_PROFILE: 20,
+  /** Ids in `hiddenCategoryIds` (category rule 13). */
+  HIDDEN_CATEGORIES_MAX: 200,
 } as const
 
 export const WALLET_PATTERN = {
