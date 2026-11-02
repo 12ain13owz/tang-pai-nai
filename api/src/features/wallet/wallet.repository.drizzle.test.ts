@@ -12,6 +12,7 @@ import { categories } from '@/core/database/schema/category'
 import { currencies } from '@/core/database/schema/currency'
 import { profiles } from '@/core/database/schema/profile'
 import { transactions } from '@/core/database/schema/transaction'
+import { transfers } from '@/core/database/schema/transfer'
 import { wallets } from '@/core/database/schema/wallet'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
 import { WALLET_MESSAGE } from './wallet.const'
@@ -254,5 +255,34 @@ describe('walletSyncHandler', () => {
     expect(
       await push.check(db, 'alice', wallet('w2', 'Card', 0, { currencyCode: 'USD' }))
     ).toBeNull()
+  })
+
+  it('keeps the currency of a wallet on either side of a live transfer (transfer rule 8)', async () => {
+    await db.update(currencies).set({ isActive: true }).where(eq(currencies.code, 'USD'))
+    await push.write(db, 'alice', wallet('w1', 'Cash', 15))
+    await push.write(db, 'alice', wallet('w2', 'Card', 16))
+    await push.write(db, 'alice', wallet('w3', 'Savings', 17))
+    const transfer = (id: string, from: string, to: string, deletedAt: number | null = null) => ({
+      id,
+      userId: 'alice',
+      profileId: 'pa',
+      fromWalletId: from,
+      toWalletId: to,
+      amount: 100,
+      occurredOn: '2026-11-02',
+      note: '',
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt,
+      changeSeq: 50,
+      updatedBy: 'alice',
+    })
+    await db.insert(transfers).values([transfer('r1', 'w1', 'w2'), transfer('r2', 'w3', 'w1', 5)])
+    const usd = async (id: string, name: string) =>
+      push.check(db, 'alice', wallet(id, name, 0, { currencyCode: 'USD' }))
+    expect(await usd('w1', 'Cash')).toBe(WALLET_MESSAGE.CURRENCY_FIXED)
+    expect(await usd('w2', 'Card')).toBe(WALLET_MESSAGE.CURRENCY_FIXED)
+    // Only a deleted transfer: the currency is free again.
+    expect(await usd('w3', 'Savings')).toBeNull()
   })
 })
