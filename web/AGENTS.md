@@ -264,14 +264,16 @@ fixOpId?, profileId?, hiddenIn?)` (a row that changes siblings goes last among t
   `layout/wallet-sheet` has a `categories` view (tabs + `app-toggle-list-field`) for the
   wallet's `hiddenCategoryIds`.
 
-### Transactions (`core/transaction`, #8.1)
+### Transactions (`core/transaction`, #8)
 
 Spec: [transaction.md](../docs/features/transaction.md).
 
 - `TransactionService`: `list(range, walletIds)` / `summary(range, walletIds)` (SQL through
   the local indexes; a period of the profile, never every row), `byId()`, `save(id | null,
 values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `remove()` +
-  `restore()` (the toast's undo), `sheet` / `open()` / `openFix()`. The Transactions tab's view
+  `restore()` (the toast's undo), `sheet` / `open()` / `openFix()` (a create state may carry
+  `values` + `type`: "copy"), `frequentCategoryIds(profileId, type)` ("ใช้บ่อย", last 90 days),
+  `lastType()` / `rememberType()` (8.2). The Transactions tab's view
   lives here too, shared by the header and the page: `viewWalletId` (null = "ทุกกระเป๋า",
   `viewWalletIds()` leaves out wallets excluded from the total), `unit` (`PeriodUnit`), `tab`,
   `custom`, `range()`, `tabs()`, `items()`, `summaryLines()`, `today`; `selectWallet` /
@@ -279,11 +281,16 @@ values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `rem
   with the device). An effect tombstones live transactions whose wallet or category is a
   tombstone here (rule 10); the shell injects the service so it runs.
 - `core/transaction/period.ts`: `periodRange`, `periodTabs`, `periodLabel` (pure, ค.ศ.).
+- `core/transaction/quick-amounts.ts`: `QUICK_AMOUNTS` and `QuickAmountsService` (`enabled`,
+  `setEnabled`; a device setting in `localStorage` like the theme, Account › การแสดงผล).
+  `app-calc-keypad` draws them from `quickAmounts` and emits `quickPressed`; the sheet adds them
+  with `addQuickAmount` (`@/shared/utils` `calc.ts`).
 - `core/wallet` and `core/category` read the `transactions` table **by name**
   (`TRANSACTION_TABLE` in `wallet.type.ts`), because `core/transaction` builds on them.
 - UI: `layout/transactions-header` (the tab's header, `@defer`red by `app-header` for the
   bundle), `layout/view-wallet-sheet`, `layout/custom-range-sheet`, `layout/transaction-sheet`
-  (views `form` / `wallet` / `category` / `note` / `confirmDiscard`; keypad state; the shell
+  (views `form` / `wallet` / `category` / `note` / `confirmDiscard`; keypad state: it closes on
+  any other control of the form, `leaveAmount`; save and add, copy; the shell
   `@defer`s all three), `features/transactions` (the page; rows drawn 100 at a time with an
   `IntersectionObserver` sentinel). ➕ opens the sheet (`BottomTabBar.add()`); "fix" goes to
   `/transactions?fix=<opId>`.
@@ -384,8 +391,11 @@ isProcessing = signal(false)
   leaves behind.
 - Icons: `@ng-icons/lucide` via `NgIcon` + `provideIcons({ ... })` in the component. Brand
   marks that must keep their own colours (Google's "G") live in `shared/components/brand`.
-- Toasts: one `<hlm-toaster>` in the app root (`app.ts`), lifted above the tab bar. Show one with
-  `toast.success(text)` from `@spartan-ng/brain/sonner`, translating the text when it's shown.
+- Toasts: one `<hlm-toaster>` in the app root (`app.ts`), at the top of the screen (8.2). Show one
+  with `toast.success(text)` from `@spartan-ng/brain/sonner`, translating the text when it's
+  shown. `app.ts` moves the toaster beside `<body>` and `app.config.ts` sets CDK's
+  `OVERLAY_DEFAULT_CONFIG` `usePopover: false`: a sheet in the top layer would cover every toast,
+  and a toast inside `<body>` would be `aria-hidden` and count as a tap outside the sheet.
 
 ### Forms: Reactive Forms only, through shared fields
 

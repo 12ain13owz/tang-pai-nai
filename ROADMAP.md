@@ -81,8 +81,8 @@ merging.
 | 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                      |
 | 6   | Profile + Wallet           | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
 | 7   | Category                   | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms). [spec](docs/features/category.md)                                                     |
-| 8   | **Transaction** ← 8.2 next | 🚧  | 🚧  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 left. [spec](docs/features/transaction.md)                                                                 |
-| 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                                                                  |
+| 8   | Transaction                | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                         |
+| 9   | **Transfer** ← next        | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                                                                  |
 | 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                                               |
 | 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                                                                       |
 | 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                                                                           |
@@ -100,17 +100,42 @@ decision "Local-first").
 
 ---
 
-## Next: Transaction 8.2 (#8)
+## Next: Transfer between wallets (#9)
 
-Spec: [transaction.md](docs/features/transaction.md). 8.1 built the whole core; 8.2 takes what
-the owner asks for after using it, plus **quick amounts** above the keypad (500 / 1,000 / …),
-looked at in a mock-up first (Money Lover has none; they would need a setting to turn them off,
-owner at the start of #8). Known from 8.1, for 8.2 or later:
+Not started: write `docs/features/transfer.md` first (two linked entries, left out of income /
+expense totals, ROADMAP → Status). Known, for later:
 
-- Stacked toasts can cover the bottom of the keypad when ➕ opens right after a save (toasts sit
-  above every sheet, an older issue).
 - Headless Chromium breaks some Thai lines inside a word ("บัน/ทึก"); the app's older notices do
   the same, so it's the test browser's line breaking, not our markup.
+
+## Done: Transaction 8.2 (#8)
+
+- **Decided at the start of 8.2** (owner, from an HTML mock-up): **quick amounts** as a chip row
+  `20 · 50 · 100 · 500 · 1,000` at the top of the keypad's panel (keys 4px shorter), a chip
+  **adds** (`500` then `100` → `500+100`), a fixed set with an on/off switch per device in
+  Account › การแสดงผล (on by default); **toasts at the top** of the screen everywhere; and the
+  extras the owner picked: "ใช้บ่อย" categories (a shortcut row above the tree, the tree keeps
+  the user's order, so frequency and reordering don't fight), copy, save and add another, the
+  last type remembered.
+- **Decided while building** (owner): the keypad belongs to the amount row: it opens with it
+  when adding and closes when any other control of the form is used (type tabs, date,
+  เพิ่มเติม), not only the picker rows.
+- **Found while building**: a toast never showed over an open sheet: CDK put overlays in the
+  browser's top layer (popover), above any z-index, so toasts were drawn under the sheet's
+  backdrop (8.1's "stacked toasts cover the keypad" was really this). Now `OVERLAY_DEFAULT_CONFIG`
+  `usePopover: false` (`app.config.ts`) and the toaster lives beside `<body>` (`app.ts`), so a tap
+  on a toast doesn't close the sheet and the sheet's `aria-hidden` doesn't hide it.
+- **Web** (no API change): `shared/utils` `addQuickAmount`; `app-calc-keypad` `quickAmounts` /
+  `quickPressed`; `core/transaction` `QuickAmountsService` (`tpn-quick-amounts`),
+  `frequentCategoryIds()`, `lastType()` / `rememberType()`, `TransactionSheetState` create with
+  `values` / `type` (copy); `layout/transaction-sheet` (chips, ใช้บ่อย, copy, save and add,
+  `leaveAmount`).
+- **Checked**: Playwright at 375×812 in th/en × light/dark on `npm run build` (chips, `500+100 =
+600.00`, save and add, ใช้บ่อย order with ties, copy dated today, the last type, the switch
+  off = 8.1's keypad, delete + undo tapped over an open sheet, the ⋮ menu and wallet sheet after
+  the overlay change, the keypad closing on other controls); `setOffline` (2 rows queued, synced
+  0.5 s after) and the API really stopped ("เซิร์ฟเวอร์ไม่ตอบ · รอ 2", synced by itself 17 s
+  after it came back). Tests: web 439 (API unchanged, 512).
 
 ## Done: Transaction 8.1 (#8)
 

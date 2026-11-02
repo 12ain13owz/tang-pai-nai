@@ -1,7 +1,7 @@
 # Transaction
 
 > Status: **8.1 built** (the table, the form, the Transactions tab with its Money Lover header,
-> real balances, the "has transactions" rules of wallets and categories). **8.2 in progress**: quick
+> real balances, the "has transactions" rules of wallets and categories). **8.2 built**: quick
 > amounts, toasts on top, "ใช้บ่อย" categories, copy, save and add another, the last type. API: `api/src/features/transaction/`
 > (sync handler only). Web: `core/transaction` (`TransactionService`, `period.ts`),
 > `layout/transactions-header`, `layout/transaction-sheet`, `layout/view-wallet-sheet`,
@@ -194,8 +194,10 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
     category that no longer fits), note (opens its own view with a tall box and a 500 counter;
     ‹ keeps the text), date (‹ › a day, the middle opens the native date picker);
   - "ไม่รวมในรายงาน" folded under **เพิ่มเติม** (open by itself for a row that has it on);
-  - the **calculator keypad** (`app-calc-keypad`) opens by itself when adding (not when
-    editing), closes when another row is tapped or on "="; a hardware keyboard types into it;
+  - the **calculator keypad** (`app-calc-keypad`) belongs to the amount row: it opens by itself
+    when adding (not when editing) and on a tap on the amount, and closes on "=" or when any
+    other control of the form is used (a row, the type tabs, the date, เพิ่มเติม; 8.2), the
+    expression settling; a hardware keyboard types into it;
   - one main button "บันทึก" (above the keypad while it shows). Errors: "ใส่จำนวนเงินที่มากกว่า 0",
     "เลือกหมวดหมู่ก่อน". Asks before closing with unsaved input. An untrusted device offline gets
     the notice and a disabled save.
