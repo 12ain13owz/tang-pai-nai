@@ -8,12 +8,15 @@ export interface LanguageOption {
   id: Language
   /** Each language names itself, so it can be found from the other one. */
   label: string
-  /** Locale for `Intl` number / date / currency formatting. */
+  /**
+   * Locale for `Intl` number / date / currency formatting. Thai pins the Gregorian calendar: the
+   * whole app shows ค.ศ. (owner's choice in #8).
+   */
   locale: string
 }
 
 export const LANGUAGES: readonly LanguageOption[] = [
-  { id: 'th', label: 'ไทย', locale: 'th-TH' },
+  { id: 'th', label: 'ไทย', locale: 'th-TH-u-ca-gregory' },
   { id: 'en', label: 'English', locale: 'en-GB' },
 ]
 
