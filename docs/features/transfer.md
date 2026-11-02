@@ -1,27 +1,30 @@
 # Transfer
 
-> Status: **Spec (draft)**, proposals to confirm with the owner at the start of #9 (see Open
-> questions). Builds on [transaction.md](transaction.md).
+> Status: **Spec**; Q1–Q3 and Q5–Q7 settled by the owner at the start of #9, the menu, the
+> summary line and a second entry point still open (Open questions). Builds on
+> [transaction.md](transaction.md).
 
 ## Purpose
 
 Move money from one wallet to another (cash out of the bank, pay off a credit card, put money
 into savings) without it counting as income or expense. One transfer shows as money leaving one
-wallet and arriving in the other, so both balances are right, while the month's รายรับ / รายจ่าย
+wallet and arriving in the other (two rows in the list), so both balances are right, while the month's รายรับ / รายจ่าย
 stay what was really earned and spent.
 
 ## Out of scope
 
-- **Different currencies** (Proposal Q2): both wallets must share a currency. A rate / a second
-  amount comes when a non-THB currency is actually used (ROADMAP backlog, FX).
-- **A fee field** (Proposal Q3): a bank fee is an ordinary expense the user records beside it.
+- **Different currencies** (Q2): both wallets must share a currency (each wallet has one,
+  wallet rule 4). A rate / a second amount comes when a non-THB currency is actually used
+  (ROADMAP backlog, FX).
+- **A fee field** (Q3): a bank fee is an ordinary expense in a category, which the user enters
+  as its own transaction.
 - Transfers between profiles (a profile is a separate area of money) and between users (#16).
 - Recurring transfers (#12), budgets (#11; transfers never count against a budget).
 
 ## Data model
 
-`api/src/core/database/schema/transfer.ts` (Proposal Q1: a table of its own, one row per
-transfer, not two `transactions` rows)
+`api/src/core/database/schema/transfer.ts` (Q1: a table of its own, one row per transfer, not
+two `transactions` rows; on screen it reads as two transactions)
 
 - **transfers** (synced, like `transactions`): `id` (UUIDv7 from the device), `userId` (the
   wallets' owner), `profileId` (FK profiles, cascade), `fromWalletId` (FK wallets, cascade),
@@ -36,8 +39,8 @@ transfer, not two `transactions` rows)
   `PROFILE_CHILD_TABLES`) with indexes (`profile_id`, `occurred_on`), (`from_wallet_id`),
   (`to_wallet_id`).
 
-**Why one row** (Q1): the "two linked entries" are how a transfer **reads** (out of one wallet,
-into the other), not how it is stored. One row is one sync op, so a transfer can never be half
+**Why one row** (Q1): the "two linked entries" are how a transfer **reads** (two rows in the
+list: out of one wallet, into the other), not how it is stored. One row is one sync op, so a transfer can never be half
 applied (one side rejected, the other kept), two devices can never leave its sides with
 different amounts or dates, delete / undo / conflicts work exactly as for a transaction, and
 `transactions.categoryId` stays required with the sign coming from the category.
@@ -61,18 +64,19 @@ different amounts or dates, delete / undo / conflicts work exactly as for a tran
    Σ transfers in (transaction rule 12; one aggregate for all wallets). ยอดรวม sums balances
    (wallet rule 7), so a transfer between two counted wallets leaves it unchanged, and one to a
    wallet excluded from the total (savings) lowers it.
-7. **One transfer, both sides** (Q5): it is created, edited and deleted as a whole; there is no
-   way to change or delete one side. Delete is a tombstone at once with undo (transaction rule
+7. **One transfer, both sides** (Q6): it is created, edited and deleted as a whole; there is no
+   way to change or delete one side (changing the amount on the incoming row changes the
+   outgoing one, deleting either row deletes both). Delete is a tombstone at once with undo (transaction rule
    7). Two devices: the later edit wins the whole row, delete beats edit.
 8. **A wallet with transfers counts as "has transactions"** (wallet rules 4 and 6, transaction
    rule 10): its currency is fixed (device + server check, `wallets` handler) and it can only
    be archived, not deleted. A device that pulls a wallet tombstone tombstones the live
    transfers on either side of it (the race in transaction rule 10).
 9. **Profile delete** tombstones its transfers in the same write (`PROFILE_CHILD_TABLES`); the
-   confirm counts them with the transactions ("ธุรกรรม n รายการ", Q8). A refused profile create
+   confirm counts them with the transactions ("ธุรกรรม n รายการ"). A refused profile create
    refuses its transfers too (category rule 12).
 10. **Order** with transactions: `occurredOn` desc, `createdAt` desc, `id` desc (transaction
-    rule 13).
+    rule 13); a transfer's two rows sit together, the outgoing one first (Q5).
 11. An untrusted device adds, edits and deletes only while online and the server answers.
 
 ## Volume
@@ -88,30 +92,28 @@ None of its own: table `transfers` in `/sync/pull` and `/sync/push` (OpenAPI
 
 ## Web screens
 
-- **Transaction form** (Q4): the type tabs gain a third, **โอนเงิน** (`รายจ่าย · รายรับ ·
-  โอนเงิน`), so a transfer is one tap from ➕ like any entry. On โอนเงิน the card's rows are:
-  **from wallet** (with its ยอดเงิน), a **⇅ swap** button, **to wallet** (with its ยอดเงิน;
-  only wallets of the from wallet's currency, never the same one), amount (keypad, quick
-  amounts), note, date. No category row, no เพิ่มเติม. Errors: "เลือกกระเป๋าปลายทาง", "ใส่จำนวนเงิน
-  ที่มากกว่า 0". Title "โอนเงิน" / "แก้ไขการโอน".
-  - Switching tabs keeps the amount, note and date; the wallet becomes the from wallet.
-  - The to wallet starts on the one last used from that from wallet on this device (Q7), else
-    empty.
-  - **Editing** a transfer opens on โอนเงิน with the other two tabs disabled (and the reverse
-    for a transaction: Q6); copy, delete + undo, save and add another work as for a transaction.
-  - "The last type" (8.2) remembers only รายจ่าย / รายรับ (Q7).
-- **List row** (Q5, DESIGN.md §5: neutral, no income / expense colour): a muted round badge with
-  ⇄ (`lucideArrowLeftRight`), the title "โอนเงิน", under it the wallets "กสิกร → เงินสด", then the
-  note; the amount in the normal text colour.
-  - **Both wallets in view** (ทุกกระเป๋า): one row, the amount **without a sign** (the money
-    stayed in view).
-  - **One side in view** (a wallet chosen in the switcher, or the other wallet excluded from the
-    total): one row with that side only, "ไปยัง ออมทรัพย์" / "จาก กสิกร", the amount **signed**
-    (−/+) in the normal text colour, so the direction reads without colour.
-- **Summary card** (Q5): รายรับ / รายจ่าย / สุทธิ never include transfers; when the view's
-  transfers don't net to zero (one side in view) a fourth line **"โอน"** shows their signed net,
-  so the change in the balance is explained.
-- **Wallets tab**: balances include transfers (rule 6). No new row.
+- **Transfer form** (Q4: its own sheet, not a tab of the transaction form, which keeps รายจ่าย /
+  รายรับ only): the same frame (DESIGN.md §6), title "โอนเงิน" / "แก้ไขการโอน", one card of rows:
+  **from wallet** (with its ยอดเงิน), a **⇅ swap** button, **to wallet** (with its ยอดเงิน; only
+  wallets of the from wallet's currency, never the same one), amount (keypad, quick amounts),
+  note, date. No category, no เพิ่มเติม. Errors: "เลือกกระเป๋าปลายทาง", "ใส่จำนวนเงินที่มากกว่า 0".
+  - The from wallet starts like the transaction form's wallet; the to wallet starts on the one
+    last used from that from wallet on this device (Q7), else empty.
+  - Editing (either row opens it) shows copy (a new transfer dated today) and delete (both rows,
+    at once with undo); save and add another when adding.
+  - Opened from the Transactions tab's ⋮ menu (Q4, layout open: Open questions).
+- **List rows** (Q5, the owner replaces DESIGN.md §5's "transfers are neutral"): a transfer shows
+  as **two rows**, the outgoing one first: a muted ⇄ badge, the title "โอนเงิน", under it
+  "โอนไปยัง ออมทรัพย์" / "ได้รับจาก กสิกร", then the note; the amount signed and coloured like any
+  money that leaves or enters a wallet: **−1,000.00 in the expense colour** on the from side,
+  **+1,000.00 in the income colour** on the to side. Each row is a side of one wallet, so:
+  - "ทุกกระเป๋า": the side of each wallet in view, with that wallet's 20px badge on the corner;
+    a side in a wallet excluded from the total isn't shown (the other side still is);
+  - one wallet chosen: that wallet's side only.
+- **Summary card and a day's net**: รายรับ / รายจ่าย / สุทธิ never include transfers (rule 5).
+  Proposal (Open questions): a fourth line "โอน" with the view's signed transfer net when it
+  isn't zero, so the change in the balance is explained.
+- **Wallets tab**: balances include transfers (rule 6).
 - **Sync sheet**: a refused transfer reads "โอนเงิน กสิกร → เงินสด ฿500.00"; "แก้" opens it.
 
 ## Interactions
@@ -123,8 +125,15 @@ None of its own: table `transfers` in `/sync/pull` and `/sync/push` (OpenAPI
 
 ## Open questions
 
-Proposals for the owner (start of #9): Q1 one `transfers` row; Q2 same currency only; Q3 no fee
-field; Q4 a third tab in the form; Q5 one row, signed only when one side is in view, plus a "โอน"
-summary line; Q6 a transfer and a transaction can't turn into each other when editing; Q7
-remember the to wallet per from wallet, not the transfer tab; Q8 count transfers with
-transactions in the profile delete confirm.
+Settled at the start of #9 (owner): Q1 a `transfers` table of its own, shown as transactions;
+Q2 the same currency only; Q3 no fee field, a fee is its own expense; Q5 two rows, outgoing
+first, red − / green + with "โอนไปยัง" / "ได้รับจาก"; Q6 editing or deleting either row changes
+the whole transfer; Q7 the to wallet remembered per from wallet, profile delete counts
+transfers with transactions.
+
+Still open (proposals in the mock-up, round 2):
+
+- **M** the ⋮ menu: A one level ("โอนเงิน", then "ดูตาม" with the units) or B a two-level nav
+  list ("โอนเงิน", "ดูตาม · เดือน ›").
+- **S** the summary card's "โอน" line.
+- **E** a second entry point: "โอนเงิน" on the Wallets tab.
