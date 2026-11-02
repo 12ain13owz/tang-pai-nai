@@ -232,7 +232,8 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - **Status**: the header's right side holds the **sync pill** (`layout/sync-status`, #4a.2). A
   small dot plus words, never the dot alone: synced = green dot (`bg-income`) and muted
   "sync แล้ว"; syncing = a spinning refresh icon and "กำลัง sync"; waiting = muted dot and
-  "รอ sync 3"; offline = red dot in a red-tinted pill, "ออฟไลน์" or "ออฟไลน์ · รอ 2"; errors =
+  "รอ sync 3"; offline = red dot in a red-tinted pill, "ออฟไลน์" or "ออฟไลน์ · รอ 2"; server
+  not answering = the same red pill, "เซิร์ฟเวอร์ไม่ตอบ" or "เซิร์ฟเวอร์ไม่ตอบ · รอ 2"; errors =
   the same red pill, "บันทึกไม่สำเร็จ 1". Status changes are announced politely
   (`role="status"`). The pill is a 44px button that opens the sync sheet (last sync, "sync
   ตอนนี้", rejected items with fix / discard, conflict notices).

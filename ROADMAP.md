@@ -143,9 +143,25 @@ says so and points to the wallet's "หมวดหมู่ที่ใช้",
   B online later → B wins and A shows B's list; B first, A offline later → A wins the whole row.
   Server really stopped: a new category used only in one wallet queues 2 ops and syncs once the
   server is back. An untrusted device offline can't save. Tests: API 497, web 381.
-- **Known**: with the network up but the API down, the app retries only on a write, a visibility
-  change, "sync ตอนนี้" or the 5-minute timer (a real offline → online change syncs at once);
-  unchanged from #4a.
+- **Known** (fixed right after, see below): with the network up but the API down, the app
+  retried only on a write, a visibility change, "sync ตอนนี้" or the 5-minute timer.
+
+## Done: Server unreachable (after 7.2)
+
+- **Decided** (owner, after 7.2; offline-sync rules 1 and 11): with the network up but the API
+  not answering (or a proxy answering 502–504), the device marks the server unreachable and
+  retries by itself after 5 s, 15 s, 30 s, 1 min and 2 min, then every 5 min, until a round gets
+  through; the pill says "เซิร์ฟเวอร์ไม่ตอบ" (red) and the sync sheet says it retries by itself; an
+  untrusted device can't write meanwhile (its rows would only live in memory), and its notices
+  say the server is down rather than "go online".
+- **Web**: `NetworkStatusService.serverReachable`, `SyncService` retries (`RETRY_DELAYS_MS`,
+  also for a session check that couldn't reach the API when the app opened),
+  `SyncStatus` `'unreachable'`, `ProfileService.canWrite` / `serverDown`.
+- **Checked** (Playwright on `npm run build`, th and en, the API process really stopped): a
+  trusted device writing while down shows "เซิร์ฟเวอร์ไม่ตอบ · รอ 1" within a second and syncs by
+  itself 14–27 s after the API is back; a device opened (PIN) while down gets its session back and
+  syncs by itself; an untrusted device blocks saving with the server-down notice and allows it
+  again by itself. Tests: web 385.
 
 ## Done: Category 7.1 (#7)
 
