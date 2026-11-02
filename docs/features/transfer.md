@@ -1,7 +1,6 @@
 # Transfer
 
-> Status: **Spec**; Q1–Q3 and Q5–Q7 settled by the owner at the start of #9, the menu, the
-> summary line and a second entry point still open (Open questions). Builds on
+> Status: **Spec**, settled with the owner at the start of #9 (Open questions). Builds on
 > [transaction.md](transaction.md).
 
 ## Purpose
@@ -101,7 +100,10 @@ None of its own: table `transfers` in `/sync/pull` and `/sync/push` (OpenAPI
     last used from that from wallet on this device (Q7), else empty.
   - Editing (either row opens it) shows copy (a new transfer dated today) and delete (both rows,
     at once with undo); save and add another when adding.
-  - Opened from the Transactions tab's ⋮ menu (Q4, layout open: Open questions).
+  - Opened from the Transactions tab's ⋮ menu and from the Wallets tab (below).
+- **The ⋮ menu** of the Transactions tab (Q4, owner's choice B: more items will join it) becomes
+  a two-level nav list: level one "โอนเงิน" (opens the transfer sheet) and "ดูตาม · เดือน ›";
+  "ดูตาม" turns the menu into the units (‹ back, the 8.1 list: day … custom range).
 - **List rows** (Q5, the owner replaces DESIGN.md §5's "transfers are neutral"): a transfer shows
   as **two rows**, the outgoing one first: a muted ⇄ badge, the title "โอนเงิน", under it
   "โอนไปยัง ออมทรัพย์" / "ได้รับจาก กสิกร", then the note; the amount signed and coloured like any
@@ -111,9 +113,12 @@ None of its own: table `transfers` in `/sync/pull` and `/sync/push` (OpenAPI
     a side in a wallet excluded from the total isn't shown (the other side still is);
   - one wallet chosen: that wallet's side only.
 - **Summary card and a day's net**: รายรับ / รายจ่าย / สุทธิ never include transfers (rule 5).
-  Proposal (Open questions): a fourth line "โอน" with the view's signed transfer net when it
-  isn't zero, so the change in the balance is explained.
-- **Wallets tab**: balances include transfers (rule 6).
+  A fourth line **"โอน"** shows the view's signed transfer net (in − out of the wallets in
+  view) when it isn't zero, so the change in the balance is explained: a chosen wallet, or on
+  "ทุกกระเป๋า" a transfer to or from a wallet excluded from the total.
+- **Wallets tab**: balances include transfers (rule 6). Beside "เพิ่มกระเป๋าเงิน" (outline) a
+  **"โอนเงิน"** button in the `secondary` (muted, filled) look, so the two don't read alike
+  (owner's request), shown while the profile has two or more open wallets.
 - **Sync sheet**: a refused transfer reads "โอนเงิน กสิกร → เงินสด ฿500.00"; "แก้" opens it.
 
 ## Interactions
@@ -125,15 +130,11 @@ None of its own: table `transfers` in `/sync/pull` and `/sync/push` (OpenAPI
 
 ## Open questions
 
-Settled at the start of #9 (owner): Q1 a `transfers` table of its own, shown as transactions;
-Q2 the same currency only; Q3 no fee field, a fee is its own expense; Q5 two rows, outgoing
-first, red − / green + with "โอนไปยัง" / "ได้รับจาก"; Q6 editing or deleting either row changes
-the whole transfer; Q7 the to wallet remembered per from wallet, profile delete counts
+Settled at the start of #9 (owner, from two rounds of HTML mock-ups): Q1 a `transfers` table
+of its own, shown as transactions; Q2 the same currency only (each wallet has one); Q3 no fee
+field, a fee is its own expense in a category; Q4 a sheet of its own, opened from a two-level ⋮
+menu (choice B) and from the Wallets tab (a button that doesn't look like "เพิ่มกระเป๋าเงิน");
+Q5 two rows, outgoing first, red − / green + with "โอนไปยัง" / "ได้รับจาก" (replaces DESIGN.md
+§5's neutral transfers); Q6 editing or deleting either row changes the whole transfer; Q7 the
+to wallet remembered per from wallet; the summary's "โอน" line; profile delete counts
 transfers with transactions.
-
-Still open (proposals in the mock-up, round 2):
-
-- **M** the ⋮ menu: A one level ("โอนเงิน", then "ดูตาม" with the units) or B a two-level nav
-  list ("โอนเงิน", "ดูตาม · เดือน ›").
-- **S** the summary card's "โอน" line.
-- **E** a second entry point: "โอนเงิน" on the Wallets tab.
