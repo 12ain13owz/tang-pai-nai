@@ -84,7 +84,7 @@ import { SyncStatus } from './sync-status'
       />
     </button>
     <div class="flex items-center justify-end">
-      <app-sync-status [compact]="true" />
+      <app-sync-status />
       <button
         #menuButton
         type="button"
