@@ -143,7 +143,7 @@ describe('CategorySheet', () => {
     localStorage.clear()
     trusted.set(true)
     online.set(true)
-    toastState.toasts().forEach((toast) => toastState.dismiss(toast.id))
+    toastState.dismiss()
     putRow(db, 'profiles', {
       id: 'p1',
       name: 'Home',
@@ -180,6 +180,8 @@ describe('CategorySheet', () => {
   afterEach(() => {
     fixture.destroy()
     db.close()
+    // The sheet's toasts are module state; don't leave them to the next spec file.
+    toastState.dismiss()
   })
 
   it('creates a sub-category: name, icon and colour from their view, a parent from its view', async () => {

@@ -2,6 +2,7 @@ import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import type { ComponentFixture } from '@angular/core/testing'
 import { TranslocoTestingModule } from '@jsverse/transloco'
+import { toastState } from '@spartan-ng/brain/sonner'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
 import th from '@/core/i18n/th.json'
@@ -107,6 +108,8 @@ describe('ProfileSheet', () => {
   afterEach(() => {
     fixture.destroy()
     db.close()
+    // The sheet's toasts are module state; don't leave them to the next spec file.
+    toastState.dismiss()
   })
 
   it('creates a profile with the picked icon and colour, then closes', async () => {

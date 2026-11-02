@@ -126,6 +126,10 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 1–7.
   `DeviceStorageService` for the shell (`app.spec.ts`), and `ProfileService` for the sync pill
   and sheet (`rejectedItems`; `sync-status.spec.ts`). `vi.mock` doesn't work with Angular's
   bundled Vitest runner; inject seams instead.
+- **Toasts are module state** (`toastState` from `@spartan-ng/brain/sonner`), and in CI several
+  spec files share one worker, so toasts from one file reach the next. A spec that checks
+  toasts calls `toastState.dismiss()` (no id = all) in `beforeEach`, and a spec whose component
+  shows toasts calls it in `afterEach` too.
 
 ### Sync (`core/offline`, #4a.2)
 

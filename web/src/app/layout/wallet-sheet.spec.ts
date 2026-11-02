@@ -143,7 +143,7 @@ describe('WalletSheet', () => {
     localStorage.clear()
     trusted.set(true)
     online.set(true)
-    toastState.toasts().forEach((toast) => toastState.dismiss(toast.id))
+    toastState.dismiss()
     putRow(db, 'profiles', {
       id: 'p1',
       name: 'Home',
@@ -182,6 +182,8 @@ describe('WalletSheet', () => {
   afterEach(() => {
     fixture.destroy()
     db.close()
+    // The sheet's toasts are module state; don't leave them to the next spec file.
+    toastState.dismiss()
   })
 
   it('creates a wallet: name, a negative balance, an icon and colour from their view, excluded', async () => {

@@ -51,6 +51,8 @@ describe('GoogleCallbackPage', () => {
     (fixture.nativeElement as HTMLElement).querySelector('[role="alert"]')?.textContent.trim()
 
   beforeEach(async () => {
+    // Toasts are module state: a spec file run before this one in the same worker may leave some.
+    toastState.dismiss()
     await TestBed.configureTestingModule({
       imports: [
         TranslocoTestingModule.forRoot({
@@ -76,7 +78,7 @@ describe('GoogleCallbackPage', () => {
 
   afterEach(() => {
     http.verify()
-    toastState.toasts().forEach((toast) => toastState.dismiss(toast.id))
+    toastState.dismiss()
   })
 
   it('refreshes the session from the new cookie and goes to the return path', async () => {

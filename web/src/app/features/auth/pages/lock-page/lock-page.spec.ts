@@ -45,7 +45,7 @@ describe('LockPage', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks()
-    toastState.toasts().forEach((toast) => toastState.dismiss(toast.id))
+    toastState.dismiss()
     fake = fakeOffline()
     TestBed.configureTestingModule({
       imports: [
