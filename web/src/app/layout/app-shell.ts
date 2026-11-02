@@ -4,15 +4,19 @@ import { TranslocoPipe } from '@jsverse/transloco'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { CategoryService } from '@/core/category'
 import { ProfileService } from '@/core/profile'
+import { TransactionService } from '@/core/transaction'
 import { KeyboardService } from '@/core/viewport'
 import { WalletService } from '@/core/wallet'
 import { AppHeader } from './app-header'
 import { BottomTabBar } from './bottom-tab-bar'
 import { CategorySheet } from './category-sheet'
+import { CustomRangeSheet } from './custom-range-sheet'
 import { ProfileCreateStep } from './profile-create-step'
 import { currentUrl, isProfileTab, isWalletTab } from './profile-routes'
 import { ProfileSheet } from './profile-sheet'
 import { ProfileSwitchSheet } from './profile-switch-sheet'
+import { TransactionSheet } from './transaction-sheet'
+import { ViewWalletSheet } from './view-wallet-sheet'
 import { WalletFirstStep } from './wallet-first-step'
 import { WalletSheet } from './wallet-sheet'
 
@@ -31,6 +35,9 @@ import { WalletSheet } from './wallet-sheet'
     WalletSheet,
     CategorySheet,
     ProfileSwitchSheet,
+    ViewWalletSheet,
+    CustomRangeSheet,
+    TransactionSheet,
   ],
   template: `
     <div class="mx-auto flex min-h-dvh max-w-[480px] flex-col">
@@ -71,6 +78,15 @@ import { WalletSheet } from './wallet-sheet'
     @defer (when categoryService.sheet() !== null) {
       <app-category-sheet />
     }
+    @defer (when transactionService.walletSheet()) {
+      <app-view-wallet-sheet [(open)]="transactionService.walletSheet" />
+    }
+    @defer (when transactionService.customSheet()) {
+      <app-custom-range-sheet [(open)]="transactionService.customSheet" />
+    }
+    @defer (when transactionService.sheet() !== null) {
+      <app-transaction-sheet />
+    }
   `,
 })
 export class AppShell {
@@ -79,6 +95,8 @@ export class AppShell {
   protected walletService = inject(WalletService)
   /** Also keeps its sweep of orphaned sub-categories running (category rule 6). */
   protected categoryService = inject(CategoryService)
+  /** Also keeps its sweep of transactions whose wallet or category was deleted (rule 10). */
+  protected transactionService = inject(TransactionService)
   protected switchSheetOpen = this.profileService.switchSheet
   private url = currentUrl()
 

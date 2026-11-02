@@ -39,7 +39,8 @@ export interface WalletValues {
 /** Which wallet sheet is open: create, edit one, or "fix" a rejected op's refused values. */
 export type WalletSheetState =
   | { mode: 'create' }
-  | { mode: 'edit'; id: string }
+  /** `view: 'categories'` opens on "หมวดหมู่ที่ใช้" (from the transaction form's picker). */
+  | { mode: 'edit'; id: string; view?: 'categories' }
   | { mode: 'fix'; opId: string; id: string; profileId: string; values: WalletValues }
 
 /** A currency the device pulled (docs/features/currency.md). */
@@ -75,3 +76,9 @@ export const WALLET_LIMITS = {
 
 /** A new wallet's currency when only one is active (wallet rule 4). */
 export const DEFAULT_CURRENCY = 'THB'
+
+/**
+ * The device table of transactions, read by name for balances and "has transactions" (rules 4,
+ * 6, 12): `core/transaction` builds on this service, so it can't be imported here.
+ */
+export const TRANSACTION_TABLE = 'transactions'

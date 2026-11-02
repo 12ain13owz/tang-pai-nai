@@ -11,12 +11,14 @@ import { fieldErrorMessage } from './field-error'
   imports: [ReactiveFormsModule, HlmFieldImports, HlmTextarea],
   template: `
     <div hlmField>
-      <label hlmFieldLabel>{{ label() }}</label>
+      <label hlmFieldLabel [class.sr-only]="hideLabel()">{{ label() }}</label>
       <textarea
         hlmTextarea
         [formControl]="control()"
         [rows]="rows()"
+        [style.min-height.lh]="rows()"
         [placeholder]="placeholder()"
+        [attr.maxlength]="maxLength()"
       ></textarea>
       @if (hint()) {
         <p hlmFieldDescription class="-mt-2">{{ hint() }}</p>
@@ -31,6 +33,9 @@ export class TextareaField {
   placeholder = input('')
   hint = input('')
   rows = input(3)
+  /** The label for screen readers only, when the sheet's title already says it. */
+  hideLabel = input(false)
+  maxLength = input<number | null>(null)
 
   private field = viewChild.required(BrnField)
   protected error = fieldErrorMessage(this.field)

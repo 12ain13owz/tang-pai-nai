@@ -3,7 +3,8 @@ description: >-
   A row of the `wallets` table (docs/features/wallet.md) as it travels in /sync/pull and in
   /sync/push. Devices send the whole row on upsert; the server stamps changeSeq and updatedBy.
   Rules (each answers `CONFLICT`): profileId is one of the user's live profiles and never changes;
-  currencyCode is active when the wallet is created or its currency changes; name is unique
+  currencyCode is active when the wallet is created or its currency changes, and can't change
+  while the wallet has live transactions; name is unique
   (case-insensitive) among the profile's live, non-archived wallets; a profile holds at most 20
   of those. A tombstone runs none of them. hiddenCategoryIds (category rule 13) is checked for
   its shape only; a push without it means none hidden.

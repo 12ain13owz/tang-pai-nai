@@ -3,7 +3,7 @@ import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } fr
 import type { LocalDatabase } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
 import { cleanHidden, findWallet, toWallet } from './hidden-categories'
-import { DEFAULT_CURRENCY, WALLET_LIMITS, WALLET_TABLE } from './wallet.type'
+import { DEFAULT_CURRENCY, TRANSACTION_TABLE, WALLET_LIMITS, WALLET_TABLE } from './wallet.type'
 import type {
   Currency,
   CurrencyTotal,
@@ -106,9 +106,52 @@ export class WalletService {
   /** The open wallet sheet (layout/wallet-sheet), if any. */
   sheet = signal<WalletSheetState | null>(null)
 
-  /** Computed, never stored: `initialBalance` until transactions arrive (#8). */
+  /**
+   * Σ income − Σ expense of every live transaction per wallet of the current profile
+   * (transaction rule 12), in one aggregate query. `excludeFromReport` rows count here.
+   */
+  private sums = computed(() => {
+    const profileId = this.profileService.current()?.id
+    const sums = new Map<string, number>()
+    if (!profileId) {
+      return sums
+    }
+    const rows = this.read(
+      (db) =>
+        db.selectObjects(
+          `SELECT t.wallet_id AS wallet, sum(CASE WHEN c.type = 'income' THEN t.amount
+             ELSE -t.amount END) AS total
+           FROM ${TRANSACTION_TABLE} t JOIN categories c ON c.id = t.category_id
+           WHERE t.profile_id = ? AND t.deleted_at IS NULL
+           GROUP BY t.wallet_id`,
+          [profileId]
+        ),
+      []
+    )
+    for (const row of rows) {
+      sums.set(String(row['wallet']), Number(row['total']))
+    }
+    return sums
+  })
+
+  /** Computed, never stored: `initialBalance` + the wallet's transactions (± transfers, #9). */
   balance(wallet: Wallet): number {
-    return wallet.initialBalance
+    return wallet.initialBalance + (this.sums().get(wallet.id) ?? 0)
+  }
+
+  /** Whether the wallet has live transactions (rules 4 and 6). */
+  hasTransactions(id: string | null): boolean {
+    if (id === null) {
+      return false
+    }
+    return this.read(
+      (db) =>
+        db.selectValue(
+          `SELECT EXISTS (SELECT 1 FROM ${TRANSACTION_TABLE} WHERE wallet_id = ? AND deleted_at IS NULL)`,
+          [id]
+        ) === 1,
+      false
+    )
   }
 
   /** Digits after the decimal point; 2 for a code the device doesn't know. */
@@ -126,9 +169,9 @@ export class WalletService {
     )
   }
 
-  /** Rule 4: false once the wallet has transactions (#8); always true until then. */
-  canChangeCurrency(_id: string | null): boolean {
-    return true
+  /** Rule 4: false once the wallet has transactions. */
+  canChangeCurrency(id: string | null): boolean {
+    return !this.hasTransactions(id)
   }
 
   open(state: WalletSheetState): void {
@@ -248,8 +291,11 @@ export class WalletService {
     return null
   }
 
-  /** Rule 6: a tombstone, after the sheet's confirm step. */
+  /** Rule 6: a tombstone, after the sheet's confirm step; never with transactions. */
   remove(id: string): void {
+    if (this.hasTransactions(id)) {
+      return
+    }
     const now = Date.now()
     this.offlineService.write((db) => {
       const current = this.find(db, id)

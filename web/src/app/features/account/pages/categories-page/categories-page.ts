@@ -18,7 +18,7 @@ import { CATEGORY_DEFAULT_ICON, CategoryService } from '@/core/category'
 import type { Category, CategoryType } from '@/core/category'
 import { ProfileService } from '@/core/profile'
 import { EmptyState } from '@/shared/components/empty-state'
-import { IconBadge } from '@/shared/components/icon-badge'
+import { IconBadge, userColor } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 
 /**
@@ -143,7 +143,8 @@ import type { UserIcon } from '@/shared/components/icon-badge'
                   />
                   @if (node.children.length > 0) {
                     <ul
-                      class="divide-y divide-border border-t border-border"
+                      class="tpn-tree"
+                      [style.--tree-color]="treeColor(node.category.color)"
                       cdkDropList
                       cdkDropListLockAxis="y"
                       [cdkDropListDisabled]="!ordering()"
@@ -151,7 +152,7 @@ import type { UserIcon } from '@/shared/components/icon-badge'
                     >
                       @for (child of node.children; track child.id) {
                         <li
-                          class="bg-card"
+                          class="[&.cdk-drag-preview]:bg-card"
                           cdkDrag
                           [cdkDragStartDelay]="dragDelay"
                           cdkDragPreviewClass="tpn-drag-preview"
@@ -247,7 +248,8 @@ import type { UserIcon } from '@/shared/components/icon-badge'
         [class.min-h-14]="!child"
         [class.min-h-12]="child"
         [class.pl-4]="!child"
-        [class.pl-11]="child"
+        [class.pl-7]="child && !archived"
+        [class.pl-11]="child && archived"
       >
         @if (ordering()) {
           <app-icon-badge
@@ -318,6 +320,8 @@ export class CategoriesPage {
 
   protected tabs: readonly CategoryType[] = ['expense', 'income']
   protected defaultIcon = CATEGORY_DEFAULT_ICON as UserIcon
+  /** The parent's colour as drawn, for its children's panel. */
+  protected treeColor = userColor
   protected type = signal<CategoryType>('expense')
   protected ordering = signal(false)
   protected showArchived = signal(false)

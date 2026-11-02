@@ -21,6 +21,7 @@ export const WALLET_MESSAGE = {
   PROFILE_GONE: 'The profile does not exist or was deleted',
   PROFILE_FIXED: 'A wallet cannot move to another profile',
   CURRENCY_INACTIVE: 'The currency is not available',
+  CURRENCY_FIXED: 'A wallet with transactions cannot change its currency',
   NAME_TAKEN: 'A wallet with this name already exists in this profile',
   TOO_MANY: `A profile can have at most ${WALLET_LIMITS.PER_PROFILE} wallets`,
 } as const

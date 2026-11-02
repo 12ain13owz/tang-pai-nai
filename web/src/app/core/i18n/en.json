@@ -12,7 +12,6 @@
   },
   "title": {
     "transactions": "Transactions",
-    "transactionNew": "Add transaction",
     "wallets": "Wallets",
     "reports": "Reports",
     "account": "Account",
@@ -41,10 +40,96 @@
     "reload": "Reload"
   },
   "transactions": {
-    "emptyHeading": "No transactions yet",
-    "emptyText": "Income and expenses you record will show up here",
-    "newHeading": "Add transaction",
-    "newText": "The income / expense form is coming soon"
+    "emptyHeading": "No transactions in this period",
+    "emptyText": "Tap ➕ to record income or an expense",
+    "add": "Add transaction",
+    "total": "Total",
+    "balance": "Balance",
+    "periods": "Periods",
+    "summary": "This period",
+    "net": "Net",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "tomorrow": "Tomorrow",
+    "pending": "Waiting to sync",
+    "walletSwitch": "Choose wallet, now {{name}}",
+    "viewBy": "View by",
+    "allWallets": "All wallets",
+    "totalLine": "Total {{total}}",
+    "walletSheet": "Choose wallet",
+    "customHeading": "Custom range",
+    "customFrom": "From",
+    "customTo": "To",
+    "customOrder": "The start can’t be after the end",
+    "customApply": "Show this range",
+    "unit": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "quarter": "Quarter",
+      "year": "Year",
+      "all": "All",
+      "custom": "Custom…"
+    },
+    "period": {
+      "dayThis": "Today",
+      "dayLast": "Yesterday",
+      "weekThis": "This week",
+      "weekLast": "Last week",
+      "monthThis": "This month",
+      "monthLast": "Last month",
+      "quarterThis": "This quarter",
+      "quarterLast": "Last quarter",
+      "yearThis": "This year",
+      "yearLast": "Last year",
+      "future": "Future",
+      "all": "All"
+    },
+    "createHeading": "Add transaction",
+    "editHeading": "Edit transaction",
+    "fixHeading": "Fix transaction",
+    "delete": "Delete transaction",
+    "deleted": "Transaction deleted",
+    "undo": "Undo",
+    "created": "Transaction saved",
+    "saved": "Changes saved",
+    "needsOnline": "This device isn’t set up for offline use. Go online to save transactions.",
+    "type": "Type",
+    "wallet": "Wallet",
+    "amount": "Amount",
+    "category": "Category",
+    "pickCategory": "Choose category",
+    "categoryRequired": "Choose a category first",
+    "note": "Note",
+    "notePlaceholder": "e.g. Lunch with friends, split three ways",
+    "date": "Date",
+    "dayBefore": "Previous day",
+    "dayAfter": "Next day",
+    "excludeFromReport": "Exclude from reports",
+    "excludeHint": "Still counts in the wallet’s balance",
+    "save": "Save",
+    "walletPick": "Choose wallet",
+    "sameCurrency": "Only wallets in the same currency",
+    "categoryPick": {
+      "expense": "Expense categories",
+      "income": "Income categories"
+    },
+    "categoryMissing": "Missing a category?",
+    "walletCategories": "Categories used in {{name}}",
+    "noCategories": {
+      "expense": "{{name}} hides every expense category",
+      "income": "{{name}} hides every income category"
+    },
+    "noCategoriesText": "Turn on the ones you need in this wallet’s \"Categories used\", or choose another wallet.",
+    "toWalletCategories": "Go to categories used",
+    "discardHeading": "Discard your changes?",
+    "discardText": "What you entered in this form will be lost.",
+    "discard": "Discard",
+    "keepEditing": "Keep editing",
+    "amountRequired": "Enter an amount above 0",
+    "amountFormat": "Can’t work out this amount. Check the numbers.",
+    "amountTooBig": "The amount is too large",
+    "more": "More"
   },
   "wallets": {
     "firstHeading": "Add your first wallet",
@@ -101,7 +186,8 @@
     "undo": "Undo",
     "categoriesUsed": "Categories used",
     "categoriesAll": "All",
-    "categoriesHidden": "{{count}} hidden"
+    "categoriesHidden": "{{count}} hidden",
+    "deleteUsed": "This wallet has transactions, so it can’t be deleted. Archive it instead."
   },
   "categories": {
     "title": "Categories",
@@ -170,7 +256,9 @@
     "usedInHeading": "Used in wallets",
     "usedInAll": "All wallets",
     "usedInSome": "{{used}} of {{total}} wallets",
-    "tabsLabel": "Category type"
+    "tabsLabel": "Category type",
+    "deleteUsed": "This category has transactions, so it can’t be deleted. Archive it instead.",
+    "typeUsed": "The type can’t change because it has transactions"
   },
   "reports": {
     "emptyHeading": "No reports yet",
@@ -492,7 +580,9 @@
     "unreachable": "Server down",
     "unreachablePending": "Server down · {{count}} waiting",
     "unreachableText": "Can’t reach the server. It will try again by itself.",
-    "serverDownWrite": "Can’t reach the server. This device isn’t set up for offline use, so saving waits until the server is back."
+    "serverDownWrite": "Can’t reach the server. This device isn’t set up for offline use, so saving waits until the server is back.",
+    "withTransactions": "{{count}} transactions",
+    "tabletransactions": "Transaction"
   },
   "colors": {
     "label": "Colour {{number}}"
@@ -544,9 +634,9 @@
     "deleteWallets": "{{count}} wallets",
     "deleteCategory": "1 category",
     "deleteCategories": "{{count}} categories",
-    "deleteTextWalletsOnly": "Its {{wallets}} and their transactions go with it. This can’t be undone.",
-    "deleteTextCategoriesOnly": "Its {{categories}} go with it. This can’t be undone.",
-    "deleteTextBoth": "Its {{wallets}}, {{categories}} and their transactions go with it. This can’t be undone."
+    "deleteTransaction": "1 transaction",
+    "deleteTransactions": "{{count}} transactions",
+    "deleteTextWith": "Its {{items}} go with it. This can’t be undone."
   },
   "icons": {
     "lucideUser": "Person",
@@ -670,5 +760,16 @@
   },
   "header": {
     "back": "Back"
+  },
+  "keypad": {
+    "label": "Number pad",
+    "clear": "Clear",
+    "divide": "Divide",
+    "times": "Times",
+    "backspace": "Delete last",
+    "minus": "Minus",
+    "plus": "Plus",
+    "done": "Work it out",
+    "point": "Decimal point"
   }
 }

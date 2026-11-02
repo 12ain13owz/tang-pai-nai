@@ -8,6 +8,8 @@ import type { Database } from '@/core/database'
 import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
 import { profiles } from '@/core/database/schema/profile'
+import { transactions } from '@/core/database/schema/transaction'
+import { wallets } from '@/core/database/schema/wallet'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
 import { CATEGORY_MESSAGE } from './category.const'
 import { categorySyncHandler } from './category.repository.drizzle'
@@ -218,5 +220,59 @@ describe('categorySyncHandler', () => {
     await push.write(db, 'alice', category('c4', 'D', 18, { profileId: 'gone', deletedAt: 900 }))
     await db.delete(profiles)
     expect(await push.find(db, 'c4')).toBeNull()
+  })
+
+  it('keeps the type of a category with live transactions (rule 4)', async () => {
+    await push.write(db, 'alice', category('food', 'Food', 15))
+    await push.write(db, 'alice', category('home', 'Home', 16))
+    await db.insert(wallets).values({
+      id: 'cash',
+      userId: 'alice',
+      profileId: 'pa',
+      name: 'Cash',
+      currencyCode: 'THB',
+      initialBalance: 0,
+      icon: 'lucideWallet',
+      color: '#15803d',
+      excludeFromTotal: false,
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 40,
+      updatedBy: 'alice',
+    })
+    const transaction = (
+      id: string,
+      extra: { walletId: string; categoryId: string; deletedAt?: number }
+    ) => ({
+      id,
+      userId: 'alice',
+      profileId: 'pa',
+      amount: 100,
+      occurredOn: '2026-11-02',
+      note: '',
+      excludeFromReport: false,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 50,
+      updatedBy: 'alice',
+      ...extra,
+    })
+    await db
+      .insert(transactions)
+      .values([
+        transaction('t1', { walletId: 'cash', categoryId: 'food' }),
+        transaction('t2', { walletId: 'cash', categoryId: 'home', deletedAt: 5 }),
+      ])
+    expect(await push.check(db, 'alice', category('food', 'Food', 0, { type: 'income' }))).toBe(
+      CATEGORY_MESSAGE.TYPE_USED
+    )
+    expect(await push.check(db, 'alice', category('food', 'Meals', 0))).toBeNull()
+    expect(
+      await push.check(db, 'alice', category('home', 'Home', 0, { type: 'income' }))
+    ).toBeNull()
   })
 })

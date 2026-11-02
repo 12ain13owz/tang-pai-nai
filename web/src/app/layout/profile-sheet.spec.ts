@@ -256,7 +256,7 @@ describe('ProfileSheet', () => {
     button(th.profiles.delete)?.click()
     await settle()
     expect(body().textContent).toContain(
-      'หมวดหมู่ 3 รายการในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้'
+      'หมวดหมู่ 3 รายการ ในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้'
     )
     putRow(db, 'wallets', {
       id: 'w1',
@@ -278,7 +278,7 @@ describe('ProfileSheet', () => {
     changes.update((n) => n + 1)
     await settle()
     expect(body().textContent).toContain(
-      'กระเป๋าเงิน 1 ใบ หมวดหมู่ 3 รายการ และธุรกรรมในโปรไฟล์นี้จะถูกลบไปด้วย'
+      'กระเป๋าเงิน 1 ใบและหมวดหมู่ 3 รายการ ในโปรไฟล์นี้จะถูกลบไปด้วย'
     )
   })
 

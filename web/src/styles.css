@@ -70,6 +70,30 @@
   }
 }
 
+/* Sub-categories under their parent (owner's choice in #8, "3+4"): a panel tinted with the
+   parent's colour and a soft bar in that colour on its left. Set --tree-color on the element. */
+.tpn-tree {
+  --tree-tint: 9%;
+  position: relative;
+  margin: 0 0.75rem 0.5rem;
+  padding: 0.125rem 0;
+  border-radius: 0.75rem;
+  background: color-mix(in oklch, var(--tree-color) var(--tree-tint), var(--card));
+}
+.tpn-tree::before {
+  content: '';
+  position: absolute;
+  left: 0.625rem;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 3px;
+  border-radius: 2px;
+  background: color-mix(in oklch, var(--tree-color) 40%, transparent);
+}
+.dark .tpn-tree {
+  --tree-tint: 15%;
+}
+
 /* Drag to reorder (CDK drag-drop, DESIGN.md §8). The preview is moved to <body>, so it's styled
    here rather than in the list's component. */
 .tpn-drag-preview {

@@ -20,8 +20,8 @@ properties:
         table:
           type: string
           description: >-
-            A pushable table: `profiles`, `wallets` or `categories` (row as in SyncProfileRow,
-            SyncWalletRow, SyncCategoryRow)
+            A pushable table: `profiles`, `wallets`, `categories` or `transactions` (row as in
+            SyncProfileRow, SyncWalletRow, SyncCategoryRow, SyncTransactionRow)
           example: profiles
         op:
           type: string

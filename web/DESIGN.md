@@ -37,6 +37,11 @@ choice that isn't decided yet is marked **Proposal** until the owner confirms it
   | Page           | fills the rest                           | Bottom padding = tab bar height + safe area |
   | Bottom tab bar | 64px (`h-16`) + `safe-area-inset-bottom` | Hidden while the on-screen keyboard is open |
 
+- **Transactions tab header** (#8, Money Lover style): three columns of which the outer two
+  are equal, so the **wallet switcher** (a pill: wallet badge, name, ▾) sits in the very
+  centre; the profile's 28px icon left, the sync icon and the ⋮ "ดูตาม" menu right. Under it
+  the balance (ยอดรวม / ยอดเงิน) large and centred, then the period tabs as chips (`09/2026 ·
+เดือนที่แล้ว · เดือนนี้ · อนาคต`), swipeable; a sideways swipe over the list changes period.
 - **Outside the shell** (no tab bar): sign-in, enter code, trust prompt, PIN lock. These are
   full-screen flows with their own simple header: the app name on the left and the
   **ไทย | English** switch on the right (the account page isn't reachable before sign-in), and a
@@ -156,9 +161,16 @@ Lover's black and green.
 - **Dates**: relative words for recent days (วันนี้ / Today, เมื่อวาน / Yesterday), then a short
   date such as `จ. 14 ต.ค.` / `Mon 14 Oct`. Day headers in the transaction list show the date on the left and the day total on
   the right.
-- **Era: พ.ศ. in Thai.** In the Thai UI every year is Buddhist era (พ.ศ. 2569), the default of
-  `Intl.DateTimeFormat('th-TH')`; never ค.ศ. The English UI shows the Gregorian year (2026).
-  Stored dates stay ISO / `YYYY-MM-DD` (Gregorian); the era is display only.
+- **Era: ค.ศ. everywhere** (owner's choice at the start of #8, replacing พ.ศ. in Thai): both
+  languages show the Gregorian year (2026), so nobody converts between eras. Thai formats with
+  `th-TH-u-ca-gregory` (`LanguageService.locale()`). Stored dates stay ISO / `YYYY-MM-DD`.
+- **Transaction list** (#8): a card per day with the date large on the left (`02`), the
+  weekday (or วันนี้ / เมื่อวาน) over the month and year beside it, and the day's net on the
+  right. Rows: the category badge, the category name, the user's note under it (nothing when
+  there is none), the signed amount right **without the currency symbol** while every row
+  shares one currency (the balance above shows it). On "ทุกกระเป๋า" a 20px wallet badge sits
+  on the category badge's corner; with one wallet chosen there is none. "รอ sync" is a small
+  cloud line.
 
 ## 6. Components and patterns
 
@@ -178,7 +190,15 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   placeholder); tapping the icon opens an "ไอคอนและสี" view in the same sheet (colours, then the
   icon grid; picking an icon goes back). Further rows are one line each (an amount with its +/−
   button and currency, a switch). Errors still show under their row, one at a time. Long forms
-  (password, phone, transaction) keep labels.
+  (password, phone) keep labels.
+- **Transaction form** (owner's choice in #8, from the Money Lover screenshot): the type tabs,
+  then **one card of rows told apart by their icons, no labels above them** (labels stay for
+  screen readers): wallet, amount (the currency code and the figures large, a small "จำนวนเงิน"
+  over them since it has no icon), category, note, date (‹ › a day, the middle opens the date
+  picker), and less used options folded under "เพิ่มเติม". The amount is typed on an
+  **on-screen calculator keypad** (`app-calc-keypad`: C ÷ × ⌫ / digits / 000 . =) that opens by
+  itself when adding and closes when another row is tapped; the main button sits above it. The
+  note is its own view (‹ back keeps the text), so it can be long.
 - **Create / edit / pick = bottom sheet** (spartan `drawer`), never a centred dialog. Dismiss by
   swiping down or tapping the backdrop. If the sheet holds unsaved input, ask first (a confirm
   view in the same sheet).
@@ -196,6 +216,10 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - **Segmented control** (`app-segmented-field`): two or three short choices in a `bg-muted` track,
   the chosen one a `bg-card` chip with `font-semibold` (รายจ่าย / รายรับ). The same look serves
   as tabs above a list (`role="tab"`, Account › หมวดหมู่).
+- **Category tree** (owner's choice "3+4" in #8): a parent's sub-categories sit in a panel
+  tinted with the parent's colour (`color-mix`, 9% light / 15% dark) with a soft 3px bar in
+  that colour on its left (`.tpn-tree` in `styles.css`, `--tree-color` on the element). Used by
+  the transaction form's picker, Account › หมวดหมู่ and the wallet's "หมวดหมู่ที่ใช้".
 - **Switch list** (`app-toggle-list-field`, #7.2): a card of rows (40px badge, name, a switch
   on the right; children 32px and indented), the whole row is the switch (`role="switch"`). A
   row that follows something else (a child of a hidden parent) shows off, dimmed and disabled,
@@ -236,7 +260,11 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   not answering = the same red pill, "เซิร์ฟเวอร์ไม่ตอบ" or "เซิร์ฟเวอร์ไม่ตอบ · รอ 2"; errors =
   the same red pill, "บันทึกไม่สำเร็จ 1". Status changes are announced politely
   (`role="status"`). The pill is a 44px button that opens the sync sheet (last sync, "sync
-  ตอนนี้", rejected items with fix / discard, conflict notices).
+  ตอนนี้", rejected items with fix / discard, conflict notices). **On the Transactions tab** the
+  pill is a 44px icon (owner's choice in #8, so the wallet switcher sits in the very centre):
+  a green cloud with a tick (synced), a cloud with the waiting count, a red crossed cloud with
+  a count (offline, server not answering, errors), a spinning arrow while syncing; the words
+  stay in its label and the sheet.
 - **Bottom sheet** (owner's choice in #6.2): **every sheet is the same near-full height**
   (`92dvh`, the page's header still showing above it), so its main action always sits in the same
   place. Inside, `app-sheet-frame`: a header bar with **close (X) on the left** (or **‹ back** in

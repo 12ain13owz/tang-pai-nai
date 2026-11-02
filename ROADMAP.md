@@ -81,7 +81,7 @@ merging.
 | 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                      |
 | 6   | Profile + Wallet           | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
 | 7   | Category                   | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms). [spec](docs/features/category.md)                                                     |
-| 8   | **Transaction** ← next     | ⬜  | ⬜  | the core: add/edit/delete, list by day/month, ➕ button. [spec](docs/features/transaction.md)                                                                            |
+| 8   | **Transaction** ← 8.2 next | 🚧  | 🚧  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 left. [spec](docs/features/transaction.md)                                                                 |
 | 9   | Transfer between wallets   | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                                                                  |
 | 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                                               |
 | 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                                                                       |
@@ -100,16 +100,55 @@ decision "Local-first").
 
 ---
 
-## Next: Transaction (#8)
+## Next: Transaction 8.2 (#8)
 
-Spec: [transaction.md](docs/features/transaction.md). Start by revising the spec with the owner
-(step 0) and agreeing on the Transactions header from a mock-up (transaction.md → Open
-questions). **Carried over from #6 and #7**: wallet rules 4 and 6 become real
-(`WalletService.canChangeCurrency`, no delete with transactions), `balance()` is computed,
-category rules 4 and 6 gain "has transactions" (archive only), and the transaction form's
-category picker shows the chosen wallet's open categories that aren't hidden there
-(`isHiddenIn(wallet.hiddenCategoryIds, category)` from `@/core/wallet`; a type with none left
-says so and points to the wallet's "หมวดหมู่ที่ใช้", category rule 13).
+Spec: [transaction.md](docs/features/transaction.md). 8.1 built the whole core; 8.2 takes what
+the owner asks for after using it, plus **quick amounts** above the keypad (500 / 1,000 / …),
+looked at in a mock-up first (Money Lover has none; they would need a setting to turn them off,
+owner at the start of #8). Known from 8.1, for 8.2 or later:
+
+- Stacked toasts can cover the bottom of the keypad when ➕ opens right after a save (toasts sit
+  above every sheet, an older issue).
+- Headless Chromium breaks some Thai lines inside a word ("บัน/ทึก"); the app's older notices do
+  the same, so it's the test browser's line breaking, not our markup.
+
+## Done: Transaction 8.1 (#8)
+
+- **Decided at the start of #8** (owner, transaction.md → Open questions): the Money Lover
+  header comes in 8.1 (no temporary month stepper); no time of day (a day's rows by
+  `createdAt`); pickers leave archived wallets and categories out, the server accepts them; a
+  pulled wallet or category tombstone takes its live transactions; an on-screen calculator
+  keypad; "ทุกกระเป๋า" leaves out wallets excluded from the total; `excludeFromReport` kept; a row
+  opens the form.
+- **Decided while building** (owner, from HTML mock-ups and Money Lover screenshots): **ค.ศ. in
+  the whole app** (replaces the locked พ.ศ. in Thai); the form has no labels above its rows, the
+  note is its own view, "ไม่รวมในรายงาน" folds under เพิ่มเติม; the list's day cards (big date,
+  weekday, month ค.ศ.), chip tabs `09/2026 · เดือนที่แล้ว · เดือนนี้ · อนาคต` and only the chosen
+  period's rows; the wallet switcher in the very centre, so the sync pill is an icon on this tab;
+  the wallet's badge on the category badge on "ทุกกระเป๋า" (ก); sub-categories in a panel tinted
+  with the parent's colour (3+4, also in Account › หมวดหมู่ and "หมวดหมู่ที่ใช้"); the initial
+  bundle warning budget 680 → 750 kB (694 kB; features after #8 are lazy).
+- **API**: migration `0012_transactions` (profile, wallet, category FKs with cascade),
+  `features/transaction` (sync handler; `check`: the user's live profile with no move, live
+  wallet and category of that profile, no move to another currency); wallets keep their
+  currency and categories their type while they have live transactions; OpenAPI
+  `SyncTransactionRow`.
+- **Web**: local schema step 8 (+ `(profile_id, occurred_on)`, wallet, category indexes),
+  `SYNC_TABLES`, `PROFILE_CHILD_TABLES`; `core/transaction` (`TransactionService`, `period.ts`);
+  real `balance()`, `hasTransactions` / `canChangeCurrency` / no delete in `WalletService` and
+  `CategoryService`; `layout/transactions-header`, `view-wallet-sheet`, `custom-range-sheet`,
+  `transaction-sheet`; `features/transactions`; shared `calc.ts`, `day.ts`, `formatAmount`,
+  `app-calc-keypad`, `app-calc-amount-field`, `.tpn-tree`; ➕ opens the sheet.
+- **Checked**: curl-style scripts on `/sync/push` + `/pull` (amount and date limits, foreign /
+  deleted / other-profile wallet or category, archived accepted, currency move with USD switched
+  on for the test, currency and type locks, two devices: the later edit wins). Playwright at
+  375×812 in th/en × light/dark on `npm run build`: add with the keypad (`120+65` → 185), income,
+  past dates, edit, delete + undo, ⋮ units, custom range, wallet switcher, the empty picker of a
+  wallet hiding all income, wallet / category locks, the profile delete count; `setOffline` and
+  the API really stopped (syncs by itself when back); an untrusted device offline can't save;
+  two trusted devices (the later edit wins, the loser's notice); A deletes an empty wallet
+  offline while B adds to it → B's row goes too; 20,000 rows (pull ≈ 5.5 s, month ≈ 0.17 s,
+  "ทั้งหมด" ≈ 0.8 s after the 100-row pages; it froze for 12 s before). Tests: API 512, web 425.
 
 ## Done: Category 7.2 (#7)
 
@@ -776,7 +815,8 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   mobile app: bottom tab bar, bottom sheets, safe areas.
 - **UI in Thai and English**, Thai by default, switched at runtime with no reload (Transloco;
   there's no SSR/SEO, so no per-language builds). Translations are bundled so both work offline.
-  Formats follow the language: Thai shows พ.ศ., English the Gregorian year. Names that read oddly
+  Formats follow the language, with the **Gregorian year in both** (ค.ศ., owner's choice in #8,
+  replacing พ.ศ. in Thai). Names that read oddly
   in Thai stay English (theme names). Details: `web/AGENTS.md` → UI text, `web/DESIGN.md` §11.
 - **Look: selectable themes.** Midnight Gold (navy + gold) by default, plus Indigo Night, Gold
   Coin and Plum, each with light and dark; Noto Sans Thai (loopless) self-hosted. See

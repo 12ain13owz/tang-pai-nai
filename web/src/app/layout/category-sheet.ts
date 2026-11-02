@@ -129,7 +129,7 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
                       size="icon"
                       type="button"
                       class="size-11 text-destructive"
-                      [disabled]="!categoryService.canWrite() || childCount() > 0"
+                      [disabled]="!categoryService.canWrite() || childCount() > 0 || used()"
                       [attr.aria-label]="'categories.delete' | transloco"
                       (click)="view.set('confirmDelete')"
                     >
@@ -220,6 +220,10 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
                   @if (childCount() > 0) {
                     <p class="rounded-xl bg-muted px-4 py-3 text-sm">
                       {{ 'categories.deleteHasChildren' | transloco: { count: childCount() } }}
+                    </p>
+                  } @else if (used()) {
+                    <p class="rounded-xl bg-muted px-4 py-3 text-sm">
+                      {{ 'categories.deleteUsed' | transloco }}
                     </p>
                   }
                 </div>
@@ -432,6 +436,8 @@ export class CategorySheet {
     const id = this.editingId()
     return id ? this.categoryService.childrenOf(id).length : 0
   })
+  /** Rules 4 and 6 (#8): with transactions it keeps its type and can only be archived. */
+  protected used = computed(() => this.categoryService.hasTransactions(this.editingId()))
   /** The profile the name must be unique in (rule 2). */
   private profileId = computed(() => {
     const state = this.state()
@@ -503,6 +509,9 @@ export class CategorySheet {
   protected typeNote = computed(() => {
     if (this.childCount() > 0) {
       return 'categories.typeLocked'
+    }
+    if (this.used()) {
+      return 'categories.typeUsed'
     }
     return this.formValue().parentId ? 'categories.typeFollowsParent' : null
   })
@@ -694,7 +703,7 @@ export class CategorySheet {
     if (parent && type.value !== parent.type) {
       type.setValue(parent.type, { emitEvent: false })
     }
-    const locked = parent !== null || this.childCount() > 0
+    const locked = parent !== null || this.childCount() > 0 || this.used()
     if (locked && type.enabled) {
       type.disable({ emitEvent: false })
     } else if (!locked && type.disabled) {

@@ -12,7 +12,6 @@
   },
   "title": {
     "transactions": "ธุรกรรม",
-    "transactionNew": "เพิ่มธุรกรรม",
     "wallets": "กระเป๋าเงิน",
     "reports": "รายงาน",
     "account": "บัญชีผู้ใช้",
@@ -41,10 +40,96 @@
     "reload": "โหลดใหม่"
   },
   "transactions": {
-    "emptyHeading": "ยังไม่มีธุรกรรม",
-    "emptyText": "รายรับรายจ่ายที่บันทึกจะแสดงที่นี่",
-    "newHeading": "เพิ่มธุรกรรม",
-    "newText": "ฟอร์มบันทึกรายรับรายจ่ายจะมาในเร็ว ๆ นี้"
+    "emptyHeading": "ยังไม่มีธุรกรรมในช่วงนี้",
+    "emptyText": "กด ➕ เพื่อจดรายรับหรือรายจ่าย",
+    "add": "เพิ่มธุรกรรม",
+    "total": "ยอดรวม",
+    "balance": "ยอดเงิน",
+    "periods": "ช่วงเวลา",
+    "summary": "สรุปช่วงนี้",
+    "net": "สุทธิ",
+    "today": "วันนี้",
+    "yesterday": "เมื่อวาน",
+    "tomorrow": "พรุ่งนี้",
+    "pending": "รอ sync",
+    "walletSwitch": "เลือกกระเป๋าเงิน ตอนนี้: {{name}}",
+    "viewBy": "ดูตาม",
+    "allWallets": "ทุกกระเป๋า",
+    "totalLine": "ยอดรวม {{total}}",
+    "walletSheet": "เลือกกระเป๋าเงิน",
+    "customHeading": "กำหนดช่วงเอง",
+    "customFrom": "ตั้งแต่วันที่",
+    "customTo": "ถึงวันที่",
+    "customOrder": "วันเริ่มต้องไม่เลยวันสุดท้าย",
+    "customApply": "ดูช่วงนี้",
+    "unit": {
+      "day": "วัน",
+      "week": "สัปดาห์",
+      "month": "เดือน",
+      "quarter": "ไตรมาส",
+      "year": "ปี",
+      "all": "ทั้งหมด",
+      "custom": "กำหนดเอง…"
+    },
+    "period": {
+      "dayThis": "วันนี้",
+      "dayLast": "เมื่อวาน",
+      "weekThis": "สัปดาห์นี้",
+      "weekLast": "สัปดาห์ที่แล้ว",
+      "monthThis": "เดือนนี้",
+      "monthLast": "เดือนที่แล้ว",
+      "quarterThis": "ไตรมาสนี้",
+      "quarterLast": "ไตรมาสที่แล้ว",
+      "yearThis": "ปีนี้",
+      "yearLast": "ปีที่แล้ว",
+      "future": "อนาคต",
+      "all": "ทั้งหมด"
+    },
+    "createHeading": "เพิ่มธุรกรรม",
+    "editHeading": "แก้ไขธุรกรรม",
+    "fixHeading": "แก้ธุรกรรมที่บันทึกไม่สำเร็จ",
+    "delete": "ลบธุรกรรม",
+    "deleted": "ลบธุรกรรมแล้ว",
+    "undo": "เลิกทำ",
+    "created": "บันทึกธุรกรรมแล้ว",
+    "saved": "บันทึกการแก้ไขแล้ว",
+    "needsOnline": "เครื่องนี้ไม่ได้ใช้งานออฟไลน์ ต่ออินเทอร์เน็ตก่อนจึงจะบันทึกธุรกรรมได้",
+    "type": "ประเภท",
+    "wallet": "กระเป๋าเงิน",
+    "amount": "จำนวนเงิน",
+    "category": "หมวดหมู่",
+    "pickCategory": "เลือกหมวดหมู่",
+    "categoryRequired": "เลือกหมวดหมู่ก่อน",
+    "note": "บันทึกช่วยจำ",
+    "notePlaceholder": "เช่น ข้าวกับเพื่อน หารกัน 3 คน",
+    "date": "วันที่",
+    "dayBefore": "วันก่อนหน้า",
+    "dayAfter": "วันถัดไป",
+    "excludeFromReport": "ไม่รวมในรายงาน",
+    "excludeHint": "ยังนับในยอดเงินของกระเป๋า",
+    "save": "บันทึก",
+    "walletPick": "เลือกกระเป๋าเงิน",
+    "sameCurrency": "ย้ายได้เฉพาะกระเป๋าที่ใช้สกุลเงินเดียวกัน",
+    "categoryPick": {
+      "expense": "หมวดหมู่รายจ่าย",
+      "income": "หมวดหมู่รายรับ"
+    },
+    "categoryMissing": "ไม่เห็นหมวดที่ต้องการ?",
+    "walletCategories": "หมวดหมู่ที่ใช้ของ {{name}}",
+    "noCategories": {
+      "expense": "{{name}} ซ่อนหมวดหมู่รายจ่ายทั้งหมด",
+      "income": "{{name}} ซ่อนหมวดหมู่รายรับทั้งหมด"
+    },
+    "noCategoriesText": "เปิดหมวดที่ต้องการใน \"หมวดหมู่ที่ใช้\" ของกระเป๋านี้ หรือเลือกกระเป๋าอื่น",
+    "toWalletCategories": "ไปที่หมวดหมู่ที่ใช้",
+    "discardHeading": "ทิ้งที่แก้ไว้ใช่ไหม",
+    "discardText": "สิ่งที่กรอกไว้ในฟอร์มนี้จะหายไป",
+    "discard": "ทิ้ง",
+    "keepEditing": "แก้ต่อ",
+    "amountRequired": "ใส่จำนวนเงินที่มากกว่า 0",
+    "amountFormat": "คิดจำนวนเงินไม่ได้ ตรวจตัวเลขอีกครั้ง",
+    "amountTooBig": "จำนวนเงินมากเกินไป",
+    "more": "เพิ่มเติม"
   },
   "wallets": {
     "firstHeading": "เพิ่มกระเป๋าเงินใบแรก",
@@ -101,7 +186,8 @@
     "undo": "เลิกทำ",
     "categoriesUsed": "หมวดหมู่ที่ใช้",
     "categoriesAll": "ทั้งหมด",
-    "categoriesHidden": "ซ่อน {{count}}"
+    "categoriesHidden": "ซ่อน {{count}}",
+    "deleteUsed": "กระเป๋านี้มีธุรกรรมแล้ว จึงลบไม่ได้ เก็บถาวรแทนได้"
   },
   "categories": {
     "title": "หมวดหมู่",
@@ -170,7 +256,9 @@
     "usedInHeading": "ใช้ในกระเป๋า",
     "usedInAll": "ทุกกระเป๋า",
     "usedInSome": "{{used}} จาก {{total}} กระเป๋า",
-    "tabsLabel": "ประเภทหมวดหมู่"
+    "tabsLabel": "ประเภทหมวดหมู่",
+    "deleteUsed": "หมวดหมู่นี้มีธุรกรรมแล้ว จึงลบไม่ได้ เก็บถาวรแทนได้",
+    "typeUsed": "เปลี่ยนประเภทไม่ได้เพราะมีธุรกรรมแล้ว"
   },
   "reports": {
     "emptyHeading": "ยังไม่มีรายงาน",
@@ -492,7 +580,9 @@
     "unreachable": "เซิร์ฟเวอร์ไม่ตอบ",
     "unreachablePending": "เซิร์ฟเวอร์ไม่ตอบ · รอ {{count}}",
     "unreachableText": "ติดต่อเซิร์ฟเวอร์ไม่ได้ จะลองใหม่เองเป็นระยะ",
-    "serverDownWrite": "ติดต่อเซิร์ฟเวอร์ไม่ได้ เครื่องนี้ไม่ได้ใช้งานออฟไลน์ จึงบันทึกได้เมื่อเซิร์ฟเวอร์กลับมา"
+    "serverDownWrite": "ติดต่อเซิร์ฟเวอร์ไม่ได้ เครื่องนี้ไม่ได้ใช้งานออฟไลน์ จึงบันทึกได้เมื่อเซิร์ฟเวอร์กลับมา",
+    "withTransactions": "ธุรกรรม {{count}} รายการ",
+    "tabletransactions": "ธุรกรรม"
   },
   "colors": {
     "label": "สีที่ {{number}}"
@@ -544,9 +634,9 @@
     "deleteWallets": "กระเป๋าเงิน {{count}} ใบ",
     "deleteCategory": "หมวดหมู่ 1 รายการ",
     "deleteCategories": "หมวดหมู่ {{count}} รายการ",
-    "deleteTextWalletsOnly": "{{wallets}} และธุรกรรมในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้",
-    "deleteTextCategoriesOnly": "{{categories}}ในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้",
-    "deleteTextBoth": "{{wallets}} {{categories}} และธุรกรรมในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้"
+    "deleteTransaction": "ธุรกรรม 1 รายการ",
+    "deleteTransactions": "ธุรกรรม {{count}} รายการ",
+    "deleteTextWith": "{{items}} ในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้"
   },
   "icons": {
     "lucideUser": "คน",
@@ -670,5 +760,16 @@
   },
   "header": {
     "back": "ย้อนกลับ"
+  },
+  "keypad": {
+    "label": "แป้นตัวเลข",
+    "clear": "ล้าง",
+    "divide": "หาร",
+    "times": "คูณ",
+    "backspace": "ลบตัวสุดท้าย",
+    "minus": "เครื่องหมายลบ",
+    "plus": "เครื่องหมายบวก",
+    "done": "คิดผล",
+    "point": "จุดทศนิยม"
   }
 }

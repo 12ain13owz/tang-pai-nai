@@ -6,7 +6,7 @@ import { HlmFieldImports } from '@spartan-ng/helm/field'
 import { HlmInput } from '@spartan-ng/helm/input'
 import { fieldErrorMessage } from './field-error'
 
-type InputType = 'text' | 'email' | 'tel' | 'url' | 'search'
+type InputType = 'text' | 'email' | 'tel' | 'url' | 'search' | 'date'
 type InputMode = 'text' | 'email' | 'tel' | 'url' | 'search' | 'numeric' | 'decimal'
 
 @Component({

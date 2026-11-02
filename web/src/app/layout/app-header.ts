@@ -5,10 +5,12 @@ import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideChevronLeft } from '@ng-icons/lucide'
 import { ProfileService } from '@/core/profile'
 import { PageTitleStrategy } from '@/core/routing'
-import { currentUrl, isProfileTab, parentOf } from './profile-routes'
+import { WalletService } from '@/core/wallet'
+import { currentUrl, isProfileTab, isTransactionsTab, parentOf } from './profile-routes'
 import { ProfileSwitcher } from './profile-switcher'
 import { SessionBanner } from './session-banner'
 import { SyncStatus } from './sync-status'
+import { TransactionsHeader } from './transactions-header'
 import { UpdateBanner } from './update-banner'
 
 @Component({
@@ -21,6 +23,7 @@ import { UpdateBanner } from './update-banner'
     SessionBanner,
     UpdateBanner,
     ProfileSwitcher,
+    TransactionsHeader,
   ],
   providers: [provideIcons({ lucideChevronLeft })],
   host: {
@@ -28,26 +31,36 @@ import { UpdateBanner } from './update-banner'
       'sticky top-0 z-10 block border-b border-border bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur',
   },
   template: `
-    <div class="flex h-14 items-center justify-between gap-3 px-4">
-      @if (showSwitcher()) {
-        <h1 class="sr-only">{{ pageTitleStrategy.pageTitle() }}</h1>
-        <app-profile-switcher />
-      } @else {
-        <div class="flex min-w-0 items-center gap-1">
-          @if (parent(); as link) {
-            <a
-              class="-ml-3 flex size-11 shrink-0 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-              [routerLink]="link"
-              [attr.aria-label]="'header.back' | transloco"
-            >
-              <ng-icon name="lucideChevronLeft" size="24" aria-hidden="true" />
-            </a>
-          }
-          <h1 class="truncate text-lg font-semibold">{{ pageTitleStrategy.pageTitle() }}</h1>
-        </div>
+    @if (transactionsHeader()) {
+      <h1 class="sr-only">{{ pageTitleStrategy.pageTitle() }}</h1>
+      <!-- Its own chunk (initial bundle budget); the placeholder keeps the header's height. -->
+      @defer (on immediate) {
+        <app-transactions-header />
+      } @placeholder {
+        <div class="h-14"></div>
       }
-      <app-sync-status class="shrink-0" />
-    </div>
+    } @else {
+      <div class="flex h-14 items-center justify-between gap-3 px-4">
+        @if (showSwitcher()) {
+          <h1 class="sr-only">{{ pageTitleStrategy.pageTitle() }}</h1>
+          <app-profile-switcher />
+        } @else {
+          <div class="flex min-w-0 items-center gap-1">
+            @if (parent(); as link) {
+              <a
+                class="-ml-3 flex size-11 shrink-0 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                [routerLink]="link"
+                [attr.aria-label]="'header.back' | transloco"
+              >
+                <ng-icon name="lucideChevronLeft" size="24" aria-hidden="true" />
+              </a>
+            }
+            <h1 class="truncate text-lg font-semibold">{{ pageTitleStrategy.pageTitle() }}</h1>
+          </div>
+        }
+        <app-sync-status class="shrink-0" />
+      </div>
+    }
     <app-session-banner />
     <app-update-banner />
   `,
@@ -55,11 +68,19 @@ import { UpdateBanner } from './update-banner'
 export class AppHeader {
   protected pageTitleStrategy = inject(PageTitleStrategy)
   private profileService = inject(ProfileService)
+  private walletService = inject(WalletService)
   private url = currentUrl()
 
   /** The profile tabs show the current profile instead of the title (profile.md → Web screens). */
   /** A page inside the Account tab goes back to it (owner's choice A1 in #7). */
   protected parent = computed(() => parentOf(this.url()))
+  /** The Transactions tab's own header, once its first-wallet step is done (wallet rule 12). */
+  protected transactionsHeader = computed(
+    () =>
+      isTransactionsTab(this.url()) &&
+      this.profileService.current() !== null &&
+      this.walletService.hasWallet()
+  )
   protected showSwitcher = computed(
     () => isProfileTab(this.url()) && this.profileService.current() !== null
   )

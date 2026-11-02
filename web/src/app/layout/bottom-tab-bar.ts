@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core'
-import { RouterLink, RouterLinkActive } from '@angular/router'
+import { Router, RouterLink, RouterLinkActive } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
@@ -9,6 +9,8 @@ import {
   lucideReceiptText,
   lucideWallet,
 } from '@ng-icons/lucide'
+import { ProfileService } from '@/core/profile'
+import { TransactionService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 
 interface Tab {
@@ -34,13 +36,15 @@ interface Tab {
       @for (tab of tabs; track tab.path) {
         @if ($index === 2) {
           <div class="flex items-center justify-center">
-            <a
-              [routerLink]="walletService.hasWallet() ? '/transactions/new' : '/transactions'"
+            <button
+              type="button"
               [attr.aria-label]="'nav.add' | transloco"
+              aria-haspopup="dialog"
               class="-mt-6 flex size-14 items-center justify-center rounded-full bg-primary text-2xl text-primary-foreground shadow-lg ring-4 ring-background focus-visible:ring-ring focus-visible:outline-none"
+              (click)="add()"
             >
               <ng-icon name="lucidePlus" aria-hidden="true" />
-            </a>
+            </button>
           </div>
         }
         <a
@@ -63,15 +67,26 @@ interface Tab {
 })
 export class BottomTabBar {
   /**
-   * With no profile or no wallet yet, ➕ leads to the create step or the first-wallet step on the
-   * Transactions tab (profile rule 5, wallet rule 12).
+   * ➕ opens the transaction form over the current tab; with no profile or no wallet yet it
+   * leads to the create step or the first-wallet step on the Transactions tab (profile rule 5,
+   * wallet rule 12).
    */
-  protected walletService = inject(WalletService)
+  private walletService = inject(WalletService)
+  private profileService = inject(ProfileService)
+  private transactionService = inject(TransactionService)
+  private router = inject(Router)
+
+  protected add(): void {
+    if (this.profileService.current() && this.walletService.hasWallet()) {
+      this.transactionService.open({ mode: 'create' })
+      return
+    }
+    void this.router.navigate(['/transactions'])
+  }
 
   /** The ➕ sits between the 2nd and 3rd tab. */
   protected readonly tabs: readonly Tab[] = [
-    // exact, so the ➕ page (/transactions/new) doesn't light up this tab
-    { path: '/transactions', label: 'nav.transactions', icon: 'lucideReceiptText', exact: true },
+    { path: '/transactions', label: 'nav.transactions', icon: 'lucideReceiptText', exact: false },
     { path: '/wallets', label: 'nav.wallets', icon: 'lucideWallet', exact: false },
     { path: '/reports', label: 'nav.reports', icon: 'lucideChartPie', exact: false },
     { path: '/account', label: 'nav.account', icon: 'lucideCircleUser', exact: false },

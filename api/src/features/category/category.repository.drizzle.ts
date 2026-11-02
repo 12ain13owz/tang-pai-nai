@@ -2,6 +2,7 @@ import { and, asc, count, eq, gt, isNull, lt, max, ne, sql } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
 import { categories } from '@/core/database/schema/category'
 import { profiles } from '@/core/database/schema/profile'
+import { transactions } from '@/core/database/schema/transaction'
 import { wrapUnexpected } from '@/core/error'
 import type { SyncRowInput, SyncTableHandler } from '@/core/sync'
 import { CATEGORY_LIMITS, CATEGORY_MESSAGE } from './category.const'
@@ -49,6 +50,16 @@ const checkParent = async (
   return null
 }
 
+/** Whether the category has live transactions (rule 4, #8). */
+const hasTransactions = async (executor: Executor, id: string) => {
+  const rows = await executor
+    .select({ id: transactions.id })
+    .from(transactions)
+    .where(and(eq(transactions.categoryId, id), isNull(transactions.deletedAt)))
+    .limit(1)
+  return rows.length > 0
+}
+
 /** Rule 1: the owner's live profile; whether `profileId` is one. */
 const isLiveProfile = async (executor: Executor, userId: string, profileId: string) => {
   const rows = await executor
@@ -81,6 +92,25 @@ const checkOpen = async (
   return null
 }
 
+/** Rules 3–4 for a stored category: what its children and transactions fix; the message or null. */
+const checkShape = async (
+  executor: Executor,
+  row: SyncRowInput,
+  stored: CategoryRow,
+  parentId: string | null
+): Promise<string | null> => {
+  // A parent with live children stays top-level and keeps its type.
+  const reshaped = parentId !== null || stored.type !== row.type
+  if (reshaped && (await countOthers(executor, row.id, eq(categories.parentId, row.id))) > 0) {
+    return parentId !== null ? CATEGORY_MESSAGE.HAS_CHILDREN : CATEGORY_MESSAGE.TYPE_FIXED
+  }
+  // A category with live transactions keeps its type (#8).
+  if (stored.type !== row.type && (await hasTransactions(executor, row.id))) {
+    return CATEGORY_MESSAGE.TYPE_USED
+  }
+  return null
+}
+
 /** Rules a device can't check offline (category rules 1–4, 7, 11); the message or null. */
 const checkCategory = async (
   executor: Executor,
@@ -106,10 +136,9 @@ const checkCategory = async (
   if (parentError) {
     return parentError
   }
-  // Rules 3–4: a parent with live children stays top-level and keeps its type.
-  const reshaped = stored !== undefined && (parentId !== null || stored.type !== row.type)
-  if (reshaped && (await countOthers(executor, row.id, eq(categories.parentId, row.id))) > 0) {
-    return parentId !== null ? CATEGORY_MESSAGE.HAS_CHILDREN : CATEGORY_MESSAGE.TYPE_FIXED
+  const shapeError = stored ? await checkShape(executor, row, stored, parentId) : null
+  if (shapeError) {
+    return shapeError
   }
   // Rules 2 and 11: archived categories neither hold a name nor count toward the 200.
   return row.isArchived === true ? null : checkOpen(executor, row, profileId, parentId)

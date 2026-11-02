@@ -68,3 +68,19 @@ export const formatMoney = (
     // An exact decimal string (Intl.NumberFormat v3, every current browser); TS's lib only
     // types numbers.
   }).format(toDecimalString(minor, minorUnit) as unknown as number)
+
+/**
+ * A signed minor amount without its currency symbol (the transaction list, Money Lover style):
+ * `-6500` (2) → `-65.00`, and `+45,000.00` with `signed` for anything above zero.
+ */
+export const formatAmount = (
+  minor: number,
+  minorUnit: number,
+  locale: string,
+  signed = false
+): string =>
+  new Intl.NumberFormat(locale, {
+    minimumFractionDigits: minorUnit,
+    maximumFractionDigits: minorUnit,
+    signDisplay: signed ? 'exceptZero' : 'auto',
+  }).format(toDecimalString(minor, minorUnit) as unknown as number)

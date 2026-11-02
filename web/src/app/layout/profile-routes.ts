@@ -36,3 +36,6 @@ export const currentUrl = () => {
     { initialValue: router.url }
   )
 }
+
+/** The Transactions tab's own page, whose header holds the wallet switcher (#8). */
+export const isTransactionsTab = (url: string): boolean => url.split(/[?#]/)[0] === '/transactions'

@@ -5,7 +5,7 @@ description: >-
   Rules (each answers `CONFLICT`): profileId is one of the user's live profiles and never changes;
   parentId, when set, is a live top-level category of the same profile and type, not archived
   unless this row is archived too; a category with live children stays top-level and keeps its
-  type; name is unique (case-insensitive) among its open siblings (same profile, type and
+  type, and one with live transactions keeps its type; name is unique (case-insensitive) among its open siblings (same profile, type and
   parentId); a profile holds at most 200 open categories. A tombstone runs none of them.
 required:
   [

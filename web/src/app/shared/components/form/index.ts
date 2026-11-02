@@ -2,6 +2,8 @@ import { ReactiveFormsModule } from '@angular/forms'
 import { MarkTouchedOnSubmit } from './mark-touched-on-submit'
 
 export * from './amount-field'
+export * from './calc-amount-field'
+export * from './calc-keypad'
 export * from './color-field'
 export * from './field-error'
 export * from './icon-field'
