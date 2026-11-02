@@ -75,3 +75,9 @@ export const WALLET_LIMITS = {
 
 /** A new wallet's currency when only one is active (wallet rule 4). */
 export const DEFAULT_CURRENCY = 'THB'
+
+/**
+ * The device table of transactions, read by name for balances and "has transactions" (rules 4,
+ * 6, 12): `core/transaction` builds on this service, so it can't be imported here.
+ */
+export const TRANSACTION_TABLE = 'transactions'

@@ -318,6 +318,11 @@ export class ProfileService {
     return this.childCount('categories', id)
   }
 
+  /** The profile's live transactions (rule 8's confirm, transaction rule 9). */
+  transactionCount(id: string): number {
+    return this.childCount('transactions', id)
+  }
+
   private childCount(table: (typeof PROFILE_CHILD_TABLES)[number], id: string): number {
     this.offlineService.changes()
     if (!this.offlineService.isOpen()) {

@@ -10,7 +10,7 @@ import {
 } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
-import { cleanHidden, toWallet, WALLET_TABLE } from '@/core/wallet'
+import { cleanHidden, toWallet, TRANSACTION_TABLE, WALLET_TABLE } from '@/core/wallet'
 import { CATEGORY_LIMITS, CATEGORY_TABLE } from './category.type'
 import type {
   Category,
@@ -344,9 +344,24 @@ export class CategoryService {
     return null
   }
 
-  /** Rule 6: a tombstone, after the sheet's confirm view; only without live children. */
+  /** Rules 4 and 6: whether the category has live transactions (type fixed, archive only). */
+  hasTransactions(id: string | null): boolean {
+    if (id === null) {
+      return false
+    }
+    return this.read(
+      (db) =>
+        db.selectValue(
+          `SELECT EXISTS (SELECT 1 FROM ${TRANSACTION_TABLE} WHERE category_id = ? AND deleted_at IS NULL)`,
+          [id]
+        ) === 1,
+      false
+    )
+  }
+
+  /** Rule 6: a tombstone, after the sheet's confirm view; only without live children or transactions. */
   remove(id: string): void {
-    if (this.childrenOf(id).length > 0) {
+    if (this.childrenOf(id).length > 0 || this.hasTransactions(id)) {
       return
     }
     const now = Date.now()

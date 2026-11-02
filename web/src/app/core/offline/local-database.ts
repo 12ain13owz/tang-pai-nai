@@ -112,6 +112,26 @@ const MIGRATIONS: readonly string[] = [
   CREATE INDEX categories_profile ON categories (profile_id)`,
   // #7.2: the categories a wallet doesn't use, a JSON array (category rule 13).
   `ALTER TABLE wallets ADD COLUMN hidden_category_ids TEXT NOT NULL DEFAULT '[]'`,
+  // #8.1: transactions (docs/features/transaction.md). Indexes for the screens: a period of the
+  // profile, a wallet's balance, "has transactions" of a wallet or category (Volume).
+  `CREATE TABLE transactions (
+    id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL,
+    wallet_id TEXT NOT NULL,
+    category_id TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    occurred_on TEXT NOT NULL,
+    note TEXT NOT NULL,
+    exclude_from_report INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted_at INTEGER,
+    change_seq INTEGER,
+    updated_by TEXT
+  ) STRICT;
+  CREATE INDEX transactions_profile_day ON transactions (profile_id, occurred_on);
+  CREATE INDEX transactions_wallet ON transactions (wallet_id);
+  CREATE INDEX transactions_category ON transactions (category_id)`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null
