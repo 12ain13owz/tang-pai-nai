@@ -12,7 +12,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideReceiptText } from '@ng-icons/lucide'
+import { lucideCloud, lucideReceiptText } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { CATEGORY_DEFAULT_ICON } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
@@ -20,7 +20,7 @@ import { periodLabel, signedAmount, TransactionService } from '@/core/transactio
 import type { PeriodTab, TransactionItem } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import { EmptyState } from '@/shared/components/empty-state'
-import { IconBadge } from '@/shared/components/icon-badge'
+import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 import { addDays, formatAmount, formatMoney, fromDay } from '@/shared/utils'
 
@@ -34,7 +34,13 @@ interface DayGroup {
   subtitle: string
   total: string
   totalSign: number
-  items: { item: TransactionItem; amount: string; subtitle: string }[]
+  items: {
+    item: TransactionItem
+    amount: string
+    /** The wallet's badge, only while "ทุกกระเป๋า" shows several wallets. */
+    wallet: { icon: string; color: string; name: string } | null
+    pending: boolean
+  }[]
 }
 
 /**
@@ -46,7 +52,7 @@ interface DayGroup {
 @Component({
   selector: 'app-transactions-page',
   imports: [TranslocoPipe, NgIcon, HlmButton, EmptyState, IconBadge],
-  providers: [provideIcons({ lucideReceiptText })],
+  providers: [provideIcons({ lucideCloud, lucideReceiptText })],
   host: { class: 'flex flex-col' },
   template: `
     <div class="flex flex-col items-center px-4 pt-1 pb-2 text-center">
@@ -142,17 +148,40 @@ interface DayGroup {
                   class="flex min-h-15 w-full items-center gap-3 px-4 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
                   (click)="transactionService.open({ mode: 'edit', id: row.item.id })"
                 >
-                  <app-icon-badge
-                    [icon]="row.item.categoryIcon"
-                    [color]="row.item.categoryColor"
-                    [fallback]="categoryIcon"
-                  />
+                  <span class="relative shrink-0">
+                    <app-icon-badge
+                      [icon]="row.item.categoryIcon"
+                      [color]="row.item.categoryColor"
+                      [fallback]="categoryIcon"
+                    />
+                    @if (row.wallet; as wallet) {
+                      <!-- Which wallet, on "ทุกกระเป๋า" (owner's choice ก in #8). -->
+                      <app-icon-badge
+                        class="absolute -right-1 -bottom-1 rounded-full ring-2 ring-card"
+                        [icon]="wallet.icon"
+                        [color]="wallet.color"
+                        [fallback]="walletIcon"
+                        [size]="20"
+                      />
+                    }
+                  </span>
                   <span class="flex min-w-0 flex-1 flex-col">
                     <span class="truncate text-base font-semibold">{{
                       row.item.categoryName
                     }}</span>
-                    @if (row.subtitle) {
-                      <span class="truncate text-sm text-muted-foreground">{{ row.subtitle }}</span>
+                    @if (row.wallet; as wallet) {
+                      <span class="sr-only">{{ wallet.name }}</span>
+                    }
+                    @if (row.item.note) {
+                      <span class="truncate text-sm text-muted-foreground">{{
+                        row.item.note
+                      }}</span>
+                    }
+                    @if (row.pending) {
+                      <span class="flex items-center gap-1 text-xs text-muted-foreground">
+                        <ng-icon name="lucideCloud" size="12" aria-hidden="true" />
+                        {{ 'transactions.pending' | transloco }}
+                      </span>
                     }
                   </span>
                   <span
@@ -211,6 +240,7 @@ export class TransactionsPage {
   })
   protected hasMore = computed(() => this.transactionService.items().length > this.limit())
   protected categoryIcon = CATEGORY_DEFAULT_ICON as UserIcon
+  protected walletIcon = WALLET_DEFAULT_ICON
 
   /** The chosen wallet's balance, or the total per currency (wallet rules 7, 12). */
   protected balance = computed(() => {
@@ -261,6 +291,8 @@ export class TransactionsPage {
     const items = all.slice(0, this.limit())
     const today = this.transactionService.today()
     const showWallet = this.transactionService.viewWallet() === null
+    const wallets = new Map(this.walletService.wallets().map((wallet) => [wallet.id, wallet]))
+    const pending = this.transactionService.pendingIds()
     // The symbol is left out while every row shares one currency.
     const mixed = new Set(all.map((item) => item.currencyCode)).size > 1
     const money = (minor: number, code: string) => {
@@ -292,17 +324,12 @@ export class TransactionsPage {
         }
         groups.push(group)
       }
-      const parts = [item.note, showWallet ? item.walletName : ''].filter((part) => part !== '')
-      if (this.transactionService.pendingIds().has(item.id)) {
-        parts.push(this.transloco.translate('transactions.pending'))
-      }
-      if (item.excludeFromReport) {
-        parts.push(this.transloco.translate('transactions.excluded'))
-      }
+      const wallet = showWallet ? wallets.get(item.walletId) : undefined
       group.items.push({
         item,
         amount: money(signedAmount(item.amount, item.type), item.currencyCode),
-        subtitle: parts.join(' · '),
+        wallet: wallet ? { icon: wallet.icon, color: wallet.color, name: wallet.name } : null,
+        pending: pending.has(item.id),
       })
     }
     // A day cut by the page limit still totals all its rows.

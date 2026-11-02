@@ -34,7 +34,7 @@ import {
   TextareaField,
   withMessage,
 } from '@/shared/components/form'
-import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
+import { IconBadge, userColor, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
 import type { SelectOption } from '@/shared/types'
@@ -406,19 +406,12 @@ const KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
                       <li>
                         <button
                           type="button"
-                          class="relative flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                          class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
                           [attr.aria-current]="
                             node.category.id === f.categoryId.value ? 'true' : null
                           "
                           (click)="chooseCategory(node.category.id)"
                         >
-                          @if (node.children.length > 0) {
-                            <!-- The tree line starts under the parent's badge. -->
-                            <span
-                              class="absolute top-[calc(50%+1.25rem)] bottom-0 left-[2.1875rem] border-l-2 border-muted-foreground/35"
-                              aria-hidden="true"
-                            ></span>
-                          }
                           <app-icon-badge
                             [icon]="node.category.icon"
                             [color]="node.category.color"
@@ -437,28 +430,21 @@ const KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
                           }
                         </button>
                         @if (node.children.length > 0) {
-                          <ul [attr.aria-label]="node.category.name">
-                            @for (child of node.children; track child.id; let last = $last) {
+                          <ul
+                            class="tpn-tree"
+                            [style.--tree-color]="treeColor(node.category.color)"
+                            [attr.aria-label]="node.category.name"
+                          >
+                            @for (child of node.children; track child.id) {
                               <li>
                                 <button
                                   type="button"
-                                  class="relative flex min-h-12 w-full items-center gap-3 py-2 pr-4 pl-14 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                                  class="flex min-h-12 w-full items-center gap-3 py-2 pr-4 pl-7 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
                                   [attr.aria-current]="
                                     child.id === f.categoryId.value ? 'true' : null
                                   "
                                   (click)="chooseCategory(child.id)"
                                 >
-                                  <!-- Tree lines: down from the parent, then across to this badge. -->
-                                  @if (!last) {
-                                    <span
-                                      class="absolute inset-y-0 left-[2.1875rem] border-l-2 border-muted-foreground/35"
-                                      aria-hidden="true"
-                                    ></span>
-                                  }
-                                  <span
-                                    class="absolute top-0 left-[2.1875rem] h-1/2 w-4 rounded-bl-lg border-b-2 border-l-2 border-muted-foreground/35"
-                                    aria-hidden="true"
-                                  ></span>
                                   <app-icon-badge
                                     [icon]="child.icon"
                                     [color]="child.color"
@@ -586,6 +572,7 @@ export class TransactionSheet {
   private profileService = inject(ProfileService)
 
   protected walletIcon = WALLET_DEFAULT_ICON
+  protected treeColor = userColor
   protected categoryIcon = CATEGORY_DEFAULT_ICON as UserIcon
   protected noteMax = TRANSACTION_LIMITS.NOTE_MAX
   protected firstDay = TRANSACTION_LIMITS.FIRST_DAY

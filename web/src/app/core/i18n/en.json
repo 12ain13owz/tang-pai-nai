@@ -52,7 +52,6 @@
     "yesterday": "Yesterday",
     "tomorrow": "Tomorrow",
     "pending": "Waiting to sync",
-    "excluded": "Not in reports",
     "walletSwitch": "Choose wallet, now {{name}}",
     "viewBy": "View by",
     "allWallets": "All wallets",

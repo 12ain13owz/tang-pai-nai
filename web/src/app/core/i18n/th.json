@@ -52,7 +52,6 @@
     "yesterday": "เมื่อวาน",
     "tomorrow": "พรุ่งนี้",
     "pending": "รอ sync",
-    "excluded": "ไม่รวมในรายงาน",
     "walletSwitch": "เลือกกระเป๋าเงิน ตอนนี้: {{name}}",
     "viewBy": "ดูตาม",
     "allWallets": "ทุกกระเป๋า",
