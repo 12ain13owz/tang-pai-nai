@@ -188,4 +188,12 @@ describe('SyncSheet', () => {
     sync.canSync.set(true)
     TestBed.inject(NetworkStatusService).isOnline.set(true)
   })
+
+  it('says the server is not answering and retries by itself, leaving sync now on', async () => {
+    TestBed.inject(NetworkStatusService).serverReachable.set(false)
+    await open()
+    expect(text()).toContain(th.sync.unreachableText)
+    expect(button(th.sync.syncNow)?.disabled).toBe(false)
+    TestBed.inject(NetworkStatusService).serverReachable.set(true)
+  })
 })

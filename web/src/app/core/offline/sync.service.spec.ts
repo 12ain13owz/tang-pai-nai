@@ -9,7 +9,7 @@ import { NetworkStatusService } from '@/core/network'
 import { OfflineService } from './offline.service'
 import { countOps, findPending, listOps, queueWrite } from './outbox'
 import { getRow, putRow } from './sync-tables'
-import { SyncService } from './sync.service'
+import { RETRY_DELAYS_MS, SyncService } from './sync.service'
 import { openTestDatabase } from './testing-db'
 import type { LocalDatabase } from './local-database'
 
@@ -60,6 +60,7 @@ const fakeOffline = (db: LocalDatabase) => {
       changes.update((n) => n + 1)
       return result
     },
+    recheckSession: vi.fn(async (): Promise<void> => Promise.resolve()),
     syncMeta: (key: string) => {
       const value = db.selectValue('SELECT value FROM sync_meta WHERE key = ?', [key])
       return typeof value === 'string' ? value : null
@@ -355,6 +356,99 @@ describe('SyncService', () => {
     TestBed.inject(AuthStore).clear('expired')
     expect(service.canSync()).toBe(false)
     expect(service.status()).toBe('pending')
+  })
+
+  describe('while the server is unreachable (rule 11)', () => {
+    /** Retry timers the service set, captured instead of run (other timers run as usual). */
+    let scheduled: { delay: number; run: () => void }[] = []
+    const down = (_ops: PushedOp[], req: TestRequest) =>
+      req.flush('', { status: 502, statusText: 'Bad Gateway' })
+    const retries = () => scheduled.map((timer) => timer.delay)
+    /** Runs the last retry the service scheduled. */
+    const fireRetry = () => {
+      scheduled.at(-1)?.run()
+    }
+
+    beforeEach(() => {
+      scheduled = []
+      const real = globalThis.setTimeout
+      const delays: readonly number[] = RETRY_DELAYS_MS
+      vi.spyOn(globalThis, 'setTimeout').mockImplementation(((run: () => void, delay?: number) => {
+        if (delay !== undefined && delays.includes(delay)) {
+          scheduled.push({ delay, run })
+          return 0
+        }
+        return real(run, delay)
+      }) as typeof setTimeout)
+      offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p1', 'A')))
+    })
+    afterEach(() => {
+      // Offline stops the retries, so no timer outlives the test.
+      TestBed.inject(NetworkStatusService).isOnline.set(false)
+      TestBed.tick()
+      TestBed.inject(NetworkStatusService).isOnline.set(true)
+      vi.restoreAllMocks()
+    })
+
+    it('says so and retries by itself, later each time, until a round gets through', async () => {
+      const network = TestBed.inject(NetworkStatusService)
+      await drive(service.sync(), down)
+      expect(network.serverReachable()).toBe(false)
+      expect(service.status()).toBe('unreachable')
+      expect(retries()).toEqual([5_000])
+      for (let i = 0; i < 6; i++) {
+        fireRetry()
+        await drive(service.sync(), down)
+      }
+      // Each failed round waits longer, then every 5 minutes.
+      expect(retries().slice(0, 7)).toEqual([
+        5_000, 15_000, 30_000, 60_000, 120_000, 300_000, 300_000,
+      ])
+      fireRetry()
+      await drive(service.sync())
+      expect(network.serverReachable()).toBe(true)
+      expect(service.status()).toBe('synced')
+      expect(listOps(db, 'pending')).toEqual([])
+      // The next outage starts again from 5 seconds.
+      offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p2', 'B')))
+      const before = retries().length
+      await drive(service.sync(), down)
+      expect(retries().slice(before)).toEqual([5_000])
+    })
+
+    it('stops retrying offline, and the offline pill wins', async () => {
+      const network = TestBed.inject(NetworkStatusService)
+      await drive(service.sync(), down)
+      network.isOnline.set(false)
+      TestBed.tick()
+      expect(service.status()).toBe('offline')
+      expect(network.serverReachable()).toBe(true)
+    })
+
+    it('rechecks a session the app opened without, then syncs', async () => {
+      const network = TestBed.inject(NetworkStatusService)
+      const auth = TestBed.inject(AuthStore)
+      auth.status.set('unreachable')
+      TestBed.tick()
+      expect(network.serverReachable()).toBe(false)
+      expect(retries()).toEqual([5_000])
+      // Still down: the check fails and waits longer.
+      fireRetry()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      expect(offline.recheckSession).toHaveBeenCalled()
+      expect(retries()).toEqual([5_000, 15_000])
+      // Back: the session returns, and its round syncs.
+      offline.recheckSession.mockImplementationOnce(async () => {
+        auth.setSession({ accessToken: 't', expiresIn: 600, user })
+        return Promise.resolve()
+      })
+      fireRetry()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      TestBed.tick()
+      await drive(service.sync())
+      expect(network.serverReachable()).toBe(true)
+      expect(listOps(db, 'pending')).toEqual([])
+    })
   })
 
   it('answers how many ops a sign-out would lose after trying to push', async () => {

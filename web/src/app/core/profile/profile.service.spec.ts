@@ -249,6 +249,14 @@ describe('ProfileService', () => {
     expect(service.canWrite()).toBe(true)
     online.set(false)
     expect(service.canWrite()).toBe(false)
+    expect(service.serverDown()).toBe(false)
+    // Online but the server isn't answering (offline-sync rule 11): still no writes.
+    online.set(true)
+    reachable.set(false)
+    expect(service.canWrite()).toBe(false)
+    expect(service.serverDown()).toBe(true)
+    trusted.set(true)
+    expect(service.canWrite()).toBe(true)
   })
 
   describe('with wallets (wallet rule 11)', () => {

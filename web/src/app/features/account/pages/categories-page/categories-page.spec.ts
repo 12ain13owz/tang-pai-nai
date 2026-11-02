@@ -166,6 +166,11 @@ describe('CategoriesPage', () => {
     await settle()
     expect(page().textContent).toContain(th.categories.needsOnline)
     expect(button(th.categories.add)?.disabled).toBe(true)
+    // Online, but the server isn't answering: the notice says that instead.
+    categories.serverDown.set(true)
+    await settle()
+    expect(page().textContent).toContain(th.sync.serverDownWrite)
+    expect(page().textContent).not.toContain(th.categories.needsOnline)
   })
 
   it('says why "add" is gone at 200 open categories', async () => {

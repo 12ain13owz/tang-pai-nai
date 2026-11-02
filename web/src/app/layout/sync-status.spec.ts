@@ -54,6 +54,8 @@ describe('SyncStatus', () => {
     expect(show('offline')).toBe(th.sync.offline)
     expect(show('offline', 2)).toBe('ออฟไลน์ · รอ 2')
     expect(show('errors', 0, 1)).toBe('บันทึกไม่สำเร็จ 1')
+    expect(show('unreachable')).toBe(th.sync.unreachable)
+    expect(show('unreachable', 2)).toBe('เซิร์ฟเวอร์ไม่ตอบ · รอ 2')
   })
 
   it('tints offline and errors red, and uses the income dot only when synced', () => {
@@ -61,6 +63,9 @@ describe('SyncStatus', () => {
     expect(pill()?.querySelector('.bg-income')).not.toBeNull()
     show('errors', 0, 1)
     expect(pill()?.className).toContain('text-destructive')
+    show('unreachable', 1)
+    expect(pill()?.className).toContain('text-destructive')
+    expect(pill()?.querySelector('.bg-destructive')).not.toBeNull()
     show('pending', 1)
     expect(pill()?.className).not.toContain('text-destructive')
   })
