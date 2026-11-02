@@ -16,6 +16,7 @@ import { fieldErrorMessage } from './field-error'
         hlmTextarea
         [formControl]="control()"
         [rows]="rows()"
+        [style.min-height.lh]="rows()"
         [placeholder]="placeholder()"
         [attr.maxlength]="maxLength()"
       ></textarea>
