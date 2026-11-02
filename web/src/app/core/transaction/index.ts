@@ -1,3 +1,4 @@
 export * from './transaction.service'
 export * from './transaction.type'
 export * from './period'
+export * from './quick-amounts'

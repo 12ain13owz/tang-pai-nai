@@ -6,14 +6,18 @@ import { LANGUAGES, LanguageService } from '@/core/i18n'
 import type { Language } from '@/core/i18n'
 import { PALETTES, ThemeService } from '@/core/theme'
 import type { PaletteId, ThemePreference } from '@/core/theme'
+import { QuickAmountsService } from '@/core/transaction'
 import { PalettePicker } from '@/features/account/pages/account-page/palette-picker'
-import { SelectField } from '@/shared/components/form'
+import { SelectField, SwitchField } from '@/shared/components/form'
 import type { SelectOption } from '@/shared/types'
 
-/** Account › การแสดงผล: language, mode and theme (DESIGN.md §3, §11), each applied at once. */
+/**
+ * Account › การแสดงผล: language, mode, theme (DESIGN.md §3, §11) and the keypad's quick amounts
+ * (transaction.md, 8.2), each applied at once.
+ */
 @Component({
   selector: 'app-appearance-page',
-  imports: [TranslocoPipe, SelectField, PalettePicker],
+  imports: [TranslocoPipe, SelectField, SwitchField, PalettePicker],
   template: `
     <div class="flex flex-col gap-4 p-4">
       <app-select-field
@@ -27,6 +31,13 @@ import type { SelectOption } from '@/shared/types'
         [options]="themeOptions()"
       />
       <app-palette-picker [control]="paletteControl" [palettes]="palettes" />
+      <div class="border-t border-border pt-4">
+        <app-switch-field
+          [control]="quickAmountsControl"
+          [label]="'account.quickAmounts' | transloco"
+          [hint]="'account.quickAmountsHint' | transloco"
+        />
+      </div>
     </div>
   `,
 })
@@ -35,6 +46,7 @@ export class AppearancePage {
   private transloco = inject(TranslocoService)
   private themeService = inject(ThemeService)
   private languageService = inject(LanguageService)
+  private quickAmountsService = inject(QuickAmountsService)
 
   protected readonly palettes = PALETTES
   // Language names are shown in their own language, so they never need translating.
@@ -53,6 +65,7 @@ export class AppearancePage {
   protected languageControl = this.nnfb.control<Language | ''>(this.languageService.language().id)
   protected themeControl = this.nnfb.control<ThemePreference | ''>(this.themeService.preference())
   protected paletteControl = this.nnfb.control<PaletteId>(this.themeService.palette().id)
+  protected quickAmountsControl = this.nnfb.control(this.quickAmountsService.enabled())
 
   constructor() {
     this.languageControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((language) => {
@@ -70,5 +83,8 @@ export class AppearancePage {
     this.paletteControl.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe((id) => this.themeService.setPalette(id))
+    this.quickAmountsControl.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((enabled) => this.quickAmountsService.setEnabled(enabled))
   }
 }
