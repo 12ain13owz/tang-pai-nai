@@ -311,6 +311,44 @@ describe('ProfileService', () => {
       ])
     })
 
+    it("counts and tombstones the profile's transactions with it (transaction rule 9)", () => {
+      start()
+      pulled(row('p1', 'Home', 0))
+      pulled(row('p2', 'Work', 1))
+      wallet('w1', 'p1')
+      for (const [id, profileId, deletedAt] of [
+        ['t1', 'p1', null],
+        ['t2', 'p1', 5],
+        ['t3', 'p2', null],
+      ] as const) {
+        putRow(db, 'transactions', {
+          id,
+          profileId,
+          walletId: 'w1',
+          categoryId: 'c1',
+          amount: 100,
+          occurredOn: '2026-11-02',
+          note: '',
+          excludeFromReport: false,
+          createdAt: 1,
+          updatedAt: 1,
+          deletedAt,
+          changeSeq: 20,
+          updatedBy: 'u1',
+        })
+      }
+      changes.update((n) => n + 1)
+      expect(service.transactionCount('p1')).toBe(1)
+      service.remove('p1')
+      TestBed.tick()
+      expect(
+        db.selectObjects('SELECT id FROM transactions WHERE deleted_at IS NULL').map((r) => r['id'])
+      ).toEqual(['t3'])
+      expect(ops().map((op) => `${op.table}:${op.rowId}:${op.op}`)).toContain(
+        'transactions:t1:delete'
+      )
+    })
+
     it('tombstones live wallets of a profile deleted on another device', () => {
       start()
       pulled(row('p1', 'Home', 0))

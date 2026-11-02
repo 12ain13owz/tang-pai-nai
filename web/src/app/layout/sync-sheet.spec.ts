@@ -4,6 +4,7 @@ import type { ComponentFixture } from '@angular/core/testing'
 import { Router } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
+import { CategoryService } from '@/core/category'
 import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
 import { SyncService } from '@/core/offline'
@@ -95,6 +96,7 @@ describe('SyncSheet', () => {
         { provide: SyncService, useValue: sync },
         { provide: WalletService, useValue: wallets },
         { provide: ProfileService, useValue: profiles },
+        { provide: CategoryService, useValue: { byId: () => null } },
       ],
     })
     TestBed.inject(AuthStore).status.set('signedIn')

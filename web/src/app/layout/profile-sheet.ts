@@ -228,10 +228,8 @@ export class ProfileSheet {
     if (items.length === 0) {
       return t('deleteText')
     }
-    const and = this.transloco.translate('sync.and')
-    const list =
-      items.length === 1 ? items[0] : `${items.slice(0, -1).join(', ')}${and}${items.at(-1)}`
-    return t('deleteTextWith', { items: list })
+    const list = new Intl.ListFormat(this.languageService.locale(), { type: 'conjunction' })
+    return t('deleteTextWith', { items: list.format(items) })
   })
   protected heading = computed(() => {
     switch (this.state()?.mode) {

@@ -293,6 +293,87 @@ describe('WalletService', () => {
     expect(ops()).toMatchObject([{ rowId: 'a', op: 'delete', baseSeq: 10 }])
   })
 
+  /** A pulled transaction (rules 4, 6 and 12 read them). */
+  const txRow = (id: string, extra: object = {}) => {
+    putRow(db, 'transactions', {
+      id,
+      profileId: 'p1',
+      walletId: 'w',
+      categoryId: 'c',
+      amount: 1000,
+      occurredOn: '2026-11-02',
+      note: '',
+      excludeFromReport: false,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 1,
+      updatedBy: 'u1',
+      ...extra,
+    })
+    changes.update((n) => n + 1)
+  }
+
+  it('computes balances from live transactions, excluded-from-report ones too (transaction rule 12)', () => {
+    pulled(wallet('cash', { initialBalance: 10000 }))
+    pulled(wallet('card'))
+    putRow(db, 'categories', {
+      id: 'food',
+      profileId: 'p1',
+      type: 'expense',
+      parentId: null,
+      name: 'Food',
+      icon: 'lucideShapes',
+      color: '#475569',
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 1,
+      updatedBy: 'u1',
+    })
+    putRow(db, 'categories', {
+      id: 'pay',
+      profileId: 'p1',
+      type: 'income',
+      parentId: null,
+      name: 'Pay',
+      icon: 'lucideShapes',
+      color: '#475569',
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 1,
+      updatedBy: 'u1',
+    })
+    txRow('t1', { walletId: 'cash', categoryId: 'food', amount: 2500 })
+    txRow('t2', { walletId: 'cash', categoryId: 'pay', amount: 500, excludeFromReport: true })
+    txRow('t3', { walletId: 'cash', categoryId: 'food', amount: 9999, deletedAt: 5 })
+    const cash = service.byId('cash')
+    const card = service.byId('card')
+    expect(cash && service.balance(cash)).toBe(8000)
+    expect(card && service.balance(card)).toBe(0)
+    expect(service.totals()).toMatchObject([{ currencyCode: 'THB', amount: 8000 }])
+  })
+
+  it('locks the currency and refuses delete while the wallet has live transactions (rules 4, 6)', () => {
+    pulled(wallet('cash'))
+    pulled(wallet('card'))
+    txRow('t1', { walletId: 'cash' })
+    txRow('t2', { walletId: 'card', deletedAt: 5 })
+    expect(service.hasTransactions('cash')).toBe(true)
+    expect(service.canChangeCurrency('cash')).toBe(false)
+    expect(service.canChangeCurrency('card')).toBe(true)
+    expect(service.canChangeCurrency(null)).toBe(true)
+    service.remove('cash')
+    expect(service.byId('cash')).not.toBeNull()
+    service.remove('card')
+    expect(service.byId('card')).toBeNull()
+  })
+
   it('moves an open wallet, keeps archived ones after, and writes only what changed', () => {
     pulled(wallet('a', { sortOrder: 0 }))
     pulled(wallet('b', { sortOrder: 1 }))

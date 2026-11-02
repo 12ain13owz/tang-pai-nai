@@ -1,13 +1,17 @@
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
-import { provideRouter } from '@angular/router'
+import { provideRouter, Router } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import th from '@/core/i18n/th.json'
+import { ProfileService } from '@/core/profile'
+import { TransactionService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import { BottomTabBar } from './bottom-tab-bar'
 
 describe('BottomTabBar', () => {
   const hasWallet = signal(false)
+  const current = signal<{ id: string } | null>(null)
+  const open = vi.fn()
 
   const render = () => {
     TestBed.configureTestingModule({
@@ -18,25 +22,40 @@ describe('BottomTabBar', () => {
           preloadLangs: true,
         }),
       ],
-      providers: [provideRouter([]), { provide: WalletService, useValue: { hasWallet } }],
+      providers: [
+        provideRouter([]),
+        { provide: WalletService, useValue: { hasWallet } },
+        { provide: ProfileService, useValue: { current } },
+        { provide: TransactionService, useValue: { open } },
+      ],
     })
     const fixture = TestBed.createComponent(BottomTabBar)
     fixture.detectChanges()
     return fixture
   }
   const plus = (element: HTMLElement) =>
-    element.querySelector(`a[aria-label="${th.nav.add}"]`)?.getAttribute('href')
+    element.querySelector<HTMLButtonElement>(`button[aria-label="${th.nav.add}"]`)
+
+  beforeEach(() => {
+    open.mockClear()
+  })
 
   it('sends ➕ to the Transactions tab while there is no profile or wallet (wallet rule 12)', () => {
     hasWallet.set(false)
+    current.set({ id: 'p1' })
     const fixture = render()
-    expect(plus(fixture.nativeElement as HTMLElement)).toBe('/transactions')
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true)
+    plus(fixture.nativeElement as HTMLElement)?.click()
+    expect(navigate).toHaveBeenCalledWith(['/transactions'])
+    expect(open).not.toHaveBeenCalled()
   })
 
-  it('sends ➕ to the new transaction page once the profile has a wallet', () => {
+  it('opens the transaction form once the profile has a wallet', () => {
     hasWallet.set(true)
+    current.set({ id: 'p1' })
     const fixture = render()
-    expect(plus(fixture.nativeElement as HTMLElement)).toBe('/transactions/new')
+    plus(fixture.nativeElement as HTMLElement)?.click()
+    expect(open).toHaveBeenCalledWith({ mode: 'create' })
   })
 
   it('marks the active tab by colour and weight only, with no pill behind the icon', () => {

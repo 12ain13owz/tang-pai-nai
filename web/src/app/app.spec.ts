@@ -69,7 +69,8 @@ describe('App', () => {
     await fixture.whenStable()
     const compiled = fixture.nativeElement as HTMLElement
     const tabs = [...compiled.querySelectorAll('nav a')].map((a) => a.textContent.trim())
-    expect(tabs).toEqual(['ธุรกรรม', 'กระเป๋า', '', 'รายงาน', 'บัญชีผู้ใช้'])
+    expect(tabs).toEqual(['ธุรกรรม', 'กระเป๋า', 'รายงาน', 'บัญชีผู้ใช้'])
+    expect(compiled.querySelector('nav button')?.getAttribute('aria-label')).toBe('เพิ่มธุรกรรม')
     expect(compiled.querySelector('h1')?.textContent).toContain('ธุรกรรม')
   })
 })

@@ -278,6 +278,40 @@ describe('CategoryService', () => {
     expect(ops()).toMatchObject([{ rowId: 'Coffee', op: 'delete', baseSeq: 10 }])
   })
 
+  /** A pulled transaction (rules 4, 6 and 12 read them). */
+  const txRow = (id: string, extra: object = {}) => {
+    putRow(db, 'transactions', {
+      id,
+      profileId: 'p1',
+      walletId: 'w',
+      categoryId: 'c',
+      amount: 1000,
+      occurredOn: '2026-11-02',
+      note: '',
+      excludeFromReport: false,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 1,
+      updatedBy: 'u1',
+      ...extra,
+    })
+    changes.update((n) => n + 1)
+  }
+
+  it('refuses to delete a category with live transactions (rules 4, 6)', () => {
+    pulled(category('Food'))
+    pulled(category('Tea'))
+    txRow('t1', { categoryId: 'Food' })
+    txRow('t2', { categoryId: 'Tea', deletedAt: 5 })
+    expect(service.hasTransactions('Food')).toBe(true)
+    expect(service.hasTransactions('Tea')).toBe(false)
+    service.remove('Food')
+    expect(service.byId('Food')).not.toBeNull()
+    service.remove('Tea')
+    expect(service.byId('Tea')).toBeNull()
+  })
+
   it('moves a category among its open siblings only, rewriting sortOrder where it changed', () => {
     pulled(category('A', { sortOrder: 0 }))
     pulled(category('B', { sortOrder: 1 }))
