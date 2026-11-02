@@ -1,9 +1,10 @@
 # Transaction
 
 > Status: **Spec, revised at the start of #8** (offline-first and profiles). Built in two parts,
-> one session and PR each: **8.1** (the table, the add / edit form, the monthly list, real wallet
-> balances, the "has transactions" rules of wallets and categories) and **8.2** (the Money Lover
-> header: wallet switcher, ⋮ time range, swipeable period tabs; from a mock-up first). API:
+> one session and PR each: **8.1** (the table, the add / edit form, the Transactions tab with its
+> Money Lover header (wallet switcher, ⋮ time range, swipeable period tabs; from a mock-up
+> first), real wallet balances, the "has transactions" rules of wallets and categories) and
+> **8.2** (whatever 8.1 leaves, and a look at quick amounts from a mock-up). API:
 > `api/src/features/transaction/` (sync handler only). Web: `core/transaction`
 > (`TransactionService`), `layout/transaction-sheet`, `features/transactions` (the
 > Transactions tab).
@@ -24,8 +25,9 @@ a few taps from the centre ➕.
 - Search and filter beyond month + wallet (#15).
 - Members adding to a shared wallet (#16): until then every transaction belongs to a wallet the
   signed-in user owns.
-- **In 8.1**: the wallet switcher, the ⋮ time range and the swipeable period tabs (8.2). 8.1 has
-  a plain month stepper instead (Web screens).
+- Quick amounts above the keypad (500 / 1,000 / …): not in 8.1. Money Lover has none, they
+  would need a setting to turn them off, and they crowd the form; 8.2 looks at them in a mock-up
+  first (owner, at the start of #8).
 
 ## Data model
 
@@ -64,11 +66,11 @@ never stored (ROADMAP → Money & data).
      profile;
    - `walletId` is the owner's live wallet of that profile;
    - `categoryId` is the owner's live category of that profile.
-2. **Archived wallet or category** (proposal, Q3): the device offers only open wallets and open,
-   non-hidden categories when adding or **changing to** one; an edit may keep the archived wallet
-   or category the row already has. The server doesn't refuse an archived one, so an expense
-   added offline isn't bounced because another device archived its wallet meanwhile; it shows in
-   the archived wallet's history.
+2. **Archived wallet or category** (decided at the start of #8): archived means "not in use", so
+   the pickers offer only open wallets and open, non-hidden categories when adding or **changing
+   to** one; an edit may keep the archived wallet or category the row already has. The server
+   doesn't refuse an archived one, so an expense added offline isn't bounced because another
+   device archived its wallet meanwhile; it shows in the archived wallet's history.
 3. `amount` is an integer from 1 to 10¹⁵ in minor units. The form takes major units and converts
    with the currency's `minorUnit` (`parseMajor`, no floats).
 4. `occurredOn` is a real calendar date (`YYYY-MM-DD`), from 2000-01-01 to at most one year after
@@ -96,8 +98,8 @@ never stored (ROADMAP → Money & data).
     - A category with live transactions can't change its **type** (device + server check) and
       can't be **deleted**, only archived (device). Moving it under another parent of the same
       type keeps its transactions (they point at it by id).
-    - Proposal (Q4): **a device that pulls a wallet or category tombstone tombstones its live
-      transactions of it**, like the profile sweep. This only happens in a race (device A deletes
+    - **A device that pulls a wallet or category tombstone tombstones its live transactions of
+      it** (decided at the start of #8), like the profile sweep. This only happens in a race (device A deletes
       a wallet it sees as empty while offline device B adds to it, and B's add reaches the
       server first). The other order is already safe: B's add arrives after the tombstone, the
       check refuses it (rule 1) and B fixes it by picking another wallet.
@@ -106,10 +108,16 @@ never stored (ROADMAP → Money & data).
 11. **Month summary** for a month and a set of wallets: `income` = Σ amount of income-type rows,
     `expense` = Σ amount of expense-type rows, `net` = income − expense. All three leave out
     `excludeFromReport` rows and are **one line per currency** when the wallets span several.
-    Which wallets "all" means: Q6.
+    **All wallets** ("ทุกกระเป๋า", decided at the start of #8) = the profile's wallets **without**
+    `excludeFromTotal`, archived ones included (their history stays, wallet rule 6); a wallet
+    excluded from the total is seen by choosing it in the wallet switcher.
 12. **Wallet balance** = `initialBalance` + Σ income − Σ expense of all its live transactions,
     `excludeFromReport` ones included (± transfers from #9).
-13. **Order**: `occurredOn` desc, then `createdAt` desc, then `id` desc. (No time of day, Q2.)
+13. **Order**: `occurredOn` desc, then `createdAt` desc, then `id` desc. There is no time of day
+    (decided at the start of #8, like Money Lover): rows show under the day the user chose, and
+    within a day the one recorded last is on top. `createdAt` is a sync column every row has
+    anyway, so nothing extra is stored, and changing a row's date keeps its place among that
+    day's rows by when it was recorded.
 14. An untrusted device adds, edits and deletes only while online and the server answers
     (offline-sync rule 1), as for categories.
 
@@ -150,28 +158,36 @@ Online `GET`s for members of shared wallets arrive with #16.
 Glossary: ธุรกรรม / Transaction, รายรับ / รายจ่าย, คงเหลือ (summary), ยอดเงิน (wallet) (DESIGN.md
 §11).
 
-- **Transactions tab** (home, 8.1): a month stepper (‹ ตุลาคม 2569 ›), the summary card
-  (รายรับ / รายจ่าย / คงเหลือ, one line per currency), then the days of that month with entries,
-  newest first: a day header (วันนี้ / เมื่อวาน / `จ. 14 ต.ค.` left, the day's net right), and
-  rows (40px category badge, category name, the note or the wallet name muted under it, amount
-  right: `-฿120.00` expense colour, `+฿25,000.00` income colour, "รอ sync" on a pending row).
-  An empty month says so with "เพิ่มธุรกรรม". Tap a row to edit it. The first-wallet step stays
-  (wallet rule 12).
+- **Transactions tab** (home, 8.1; layout from a mock-up the owner approves first): the header
+  holds the profile switcher (its 28px icon on this tab), the **wallet switcher** at the centre
+  ("ทุกกระเป๋า ▾" or one wallet, opening a sheet of the profile's wallets), the sync pill (dot +
+  short word) and a **⋮ menu** with "ดูตาม" day / week / month (default) / quarter / year / all /
+  custom range. Under it, **swipeable period tabs** that follow the range (for months: … เดือนก่อน
+  / เดือนนี้ / อนาคต; "อนาคต" = rows after today). Then the summary card (รายรับ / รายจ่าย /
+  คงเหลือ, one line per currency; one wallet adds its balance), then the period's days with
+  entries, newest first: a day header (วันนี้ / เมื่อวาน / `จ. 14 ต.ค.` left, the day's net right),
+  and rows (40px category badge, category name, the note or the wallet name muted under it,
+  amount right: `-฿120.00` expense colour, `+฿25,000.00` income colour, "รอ sync" on a pending
+  row). An empty period says so with "เพิ่มธุรกรรม". Tap a row to edit it. The first-wallet step
+  stays (wallet rule 12). The chosen wallet and range are remembered per profile on the device.
 - **Transaction form** (a long sheet form with labels, DESIGN.md §6; the ➕ opens it to add, a row
-  opens it to edit). Proposal from the reference screenshot, to confirm with a mock-up:
+  opens it to edit). From the owner's Money Lover screenshot, adapted (no debt tab, no photo / chat buttons, labels
+  on every field), confirmed with a mock-up:
   - header: X left, "เพิ่มธุรกรรม" / "แก้ไขธุรกรรม" centred, delete (red) right when editing;
   - type tabs รายจ่าย / รายรับ (`app-segmented-field`), starting on รายจ่าย;
   - กระเป๋าเงิน: the wallet row (badge, name, ›) opening a wallet picker view; it starts on the
     last wallet used on this device for this profile, else the first open one;
   - จำนวนเงิน: the amount in large figures with the currency code, typed on an **on-screen
-    keypad** (Q5) so the phone keyboard never opens;
+    keypad** (decided at the start of #8): C, ⌫, + − × ÷, 0–9, 000 and the decimal point, so the
+    phone keyboard never opens; maths runs on integers in minor units and a division rounds half
+    up to the currency's minor unit; "=" / leaving the field settles the expression;
   - หมวดหมู่: the category row opening the category picker view: the chosen wallet's open,
     non-hidden categories of the tab's type (`isHiddenIn(wallet.hiddenCategoryIds, category)`),
     parents with children; a type with none left says so and links to the wallet's "หมวดหมู่ที่ใช้"
     (category rule 13). Switching the tab or the wallet clears a category that no longer fits;
   - วันที่: ‹ the date › (a day back / forward) and tapping the date opens a date picker;
   - บันทึกช่วยจำ: the note (`app-textarea-field`);
-  - "ไม่รวมในรายงาน" switch (Q7);
+  - "ไม่รวมในรายงาน" switch (`excludeFromReport`, rule 11);
   - one main button "บันทึก" pinned at the bottom. Asks before closing with unsaved input.
 - **Wallet and category forms**: the currency is read-only with wallet rule 4's line once the
   wallet has transactions; the delete icon is disabled with a line ("มีธุรกรรมแล้ว เก็บถาวรแทน")
@@ -179,9 +195,8 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
   has transactions.
 - **Wallets tab**: balances are real (rule 12).
 - **Profile delete confirm**: counts transactions too.
-- **8.2**: the header (wallet switcher at the centre, ⋮ with ดูตาม day / week / month / quarter /
-  year / all / custom range, swipeable period tabs … เดือนก่อน / เดือนนี้ / อนาคต) replaces the
-  month stepper, from a mock-up the owner approves first.
+- There is no separate detail screen: a row opens the form, whose header holds delete (undo in
+  the toast).
 
 ## Offline
 
@@ -201,17 +216,9 @@ offline but edit / delete online only (offline-sync rules 13–16, #16).
 
 ## Open questions
 
-To settle with the owner at the start of #8 (proposals in the rules above):
-
-- Q1 split 8.1 / 8.2 as in the status line.
-- Q2 no time of day (`occurredAt` dropped).
-- Q3 archived wallet / category: device-only (rule 2).
-- Q4 races with a deleted wallet / category (rule 10).
-- Q5 the amount keypad.
-- Q6 which wallets the 8.1 list and summary cover.
-- Q7 `excludeFromReport` in 8.1.
-- Q8 tapping a row opens the form (no separate detail screen).
-- **Header layout** (8.2, owner's direction before #6.2, Money Lover style): wallet switcher at
-  the **centre** ("ทุกกระเป๋า ▾" or one wallet), a **⋮ menu** at the right with "ดูตาม", and
-  swipeable period tabs under the header. At 375px the profile switcher shrinks to its 28px icon
-  on this tab, the right holds the sync pill (dot + short word) and ⋮. Mock-up first.
+Settled at the start of #8 (owner): the Money Lover header comes in 8.1 rather than a temporary
+month stepper (no build-then-remove); no time of day (rule 13); archived wallets and categories
+are left out of the pickers, the server doesn't refuse them (rule 2); a pulled wallet or category
+tombstone takes its live transactions (rule 10); the on-screen calculator keypad, quick amounts
+looked at in 8.2; "all wallets" leaves out wallets excluded from the total (rule 11);
+`excludeFromReport` in 8.1; a row opens the form (no detail screen).
