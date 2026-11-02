@@ -2,8 +2,8 @@
 
 > Status: **Built** in #6.2; `hiddenCategoryIds` and the "หมวดหมู่ที่ใช้" row in 7.2. API:
 > `api/src/features/wallet/` (sync handler only; tables `wallets` and `wallet_members`). Web: `core/wallet` (`WalletService`), `features/wallets` (Wallets tab),
-> `layout/` (wallet sheet, first-wallet step). Rules 4's and 6's "has transactions" become real
-> with #8; members (#16).
+> `layout/` (wallet sheet, first-wallet step). Rules 4's and 6's "has transactions" and the
+> real balance came with #8.1 (device + server check for the currency); members (#16).
 
 ## Purpose
 
@@ -40,7 +40,8 @@ per currency, like Money Lover.
 - The device keeps `wallets` (snake_case, a new local schema step + `SYNC_TABLES` entry).
 
 **Balance isn't stored.** It's computed as `initialBalance + Σ income − Σ expense ± transfers` for
-the wallet, from the local database. Until transactions exist (#8) it equals `initialBalance`.
+the wallet, from the local database (one aggregate for all wallets, transaction rule 12; built
+in #8.1).
 
 ## Business rules
 
@@ -55,7 +56,8 @@ the wallet, from the local database. Until transactions exist (#8) it equals `in
    `CONFLICT`; the web hides "add" at 20, and unarchiving at 20 is refused; decided at the start
    of 6.2). Archiving frees a place.
 4. **Currency** (decided at the start of #6, with its message): `currencyCode` must be active
-   when the wallet is created. It may change only while the wallet has **no transactions**. Once
+   when the wallet is created. It may change only while the wallet has **no live transactions**
+   (the server checks it too since #8.1, `CONFLICT`). Once
    it has some, the form shows the currency read-only with a line saying why ("เปลี่ยนสกุลเงิน
    ไม่ได้เพราะกระเป๋านี้มีธุรกรรมแล้ว สร้างกระเป๋าใหม่สำหรับสกุลเงินอื่นแทน" / "This wallet has
    transactions, so its currency can't change. Create a new wallet for another currency."). The
@@ -111,7 +113,8 @@ profiles (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets 
   counts), 12px above the "กระเป๋าที่ใช้อยู่ (n)" heading and the wallet list (40px icon badge,
   name, "ไม่รวมในยอดรวม" / "รอ sync" under it, balance on the right, negative in the expense
   colour), "เพิ่มกระเป๋าเงิน" (a line saying why at 20), then a folded "เก็บถาวร (n)" group.
-  Tapping a wallet opens it in the form for now (its transactions list comes with #8).
+  Tapping a wallet opens it in the form (its transactions: the Transactions tab's wallet
+  switcher, #8).
   "จัดลำดับ" = the drag-handle order mode (open wallets only).
 - **Wallet form** (a compact sheet, DESIGN.md §6; decided with the owner while building 6.2,
   from mock-ups): row 1 the icon on its colour (a button) and the name; row 2 the +/− button, the
@@ -135,7 +138,8 @@ profiles (OpenAPI `SyncWalletRow`). Online `GET`s for members of shared wallets 
   `hiddenCategoryIds` column on `wallets` (decided at the start of #7; built in 7.2, category
   rule 13); the category form can also choose its wallets, writing their lists.
 - **Transaction (#8)**: requires `walletId` and inherits the wallet's currency; rule 4's
-  "has transactions" and rule 6 become real then.
+  "has transactions" and rule 6 are real since #8.1, and a pulled wallet tombstone takes its
+  live transactions (transaction rule 10).
 - Reports and budgets filter by wallet.
 
 ## Offline

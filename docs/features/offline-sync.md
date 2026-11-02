@@ -81,7 +81,7 @@ No user-data table exists before #6, so 4a.2 syncs:
   the server table (migration `0008`; `0009` deletes its `change_history` rows).
 
 The real user-data tables since then: **profiles** (#6.1), **wallets** (#6.2; `wallet_members`
-exists beside it, server only, empty until #16) and **categories** (#7.1).
+exists beside it, server only, empty until #16), **categories** (#7.1) and **transactions** (#8.1).
 
 ### Server: sync tables
 
@@ -114,7 +114,7 @@ exists beside it, server only, empty until #16) and **categories** (#7.1).
 - It holds **only the signed-in user's own data plus master data**. It never holds data of wallets
   shared with them, apart from their own pending adds (rule 14).
 - The tables mirror the server's synced tables (snake_case columns: `currencies`, `profiles`,
-  `wallets`, `categories`), plus:
+  `wallets`, `categories`, `transactions`), plus:
   - **outbox**: ordered ops `{ opId, table, rowId, op: upsert | delete, row, baseSeq, createdAt,
 status: pending | rejected, error? }`. It keeps **one pending op per row**: a newer local write
     of the same row replaces the pending op's `row` and `op` and gives it a new `opId` (the old

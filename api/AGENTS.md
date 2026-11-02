@@ -156,8 +156,11 @@ registers a table handler** in `syncRegistry` (`@/core/sync`) from its own `inde
 `features/sync` reads the registry. Reference: `features/profile` (pushable user data, the
 first real one; sync-only, no REST routes), `features/wallet` (pushable, with checks that read
 other tables: the user's live profile, an active currency), `features/category` (pushable, a
-self-referencing parent: checks on other rows of its own table) and `features/currency`
-(pull-only master data).
+self-referencing parent: checks on other rows of its own table), `features/transaction`
+(pushable, pointing at three tables: profile, wallet and category of one profile; it compares
+the stored row for "no move to another currency") and `features/currency` (pull-only master
+data). A rule about rows of another feature's table (a wallet's currency fixed while it has
+transactions) reads that table from `@/core/database/schema`, never the other feature.
 
 - **Make a table synced**: give it `id: text().primaryKey()` (the device's UUIDv7, no default),
   `userId`, and `...syncColumns` (`createdAt`, `updatedAt`, `deletedAt`, `changeSeq`,
@@ -201,7 +204,9 @@ self-referencing parent: checks on other rows of its own table) and `features/cu
 - **Testing**: the service on `createMemorySyncRepository()` (any table name; `checks` and
   `shared` options) with a local `createSyncRegistry()`; handlers on a temporary SQLite file with
   the committed migrations (`profile.repository.drizzle.test.ts`; `wallet.repository.drizzle.test.ts`
-  and `category.repository.drizzle.test.ts` insert the profiles their checks read); HTTP with `accessTokens`
+  and `category.repository.drizzle.test.ts` insert the profiles their checks read;
+  `transaction.repository.drizzle.test.ts` also inserts wallets and categories, and activates
+  USD for the currency rule); HTTP with `accessTokens`
   for the Bearer header (`sync.controller.test.ts`).
 
 ### Notifications (`src/core/notification/`)

@@ -7,6 +7,8 @@
 > in `features/wallet`. Web: `core/category` (`CategoryService`),
 > `core/profile/default-categories.ts`, `core/wallet/hidden-categories.ts`,
 > `layout/category-sheet`, `layout/wallet-sheet`, `features/account/pages/categories-page`.
+> #8.1 made rules 4 and 6's "has transactions" real (type: device + server check) and built the
+> transaction form's picker; sub-categories show in their parent's tinted panel (DESIGN.md §6).
 
 ## Purpose
 
@@ -21,8 +23,7 @@ their categories.
 - Debt/loan categories. Debt (#13) gets its own types when it's built.
 - Global or shared categories. Each profile owns its copy, so editing one never affects another
   profile or user. Categories of a wallet shared with you (#16): backlog.
-- The category picker in the transaction form (#8), and every "has transactions" rule (rule 6,
-  rule 5's type change), which become real with #8.
+- (Built in #8.1: the transaction form's picker and the "has transactions" rules.)
 
 ## Data model
 
@@ -58,13 +59,15 @@ shows when the profile is created (rule 8).
    non-archived, top-level category of the same profile and `type` (server check, `CONFLICT`). A
    category with live children can't take a parent (server check).
 4. A child's `type` always equals its parent's. A top-level category's `type` may change only
-   while it has no live children (server check); from #8 also only while it has no transactions.
+   while it has no live children (server check), and only while it has no live transactions
+   (server check, `CONFLICT`, since #8.1).
 5. **Move**: a category may move under another parent of the same type, become a top-level one,
    or (with no children) go under a parent (rule 3 holds). From #8 its transactions move with it.
 6. **Delete** is a tombstone after a confirm view, only for a category with **no live children**
    (the device enforces this: the server runs no check on a delete, offline-sync rule 10; the form
-   says "ลบหมวดหมู่ย่อยก่อน" instead). From #8 a category with transactions can't be deleted, only
-   archived. A device that pulls a parent's tombstone **tombstones its live children** it holds
+   says "ลบหมวดหมู่ย่อยก่อน" instead). A category with live transactions can't be deleted, only
+   archived (#8.1; the form says so). A pulled category tombstone takes its live transactions
+   (transaction rule 10). A device that pulls a parent's tombstone **tombstones its live children** it holds
    (a child another device added that the deleting device didn't know), like wallet rule 11.
 7. **Archive** acts at once with undo in the toast. Archived categories are hidden from pickers but
    still shown in history and reports. Archiving a parent archives its children in the same write;
@@ -158,8 +161,9 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
   holds **archive** (undo in the toast; coming back may be refused, rules 2 and 7) and **delete**
   (a confirm view; disabled with a line when it has children). "Fix" of a rejected op opens it
   (`FIX_ROUTES` → `/account/categories?fix=<opId>`). Asks before closing with unsaved input.
-- **Category picker** (#8): in the transaction form, the current wallet's non-hidden,
-  non-archived categories of the chosen type.
+- **Category picker** (#8.1): in the transaction form, the chosen wallet's non-hidden,
+  non-archived categories of the chosen type, children in their parent's tinted panel (the same
+  panel in Account › หมวดหมู่ and the wallet's "หมวดหมู่ที่ใช้", owner's choice "3+4").
 - **Wallet form** (7.2): a "หมวดหมู่ที่ใช้" row under "ไม่รวมในยอดรวม" (create and edit), drawn
   like "หมวดหมู่หลัก": the label left, "ทั้งหมด" or "ซ่อน n" right (n = the profile's open
   categories hidden here, children of a hidden parent included), a ›. It opens a view in the

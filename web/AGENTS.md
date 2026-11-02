@@ -83,7 +83,7 @@ layout    ->  core, shared
   `LanguageService` (`core/i18n`), `NetworkStatusService` (`core/network`), `KeyboardService`
   (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`), `OfflineService`
   and `SyncService` (`core/offline`), `ProfileService` (`core/profile`), `WalletService`
-  (`core/wallet`), `CategoryService` (`core/category`).
+  (`core/wallet`), `CategoryService` (`core/category`), `TransactionService` (`core/transaction`).
 - The header shows ‹ on a page inside the Account tab (`parentOf` in `layout/profile-routes`):
   the Account tab is grouped rows that each open a page (owner's choice A1 in #7).
 - The service worker (`ngsw-config.json`) caches the **app shell only**. Never add `dataGroups`:
@@ -218,8 +218,9 @@ Spec: [wallet.md](../docs/features/wallet.md).
 - `WalletService`: `wallets()` (the current profile's live wallets in order, archived too),
   `openWallets()`, `archived()`, `hasWallet()`, `atLimit()` (20 open), `totals()` (per currency),
   `currencies()` / `activeCurrencies()` / `minorUnit(code)` / `defaultCurrency()` (from the
-  pulled `currencies`), `balance(wallet)` (= `initialBalance` until #8),
-  `canChangeCurrency(id)` (true until #8), `nameTaken()`, `byId()`, `openOf(profileId)`,
+  pulled `currencies`), `balance(wallet)` (`initialBalance` + its live transactions, one
+  aggregate for all wallets), `hasTransactions(id)`, `canChangeCurrency(id)` (false once it has
+  some; `remove()` refuses then too), `nameTaken()`, `byId()`, `openOf(profileId)`,
   `save(id | null, values, fixOpId?, profileId?)` (`values.hiddenCategoryIds` goes through
   `cleanHidden`), `setArchived(id, archived)` (answers `nameTaken` / `limit` when coming
   back is refused), `remove(id)`, `moveTo(id, index)`, `sheet` / `open()` / `openFix()`.
@@ -262,6 +263,32 @@ fixOpId?, profileId?, hiddenIn?)` (a row that changes siblings goes last among t
   is Account › หมวดหมู่ with a two-level order mode (an inner `cdkDropList` per parent).
   `layout/wallet-sheet` has a `categories` view (tabs + `app-toggle-list-field`) for the
   wallet's `hiddenCategoryIds`.
+
+### Transactions (`core/transaction`, #8.1)
+
+Spec: [transaction.md](../docs/features/transaction.md).
+
+- `TransactionService`: `list(range, walletIds)` / `summary(range, walletIds)` (SQL through
+  the local indexes; a period of the profile, never every row), `byId()`, `save(id | null,
+values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `remove()` +
+  `restore()` (the toast's undo), `sheet` / `open()` / `openFix()`. The Transactions tab's view
+  lives here too, shared by the header and the page: `viewWalletId` (null = "ทุกกระเป๋า",
+  `viewWalletIds()` leaves out wallets excluded from the total), `unit` (`PeriodUnit`), `tab`,
+  `custom`, `range()`, `tabs()`, `items()`, `summaryLines()`, `today`; `selectWallet` /
+  `selectUnit` / `selectCustom` remember wallet and unit per profile (`tpn-profile:tx:…`, wiped
+  with the device). An effect tombstones live transactions whose wallet or category is a
+  tombstone here (rule 10); the shell injects the service so it runs.
+- `core/transaction/period.ts`: `periodRange`, `periodTabs`, `periodLabel` (pure, ค.ศ.).
+- `core/wallet` and `core/category` read the `transactions` table **by name**
+  (`TRANSACTION_TABLE` in `wallet.type.ts`), because `core/transaction` builds on them.
+- UI: `layout/transactions-header` (the tab's header, `@defer`red by `app-header` for the
+  bundle), `layout/view-wallet-sheet`, `layout/custom-range-sheet`, `layout/transaction-sheet`
+  (views `form` / `wallet` / `category` / `note` / `confirmDiscard`; keypad state; the shell
+  `@defer`s all three), `features/transactions` (the page; rows drawn 100 at a time with an
+  `IntersectionObserver` sentinel). ➕ opens the sheet (`BottomTabBar.add()`); "fix" goes to
+  `/transactions?fix=<opId>`.
+- Specs: `transaction.service.spec.ts`, `transaction-sheet.spec.ts`, `transactions-page.spec.ts`
+  put their transactions with `putRow` like the other tables.
 
 ### Inside a feature
 
@@ -398,6 +425,7 @@ initialValue })`.
   | `app-amount-field`      | text + `negative` bool  | money in major units, +/− button, currency    |
   | `app-segmented-field`   | `FormControl<string>`   | two or three short options (รายจ่าย / รายรับ) |
   | `app-toggle-list-field` | `FormControl<string[]>` | rows with a switch each; holds the ids off    |
+  | `app-calc-amount-field` | `FormControl<string>`   | the keypad's expression + result (amount row) |
 
   Every field takes `[control]` (the typed control, so templates are type-checked) plus `label`,
   and optionally `hint` / `placeholder`. Labels are linked to the control automatically, so there's
@@ -485,10 +513,16 @@ are on, so don't disable them.
   code. Never do float maths on amounts. `@/shared/utils` has `parseMajor(text, minorUnit)`
   (typed text → minor units, through strings), `toMajorText()` (back, grouped) and
   `formatMoney(minor, code, minorUnit, locale)`. Format them for display only, with `Intl.NumberFormat`
-  using `LanguageService.locale()` (`th-TH` / `en-GB`), the currency's minor-unit digits and
-  `currencyDisplay: 'narrowSymbol'` (so English shows ฿, not "THB").
-- Dates: the API sends ISO strings. Display them with `Intl.DateTimeFormat(locale())`: Thai gets the
-  Buddhist era (พ.ศ.), English the Gregorian year. Use a shared pipe once one exists.
+  using `LanguageService.locale()` (`th-TH-u-ca-gregory` / `en-GB`), the currency's minor-unit
+  digits and `currencyDisplay: 'narrowSymbol'` (so English shows ฿, not "THB"). The transaction
+  list shows amounts without the symbol: `formatAmount(minor, minorUnit, locale, signed)`.
+- **Calculator** (`@/shared/utils` `calc.ts`): `pressKey(expr, key, minorUnit)` keeps a keypad
+  expression well formed, `evaluate(expr, minorUnit)` works it out as exact BigInt fractions
+  (× ÷ first, rounded half away from zero to the minor unit). Never `eval` or floats.
+- Dates: the API sends ISO strings. Display them with `Intl.DateTimeFormat(locale())`: both
+  languages show the **Gregorian year** (owner's choice in #8; the Thai locale pins
+  `-u-ca-gregory`). Calendar days are `YYYY-MM-DD` local dates: `toDay`, `fromDay`, `addDays`,
+  `addMonths`, `isDay` in `@/shared/utils` (`day.ts`).
 
 ### UI text: Thai + English (Transloco)
 
