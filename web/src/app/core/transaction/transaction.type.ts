@@ -57,7 +57,14 @@ export interface MoneySummary {
 
 /** Which transaction sheet is open: create, edit, or "fix" of a rejected op. */
 export type TransactionSheetState =
-  | { mode: 'create'; walletId?: string; occurredOn?: string }
+  | {
+      mode: 'create'
+      walletId?: string
+      occurredOn?: string
+      /** "Copy" (8.2): the values to start from; the date still starts on today. */
+      values?: TransactionValues
+      type?: CategoryType
+    }
   | { mode: 'edit'; id: string }
   | { mode: 'fix'; opId: string; id: string; profileId: string; values: TransactionValues }
 

@@ -10,7 +10,9 @@ import {
   lucideChevronDown,
   lucideChevronLeft,
   lucideChevronRight,
+  lucideCopy,
   lucideEyeOff,
+  lucideListPlus,
   lucideTextAlignStart,
   lucideTrash2,
 } from '@ng-icons/lucide'
@@ -21,7 +23,12 @@ import { CATEGORY_DEFAULT_ICON, CategoryService } from '@/core/category'
 import type { Category, CategoryNode, CategoryType } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
 import { ProfileService } from '@/core/profile'
-import { TRANSACTION_LIMITS, TransactionService } from '@/core/transaction'
+import {
+  QUICK_AMOUNTS,
+  QuickAmountsService,
+  TRANSACTION_LIMITS,
+  TransactionService,
+} from '@/core/transaction'
 import type { TransactionSheetState, TransactionValues } from '@/core/transaction'
 import { isHiddenIn, WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
@@ -38,7 +45,15 @@ import { IconBadge, userColor, WALLET_DEFAULT_ICON } from '@/shared/components/i
 import type { UserIcon } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
 import type { SelectOption } from '@/shared/types'
-import { addDays, evaluate, fromDay, pressKey, toDay, toMajorText } from '@/shared/utils'
+import {
+  addDays,
+  addQuickAmount,
+  evaluate,
+  fromDay,
+  pressKey,
+  toDay,
+  toMajorText,
+} from '@/shared/utils'
 import type { CalcKey } from '@/shared/utils'
 import type { TransactionFormGroup } from './transaction-form.type'
 
@@ -94,7 +109,9 @@ const KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
       lucideChevronDown,
       lucideChevronLeft,
       lucideChevronRight,
+      lucideCopy,
       lucideEyeOff,
+      lucideListPlus,
       lucideTextAlignStart,
       lucideTrash2,
     }),
@@ -117,6 +134,20 @@ const KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
               >
                 @if (editingId() && transactionService.byId(editingId()!)) {
                   <div sheetActions class="flex">
+                    @if (state()?.mode === 'edit') {
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        class="size-11"
+                        [disabled]="!transactionService.canWrite()"
+                        [attr.aria-label]="'transactions.copy' | transloco"
+                        (click)="copy()"
+                      >
+                        <ng-icon name="lucideCopy" size="20" aria-hidden="true" />
+                      </button>
+                    }
                     <button
                       hlmBtn
                       variant="ghost"
@@ -331,20 +362,38 @@ const KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
                   [class.-mx-4]="keypad()"
                   [class.-mb-4]="keypad()"
                 >
-                  <div [class.px-4]="keypad()" [class.pb-2]="keypad()">
+                  <div class="flex gap-2" [class.px-4]="keypad()" [class.pb-2]="keypad()">
                     <button
                       hlmBtn
                       type="submit"
-                      class="h-11 w-full text-base"
+                      class="h-11 min-w-0 flex-1 text-base"
                       [disabled]="!transactionService.canWrite()"
                     >
                       {{ 'transactions.save' | transloco }}
                     </button>
+                    @if (state()?.mode === 'create') {
+                      <!-- Save and add another (8.2): the sheet stays for the next receipt. -->
+                      <button
+                        hlmBtn
+                        variant="outline"
+                        size="icon"
+                        type="button"
+                        class="size-11 shrink-0"
+                        [disabled]="!transactionService.canWrite()"
+                        [attr.aria-label]="'transactions.saveAndAdd' | transloco"
+                        (click)="save(true)"
+                      >
+                        <ng-icon name="lucideListPlus" size="20" aria-hidden="true" />
+                      </button>
+                    }
                   </div>
                   @if (keypad()) {
                     <app-calc-keypad
                       class="pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+                      [quickAmounts]="quickAmounts()"
+                      [locale]="languageService.locale()"
                       (pressed)="press($event)"
+                      (quickPressed)="addQuick($event)"
                     />
                   }
                 </div>
@@ -401,6 +450,40 @@ const KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
             >
               @if (tree().length > 0) {
                 <div class="flex flex-col gap-3">
+                  @if (frequent().length > 0) {
+                    <!-- "ใช้บ่อย" (8.2): a shortcut; the tree below keeps the user's order. -->
+                    <h3 class="text-sm font-medium text-muted-foreground">
+                      {{ 'transactions.frequent' | transloco }}
+                    </h3>
+                    <ul
+                      class="grid grid-cols-4 gap-1 rounded-xl border border-border bg-card p-1.5"
+                      [attr.aria-label]="'transactions.frequent' | transloco"
+                    >
+                      @for (item of frequent(); track item.id) {
+                        <li class="min-w-0">
+                          <button
+                            type="button"
+                            class="flex min-h-21 w-full flex-col items-center gap-1 rounded-lg px-1 py-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            [class.bg-muted]="item.id === f.categoryId.value"
+                            [attr.aria-current]="item.id === f.categoryId.value ? 'true' : null"
+                            (click)="chooseCategory(item.id)"
+                          >
+                            <app-icon-badge
+                              [icon]="item.icon"
+                              [color]="item.color"
+                              [fallback]="categoryIcon"
+                            />
+                            <span class="line-clamp-2 w-full text-center text-xs break-words">{{
+                              item.name
+                            }}</span>
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                    <h3 class="text-sm font-medium text-muted-foreground">
+                      {{ 'transactions.allCategories' | transloco }}
+                    </h3>
+                  }
                   <ul class="divide-y divide-border rounded-xl border border-border bg-card">
                     @for (node of tree(); track node.category.id) {
                       <li>
@@ -582,6 +665,9 @@ export class TransactionSheet {
   protected keypad = signal(false)
   /** The folded "เพิ่มเติม" options. */
   protected more = signal(false)
+  private quickAmountsService = inject(QuickAmountsService)
+  /** The keypad's quick amounts (8.2), none when turned off in Account › การแสดงผล. */
+  protected quickAmounts = computed(() => (this.quickAmountsService.enabled() ? QUICK_AMOUNTS : []))
 
   /** Rule 3: the expression works out to 1 … 10¹⁵ minor units. */
   private amountValid: ValidatorFn = (control) => {
@@ -693,6 +779,27 @@ export class TransactionSheet {
         children: node.children.filter((child) => !isHiddenIn(hidden, child)),
       }))
   })
+  /**
+   * "ใช้บ่อย" (8.2): up to 4 of the most used categories the picker offers (open, not hidden in
+   * the wallet); read only while the picker shows.
+   */
+  protected frequent = computed<Category[]>(() => {
+    if (this.view() !== 'category') {
+      return []
+    }
+    const offered = new Map<string, Category>()
+    for (const node of this.tree()) {
+      offered.set(node.category.id, node.category)
+      for (const child of node.children) {
+        offered.set(child.id, child)
+      }
+    }
+    const type = (this.values().type ?? 'expense') as CategoryType
+    return this.transactionService
+      .frequentCategoryIds(this.profileId(), type)
+      .flatMap((id) => offered.get(id) ?? [])
+      .slice(0, 4)
+  })
   protected dayText = computed(() => {
     const day = this.day()
     const today = this.transactionService.today()
@@ -790,6 +897,34 @@ export class TransactionSheet {
     control.markAsDirty()
   }
 
+  /** A quick amount adds to the expression, like counting notes (8.2). */
+  protected addQuick(major: number): void {
+    const control = this.form.controls.amount
+    control.setValue(addQuickAmount(control.value, major, this.minorUnit()))
+    control.markAsDirty()
+  }
+
+  /**
+   * "Copy" (8.2): "เพิ่มธุรกรรม" with the form's values and today's date; the row being edited
+   * stays as it was saved.
+   */
+  protected copy(): void {
+    const value = this.form.getRawValue()
+    const amount = evaluate(value.amount, this.minorUnit())
+    this.transactionService.open({
+      mode: 'create',
+      type: value.type as CategoryType,
+      values: {
+        walletId: value.walletId,
+        categoryId: value.categoryId,
+        amount: amount.ok && amount.minor > 0 ? amount.minor : 0,
+        occurredOn: this.transactionService.today(),
+        note: value.note,
+        excludeFromReport: value.excludeFromReport,
+      },
+    })
+  }
+
   /** A hardware keyboard types into the open keypad too. */
   protected onKey(event: KeyboardEvent): void {
     if (!this.keypad() || this.view() !== 'form' || event.target instanceof HTMLInputElement) {
@@ -803,7 +938,8 @@ export class TransactionSheet {
     }
   }
 
-  protected save(): void {
+  /** `addAnother` (8.2, adding only): the sheet stays with an empty amount and note. */
+  protected save(addAnother = false): void {
     const state = this.state()
     this.settleAmount()
     if (!state || this.form.invalid || !this.transactionService.canWrite()) {
@@ -824,11 +960,20 @@ export class TransactionSheet {
     } else {
       this.transactionService.save(this.editingId(), values)
     }
+    if (state.mode === 'create') {
+      this.transactionService.rememberType(value.type as CategoryType)
+    }
     toast.success(
       this.transloco.translate(
         state.mode === 'create' ? 'transactions.created' : 'transactions.saved'
       )
     )
+    if (addAnother && state.mode === 'create') {
+      this.form.reset({ ...value, amount: '', note: '' })
+      this.dirty.set(false)
+      this.keypad.set(true)
+      return
+    }
     this.finish()
   }
 
@@ -903,21 +1048,34 @@ export class TransactionSheet {
     this.dirty.set(false)
     if (state.mode === 'create') {
       const viewing = this.transactionService.viewWallet()
+      const copied = state.values ?? null
+      const copiedWallet = copied ? this.walletService.byId(copied.walletId) : null
+      // Rule 2: a copy of a row in an archived wallet starts as a new add would.
       const walletId =
+        (copiedWallet && !copiedWallet.isArchived ? copiedWallet.id : null) ??
         state.walletId ??
         (viewing && !viewing.isArchived ? viewing.id : null) ??
         this.transactionService.defaultWalletId() ??
         ''
+      const copiedCategory = copied ? this.categoryService.byId(copied.categoryId) : null
       this.startWalletId.set(null)
+      this.more.set(copied?.excludeFromReport === true)
       this.form.reset({
-        type: 'expense',
+        type: state.type ?? this.transactionService.lastType(),
         walletId,
-        amount: '',
-        categoryId: '',
-        note: '',
+        amount:
+          copied && copied.amount > 0
+            ? toMajorText(
+                copied.amount,
+                this.walletService.minorUnit(copiedWallet?.currencyCode ?? '')
+              ).replace(/,/g, '')
+            : '',
+        categoryId: copiedCategory && !copiedCategory.isArchived ? copiedCategory.id : '',
+        note: copied?.note ?? '',
         occurredOn: state.occurredOn ?? this.transactionService.today(),
-        excludeFromReport: false,
+        excludeFromReport: copied?.excludeFromReport ?? false,
       })
+      this.dropUnfit()
       this.keypad.set(true)
       return
     }
