@@ -166,8 +166,9 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
   `?fix=<opId>` (a wallet goes to `/wallets` and calls `WalletService.openFix(opId)` itself,
   because the Wallets tab may be showing the first-wallet step); saving queues a new op and
   deletes the rejected one.
-- The header pill is `layout/sync-status.ts`; its sheet (`layout/sync-sheet.ts`, spartan drawer)
-  is `@defer`red until first opened.
+- The header's sync status is `layout/sync-status.ts`, one 44px icon on every tab (#9); its
+  sheet (`layout/sync-sheet.ts`, spartan drawer) is `@defer`red until first opened. A new synced
+  table needs its `sync.table<name>` key there (the sheet labels items by table).
 
 ### Profiles (`core/profile`, #6.1)
 
@@ -285,17 +286,31 @@ values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `rem
   `setEnabled`; a device setting in `localStorage` like the theme, Account › การแสดงผล).
   `app-calc-keypad` draws them from `quickAmounts` and emits `quickPressed`; the sheet adds them
   with `addQuickAmount` (`@/shared/utils` `calc.ts`).
-- `core/wallet` and `core/category` read the `transactions` table **by name**
-  (`TRANSACTION_TABLE` in `wallet.type.ts`), because `core/transaction` builds on them.
+- **Transfers** (#9, spec: [transfer.md](../docs/features/transfer.md)) live in
+  `core/transaction` too: `TransferService` (`byId`, `save`, `remove` / `restore`,
+  `defaultFromId`, `lastToId` (Q7, `tpn-profile:tx:transfer:…`), `sheet` / `open` / `openFix`;
+  an effect tombstones live transfers with a side in a wallet that is a tombstone here; the
+  shell injects it). One row per transfer (`transfers`, schema step 9); the list reads
+  `TransactionService.entries(range, walletIds)`: `list` merged in order with
+  `transferSides` (each side in view is a `TransferItem` with `kind: 'transfer'` and `side`
+  `out` | `in`, the outgoing one first). `MoneySummary.transfer` is the view's transfer net (in −
+  out; 0 for `null` wallets). Code that walks `items()` checks `kind`.
+- `core/wallet` and `core/category` read the `transactions` (and `core/wallet` the
+  `transfers`) table **by name** (`TRANSACTION_TABLE`, `TRANSFER_TABLE` in `wallet.type.ts`),
+  because `core/transaction` builds on them. Balances and `hasTransactions` count both sides of
+  a transfer.
 - UI: `layout/transactions-header` (the tab's header, `@defer`red by `app-header` for the
   bundle), `layout/view-wallet-sheet`, `layout/custom-range-sheet`, `layout/transaction-sheet`
   (views `form` / `wallet` / `category` / `note` / `confirmDiscard`; keypad state: it closes on
   any other control of the form, `leaveAmount`; save and add, copy; the shell
   `@defer`s all three), `features/transactions` (the page; rows drawn 100 at a time with an
   `IntersectionObserver` sentinel). ➕ opens the sheet (`BottomTabBar.add()`); "fix" goes to
-  `/transactions?fix=<opId>`.
-- Specs: `transaction.service.spec.ts`, `transaction-sheet.spec.ts`, `transactions-page.spec.ts`
-  put their transactions with `putRow` like the other tables.
+  `/transactions?fix=<opId>` (the page asks both services; each opens only its own table's op).
+  `layout/transfer-sheet` (views `form` / `pick` (from or to) / `note` / `confirmDiscard`) is
+  `@defer`red by the shell and opened by the header's two-level ⋮ menu and the Wallets tab.
+- Specs: `transaction.service.spec.ts`, `transfer.service.spec.ts`, `transaction-sheet.spec.ts`,
+  `transfer-sheet.spec.ts`, `transactions-page.spec.ts` put their rows with `putRow` like the
+  other tables; `transactions-header.spec.ts` stubs the services (the menu only).
 
 ### Inside a feature
 
@@ -501,6 +516,10 @@ initialValue })`.
   `FORM_IMPORTS` = `ReactiveFormsModule` + `MarkTouchedOnSubmit`, which attaches to every
   `<form [formGroup]>` by itself.
 
+- **Reacting to one control**: a control's own `valueChanges` fires **before** the form's, so a
+  `computed()` fed by `toSignal(form.valueChanges)` still holds the previous value there. Read
+  `form.getRawValue()` (or the controls) inside such a subscription (see `dropUnfit` in
+  `layout/transaction-sheet`, fixed in #9).
 - **Form value → API payload**: build the payload as a **fresh object literal** naming only the fields
   the endpoint takes (`{ name: value.name, type: value.type }`). Never forward the form value object
   itself, because a UI-only field would silently leak into the request body. Map empty optional

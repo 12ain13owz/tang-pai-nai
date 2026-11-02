@@ -39,7 +39,10 @@ choice that isn't decided yet is marked **Proposal** until the owner confirms it
 
 - **Transactions tab header** (#8, Money Lover style): three columns of which the outer two
   are equal, so the **wallet switcher** (a pill: wallet badge, name, ▾) sits in the very
-  centre; the profile's 28px icon left, the sync icon and the ⋮ "ดูตาม" menu right. Under it
+  centre; the profile's 28px icon left, the sync icon and the ⋮ menu right. The ⋮ menu (#9,
+  owner's choice B, so later items fit) is a two-level nav list: rows with an icon ("โอนเงิน",
+  "ดูตาม" with the current unit and ›); a row with › turns the menu into its options, headed
+  by "‹ ดูตาม" to go back; ← / → move between the levels. Under it
   the balance (ยอดรวม / ยอดเงิน) large and centred, then the period tabs as chips (`09/2026 ·
 เดือนที่แล้ว · เดือนนี้ · อนาคต`), swipeable; a sideways swipe over the list changes period.
 - **Outside the shell** (no tab bar): sign-in, enter code, trust prompt, PIN lock. These are
@@ -156,7 +159,11 @@ Lover's black and green.
   right-align amounts in lists.
 - **Direction is shown by sign and colour together**, never by colour alone (colour-blind users,
   dark mode): expense `-฿120.00` in expense colour, income `+฿25,000.00` in income colour.
-  Transfers (#9) are neutral, with no sign colour.
+  **Transfers** (#9, owner's choice Q5, replacing "neutral") follow the money in each wallet: a
+  transfer is two rows, the outgoing side `-1,000.00` in the expense colour ("โอนไปยัง X"), then
+  the incoming side `+1,000.00` in the income colour ("ได้รับจาก X"), on a muted ⇄ badge. They
+  never count in รายรับ / รายจ่าย / สุทธิ or a day's net; the summary card adds a "โอน" line
+  with their signed net when the view's transfers don't cancel out.
 - **Totals in different currencies** are shown one line per currency, never added together.
 - **Dates**: relative words for recent days (วันนี้ / Today, เมื่อวาน / Yesterday), then a short
   date such as `จ. 14 ต.ค.` / `Mon 14 Oct`. Day headers in the transaction list show the date on the left and the day total on
@@ -259,18 +266,21 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - **Strip under the header**: the update banner and the expired-session banner
   (`layout/session-banner`) share one look: `bg-muted px-4 py-2 text-sm`, the text left and one
   44px button right.
-- **Status**: the header's right side holds the **sync pill** (`layout/sync-status`, #4a.2). A
-  small dot plus words, never the dot alone: synced = green dot (`bg-income`) and muted
-  "sync แล้ว"; syncing = a spinning refresh icon and "กำลัง sync"; waiting = muted dot and
-  "รอ sync 3"; offline = red dot in a red-tinted pill, "ออฟไลน์" or "ออฟไลน์ · รอ 2"; server
-  not answering = the same red pill, "เซิร์ฟเวอร์ไม่ตอบ" or "เซิร์ฟเวอร์ไม่ตอบ · รอ 2"; errors =
-  the same red pill, "บันทึกไม่สำเร็จ 1". Status changes are announced politely
-  (`role="status"`). The pill is a 44px button that opens the sync sheet (last sync, "sync
-  ตอนนี้", rejected items with fix / discard, conflict notices). **On the Transactions tab** the
-  pill is a 44px icon (owner's choice in #8, so the wallet switcher sits in the very centre):
-  a green cloud with a tick (synced), a cloud with the waiting count, a red crossed cloud with
-  a count (offline, server not answering, errors), a spinning arrow while syncing; the words
-  stay in its label and the sheet.
+- **Status**: the header's right side holds the **sync status** (`layout/sync-status`, #4a.2),
+  the same 44px icon on **every tab** (owner's choice in #8 for the Transactions tab, every tab
+  since #9): a green cloud with a tick (synced), a cloud with the waiting count, a red crossed
+  cloud with a count (offline, server not answering), a red cloud with an alert and the count of
+  refused items (errors), a spinning arrow while syncing. Shape and colour together, never
+  colour alone. The words ("sync แล้ว", "รอ sync 3", "ออฟไลน์ · รอ 2", "เซิร์ฟเวอร์ไม่ตอบ · รอ
+  2", "บันทึกไม่สำเร็จ 1") are its label, announced politely (`role="status"`), and the sync
+  sheet it opens (last sync, "sync ตอนนี้", rejected items with fix / discard, conflict
+  notices) says them in full.
+- **Transfer form** (#9): the transaction form's frame and rows without type tabs or category:
+  from wallet and to wallet (each with its balance on the right, a small "จาก" / "ไปยัง" over
+  the name) with a round ⇅ swap button on the line between them, then amount (keypad), note,
+  date. Opened from the ⋮ menu and from a gold-tinted "โอนเงิน" on the Wallets tab
+  (`bg-brand/10 text-brand`, beside the outline "เพิ่มกระเป๋าเงิน": two secondary actions side by
+  side must not look the same).
 - **Bottom sheet** (owner's choice in #6.2): **every sheet is the same near-full height**
   (`92dvh`, the page's header still showing above it), so its main action always sits in the same
   place. Inside, `app-sheet-frame`: a header bar with **close (X) on the left** (or **‹ back** in

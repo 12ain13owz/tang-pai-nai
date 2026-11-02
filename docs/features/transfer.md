@@ -1,14 +1,16 @@
 # Transfer
 
-> Status: **Spec**, settled with the owner at the start of #9 (Open questions). Builds on
-> [transaction.md](transaction.md).
+> Status: **Built** in #9 (Open questions: what the owner settled). Builds on
+> [transaction.md](transaction.md). API: `api/src/features/transfer/` (sync handler only).
+> Web: `core/transaction` (`TransferService`, `TransactionService.entries` / `transferSides`),
+> `layout/transfer-sheet`, the ⋮ menu in `layout/transactions-header`, the Wallets tab button.
 
 ## Purpose
 
 Move money from one wallet to another (cash out of the bank, pay off a credit card, put money
 into savings) without it counting as income or expense. One transfer shows as money leaving one
-wallet and arriving in the other (two rows in the list), so both balances are right, while the month's รายรับ / รายจ่าย
-stay what was really earned and spent.
+wallet and arriving in the other (two rows in the list), so both balances are right, while the
+month's รายรับ / รายจ่าย stay what was really earned and spent.
 
 ## Out of scope
 
@@ -80,9 +82,11 @@ different amounts or dates, delete / undo / conflicts work exactly as for a tran
 
 ## Volume
 
-Transfers are a few a month, but read with transactions: the list is one `UNION ALL` of both
-tables over (`profile_id`, `occurred_on`), and balances add one `GROUP BY` per side
-(`from_wallet_id`, `to_wallet_id`) to the existing aggregate. Still 100 rows drawn at a time.
+Transfers are a few a month, but read with transactions: the period's transfer sides are one
+`UNION ALL` (out, in) over (`profile_id`, `occurred_on`), merged in order into the period's
+transactions (`entries`, one pass), and balances stay one aggregate (`UNION ALL` of the
+transactions and both sides, `GROUP BY` wallet). Still 100 rows drawn at a time. Not measured
+again with 20,000 rows in #9 (the transaction queries didn't change).
 
 ## Endpoints
 
@@ -95,7 +99,10 @@ None of its own: table `transfers` in `/sync/pull` and `/sync/push` (OpenAPI
   รายรับ only): the same frame (DESIGN.md §6), title "โอนเงิน" / "แก้ไขการโอน", one card of rows:
   **from wallet** (with its ยอดเงิน), a **⇅ swap** button, **to wallet** (with its ยอดเงิน; only
   wallets of the from wallet's currency, never the same one), amount (keypad, quick amounts),
-  note, date. No category, no เพิ่มเติม. Errors: "เลือกกระเป๋าปลายทาง", "ใส่จำนวนเงินที่มากกว่า 0".
+  note, date. No category, no เพิ่มเติม. Errors: "เลือกกระเป๋าปลายทางก่อน", "ใส่จำนวนเงินที่มากกว่า
+  0". Choosing the to wallet as the from wallet (or one of another currency) empties the to
+  wallet. The pickers are a view in the same sheet, each wallet with its balance and "ไม่รวมใน
+  ยอดรวม" when it has it. The keypad belongs to the amount row, as in the transaction form.
   - The from wallet starts like the transaction form's wallet; the to wallet starts on the one
     last used from that from wallet on this device (Q7), else empty.
   - Editing (either row opens it) shows copy (a new transfer dated today) and delete (both rows,
@@ -117,9 +124,11 @@ None of its own: table `transfers` in `/sync/pull` and `/sync/push` (OpenAPI
   view) when it isn't zero, so the change in the balance is explained: a chosen wallet, or on
   "ทุกกระเป๋า" a transfer to or from a wallet excluded from the total.
 - **Wallets tab**: balances include transfers (rule 6). Beside "เพิ่มกระเป๋าเงิน" (outline) a
-  **"โอนเงิน"** button in the `secondary` (muted, filled) look, so the two don't read alike
-  (owner's request), shown while the profile has two or more open wallets.
-- **Sync sheet**: a refused transfer reads "โอนเงิน กสิกร → เงินสด ฿500.00"; "แก้" opens it.
+  **"โอนเงิน"** button tinted gold (`bg-brand/10 text-brand`; maia's `secondary` looked the
+  same as its outline, owner's request: the two must not read alike), shown while the profile
+  has two or more open wallets.
+- **Sync sheet**: a refused transfer is "การโอนเงิน", reading "โอนเงิน กสิกร → เงินสด · 500.00 ·
+  note"; "แก้" opens its sheet (`/transactions?fix=`).
 
 ## Interactions
 
@@ -137,4 +146,4 @@ menu (choice B) and from the Wallets tab (a button that doesn't look like "เ�
 Q5 two rows, outgoing first, red − / green + with "โอนไปยัง" / "ได้รับจาก" (replaces DESIGN.md
 §5's neutral transfers); Q6 editing or deleting either row changes the whole transfer; Q7 the
 to wallet remembered per from wallet; the summary's "โอน" line; profile delete counts
-transfers with transactions.
+transfers with transactions; "Transactions" stays the English tab label (asked while building).

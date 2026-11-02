@@ -16,7 +16,8 @@ a few taps from the centre ➕.
 
 ## Out of scope
 
-- Transfers between wallets (#9, built on top of this), debt / loan (#13; Money Lover's third
+- Transfers between wallets ([transfer.md](transfer.md), #9: their own table, shown in this
+  list), debt / loan (#13; Money Lover's third
   tab "หนี้สิน/เงินกู้" is not in the form).
 - Recurring rules (#12), events / trips (#14), attachments and receipt photos, the AI / chat
   entry of the reference app (backlog).
@@ -109,7 +110,7 @@ never stored (ROADMAP → Money & data).
     `excludeFromTotal`, archived ones included (their history stays, wallet rule 6); a wallet
     excluded from the total is seen by choosing it in the wallet switcher.
 12. **Wallet balance** = `initialBalance` + Σ income − Σ expense of all its live transactions,
-    `excludeFromReport` ones included (± transfers from #9).
+    `excludeFromReport` ones included, − transfers out + transfers in (transfer rule 6).
 13. **Order**: `occurredOn` desc, then `createdAt` desc, then `id` desc. There is no time of day
     (decided at the start of #8, like Money Lover): rows show under the day the user chose, and
     within a day the one recorded last is on top. `createdAt` is a sync column every row has
@@ -163,8 +164,9 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
   - header: the profile's 28px icon left (opens the switch sheet), the **wallet switcher** in the
     very centre (a pill; "ทุกกระเป๋า" or one wallet, opening a sheet with the total, the open
     wallets with their balances and the archived ones folded), and right the **sync icon**
-    (the pill in its icon form) and the **⋮ "ดูตาม"** menu (a dropdown: day / week / month
-    (default) / quarter / year / all / custom range, the last in a sheet with two dates);
+    (the pill in its icon form, on every tab since #9) and the **⋮** menu (since #9 a two-level
+    list: "โอนเงิน" and "ดูตาม · เดือน ›", which turns into day / week / month (default) / quarter /
+    year / all / custom range, the last in a sheet with two dates; transfer.md);
   - the balance large (ยอดรวม of rule 11's wallets, or the chosen wallet's ยอดเงิน);
   - **period tabs** as chips that follow the unit, oldest first back to the oldest row, the
     current one in view: `09/2026 · เดือนที่แล้ว · เดือนนี้ · อนาคต` (only the month view has
@@ -174,7 +176,8 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
   - the summary card: รายรับ left, รายจ่าย right, สุทธิ under them (signed, one card per currency);
   - a card per day, newest first: the date large (`02`), วันนี้ / เมื่อวาน / the weekday over
     the month and year (ค.ศ.), the day's net right; rows: the category badge (with the wallet's
-    20px badge on its corner on "ทุกกระเป๋า" only), the category name, the user's note under it
+    20px badge on its corner on "ทุกกระเป๋า" only), the category name (a transfer: two rows,
+    transfer.md → Web screens), the user's note under it
     (nothing when empty), "รอ sync" as a small cloud line, the signed amount right in income /
     expense colour without the currency symbol (it comes back when the rows mix currencies);
   - an empty period says so with "เพิ่มธุรกรรม". The chosen wallet and unit are remembered per
