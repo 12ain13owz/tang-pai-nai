@@ -203,6 +203,16 @@ describe('TransactionSheet', () => {
     expect(button(th.transactions.toWalletCategories)).toBeDefined()
   })
 
+  it('drops a category the newly chosen wallet hides', async () => {
+    wallet('Card', { sortOrder: 1, hiddenCategoryIds: ['Food'] })
+    await open({ mode: 'create', walletId: 'Cash' })
+    await click('หมวดหมู่ ', true)
+    await click('Food')
+    await click('กระเป๋าเงิน ', true)
+    await click('Card')
+    expect(text()).toContain(th.transactions.pickCategory)
+  })
+
   it('drops a category of the other type when the type changes', async () => {
     await open({ mode: 'create' })
     await click('หมวดหมู่ ', true)

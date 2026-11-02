@@ -800,8 +800,11 @@ export class TransferSheet {
 
   /** A to wallet that is now the from wallet, or of another currency, no longer fits. */
   private dropUnfitTo(): void {
-    const from = this.fromWallet()
-    const to = this.toWallet()
+    // The controls, not `values()`: this runs in the from control's own valueChanges, before the
+    // form's (which feeds `values()`) has emitted.
+    const { fromWalletId, toWalletId } = this.form.getRawValue()
+    const from = fromWalletId ? this.walletService.byId(fromWalletId) : null
+    const to = toWalletId ? this.walletService.byId(toWalletId) : null
     if (to && (!from || to.id === from.id || to.currencyCode !== from.currencyCode)) {
       this.form.controls.toWalletId.setValue('')
     }

@@ -1039,9 +1039,11 @@ export class TransactionSheet {
   }
 
   private dropUnfit(): void {
-    const category = this.category()
-    const wallet = this.wallet()
-    const type = this.form.controls.type.value
+    // The controls, not `values()`: this runs in a control's own valueChanges, before the form's
+    // (which feeds `values()`) has emitted, so `wallet()` would still be the previous one.
+    const { categoryId, walletId, type } = this.form.getRawValue()
+    const category = categoryId ? this.categoryService.byId(categoryId) : null
+    const wallet = walletId ? this.walletService.byId(walletId) : null
     if (
       category &&
       (category.type !== type || isHiddenIn(wallet?.hiddenCategoryIds ?? [], category))
