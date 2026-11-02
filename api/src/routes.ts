@@ -6,6 +6,7 @@ import { healthRouter } from '@/features/health'
 import '@/features/profile'
 import '@/features/category'
 import '@/features/wallet'
+import '@/features/transaction'
 import { syncRouter } from '@/features/sync'
 import { todoRouter } from '@/features/todo'
 

@@ -85,6 +85,13 @@
       "when": 1793549804941,
       "tag": "0011_wallet_hidden_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1793591765684,
+      "tag": "0012_transactions",
+      "breakpoints": true
     }
   ]
 }
