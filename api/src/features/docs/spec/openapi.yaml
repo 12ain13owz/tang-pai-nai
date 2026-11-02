@@ -120,6 +120,8 @@ components:
       $ref: './components/models/sync-wallet-row.schema.yaml'
     SyncCategoryRow:
       $ref: './components/models/sync-category-row.schema.yaml'
+    SyncTransactionRow:
+      $ref: './components/models/sync-transaction-row.schema.yaml'
   responses:
     SuccessResponse:
       $ref: './components/responses/success.response.yaml'

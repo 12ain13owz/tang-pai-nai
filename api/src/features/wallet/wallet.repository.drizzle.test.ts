@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/libsql/migrator'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -7,7 +8,10 @@ import { env } from '@/core/config'
 import type { Database } from '@/core/database'
 import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
+import { categories } from '@/core/database/schema/category'
+import { currencies } from '@/core/database/schema/currency'
 import { profiles } from '@/core/database/schema/profile'
+import { transactions } from '@/core/database/schema/transaction'
 import { wallets } from '@/core/database/schema/wallet'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
 import { WALLET_MESSAGE } from './wallet.const'
@@ -195,5 +199,60 @@ describe('walletSyncHandler', () => {
     await push.write(db, 'alice', wallet('w1', 'A', 15, { profileId: 'gone', deletedAt: 900 }))
     await db.delete(profiles)
     expect(await push.find(db, 'w1')).toBeNull()
+  })
+
+  it('keeps the currency of a wallet with live transactions (rule 4)', async () => {
+    await db.update(currencies).set({ isActive: true }).where(eq(currencies.code, 'USD'))
+    await push.write(db, 'alice', wallet('w1', 'Cash', 15))
+    await push.write(db, 'alice', wallet('w2', 'Card', 16))
+    await db.insert(categories).values({
+      id: 'food',
+      userId: 'alice',
+      profileId: 'pa',
+      type: 'expense',
+      parentId: null,
+      name: 'Food',
+      icon: 'lucideShapes',
+      color: '#475569',
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 40,
+      updatedBy: 'alice',
+    })
+    const transaction = (
+      id: string,
+      extra: { walletId: string; categoryId: string; deletedAt?: number }
+    ) => ({
+      id,
+      userId: 'alice',
+      profileId: 'pa',
+      amount: 100,
+      occurredOn: '2026-11-02',
+      note: '',
+      excludeFromReport: false,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 50,
+      updatedBy: 'alice',
+      ...extra,
+    })
+    await db
+      .insert(transactions)
+      .values([
+        transaction('t1', { walletId: 'w1', categoryId: 'food' }),
+        transaction('t2', { walletId: 'w2', categoryId: 'food', deletedAt: 5 }),
+      ])
+    expect(await push.check(db, 'alice', wallet('w1', 'Cash', 0, { currencyCode: 'USD' }))).toBe(
+      WALLET_MESSAGE.CURRENCY_FIXED
+    )
+    expect(await push.check(db, 'alice', wallet('w1', 'Cash!', 0))).toBeNull()
+    // Only deleted transactions: the currency is free again.
+    expect(
+      await push.check(db, 'alice', wallet('w2', 'Card', 0, { currencyCode: 'USD' }))
+    ).toBeNull()
   })
 })

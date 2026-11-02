@@ -1,0 +1,82 @@
+type: object
+description: >-
+  A row of the `transactions` table (docs/features/transaction.md) as it travels in /sync/pull
+  and in /sync/push. Devices send the whole row on upsert; the server stamps changeSeq and
+  updatedBy. The sign comes from the category's type and the currency from the wallet; neither
+  is stored. Rules (each answers `CONFLICT`): profileId is one of the user's live profiles and
+  never changes; walletId and categoryId are the user's live rows of that profile (archived ones
+  are accepted); moving to a wallet with another currency is refused. A tombstone runs none of
+  them.
+required:
+  [
+    id,
+    profileId,
+    walletId,
+    categoryId,
+    amount,
+    occurredOn,
+    note,
+    excludeFromReport,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    changeSeq,
+    updatedBy,
+  ]
+properties:
+  id:
+    type: string
+    format: uuid
+    description: UUIDv7 made on the device
+  profileId:
+    type: string
+    format: uuid
+  walletId:
+    type: string
+    format: uuid
+  categoryId:
+    type: string
+    format: uuid
+  amount:
+    type: integer
+    minimum: 1
+    maximum: 1000000000000000
+    description: Minor units of the wallet's currency (satang for THB), always positive
+  occurredOn:
+    type: string
+    format: date
+    description: >-
+      The device's local date (YYYY-MM-DD), from 2000-01-01 to one year (and a day) after the
+      server's today
+  note:
+    type: string
+    maxLength: 500
+    description: Trimmed; '' when empty (a push without it means '')
+  excludeFromReport:
+    type: boolean
+    description: Left out of income / expense totals and reports, still in the wallet's balance
+  createdAt:
+    type: integer
+  updatedAt:
+    type: integer
+  deletedAt:
+    type: [integer, 'null']
+    description: Set on a deleted transaction (a tombstone)
+  changeSeq:
+    type: integer
+  updatedBy:
+    type: string
+example:
+  id: 0199b000-0000-7000-8000-000000000301
+  profileId: 0199b000-0000-7000-8000-000000000001
+  walletId: 0199b000-0000-7000-8000-000000000101
+  categoryId: 0199b000-0000-7000-8000-000000000202
+  amount: 6500
+  occurredOn: '2026-11-02'
+  note: ลาเต้เย็น
+  excludeFromReport: false
+  createdAt: 1793600000000
+  updatedAt: 1793600000000
+  deletedAt: null
+  changeSeq: 812
+  updatedBy: 0199b000-0000-7000-8000-00000000a001
