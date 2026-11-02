@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Category merge mock-up (7.3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --background: oklch(0.975 0.007 265); --foreground: oklch(0.2 0.03 265);
+  --card: oklch(1 0 0); --muted: oklch(0.94 0.014 265); --muted-fg: oklch(0.48 0.03 265);
+  --primary: oklch(0.8 0.15 80); --primary-fg: oklch(0.2 0.03 70);
+  --destructive: oklch(0.55 0.22 27); --border: oklch(0.91 0.014 265); --brand: oklch(0.53 0.12 75);
+  --mix: 9%;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+    --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+    --primary: oklch(0.82 0.15 82); --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82); --mix: 15%;
+  }
+}
+:root[data-theme="dark"] {
+  --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+  --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+  --primary: oklch(0.82 0.15 82); --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82); --mix: 15%;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--foreground);
+  font-family: "IBM Plex Sans Thai", system-ui, sans-serif; font-size: 15px; }
+header.page { max-width: 1240px; margin: 0 auto; padding: 24px 16px 8px; }
+header.page h1 { font-size: 20px; margin: 0 0 4px; }
+header.page p { margin: 0; color: var(--muted-fg); font-size: 14px; }
+.toggle { margin-top: 10px; display: inline-flex; gap: 4px; background: var(--muted); border-radius: 10px; padding: 3px; }
+.toggle button { border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--card); font-weight: 600; }
+.grid { max-width: 1240px; margin: 0 auto; padding: 16px; display: flex; flex-wrap: wrap; gap: 20px; }
+figure { margin: 0; width: 300px; max-width: 100%; }
+figcaption { font-size: 13px; color: var(--muted-fg); margin-bottom: 6px; min-height: 54px; }
+figcaption b { color: var(--foreground); }
+.phone { height: 600px; border: 1px solid var(--border); border-radius: 24px; overflow: hidden;
+  background: var(--background); display: flex; flex-direction: column; position: relative; }
+.sheet { margin-top: 40px; flex: 1; background: var(--card); border-radius: 18px 18px 0 0;
+  display: flex; flex-direction: column; box-shadow: 0 -2px 12px rgb(0 0 0 / 0.08); }
+.bar { display: flex; align-items: center; height: 52px; padding: 0 4px; border-bottom: 1px solid var(--border); }
+.bar .t { flex: 1; text-align: center; font-weight: 600; }
+.ib { width: 44px; height: 44px; display: grid; place-items: center; color: var(--foreground); }
+.ib.red { color: var(--destructive); }
+.ib.off { opacity: .4; }
+.ib.new { outline: 2px dashed var(--brand); outline-offset: -6px; border-radius: 12px; }
+.body { flex: 1; overflow: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.foot { padding: 12px 14px 18px; }
+.btn { width: 100%; height: 44px; border-radius: 10px; border: 0; font: inherit; font-weight: 600; }
+.btn.primary { background: var(--primary); color: var(--primary-fg); }
+.btn.danger { background: var(--destructive); color: #fff; }
+.badge { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff; flex: none; }
+.badge.s { width: 32px; height: 32px; }
+.badge.l { width: 52px; height: 52px; border-radius: 50%; }
+.row { display: flex; align-items: center; gap: 12px; min-height: 52px; }
+.name { flex: 1; border-bottom: 1px solid var(--border); padding: 8px 0; font-size: 17px; }
+.seg { display: flex; background: var(--muted); border-radius: 10px; padding: 3px; }
+.seg span { flex: 1; text-align: center; padding: 6px; border-radius: 8px; font-size: 14px; color: var(--muted-fg); }
+.seg span.on { background: var(--card); color: var(--foreground); font-weight: 600; }
+.line { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.line .v { color: var(--muted-fg); }
+.note { background: var(--muted); border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+.note a { color: var(--brand); font-weight: 600; text-decoration: underline; }
+.tree { border-radius: 12px; background: color-mix(in oklch, var(--c) var(--mix), transparent);
+  border-left: 3px solid color-mix(in oklch, var(--c) 60%, transparent); padding: 2px 10px 2px 14px; margin: -4px 0 4px 20px; }
+.pick { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 4px 2px; }
+.pick small { display: block; color: var(--muted-fg); font-size: 12px; }
+.pick.dim { opacity: .45; }
+.pick .chev { margin-left: auto; color: var(--muted-fg); }
+.label { font-size: 13px; color: var(--muted-fg); font-weight: 600; margin: 6px 0 -6px; }
+h2.q { font-size: 17px; margin: 4px 0 0; line-height: 1.4; }
+ul.fx { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+ul.fx li { display: flex; gap: 10px; font-size: 14px; line-height: 1.45; }
+ul.fx li svg { flex: none; margin-top: 2px; color: var(--muted-fg); }
+ul.fx li.warn { color: var(--destructive); }
+ul.fx li.warn svg { color: var(--destructive); }
+.toast { position: absolute; top: 10px; left: 12px; right: 12px; background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px; font-size: 14px; box-shadow: 0 4px 16px rgb(0 0 0 / .15); z-index: 2; }
+.list { padding: 14px; display: flex; flex-direction: column; gap: 2px; }
+svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.badge svg { width: 20px; height: 20px; }
+.badge.s svg { width: 16px; height: 16px; }
+.badge.l svg { width: 24px; height: 24px; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>ผสานหมวดหมู่ (7.3) · mock-up</h1>
+  <p>Account › หมวดหมู่ › แตะหมวดหมู่ → ฟอร์มหมวดหมู่ (ชีต 92dvh) · ปุ่มขอบประเส้นคือของใหม่</p>
+  <div class="toggle" role="group" aria-label="Theme">
+    <button type="button" data-t="" aria-pressed="true">ตามระบบ</button>
+    <button type="button" data-t="light" aria-pressed="false">สว่าง</button>
+    <button type="button" data-t="dark" aria-pressed="false">มืด</button>
+  </div>
+</header>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="arch" viewBox="0 0 24 24"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/></symbol>
+  <symbol id="trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+  <symbol id="merge" viewBox="0 0 24 24"><path d="m8 6 4-4 4 4"/><path d="M12 2v10.3a4 4 0 0 1-1.172 2.872L4 22"/><path d="m20 22-5-5"/></symbol>
+  <symbol id="coffee" viewBox="0 0 24 24"><path d="M10 2v2M14 2v2M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1M6 2v2"/></symbol>
+  <symbol id="food" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></symbol>
+  <symbol id="car" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18 10l-2.7-3.6A2 2 0 0 0 13.7 6H6.3a2 2 0 0 0-1.6.9L2 10v6c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></symbol>
+  <symbol id="bag" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4ZM3 6h18M16 10a4 4 0 0 1-8 0"/></symbol>
+  <symbol id="cart" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></symbol>
+  <symbol id="list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+  <symbol id="alert" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="10"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+</svg>
+
+<main class="grid">
+
+<!-- 1. Form with transactions -->
+<figure>
+  <figcaption><b>1 · ฟอร์มแก้ไข</b> หมวดหมู่ย่อย “กาแฟ” มีธุรกรรม 42 รายการ: ลบไม่ได้ → ไอคอนผสานใหม่ + ลิงก์ในข้อความ</figcaption>
+  <div class="phone"><div class="sheet">
+    <div class="bar">
+      <span class="ib"><svg><use href="#x"/></svg></span>
+      <span class="t">แก้ไขหมวดหมู่</span>
+      <span class="ib"><svg><use href="#arch"/></svg></span>
+      <span class="ib new" title="ผสานหมวดหมู่"><svg><use href="#merge"/></svg></span>
+      <span class="ib red off"><svg><use href="#trash"/></svg></span>
+    </div>
+    <div class="body">
+      <div class="row"><span class="badge l" style="background:#b45309"><svg><use href="#coffee"/></svg></span><span class="name">กาแฟ</span></div>
+      <div class="seg"><span class="on">รายจ่าย</span><span>รายรับ</span></div>
+      <div class="line"><span>หมวดหมู่หลัก</span><span class="v">อาหารและเครื่องดื่ม ›</span></div>
+      <div class="line"><span>ใช้ในกระเป๋า</span><span class="v">ทุกกระเป๋า ›</span></div>
+      <p class="note">หมวดหมู่นี้มีธุรกรรม 42 รายการ จึงลบไม่ได้ <a href="#">ผสานเข้าหมวดหมู่อื่น</a>แทนได้ หรือเก็บถาวร</p>
+    </div>
+    <div class="foot"><button class="btn primary" type="button">บันทึก</button></div>
+  </div></div>
+</figure>
+
+<!-- 2. Pick target for a sub-category -->
+<figure>
+  <figcaption><b>2 · เลือกปลายทาง</b> (หมวดย่อย) หมวดหลักของตัวเองอยู่บนสุด · แตะหมวดหลักหรือหมวดย่อยใดก็ได้ ประเภทเดียวกัน</figcaption>
+  <div class="phone"><div class="sheet">
+    <div class="bar">
+      <span class="ib"><svg><use href="#back"/></svg></span>
+      <span class="t">ผสาน “กาแฟ” เข้ากับ</span>
+      <span class="ib"></span>
+    </div>
+    <div class="list">
+      <div class="pick"><span class="badge" style="background:#c2410c"><svg><use href="#food"/></svg></span><span>อาหารและเครื่องดื่ม<small>หมวดหมู่หลักของตัวเอง</small></span><span class="chev"><svg><use href="#chev"/></svg></span></div>
+      <div class="tree" style="--c:#c2410c">
+        <div class="pick"><span class="badge s" style="background:#be123c"><svg><use href="#food"/></svg></span><span>ร้านอาหาร</span><span class="chev"><svg><use href="#chev"/></svg></span></div>
+        <div class="pick"><span class="badge s" style="background:#7c3aed"><svg><use href="#coffee"/></svg></span><span>ชานม</span><span class="chev"><svg><use href="#chev"/></svg></span></div>
+      </div>
+      <div class="pick"><span class="badge" style="background:#1d4ed8"><svg><use href="#car"/></svg></span><span>การเดินทาง</span><span class="chev"><svg><use href="#chev"/></svg></span></div>
+      <div class="tree" style="--c:#1d4ed8">
+        <div class="pick"><span class="badge s" style="background:#0f766e"><svg><use href="#car"/></svg></span><span>น้ำมัน</span><span class="chev"><svg><use href="#chev"/></svg></span></div>
+      </div>
+      <div class="pick"><span class="badge" style="background:#be185d"><svg><use href="#bag"/></svg></span><span>ช้อปปิ้ง</span><span class="chev"><svg><use href="#chev"/></svg></span></div>
+      <div class="pick"><span class="badge" style="background:#4b5563"><svg><use href="#list"/></svg></span><span>อื่น ๆ</span><span class="chev"><svg><use href="#chev"/></svg></span></div>
+    </div>
+  </div></div>
+</figure>
+
+<!-- 3. Confirm, sub-category -->
+<figure>
+  <figcaption><b>3 · ยืนยัน</b> (หมวดย่อย → หมวดย่อย) เลิกทำไม่ได้ จึงถามก่อน</figcaption>
+  <div class="phone"><div class="sheet">
+    <div class="bar">
+      <span class="ib"><svg><use href="#back"/></svg></span>
+      <span class="t">ผสานหมวดหมู่</span>
+      <span class="ib"></span>
+    </div>
+    <div class="body">
+      <div class="row" style="gap:8px">
+        <span class="badge" style="background:#b45309"><svg><use href="#coffee"/></svg></span>
+        <svg style="color:var(--muted-fg)"><use href="#chev"/></svg>
+        <span class="badge" style="background:#be123c"><svg><use href="#food"/></svg></span>
+      </div>
+      <h2 class="q">ผสาน “กาแฟ” เข้ากับ “ร้านอาหาร” ใช่ไหม</h2>
+      <ul class="fx">
+        <li><svg><use href="#check"/></svg>ย้ายธุรกรรม 42 รายการไปที่ “ร้านอาหาร”</li>
+        <li class="warn"><svg><use href="#alert"/></svg>“กาแฟ” จะถูกลบ เลิกทำไม่ได้ เครื่องอื่นจะเห็นหลัง sync</li>
+      </ul>
+    </div>
+    <div class="foot"><button class="btn danger" type="button">ผสาน</button></div>
+  </div></div>
+</figure>
+
+<!-- 4. Confirm, parent with children -->
+<figure>
+  <figcaption><b>4 · ยืนยัน</b> (หมวดหลักที่มีหมวดย่อย → หมวดหลัก) เลือกว่าหมวดย่อยไปไหน · ชื่อซ้ำรวมกัน</figcaption>
+  <div class="phone"><div class="sheet">
+    <div class="bar">
+      <span class="ib"><svg><use href="#back"/></svg></span>
+      <span class="t">ผสานหมวดหมู่</span>
+      <span class="ib"></span>
+    </div>
+    <div class="body">
+      <div class="row" style="gap:8px">
+        <span class="badge" style="background:#0e7490"><svg><use href="#cart"/></svg></span>
+        <svg style="color:var(--muted-fg)"><use href="#chev"/></svg>
+        <span class="badge" style="background:#be185d"><svg><use href="#bag"/></svg></span>
+      </div>
+      <h2 class="q">ผสาน “ของใช้ในบ้าน” เข้ากับ “ช้อปปิ้ง” ใช่ไหม</h2>
+      <div class="label">หมวดหมู่ย่อย 3 รายการ</div>
+      <div class="seg"><span class="on">ย้ายหมวดหมู่ย่อย</span><span>รวมทั้งหมด</span></div>
+      <ul class="fx">
+        <li><svg><use href="#check"/></svg>ย้ายธุรกรรม 18 รายการไปที่ “ช้อปปิ้ง”</li>
+        <li><svg><use href="#folder"/></svg>หมวดหมู่ย่อย 3 รายการย้ายไปไว้ใต้ “ช้อปปิ้ง” (1 รายการรวมกับชื่อเดียวกัน: “ของแต่งบ้าน”) พร้อมธุรกรรมของตัวเอง 64 รายการ</li>
+        <li class="warn"><svg><use href="#alert"/></svg>“ของใช้ในบ้าน” จะถูกลบ เลิกทำไม่ได้</li>
+      </ul>
+      <p class="note" style="font-size:13px">ถ้าเลือก “รวมทั้งหมด”: บรรทัดหมวดย่อยเปลี่ยนเป็น “หมวดหมู่ย่อย 3 รายการรวมเข้า “ช้อปปิ้ง” ด้วย” และธุรกรรมรวม 82 รายการย้ายไปที่ “ช้อปปิ้ง”</p>
+    </div>
+    <div class="foot"><button class="btn danger" type="button">ผสาน</button></div>
+  </div></div>
+</figure>
+
+<!-- 5. Parent picker -->
+<figure>
+  <figcaption><b>5 · เลือกปลายทาง</b> (หมวดหลัก) แตะได้เฉพาะหมวดหลักอื่น · หมวดย่อยแสดงจาง ๆ ให้เห็นบริบท</figcaption>
+  <div class="phone"><div class="sheet">
+    <div class="bar">
+      <span class="ib"><svg><use href="#back"/></svg></span>
+      <span class="t">ผสาน “ของใช้ในบ้าน” เข้ากับ</span>
+      <span class="ib"></span>
+    </div>
+    <div class="list">
+      <div class="pick"><span class="badge" style="background:#c2410c"><svg><use href="#food"/></svg></span><span>อาหารและเครื่องดื่ม</span><span class="chev"><svg><use href="#chev"/></svg></span></div>
+      <div class="tree" style="--c:#c2410c">
+        <div class="pick dim"><span class="badge s" style="background:#b45309"><svg><use href="#coffee"/></svg></span><span>กาแฟ</span></div>
+      </div>
+      <div class="pick"><span class="badge" style="background:#1d4ed8"><svg><use href="#car"/></svg></span><span>การเดินทาง</span><span class="chev"><svg><use href="#chev"/></svg></span></div>
+      <div class="pick"><span class="badge" style="background:#be185d"><svg><use href="#bag"/></svg></span><span>ช้อปปิ้ง</span><span class="chev"><svg><use href="#chev"/></svg></span></div>
+      <div class="tree" style="--c:#be185d">
+        <div class="pick dim"><span class="badge s" style="background:#9d174d"><svg><use href="#bag"/></svg></span><span>ของแต่งบ้าน</span></div>
+      </div>
+      <div class="pick"><span class="badge" style="background:#4b5563"><svg><use href="#list"/></svg></span><span>อื่น ๆ</span><span class="chev"><svg><use href="#chev"/></svg></span></div>
+    </div>
+  </div></div>
+</figure>
+
+<!-- 6. Done -->
+<figure>
+  <figcaption><b>6 · หลังผสาน</b> ชีตปิด, toast ด้านบน (ไม่มีเลิกทำ) · “กาแฟ” หายจากรายการ</figcaption>
+  <div class="phone">
+    <div class="toast">ผสาน “กาแฟ” เข้ากับ “ร้านอาหาร” แล้ว</div>
+    <div class="list" style="margin-top:56px">
+      <div class="seg" style="margin-bottom:8px"><span class="on">รายจ่าย</span><span>รายรับ</span></div>
+      <div class="pick"><span class="badge" style="background:#c2410c"><svg><use href="#food"/></svg></span><span>อาหารและเครื่องดื่ม</span></div>
+      <div class="tree" style="--c:#c2410c">
+        <div class="pick"><span class="badge s" style="background:#be123c"><svg><use href="#food"/></svg></span><span>ร้านอาหาร</span></div>
+        <div class="pick"><span class="badge s" style="background:#7c3aed"><svg><use href="#coffee"/></svg></span><span>ชานม</span></div>
+      </div>
+      <div class="pick"><span class="badge" style="background:#1d4ed8"><svg><use href="#car"/></svg></span><span>การเดินทาง</span></div>
+      <div class="pick"><span class="badge" style="background:#be185d"><svg><use href="#bag"/></svg></span><span>ช้อปปิ้ง</span></div>
+    </div>
+  </div>
+</figure>
+
+</main>
+<script>
+document.querySelectorAll('.toggle button').forEach(b => b.addEventListener('click', () => {
+  const t = b.dataset.t
+  if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme
+  document.querySelectorAll('.toggle button').forEach(x => x.setAttribute('aria-pressed', String(x === b)))
+}))
+</script>
+</body>
+</html>

@@ -9,6 +9,8 @@
 > `layout/category-sheet`, `layout/wallet-sheet`, `features/account/pages/categories-page`.
 > #8.1 made rules 4 and 6's "has transactions" real (type: device + server check) and built the
 > transaction form's picker; sub-categories show in their parent's tinted panel (DESIGN.md §6).
+> **7.3 (merge, rule 15): spec, waiting for the owner's OK** (proposals marked in rule 15 and
+> Open questions → 7.3).
 
 ## Purpose
 
@@ -40,6 +42,9 @@ their categories.
 - **Hidden per wallet** (7.2, decided at the start of #7): a column on wallets,
   `wallets.hiddenCategoryIds` (a JSON array of category ids, default `[]`), not a table of its own:
   it travels with the wallet row and needs no handler (rule 13).
+- **Merged into** (7.3, rule 15): `mergedIntoId?` (text, the category the row was merged into;
+  no FK, so purging either row never cascades into the other). Only a tombstone carries it: a
+  live row's is always null. Device: `merged_into_id`, an `ALTER TABLE` step.
 
 Names live in the DB because users edit them. The default set is written in the language the app
 shows when the profile is created (rule 8).
@@ -66,8 +71,9 @@ shows when the profile is created (rule 8).
 6. **Delete** is a tombstone after a confirm view, only for a category with **no live children**
    (the device enforces this: the server runs no check on a delete, offline-sync rule 10; the form
    says "ลบหมวดหมู่ย่อยก่อน" instead). A category with live transactions can't be deleted, only
-   archived (#8.1; the form says so). A pulled category tombstone takes its live transactions
-   (transaction rule 10). A device that pulls a parent's tombstone **tombstones its live children** it holds
+   archived or **merged** (#8.1; the form says so and, from 7.3, offers the merge, rule 15). A
+   pulled category tombstone takes its live transactions (transaction rule 10), unless it was
+   merged: then they follow it (rule 15). A device that pulls a parent's tombstone **tombstones its live children** it holds
    (a child another device added that the deleting device didn't know), like wallet rule 11.
 7. **Archive** acts at once with undo in the toast. Archived categories are hidden from pickers but
    still shown in history and reports. Archiving a parent archives its children in the same write;
@@ -128,8 +134,56 @@ shows when the profile is created (rule 8).
 
     Two devices editing the same wallet follow the usual later-edit-wins for the whole row.
 
-14. An untrusted device can create, edit, archive and delete categories only while online
-    (offline-sync rule 1), as for profiles.
+14. An untrusted device can create, edit, archive, delete and merge categories only while
+    online (offline-sync rule 1), as for profiles.
+15. **Merge** (7.3): move a category's transactions to another category, then delete it. It is
+    the way to retire a category that has transactions (rule 6) without moving them one by one.
+    - **Same profile and `type` only.** The target is a live, **non-archived** category; the
+      source may be archived (retiring an old archived one is the common case).
+    - **A sub-category** merges into another sub-category (under any parent of the type) or
+      into **any** top-level category, its own parent included ("กาแฟ → อาหารและเครื่องดื่ม").
+    - **A top-level category** merges into another top-level category only, and when it has
+      live children the user picks what happens to them:
+      - **Move the sub-categories** (default): each child goes under the target, last among its
+        children, in its current order, keeping its own transactions, archive state and
+        hidden-per-wallet state. An open child whose name clashes with an open child of the
+        target (rule 2) is **merged into that child** instead. Archived children hold no name,
+        so they always move.
+      - **Merge everything**: every child is merged into the target too, so all the
+        transactions land on the target itself.
+    - **One local write, no undo**: the transactions move, the children move or are
+      tombstoned, the merged ids leave every wallet's `hiddenCategoryIds` (rule 13; the target
+      keeps its own state), and the source is tombstoned with `mergedIntoId` = the target (a
+      merged child points at the category it went into). The form asks first in a confirm view
+      ("ย้ายธุรกรรม n รายการไปที่ X", "เลิกทำไม่ได้"), like a profile or wallet delete
+      (DESIGN.md §6).
+    - **Who moves the transactions** (proposed, see Open questions → 7.3): the **server**. A
+      category tombstone that carries a `mergedIntoId` is applied in one database transaction
+      with its follow-ups: every live transaction of the source moves to the target (each
+      stamped with its own `changeSeq`, `updatedBy` = the user), and every live child still
+      under a merged top-level source (one another device added, or one whose move was
+      refused) is merged into the target the same way. So the merging device pushes only the
+      category and wallet ops (a handful), not one op per transaction, and pulls the moved rows
+      back. It still moves its own rows locally in the same write, so the screen is right at
+      once.
+    - **Follow-ups only follow a valid target**: a live category of the same profile and type
+      (if the target is itself a merged tombstone, follow its `mergedIntoId`, at most 5 hops).
+      Otherwise the tombstone is a plain one (rule 6, transaction rule 10). Deletes still run
+      no check (offline-sync rule 10): the server checks only the shape of `mergedIntoId` (a
+      UUID or null).
+    - **Late rows follow the merge** (the race behind transaction rule 10): a pushed **live
+      transaction** whose `categoryId` is a merged tombstone is **moved to its target** by the
+      server check instead of refused, and the push answers `applied` with the moved row, so
+      the device shows it at once. A **category** pushed under a merged parent (a child added
+      offline) is refused as today (`CONFLICT`, the parent is gone) and the user fixes it.
+    - **Devices that pull a merged tombstone** move their local rows that still point at it
+      (transactions to the target, children merged into the target) without new ops: the
+      server did the same moves, and their rows arrive in the same pull. A row with a pending
+      op keeps it (its push is redirected as above).
+    - **Outbox order**: the children's moves (with `moveOpLast`, rule 3's parent first), then
+      the wallets, then the tombstones (children merged into the target first, the source last).
+    - Merging never adds an open category, so rule 11's limit doesn't apply. A rename of a
+      child to dodge a clash isn't offered: the clash merges.
 
 ## Endpoints
 
@@ -158,8 +212,8 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
   children); row 3 "หมวดหมู่หลัก" (none or a parent, opening a picker view in the same sheet with
   the type's top-level categories). The icon opens the "ไอคอนและสี" view (swatches, then the
   catalogue grouped by meaning). Save is the one button at the bottom. In edit mode the header
-  holds **archive** (undo in the toast; coming back may be refused, rules 2 and 7) and **delete**
-  (a confirm view; disabled with a line when it has children). "Fix" of a rejected op opens it
+  holds **archive** (undo in the toast; coming back may be refused, rules 2 and 7), **merge**
+  (7.3, rule 15) and **delete** (a confirm view; disabled with a line when it has children). "Fix" of a rejected op opens it
   (`FIX_ROUTES` → `/account/categories?fix=<opId>`). Asks before closing with unsaved input.
 - **Category picker** (#8.1): in the transaction form, the chosen wallet's non-hidden,
   non-archived categories of the chosen type, children in their parent's tinted panel (the same
@@ -171,6 +225,22 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
   wallet's profile's open categories, parents with their children indented, a switch each (on =
   used; a child of a hidden parent shows off, locked, "ซ่อนตามหมวดหมู่หลัก"). The choice is part
   of the form, saved with its one button.
+- **Merge** (7.3, rule 15; mock-up: [mockups/category-merge.html](mockups/category-merge.html)): a header icon
+  (`lucideMerge`, "ผสานหมวดหมู่") between archive and delete, in edit mode only, disabled when
+  there is no possible target. The delete-disabled line of a category with transactions
+  becomes "หมวดหมู่นี้มีธุรกรรม n รายการ จึงลบไม่ได้ ผสานเข้าหมวดหมู่อื่นแทนได้" with a
+  "ผสาน" link that opens the same view. Views in the same sheet:
+  - `merge` ("ผสานเข้ากับ", ‹ back, no bottom button): the type's open top-level categories
+    with their open children in the tinted tree (DESIGN.md §6), the source itself left out;
+    for a top-level source only the other top-level rows are tappable (their children are
+    shown dimmed, for context). A sub-category's own parent sits
+    first with "หมวดหมู่หลักของตัวเอง". Tapping a row goes to the confirm view.
+  - `confirmMerge` (‹ back, a destructive "ผสาน" button): "ผสาน “กาแฟ” เข้ากับ “ร้านอาหาร”
+    ใช่ไหม", then one line per effect: "ย้ายธุรกรรม n รายการไปที่ “ร้านอาหาร”"; for a
+    top-level source with children the segmented choice "ย้ายหมวดหมู่ย่อย" / "รวมทั้งหมด" with
+    "หมวดหมู่ย่อย m รายการย้ายไปไว้ใต้ “X” (k รายการรวมกับชื่อเดียวกัน)" or "หมวดหมู่ย่อย m
+    รายการรวมเข้า “X” ด้วย"; "“กาแฟ” จะถูกลบ เลิกทำไม่ได้". After the write the sheet closes
+    and the toast says "ผสาน “กาแฟ” เข้ากับ “ร้านอาหาร” แล้ว" (no undo).
 - **Category form** (7.2): row 4 "ใช้ในกระเป๋า" (shown while the profile has an open wallet):
   "ทุกกระเป๋า" or "n จาก m กระเป๋า", opening a view of the profile's open wallets with a switch
   each (a wallet that hides the chosen parent shows off, locked). Saved with the category.
@@ -185,6 +255,27 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
   its children.
 
 ## Open questions
+
+**7.3 (merge), for the owner** (rule 15 is written with these proposals; mock-up of the views:
+[mockups/category-merge.html](mockups/category-merge.html)):
+
+1. **Who moves the transactions: the server (proposed) or the device?** The first idea was
+   one op per moved transaction (the device writes once, pushes n ops, 100 per request,
+   before the tombstone) plus the tombstone's `mergedIntoId` for the device sweep and the
+   server check. Moving them on the server when the tombstone lands instead: 1 op instead of
+   n (5,000 rows = 50 requests otherwise), no gap for a transaction another device pushed that
+   the merging device never saw (it would stay on the tombstone), and no two devices both
+   sweeping the same row into a conflict and a "ถูกแก้ไขโดย" notice. The cost: a category delete
+   gets server-side follow-ups (the sync handler writes transactions and child categories,
+   each stamped), which nothing does today. The device still pulls the n moved rows back.
+2. The source may be archived, the target may not (rule 15). OK?
+3. A child whose name clashes when moving under the target merges into the same-named child
+   (proposal in the task). A clash the merging device couldn't see (another device added the
+   name offline) refuses that child's move, and the server then merges it into the target
+   parent itself. OK?
+4. Hidden per wallet: merged ids are just removed; the target keeps its own state (a hidden
+   source doesn't make the target hidden). OK?
+5. No undo, a confirm view instead (like profile and wallet delete). OK?
 
 Settled at the start of 7.2 (owner): rule 13's details (a parent's id only, archived ids kept,
 a type may be hidden entirely, the row in create and edit), and the profile delete confirm

@@ -101,6 +101,9 @@ never stored (ROADMAP → Money & data).
       a wallet it sees as empty while offline device B adds to it, and B's add reaches the
       server first). The other order is already safe: B's add arrives after the tombstone, the
       check refuses it (rule 1) and B fixes it by picking another wallet.
+    - **A merged category** (7.3, category rule 15) is the exception: its tombstone carries
+      `mergedIntoId`, and its transactions follow it to the target instead of being deleted
+      (the server moves them; a late push to it is moved, not refused).
     - Archiving a wallet or category changes nothing for its transactions: they stay in the list,
       the totals and the balance.
 11. **Month summary** for a month and a set of wallets: `income` = Σ amount of income-type rows,
