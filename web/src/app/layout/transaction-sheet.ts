@@ -385,12 +385,19 @@ const KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
                       <li>
                         <button
                           type="button"
-                          class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                          class="relative flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
                           [attr.aria-current]="
                             node.category.id === f.categoryId.value ? 'true' : null
                           "
                           (click)="chooseCategory(node.category.id)"
                         >
+                          @if (node.children.length > 0) {
+                            <!-- The tree line starts under the parent's badge. -->
+                            <span
+                              class="absolute top-[calc(50%+1.25rem)] bottom-0 left-[2.1875rem] border-l-2 border-muted-foreground/35"
+                              aria-hidden="true"
+                            ></span>
+                          }
                           <app-icon-badge
                             [icon]="node.category.icon"
                             [color]="node.category.color"
@@ -409,17 +416,28 @@ const KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
                           }
                         </button>
                         @if (node.children.length > 0) {
-                          <ul class="divide-y divide-border border-t border-border">
-                            @for (child of node.children; track child.id) {
+                          <ul [attr.aria-label]="node.category.name">
+                            @for (child of node.children; track child.id; let last = $last) {
                               <li>
                                 <button
                                   type="button"
-                                  class="flex min-h-12 w-full items-center gap-3 py-2 pr-4 pl-12 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                                  class="relative flex min-h-12 w-full items-center gap-3 py-2 pr-4 pl-14 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
                                   [attr.aria-current]="
                                     child.id === f.categoryId.value ? 'true' : null
                                   "
                                   (click)="chooseCategory(child.id)"
                                 >
+                                  <!-- Tree lines: down from the parent, then across to this badge. -->
+                                  @if (!last) {
+                                    <span
+                                      class="absolute inset-y-0 left-[2.1875rem] border-l-2 border-muted-foreground/35"
+                                      aria-hidden="true"
+                                    ></span>
+                                  }
+                                  <span
+                                    class="absolute top-0 left-[2.1875rem] h-1/2 w-4 rounded-bl-lg border-b-2 border-l-2 border-muted-foreground/35"
+                                    aria-hidden="true"
+                                  ></span>
                                   <app-icon-badge
                                     [icon]="child.icon"
                                     [color]="child.color"
