@@ -197,8 +197,13 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   over them since it has no icon), category, note, date (‹ › a day, the middle opens the date
   picker), and less used options folded under "เพิ่มเติม". The amount is typed on an
   **on-screen calculator keypad** (`app-calc-keypad`: C ÷ × ⌫ / digits / 000 . =) that opens by
-  itself when adding and closes when another row is tapped; the main button sits above it. The
-  note is its own view (‹ back keeps the text), so it can be long.
+  itself when adding and closes when any other control is used (it belongs to the amount row);
+  the main button sits above it, with "บันทึกแล้วเพิ่มต่อ" as an outline icon beside it when
+  adding. **Quick amounts** (8.2) are a chip row on top of the keypad's panel (`20 · 50 · 100 ·
+500 · 1,000`, a tap adds), switched off in Account › การแสดงผล. The note is its own view
+  (‹ back keeps the text), so it can be long. Editing shows copy and delete in the header. The
+  category picker starts with a "ใช้บ่อย" row (up to 4 badges with names, in a card) over the
+  tree.
 - **Create / edit / pick = bottom sheet** (spartan `drawer`), never a centred dialog. Dismiss by
   swiping down or tapping the backdrop. If the sheet holds unsaved input, ask first (a confirm
   view in the same sheet).
@@ -207,8 +212,9 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   wallet, which go as tombstones other devices act on). The confirm is a view in the same sheet
   (‹ back, a line on what goes with it, a destructive button). **Archive** acts at once and offers
   undo in its toast.
-- **Toasts** sit above the tab bar, last about 4s, say one short thing, and have at most one action
-  (เลิกทำ).
+- **Toasts** sit at the **top** of the screen (owner's choice in 8.2, so they never cover the
+  keypad or a sheet's main button), above an open sheet, last about 4s, say one short thing, and
+  have at most one action (เลิกทำ), which works over a sheet without closing it.
 - **Account tab** (owner's choice A1 in #7): who is signed in on top, then titled groups of
   rows (ข้อมูลของฉัน, บัญชีและความปลอดภัย, การตั้งค่า), each row a link with a 40px muted icon
   square, its name, one muted line on what's there and a chevron; settings live on their own

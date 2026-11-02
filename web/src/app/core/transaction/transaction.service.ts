@@ -7,7 +7,7 @@ import type { LocalDatabase, SqlValue } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
 import { WALLET_TABLE, WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
-import { toDay } from '@/shared/utils'
+import { addDays, toDay } from '@/shared/utils'
 import { PERIOD_UNITS, periodRange, periodTabs } from './period'
 import { TRANSACTION_PREF_PREFIX, TRANSACTION_TABLE } from './transaction.type'
 import type { PeriodTab, PeriodUnit } from './period'
@@ -308,6 +308,52 @@ export class TransactionService {
     const open = this.walletService.openWallets()
     const last = this.storage()?.getItem(`${TRANSACTION_PREF_PREFIX}${profileId}`)
     return open.find((wallet) => wallet.id === last)?.id ?? open.at(0)?.id ?? null
+  }
+
+  /**
+   * "ใช้บ่อย" (8.2): ids of the profile's `type` categories with the most live transactions dated
+   * in the last `days` days, ties to the one recorded last. Through the (`profile_id`,
+   * `occurred_on`) index; the picker keeps those it offers.
+   */
+  frequentCategoryIds(profileId: string, type: CategoryType, days = 90, limit = 12): string[] {
+    if (!profileId) {
+      return []
+    }
+    return this.read(
+      (db) =>
+        db
+          .selectObjects(
+            `SELECT t.category_id AS id, count(*) AS uses, max(t.created_at) AS last
+             FROM ${TRANSACTION_TABLE} t
+             JOIN ${CATEGORY_TABLE} c ON c.id = t.category_id
+             WHERE t.profile_id = ? AND t.deleted_at IS NULL AND t.occurred_on >= ? AND c.type = ?
+             GROUP BY t.category_id
+             ORDER BY uses DESC, last DESC
+             LIMIT ?`,
+            [profileId, addDays(this.today(), -days), type, limit]
+          )
+          .map((row) => String(row['id'])),
+      []
+    )
+  }
+
+  /** The type a new transaction starts on: the last one added in the profile here (8.2). */
+  lastType(profileId = this.profileService.current()?.id ?? ''): CategoryType {
+    try {
+      return this.storage()?.getItem(`${TRANSACTION_PREF_PREFIX}type:${profileId}`) === 'income'
+        ? 'income'
+        : 'expense'
+    } catch {
+      return 'expense'
+    }
+  }
+
+  rememberType(type: CategoryType, profileId = this.profileService.current()?.id ?? ''): void {
+    try {
+      this.storage()?.setItem(`${TRANSACTION_PREF_PREFIX}type:${profileId}`, type)
+    } catch {
+      // A full or blocked storage only loses the convenience.
+    }
   }
 
   open(state: TransactionSheetState): void {

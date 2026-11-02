@@ -129,7 +129,11 @@
     "amountRequired": "Enter an amount above 0",
     "amountFormat": "Can’t work out this amount. Check the numbers.",
     "amountTooBig": "The amount is too large",
-    "more": "More"
+    "more": "More",
+    "saveAndAdd": "Save and add another",
+    "copy": "Copy as new",
+    "frequent": "Frequent",
+    "allCategories": "All"
   },
   "wallets": {
     "firstHeading": "Add your first wallet",
@@ -340,7 +344,9 @@
       "data": "My data",
       "security": "Account and security",
       "settings": "Settings"
-    }
+    },
+    "quickAmounts": "Quick amount buttons",
+    "quickAmountsHint": "A row of 20 · 50 · 100 · 500 · 1,000 above the keypad when adding a transaction; each tap adds"
   },
   "auth": {
     "signInHeading": "Sign in",
@@ -770,6 +776,8 @@
     "minus": "Minus",
     "plus": "Plus",
     "done": "Work it out",
-    "point": "Decimal point"
+    "point": "Decimal point",
+    "quickLabel": "Quick amounts",
+    "quickAdd": "Add {{ amount }}"
   }
 }

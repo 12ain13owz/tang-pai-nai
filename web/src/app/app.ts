@@ -1,4 +1,4 @@
-import { Component } from '@angular/core'
+import { afterNextRender, Component, DOCUMENT, ElementRef, inject, viewChild } from '@angular/core'
 import { RouterOutlet } from '@angular/router'
 import { HlmToaster } from '@spartan-ng/helm/sonner'
 
@@ -7,12 +7,26 @@ import { HlmToaster } from '@spartan-ng/helm/sonner'
   selector: 'app-root',
   template: `
     <router-outlet />
-    <!-- Colours come from the theme tokens. Sonner pins toasts 20px from the bottom on phones;
-         DESIGN.md §6 wants them above the tab bar and its raised ➕. -->
+    <!-- Colours come from the theme tokens. Toasts sit at the top of the screen (owner's choice
+         in 8.2, DESIGN.md §6): at the bottom they covered the keypad and a sheet's main button.
+         Sonner pins them 16px from the top on phones; the notch's inset comes first. -->
     <hlm-toaster
-      position="bottom-center"
-      class="bottom-[calc(6rem+env(safe-area-inset-bottom))]!"
+      #toaster
+      position="top-center"
+      class="top-[calc(0.5rem+env(safe-area-inset-top))]!"
     />
   `,
 })
-export class App {}
+export class App {
+  private document = inject(DOCUMENT)
+  private toaster = viewChild.required('toaster', { read: ElementRef })
+
+  constructor() {
+    // An open sheet (CDK overlay) hides the rest of <body> from screen readers and closes on a
+    // tap anywhere in <body> outside it. A toast shown over a sheet ("บันทึกแล้วเพิ่มต่อ", undo)
+    // must be neither, so the toaster lives beside <body>, as <html>'s last child (8.2).
+    afterNextRender(() => {
+      this.document.documentElement.appendChild(this.toaster().nativeElement as HTMLElement)
+    })
+  }
+}

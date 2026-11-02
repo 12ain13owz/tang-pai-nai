@@ -150,3 +150,19 @@ export const evaluate = (expr: string, minorUnit: number): CalcResult => {
   }
   return { ok: true, minor: Number(minor) }
 }
+
+/**
+ * `expr` after a quick amount (`major`, a whole number of major units; 8.2): it adds, like
+ * counting notes. An empty amount, "0" or one ending in an operator takes the number; otherwise
+ * `+<major>` is appended (`500` → `500+100`). Typed through `pressKey`, so it stays well formed.
+ */
+export const addQuickAmount = (expr: string, major: number, minorUnit: number): string => {
+  let next = expr === '0' ? '' : expr.replace(/\.$/, '')
+  if (next !== '' && !isOperator(next.at(-1))) {
+    next = pressKey(next, '+', minorUnit)
+  }
+  for (const digit of String(major)) {
+    next = pressKey(next, digit as CalcKey, minorUnit)
+  }
+  return next
+}

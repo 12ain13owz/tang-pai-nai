@@ -1,8 +1,8 @@
 # Transaction
 
 > Status: **8.1 built** (the table, the form, the Transactions tab with its Money Lover header,
-> real balances, the "has transactions" rules of wallets and categories). **8.2** next: whatever
-> 8.1 left, and a look at quick amounts from a mock-up. API: `api/src/features/transaction/`
+> real balances, the "has transactions" rules of wallets and categories). **8.2 built**: quick
+> amounts, toasts on top, "ใช้บ่อย" categories, copy, save and add another, the last type. API: `api/src/features/transaction/`
 > (sync handler only). Web: `core/transaction` (`TransactionService`, `period.ts`),
 > `layout/transactions-header`, `layout/transaction-sheet`, `layout/view-wallet-sheet`,
 > `layout/custom-range-sheet`, `features/transactions` (the Transactions tab).
@@ -23,9 +23,6 @@ a few taps from the centre ➕.
 - Search and filter beyond month + wallet (#15).
 - Members adding to a shared wallet (#16): until then every transaction belongs to a wallet the
   signed-in user owns.
-- Quick amounts above the keypad (500 / 1,000 / …): not in 8.1. Money Lover has none, they
-  would need a setting to turn them off, and they crowd the form; 8.2 looks at them in a mock-up
-  first (owner, at the start of #8).
 
 ## Data model
 
@@ -197,11 +194,33 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
     category that no longer fits), note (opens its own view with a tall box and a 500 counter;
     ‹ keeps the text), date (‹ › a day, the middle opens the native date picker);
   - "ไม่รวมในรายงาน" folded under **เพิ่มเติม** (open by itself for a row that has it on);
-  - the **calculator keypad** (`app-calc-keypad`) opens by itself when adding (not when
-    editing), closes when another row is tapped or on "="; a hardware keyboard types into it;
+  - the **calculator keypad** (`app-calc-keypad`) belongs to the amount row: it opens by itself
+    when adding (not when editing) and on a tap on the amount, and closes on "=" or when any
+    other control of the form is used (a row, the type tabs, the date, เพิ่มเติม; 8.2), the
+    expression settling; a hardware keyboard types into it;
   - one main button "บันทึก" (above the keypad while it shows). Errors: "ใส่จำนวนเงินที่มากกว่า 0",
     "เลือกหมวดหมู่ก่อน". Asks before closing with unsaved input. An untrusted device offline gets
     the notice and a disabled save.
+  - **Quick amounts** (8.2, owner's choices from a mock-up): a row of chips `20 · 50 · 100 · 500
+· 1,000` (major units, Thai banknotes) at the top of the keypad's panel, shown only while
+    the keypad is; the keys get 4px shorter so the form loses little. A chip **adds** like
+    counting notes: an empty amount (or one ending in an operator) takes the number, otherwise
+    `+<number>` is appended, so `500` then `100` reads `500+100 = 600`. Money Lover has none, so
+    Account › การแสดงผล has a switch "ปุ่มจำนวนเงินด่วน" (on by default, kept per device like
+    the theme, not synced); off, the keypad is exactly 8.1's.
+  - **Save and add another** (8.2, only when adding): an outline icon button beside "บันทึก"
+    saves, keeps the sheet open with the same type, wallet, category, date and "เพิ่มเติม",
+    clears the amount and the note, and opens the keypad again (for a pile of receipts).
+  - **Copy** (8.2, editing): an icon in the header opens "เพิ่มธุรกรรม" holding the form's
+    values with the date set to today (the row being edited is left as it was saved); an
+    archived wallet or category falls back as when adding (rule 2).
+  - The type tabs start on the type of the last transaction added in this profile on this
+    device (8.2), else รายจ่าย.
+  - **Category picker**: above the tree, a row **"ใช้บ่อย"** of up to 4 categories (8.2): the
+    type's categories with the most live transactions dated in the last 90 days, ties to the
+    one recorded last, among those the picker offers (open, not hidden in the wallet). It is a
+    shortcut only: the tree keeps the user's own order (the owner's question in 8.2: frequency
+    never reorders the list, so the two don't fight), and the row is absent without history.
 - **Wallet and category forms**: the currency is read-only with wallet rule 4's line once the
   wallet has transactions; the delete icon is disabled with a line ("…มีธุรกรรมแล้ว จึงลบไม่ได้
   เก็บถาวรแทนได้") for a wallet or category with transactions; a category's type is read-only
@@ -245,3 +264,9 @@ period's rows; the wallet switcher sits in the very centre, so the sync pill is 
 tab; "ไม่รวมในรายงาน" folds under เพิ่มเติม; the wallet badge on the category badge on "ทุกกระเป๋า"
 (choice ก); sub-categories in a panel tinted with the parent's colour (choice "3+4"); the
 initial bundle warning budget is 750 kB.
+
+Settled at the start of 8.2 (owner, from a mock-up): quick amounts as a chip row at the top of
+the keypad, a chip adds, a fixed set with an on/off switch per device (on by default); toasts
+sit at the **top** of the screen everywhere (DESIGN.md §6), so they never cover the keypad or a
+sheet's main button; "ใช้บ่อย" categories, copy, save and add another, the last type
+remembered.
