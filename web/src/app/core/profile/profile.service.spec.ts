@@ -17,6 +17,7 @@ describe('ProfileService', () => {
   const changes = signal(0)
   const trusted = signal(true)
   const online = signal(true)
+  const reachable = signal(true)
   const canSync = signal(false)
   const isSyncing = signal(false)
   const lastSyncedAt = signal<number | null>(null)
@@ -79,7 +80,10 @@ describe('ProfileService', () => {
       providers: [
         { provide: OfflineService, useValue: offline },
         { provide: SyncService, useValue: sync },
-        { provide: NetworkStatusService, useValue: { isOnline: online } },
+        {
+          provide: NetworkStatusService,
+          useValue: { isOnline: online, serverReachable: reachable },
+        },
       ],
     })
     TestBed.inject(AuthStore).user.set(user())
@@ -93,6 +97,7 @@ describe('ProfileService', () => {
     sessionStorage.clear()
     trusted.set(true)
     online.set(true)
+    reachable.set(true)
     canSync.set(false)
     isSyncing.set(false)
     lastSyncedAt.set(null)

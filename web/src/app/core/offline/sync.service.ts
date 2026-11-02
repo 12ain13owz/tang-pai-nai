@@ -20,7 +20,7 @@ export interface SyncNotice {
 }
 
 /** What the header pill shows, in order of precedence (offline-sync → Web screens). */
-export type SyncStatus = 'errors' | 'offline' | 'syncing' | 'pending' | 'synced'
+export type SyncStatus = 'errors' | 'offline' | 'unreachable' | 'syncing' | 'pending' | 'synced'
 
 type ServerRow = SyncRow & { id: string; changeSeq: number }
 
@@ -43,6 +43,8 @@ const PULL_LIMIT = 500
 const MAX_PAGES = 50
 const WRITE_DELAY_MS = 2_000
 const INTERVAL_MS = 5 * 60_000
+/** Rule 11: retries while the server is unreachable; the last one repeats. */
+export const RETRY_DELAYS_MS = [5_000, 15_000, 30_000, 60_000, 120_000, INTERVAL_MS] as const
 const SYNC_LOCK = 'tpn-sync'
 
 /**
@@ -95,6 +97,10 @@ export class SyncService {
     if (!this.networkStatusService.isOnline()) {
       return 'offline'
     }
+    // Before "syncing", so each retry doesn't flicker the pill.
+    if (!this.networkStatusService.serverReachable()) {
+      return 'unreachable'
+    }
     if (this.isSyncing()) {
       return 'syncing'
     }
@@ -102,10 +108,25 @@ export class SyncService {
   })
 
   private writeTimer: ReturnType<typeof setTimeout> | null = null
+  private retryTimer: ReturnType<typeof setTimeout> | null = null
+  private retryStep = 0
   private running: Promise<void> | null = null
   private again = false
 
   constructor() {
+    // Rule 11: a session check that couldn't reach the API (the app opened while it was down)
+    // retries like a failed round; offline, locked or signed out, nothing retries.
+    effect(() => {
+      const open = this.offlineService.isOpen() && this.networkStatusService.isOnline()
+      const status = this.authStore.status()
+      untracked(() => {
+        if (!open || status === 'signedOut') {
+          this.stopRetrying()
+        } else if (status === 'unreachable') {
+          this.markUnreachable()
+        }
+      })
+    })
     // Rule 11: open (unlock, start), back online, session back.
     effect(() => {
       if (this.canSync()) {
@@ -180,12 +201,21 @@ export class SyncService {
       if (this.offlineService.isOpen()) {
         this.offlineService.write((db) => setMeta(db, 'lastSyncedAt', String(Date.now())))
       }
+      this.markReachable()
     } catch (error) {
-      // Offline or API down: nothing changed, the next trigger tries again (rule 11). A refused
-      // session is the interceptor's (and the expired banner's) business.
+      // Offline or API down: nothing changed; the next trigger, or the retry while the network
+      // is up, tries again (rule 11). A refused session is the interceptor's (and the expired
+      // banner's) business.
       const apiError = toApiError(error)
-      if (!isUnreachable(apiError) && apiError.status !== 401) {
-        console.error('Sync failed', error)
+      if (isUnreachable(apiError)) {
+        if (this.networkStatusService.isOnline()) {
+          this.markUnreachable()
+        }
+      } else {
+        this.markReachable()
+        if (apiError.status !== 401) {
+          console.error('Sync failed', error)
+        }
       }
     } finally {
       this.isSyncing.set(false)
@@ -259,6 +289,50 @@ export class SyncService {
       this.writeTimer = null
       void this.sync()
     }, WRITE_DELAY_MS)
+  }
+
+  /** Rule 11: the API didn't answer; try again by itself, a bit later each time. */
+  private markUnreachable(): void {
+    this.networkStatusService.serverReachable.set(false)
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer)
+    }
+    const delay = RETRY_DELAYS_MS[Math.min(this.retryStep, RETRY_DELAYS_MS.length - 1)]
+    this.retryStep++
+    this.retryTimer = setTimeout(() => void this.retry(), delay)
+  }
+
+  private markReachable(): void {
+    this.networkStatusService.serverReachable.set(true)
+    this.clearRetry()
+  }
+
+  /** Offline, locked or signed out: no retries, and the next round starts afresh. */
+  private stopRetrying(): void {
+    this.networkStatusService.serverReachable.set(true)
+    this.clearRetry()
+  }
+
+  private clearRetry(): void {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer)
+      this.retryTimer = null
+    }
+    this.retryStep = 0
+  }
+
+  private async retry(): Promise<void> {
+    this.retryTimer = null
+    if (this.authStore.status() === 'unreachable') {
+      // A session back comes with canSync, and its effect runs the round.
+      await this.offlineService.recheckSession()
+      // Still down: wait longer (markUnreachable replaces any timer set meanwhile).
+      if (this.authStore.status() === 'unreachable') {
+        this.markUnreachable()
+      }
+      return
+    }
+    await this.sync()
   }
 
   /** A trigger came in during the round (read through a method: TS can't see it change). */

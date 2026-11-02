@@ -167,7 +167,10 @@ describe('CategorySheet', () => {
       providers: [
         { provide: OfflineService, useValue: offline },
         { provide: SyncService, useValue: sync },
-        { provide: NetworkStatusService, useValue: { isOnline: online } },
+        {
+          provide: NetworkStatusService,
+          useValue: { isOnline: online, serverReachable: signal(true) },
+        },
       ],
     })
     TestBed.inject(AuthStore).user.set({ id: 'u1' } as AuthUser)

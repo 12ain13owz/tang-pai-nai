@@ -49,6 +49,7 @@ export class WalletService {
   hasWallet = computed(() => this.wallets().length > 0)
   atLimit = computed(() => this.openWallets().length >= WALLET_LIMITS.PER_PROFILE)
   canWrite = this.profileService.canWrite
+  serverDown = this.profileService.serverDown
 
   /** Wallets with an op still waiting to sync ("รอ sync"). */
   pendingIds = computed(

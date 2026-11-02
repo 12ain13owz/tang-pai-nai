@@ -21,7 +21,10 @@ import { EmptyState } from '@/shared/components/empty-state'
       </app-empty-state>
       @if (!walletService.canWrite()) {
         <p class="w-full rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {{ 'wallets.needsOnline' | transloco }}
+          {{
+            (walletService.serverDown() ? 'sync.serverDownWrite' : 'wallets.needsOnline')
+              | transloco
+          }}
         </p>
       }
       <button

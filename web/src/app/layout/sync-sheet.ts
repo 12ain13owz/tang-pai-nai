@@ -65,6 +65,10 @@ const FIX_ROUTES: Readonly<Record<string, string>> = {
               <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 {{ 'sync.needsOnline' | transloco }}
               </p>
+            } @else if (!networkStatusService.serverReachable()) {
+              <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {{ 'sync.unreachableText' | transloco }}
+              </p>
             } @else if (authStore.status() !== 'signedIn') {
               <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 {{ 'sync.needsSignIn' | transloco }}

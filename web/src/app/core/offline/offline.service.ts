@@ -221,7 +221,7 @@ export class OfflineService {
     this.dataKey = result.dataKey
     this.isOpen.set(true)
     this.unlocked()
-    this.recheckSession()
+    void this.recheckSession()
     return 'ok'
   }
 
@@ -326,10 +326,13 @@ export class OfflineService {
     this.state.set(this.meta() ? 'locked' : 'none')
   }
 
-  /** Online again (or just unlocked): retry a refresh that couldn't reach the API. */
-  recheckSession(): void {
+  /**
+   * Online again, just unlocked, or `SyncService`'s retry: retry a refresh that couldn't reach
+   * the API. Never fails; the auth status says how it went.
+   */
+  async recheckSession(): Promise<void> {
     if (this.authStore.status() === 'unreachable' && (this.window?.navigator.onLine ?? true)) {
-      this.authService.refresh().catch(() => undefined)
+      await this.authService.refresh().catch(() => undefined)
     }
   }
 
@@ -445,7 +448,7 @@ export class OfflineService {
       }
     })
     window.addEventListener('pagehide', () => void this.save())
-    window.addEventListener('online', () => this.recheckSession())
+    window.addEventListener('online', () => void this.recheckSession())
     window.setInterval(() => {
       if (this.hiddenAt === null && Date.now() - this.lastActivity >= LOCK_AFTER_MS) {
         void this.lockAndShow()

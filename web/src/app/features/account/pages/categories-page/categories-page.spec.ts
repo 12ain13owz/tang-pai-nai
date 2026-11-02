@@ -51,6 +51,7 @@ describe('CategoriesPage', () => {
     byId: (id: string) => all().find((c) => c.id === id) ?? null,
     pendingIds: signal(new Set<string>()),
     canWrite: signal(true),
+    serverDown: signal(false),
     atLimit: signal(false),
     open: vi.fn(),
     openFix: vi.fn(),
@@ -91,6 +92,7 @@ describe('CategoriesPage', () => {
     categories.pendingIds.set(new Set(['Tea']))
     categories.atLimit.set(false)
     categories.canWrite.set(true)
+    categories.serverDown.set(false)
     query = new BehaviorSubject(convertToParamMap({}))
     TestBed.configureTestingModule({
       imports: [

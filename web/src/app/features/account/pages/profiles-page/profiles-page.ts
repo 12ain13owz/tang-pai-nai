@@ -35,7 +35,10 @@ import { IconBadge } from '@/shared/components/icon-badge'
     <div class="flex flex-col gap-6 p-4">
       @if (!profileService.canWrite()) {
         <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {{ 'profiles.needsOnline' | transloco }}
+          {{
+            (profileService.serverDown() ? 'sync.serverDownWrite' : 'profiles.needsOnline')
+              | transloco
+          }}
         </p>
       }
       @if (profiles.length === 0) {
