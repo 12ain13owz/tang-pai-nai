@@ -1,3 +1,4 @@
+import { OVERLAY_DEFAULT_CONFIG } from '@angular/cdk/overlay'
 import {
   inject,
   isDevMode,
@@ -20,6 +21,9 @@ export const appConfig: ApplicationConfig = {
     provideAuth(),
     provideI18n(),
     { provide: TitleStrategy, useExisting: PageTitleStrategy },
+    // Overlays (sheets, menus) stay in the page instead of the browser's top layer, so the toaster
+    // (z-index above the overlay container) shows over an open sheet and its backdrop (8.2).
+    { provide: OVERLAY_DEFAULT_CONFIG, useValue: { usePopover: false } },
     // Start the theme at boot so it follows OS changes on every screen, not only after settings.
     provideAppInitializer(() => {
       inject(ThemeService)
