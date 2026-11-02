@@ -7,6 +7,7 @@ import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
   lucideCalendar,
   lucideCheck,
+  lucideChevronDown,
   lucideChevronLeft,
   lucideChevronRight,
   lucideEyeOff,
@@ -90,6 +91,7 @@ const KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
     provideIcons({
       lucideCalendar,
       lucideCheck,
+      lucideChevronDown,
       lucideChevronLeft,
       lucideChevronRight,
       lucideEyeOff,
@@ -291,7 +293,26 @@ const KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
                         <ng-icon name="lucideChevronRight" size="20" aria-hidden="true" />
                       </button>
                     </div>
-                    <div class="flex min-h-14 items-center gap-3 px-4 py-2">
+                  </div>
+                  <!-- Less used options, folded (owner's choice in #8): opens by itself when set. -->
+                  <button
+                    type="button"
+                    class="flex min-h-11 items-center gap-1 self-start text-sm font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    [attr.aria-expanded]="more()"
+                    (click)="more.set(!more())"
+                  >
+                    {{ 'transactions.more' | transloco }}
+                    <ng-icon
+                      name="lucideChevronDown"
+                      size="16"
+                      [class.rotate-180]="more()"
+                      aria-hidden="true"
+                    />
+                  </button>
+                  @if (more()) {
+                    <div
+                      class="-mt-2 flex min-h-14 items-center gap-3 rounded-2xl border border-border bg-card px-4 py-2"
+                    >
                       <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
                         <ng-icon name="lucideEyeOff" size="22" aria-hidden="true" />
                       </span>
@@ -302,7 +323,7 @@ const KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
                         [hint]="'transactions.excludeHint' | transloco"
                       />
                     </div>
-                  </div>
+                  }
                 </div>
                 <div
                   sheetFooter
@@ -572,6 +593,8 @@ export class TransactionSheet {
   protected view = signal<View>('form')
   /** The amount keypad is showing (opens by itself when adding, owner's choice in #8). */
   protected keypad = signal(false)
+  /** The folded "เพิ่มเติม" options. */
+  protected more = signal(false)
 
   /** Rule 3: the expression works out to 1 … 10¹⁵ minor units. */
   private amountValid: ValidatorFn = (control) => {
@@ -889,6 +912,7 @@ export class TransactionSheet {
 
   private start(state: TransactionSheetState): void {
     this.view.set('form')
+    this.more.set(state.mode !== 'create' && this.startValues(state)?.excludeFromReport === true)
     this.dirty.set(false)
     if (state.mode === 'create') {
       const viewing = this.transactionService.viewWallet()
@@ -927,6 +951,14 @@ export class TransactionSheet {
     this.startWalletId.set(row.walletId)
     this.form.reset(this.toForm(row))
     this.keypad.set(false)
+  }
+
+  private startValues(state: TransactionSheetState): TransactionValues | null {
+    return state.mode === 'fix'
+      ? state.values
+      : state.mode === 'edit'
+        ? this.transactionService.byId(state.id)
+        : null
   }
 
   private toForm(values: TransactionValues) {

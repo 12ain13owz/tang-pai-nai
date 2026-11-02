@@ -129,7 +129,8 @@
     "keepEditing": "Keep editing",
     "amountRequired": "Enter an amount above 0",
     "amountFormat": "Can’t work out this amount. Check the numbers.",
-    "amountTooBig": "The amount is too large"
+    "amountTooBig": "The amount is too large",
+    "more": "More"
   },
   "wallets": {
     "firstHeading": "Add your first wallet",
