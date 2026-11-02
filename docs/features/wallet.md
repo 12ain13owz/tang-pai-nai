@@ -39,9 +39,9 @@ per currency, like Money Lover.
   until #16.
 - The device keeps `wallets` (snake_case, a new local schema step + `SYNC_TABLES` entry).
 
-**Balance isn't stored.** It's computed as `initialBalance + Σ income − Σ expense ± transfers` for
-the wallet, from the local database (one aggregate for all wallets, transaction rule 12; built
-in #8.1).
+**Balance isn't stored.** It's computed as `initialBalance + Σ income − Σ expense − Σ transfers
+out + Σ transfers in` for the wallet, from the local database (one aggregate for all wallets,
+transaction rule 12; built in #8.1, transfers in #9).
 
 ## Business rules
 
@@ -57,7 +57,7 @@ in #8.1).
    of 6.2). Archiving frees a place.
 4. **Currency** (decided at the start of #6, with its message): `currencyCode` must be active
    when the wallet is created. It may change only while the wallet has **no live transactions**
-   (the server checks it too since #8.1, `CONFLICT`). Once
+   (the server checks it too since #8.1, `CONFLICT`), nor transfers on either side (#9). Once
    it has some, the form shows the currency read-only with a line saying why ("เปลี่ยนสกุลเงิน
    ไม่ได้เพราะกระเป๋านี้มีธุรกรรมแล้ว สร้างกระเป๋าใหม่สำหรับสกุลเงินอื่นแทน" / "This wallet has
    transactions, so its currency can't change. Create a new wallet for another currency."). The

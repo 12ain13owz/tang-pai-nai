@@ -1,0 +1,79 @@
+type: object
+description: >-
+  A row of the `transfers` table (docs/features/transfer.md) as it travels in /sync/pull and in
+  /sync/push: one row per transfer, both sides, never income or expense. Devices send the whole
+  row on upsert; the server stamps changeSeq and updatedBy. Rules (each answers `CONFLICT`):
+  profileId is one of the user's live profiles and never changes; fromWalletId and toWalletId
+  are two different live wallets of the user in that profile (archived ones are accepted) with
+  the same currency. A tombstone runs none of them. A wallet on either side of a live transfer
+  keeps its currency.
+required:
+  [
+    id,
+    profileId,
+    fromWalletId,
+    toWalletId,
+    amount,
+    occurredOn,
+    note,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    changeSeq,
+    updatedBy,
+  ]
+properties:
+  id:
+    type: string
+    format: uuid
+    description: UUIDv7 made on the device
+  profileId:
+    type: string
+    format: uuid
+  fromWalletId:
+    type: string
+    format: uuid
+    description: The wallet the money leaves
+  toWalletId:
+    type: string
+    format: uuid
+    description: The wallet the money arrives in; never the same as fromWalletId
+  amount:
+    type: integer
+    minimum: 1
+    maximum: 1000000000000000
+    description: Minor units of the wallets' currency (satang for THB), always positive
+  occurredOn:
+    type: string
+    format: date
+    description: >-
+      The device's local date (YYYY-MM-DD), from 2000-01-01 to one year (and a day) after the
+      server's today
+  note:
+    type: string
+    maxLength: 500
+    description: Trimmed; '' when empty (a push without it means '')
+  createdAt:
+    type: integer
+  updatedAt:
+    type: integer
+  deletedAt:
+    type: [integer, 'null']
+    description: Set on a deleted transfer (a tombstone; both sides go together)
+  changeSeq:
+    type: integer
+  updatedBy:
+    type: string
+example:
+  id: 0199b000-0000-7000-8000-000000000401
+  profileId: 0199b000-0000-7000-8000-000000000001
+  fromWalletId: 0199b000-0000-7000-8000-000000000101
+  toWalletId: 0199b000-0000-7000-8000-000000000102
+  amount: 100000
+  occurredOn: '2026-11-02'
+  note: กดตู้ ATM
+  createdAt: 1793600000000
+  updatedAt: 1793600000000
+  deletedAt: null
+  changeSeq: 813
+  updatedBy: 0199b000-0000-7000-8000-00000000a001

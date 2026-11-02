@@ -588,7 +588,8 @@
     "unreachableText": "Can’t reach the server. It will try again by itself.",
     "serverDownWrite": "Can’t reach the server. This device isn’t set up for offline use, so saving waits until the server is back.",
     "withTransactions": "{{count}} transactions",
-    "tabletransactions": "Transaction"
+    "tabletransactions": "Transaction",
+    "tabletransfers": "Transfer"
   },
   "colors": {
     "label": "Colour {{number}}"
@@ -779,5 +780,32 @@
     "point": "Decimal point",
     "quickLabel": "Quick amounts",
     "quickAdd": "Add {{ amount }}"
+  },
+  "transfers": {
+    "title": "Transfer",
+    "open": "Transfer",
+    "menu": "Menu",
+    "menuBack": "Back to menu",
+    "summaryLine": "Transfers",
+    "toWallet": "Sent to {{name}}",
+    "fromWallet": "Received from {{name}}",
+    "createHeading": "Transfer",
+    "editHeading": "Edit transfer",
+    "fixHeading": "Fix a transfer that didn't save",
+    "from": "From",
+    "to": "To",
+    "pickTo": "Choose the wallet to send to",
+    "toRequired": "Choose the wallet to send to first",
+    "swap": "Swap the two wallets",
+    "fromPick": "Transfer from",
+    "toPick": "Transfer to",
+    "noOther": "There's no other wallet with the same currency yet",
+    "sameCurrency": "You can only transfer between wallets with the same currency",
+    "delete": "Delete transfer",
+    "deleted": "Transfer deleted",
+    "created": "Transfer saved",
+    "saved": "Changes saved",
+    "copy": "Copy as a new transfer",
+    "needsOnline": "This device isn't set up for offline use. Go online to save a transfer."
   }
 }

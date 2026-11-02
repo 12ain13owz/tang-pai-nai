@@ -48,7 +48,11 @@ describe('SyncSheet', () => {
     discard: vi.fn(),
     dismissNotice: vi.fn(),
   }
-  const wallets = { openFix: vi.fn() }
+  const wallets = {
+    openFix: vi.fn(),
+    byId: (id: string) => ({ w1: { name: 'Bank', currencyCode: 'THB' }, w2: { name: 'Cash' } })[id],
+    minorUnit: () => 2,
+  }
   /** Child ops grouped under a refused profile create, by the profile op's id. */
   const children = signal<Record<string, OutboxOp[]>>({})
   const profiles = {
@@ -151,6 +155,22 @@ describe('SyncSheet', () => {
         (b) => b.textContent.trim() === th.sync.fix
       )
     ).toHaveLength(1)
+  })
+
+  it('lists a refused transfer by its wallets and amount, and fixes it on the Transactions tab', async () => {
+    sync.rejected.set([
+      {
+        ...rejectedOp,
+        table: 'transfers',
+        row: { id: 'r1', fromWalletId: 'w1', toWalletId: 'w2', amount: 100000, note: 'ATM' },
+      },
+    ])
+    await open()
+    expect(text()).toContain(th.sync.tabletransfers)
+    expect(text()).toContain('โอนเงิน Bank → Cash · 1,000.00 · ATM')
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true)
+    button(th.sync.fix)?.click()
+    expect(navigate).toHaveBeenCalledWith(['/transactions'], { queryParams: { fix: 'op-1' } })
   })
 
   it('opens the fix form for a rejected op', async () => {

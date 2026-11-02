@@ -318,9 +318,9 @@ export class ProfileService {
     return this.childCount('categories', id)
   }
 
-  /** The profile's live transactions (rule 8's confirm, transaction rule 9). */
+  /** The profile's live transactions and transfers (rule 8's confirm, transfer rule 9). */
   transactionCount(id: string): number {
-    return this.childCount('transactions', id)
+    return this.childCount('transactions', id) + this.childCount('transfers', id)
   }
 
   private childCount(table: (typeof PROFILE_CHILD_TABLES)[number], id: string): number {

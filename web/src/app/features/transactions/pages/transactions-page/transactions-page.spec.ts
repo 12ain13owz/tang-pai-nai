@@ -10,7 +10,7 @@ import { NetworkStatusService } from '@/core/network'
 import { findOp, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
-import { TransactionService } from '@/core/transaction'
+import { TransactionService, TransferService } from '@/core/transaction'
 import { addDays, toDay } from '@/shared/utils'
 import { TransactionsPage } from './transactions-page'
 
@@ -192,5 +192,55 @@ describe('TransactionsPage', () => {
     )
     add?.click()
     expect(transactions.sheet()).toEqual({ mode: 'create' })
+  })
+
+  it('shows a transfer as two rows, out (red −) before in (green +), outside the day net (Q5)', async () => {
+    transaction('a', { amount: 6000 })
+    put('transfers', {
+      id: 'r1',
+      profileId: 'p1',
+      fromWalletId: 'card',
+      toWalletId: 'cash',
+      amount: 100000,
+      occurredOn: today,
+      note: 'ATM',
+      createdAt: 9,
+    })
+    await settle()
+    const [out, into, food] = rows()
+    expect(out.textContent).toContain(th.transfers.toWallet.replace('{{name}}', 'cash'))
+    expect(out.textContent).toContain('-1,000.00')
+    expect(out.querySelector('.text-expense')).not.toBeNull()
+    expect(into.textContent).toContain(th.transfers.fromWallet.replace('{{name}}', 'card'))
+    expect(into.textContent).toContain('+1,000.00')
+    expect(into.querySelector('.text-income')).not.toBeNull()
+    expect(food.textContent).toContain('Food')
+    // The day's net and the summary are the expense only; both wallets in view, no "โอน" line.
+    const card = element().querySelectorAll('section[aria-label]')[1]
+    expect(card.querySelector(':scope > div > span:last-child')?.textContent.trim()).toBe('-60.00')
+    const summary = element().querySelector(`section[aria-label="${th.transactions.summary}"]`)
+    expect(summary?.textContent).not.toContain(th.transfers.summaryLine)
+    // Either row opens the whole transfer.
+    into.querySelector('button')?.click()
+    expect(TestBed.inject(TransferService).sheet()).toEqual({ mode: 'edit', id: 'r1' })
+  })
+
+  it("shows one wallet's side only, with the transfer net as its own summary line", async () => {
+    put('transfers', {
+      id: 'r1',
+      profileId: 'p1',
+      fromWalletId: 'card',
+      toWalletId: 'cash',
+      amount: 100000,
+      occurredOn: today,
+      note: '',
+    })
+    transactions.selectWallet('cash')
+    await settle()
+    expect(rows()).toHaveLength(1)
+    expect(rows()[0].textContent).toContain('+1,000.00')
+    const summary = element().querySelector(`section[aria-label="${th.transactions.summary}"]`)
+    expect(summary?.textContent).toContain(th.transfers.summaryLine)
+    expect(summary?.textContent).toContain('+1,000.00')
   })
 })

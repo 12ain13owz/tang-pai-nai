@@ -58,16 +58,21 @@ describe('SyncStatus', () => {
     expect(show('unreachable', 2)).toBe('เซิร์ฟเวอร์ไม่ตอบ · รอ 2')
   })
 
-  it('tints offline and errors red, and uses the income dot only when synced', () => {
+  it('shows the state as an icon: green when synced, red with a count when something is wrong', () => {
+    const button = () => (fixture.nativeElement as HTMLElement).querySelector('button')
+    const count = () => button()?.querySelector('span[aria-hidden=true]')?.textContent.trim()
     show('synced')
-    expect(pill()?.querySelector('.bg-income')).not.toBeNull()
+    expect(button()?.className).toContain('text-income')
+    expect(count()).toBeUndefined()
     show('errors', 0, 1)
-    expect(pill()?.className).toContain('text-destructive')
-    show('unreachable', 1)
-    expect(pill()?.className).toContain('text-destructive')
-    expect(pill()?.querySelector('.bg-destructive')).not.toBeNull()
-    show('pending', 1)
-    expect(pill()?.className).not.toContain('text-destructive')
+    expect(button()?.className).toContain('text-destructive')
+    expect(count()).toBe('1')
+    show('unreachable', 2)
+    expect(button()?.className).toContain('text-destructive')
+    expect(button()?.querySelector('.bg-destructive')).not.toBeNull()
+    show('pending', 3)
+    expect(button()?.className).not.toContain('text-destructive')
+    expect(count()).toBe('3')
   })
 
   it('labels the button with the status, for screen readers', () => {

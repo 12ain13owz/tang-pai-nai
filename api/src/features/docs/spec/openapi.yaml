@@ -122,6 +122,8 @@ components:
       $ref: './components/models/sync-category-row.schema.yaml'
     SyncTransactionRow:
       $ref: './components/models/sync-transaction-row.schema.yaml'
+    SyncTransferRow:
+      $ref: './components/models/sync-transfer-row.schema.yaml'
   responses:
     SuccessResponse:
       $ref: './components/responses/success.response.yaml'

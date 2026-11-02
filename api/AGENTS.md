@@ -158,8 +158,10 @@ first real one; sync-only, no REST routes), `features/wallet` (pushable, with ch
 other tables: the user's live profile, an active currency), `features/category` (pushable, a
 self-referencing parent: checks on other rows of its own table), `features/transaction`
 (pushable, pointing at three tables: profile, wallet and category of one profile; it compares
-the stored row for "no move to another currency") and `features/currency` (pull-only master
-data). A rule about rows of another feature's table (a wallet's currency fixed while it has
+the stored row for "no move to another currency"), `features/transfer` (pushable, two wallet
+columns of one profile and currency; a wallet's currency rule reads it too) and
+`features/currency` (pull-only master data). A rule two features share and that needs no table
+(the date of a money entry: `isEntryDay`) lives in `@/shared/utils`. A rule about rows of another feature's table (a wallet's currency fixed while it has
 transactions) reads that table from `@/core/database/schema`, never the other feature.
 
 - **Make a table synced**: give it `id: text().primaryKey()` (the device's UUIDv7, no default),
@@ -206,7 +208,7 @@ transactions) reads that table from `@/core/database/schema`, never the other fe
   the committed migrations (`profile.repository.drizzle.test.ts`; `wallet.repository.drizzle.test.ts`
   and `category.repository.drizzle.test.ts` insert the profiles their checks read;
   `transaction.repository.drizzle.test.ts` also inserts wallets and categories, and activates
-  USD for the currency rule); HTTP with `accessTokens`
+  USD for the currency rule, as does `transfer.repository.drizzle.test.ts`); HTTP with `accessTokens`
   for the Bearer header (`sync.controller.test.ts`).
 
 ### Notifications (`src/core/notification/`)

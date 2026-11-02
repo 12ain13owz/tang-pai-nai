@@ -2,14 +2,18 @@ import { Component, computed, ElementRef, inject, signal, viewChild } from '@ang
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
+  lucideArrowLeftRight,
+  lucideCalendarRange,
   lucideCheck,
   lucideChevronDown,
+  lucideChevronLeft,
+  lucideChevronRight,
   lucideEllipsisVertical,
   lucideWallet,
 } from '@ng-icons/lucide'
 import { LanguageService } from '@/core/i18n'
 import { ProfileService } from '@/core/profile'
-import { PERIOD_UNITS, TransactionService } from '@/core/transaction'
+import { PERIOD_UNITS, TransactionService, TransferService } from '@/core/transaction'
 import type { PeriodUnit } from '@/core/transaction'
 import { IconBadge } from '@/shared/components/icon-badge'
 import { SyncStatus } from './sync-status'
@@ -17,13 +21,24 @@ import { SyncStatus } from './sync-status'
 /**
  * The Transactions tab's header (transaction.md → Web screens; owner's choice in #8): the
  * profile's icon on the left, the wallet switcher in the very centre, the sync icon and the ⋮
- * "ดูตาม" menu on the right; both sides are the same width so the switcher stays centred.
+ * menu on the right; both sides are the same width so the switcher stays centred. The menu is a
+ * two-level list (transfer.md → Web screens, owner's choice B in #9): "โอนเงิน" and "ดูตาม ›",
+ * which turns the menu into the units.
  */
 @Component({
   selector: 'app-transactions-header',
   imports: [TranslocoPipe, NgIcon, IconBadge, SyncStatus],
   providers: [
-    provideIcons({ lucideCheck, lucideChevronDown, lucideEllipsisVertical, lucideWallet }),
+    provideIcons({
+      lucideArrowLeftRight,
+      lucideCalendarRange,
+      lucideCheck,
+      lucideChevronDown,
+      lucideChevronLeft,
+      lucideChevronRight,
+      lucideEllipsisVertical,
+      lucideWallet,
+    }),
   ],
   host: {
     class: 'relative grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-1 pr-1 pl-2',
@@ -69,14 +84,14 @@ import { SyncStatus } from './sync-status'
       />
     </button>
     <div class="flex items-center justify-end">
-      <app-sync-status [compact]="true" />
+      <app-sync-status />
       <button
         #menuButton
         type="button"
         class="flex size-11 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         aria-haspopup="menu"
         [attr.aria-expanded]="menuOpen()"
-        [attr.aria-label]="'transactions.viewBy' | transloco"
+        [attr.aria-label]="'transfers.menu' | transloco"
         (click)="toggleMenu()"
       >
         <ng-icon name="lucideEllipsisVertical" size="22" aria-hidden="true" />
@@ -87,28 +102,63 @@ import { SyncStatus } from './sync-status'
         #menu
         role="menu"
         tabindex="-1"
-        class="absolute top-full right-2 z-30 -mt-1 min-w-52 rounded-xl border border-border bg-popover py-1.5 text-popover-foreground shadow-lg"
-        [attr.aria-label]="'transactions.viewBy' | transloco"
+        class="absolute top-full right-2 z-30 -mt-1 min-w-56 rounded-xl border border-border bg-popover py-1.5 text-popover-foreground shadow-lg"
+        [attr.aria-label]="
+          (level() === 'main' ? 'transfers.menu' : 'transactions.viewBy') | transloco
+        "
         (keydown)="onMenuKey($event)"
       >
-        <div class="px-4 py-1.5 text-xs text-muted-foreground" aria-hidden="true">
-          {{ 'transactions.viewBy' | transloco }}
-        </div>
-        @for (unit of units; track unit) {
+        @if (level() === 'main') {
           <button
             type="button"
-            role="menuitemradio"
-            class="flex min-h-11 w-full items-center justify-between gap-6 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
-            [class.font-semibold]="unit === transactionService.unit()"
-            [class.text-brand]="unit === transactionService.unit()"
-            [attr.aria-checked]="unit === transactionService.unit()"
-            (click)="choose(unit)"
+            role="menuitem"
+            class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+            (click)="transfer()"
           >
-            {{ 'transactions.unit.' + unit | transloco }}
-            @if (unit === transactionService.unit()) {
-              <ng-icon name="lucideCheck" size="18" aria-hidden="true" />
-            }
+            <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
+            <span class="flex-1">{{ 'transfers.open' | transloco }}</span>
           </button>
+          <button
+            type="button"
+            role="menuitem"
+            aria-haspopup="menu"
+            class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+            (click)="showUnits()"
+          >
+            <ng-icon name="lucideCalendarRange" size="20" aria-hidden="true" />
+            <span class="flex-1">{{ 'transactions.viewBy' | transloco }}</span>
+            <span class="flex items-center gap-0.5 text-sm text-muted-foreground">
+              {{ 'transactions.unit.' + transactionService.unit() | transloco }}
+              <ng-icon name="lucideChevronRight" size="16" aria-hidden="true" />
+            </span>
+          </button>
+        } @else {
+          <button
+            type="button"
+            role="menuitem"
+            class="flex min-h-11 w-full items-center gap-2 px-3 text-left text-sm font-medium text-muted-foreground focus-visible:bg-muted focus-visible:outline-none"
+            [attr.aria-label]="'transfers.menuBack' | transloco"
+            (click)="showMain()"
+          >
+            <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
+            {{ 'transactions.viewBy' | transloco }}
+          </button>
+          @for (unit of units; track unit) {
+            <button
+              type="button"
+              role="menuitemradio"
+              class="flex min-h-11 w-full items-center justify-between gap-6 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+              [class.font-semibold]="unit === transactionService.unit()"
+              [class.text-brand]="unit === transactionService.unit()"
+              [attr.aria-checked]="unit === transactionService.unit()"
+              (click)="choose(unit)"
+            >
+              {{ 'transactions.unit.' + unit | transloco }}
+              @if (unit === transactionService.unit()) {
+                <ng-icon name="lucideCheck" size="18" aria-hidden="true" />
+              }
+            </button>
+          }
         }
       </div>
     }
@@ -117,6 +167,7 @@ import { SyncStatus } from './sync-status'
 export class TransactionsHeader {
   protected profileService = inject(ProfileService)
   protected transactionService = inject(TransactionService)
+  private transferService = inject(TransferService)
   private languageService = inject(LanguageService)
   private transloco = inject(TranslocoService)
 
@@ -130,6 +181,8 @@ export class TransactionsHeader {
   })
 
   protected menuOpen = signal(false)
+  /** The menu's level: its items, or the units of "ดูตาม". */
+  protected level = signal<'main' | 'units'>('main')
   private menuButton = viewChild.required<ElementRef<HTMLElement>>('menuButton')
   private menu = viewChild<ElementRef<HTMLElement>>('menu')
   private host = inject<ElementRef<HTMLElement>>(ElementRef)
@@ -139,11 +192,25 @@ export class TransactionsHeader {
       this.closeMenu(false)
       return
     }
+    this.level.set('main')
     this.menuOpen.set(true)
+    this.focusIn('[role="menuitem"]')
+  }
+
+  protected showUnits(): void {
+    this.level.set('units')
     // Focus the chosen unit, like a native menu.
-    setTimeout(() =>
-      this.menu()?.nativeElement.querySelector<HTMLElement>('[aria-checked="true"]')?.focus()
-    )
+    this.focusIn('[aria-checked="true"]')
+  }
+
+  protected showMain(): void {
+    this.level.set('main')
+    this.focusIn('[aria-haspopup="menu"]')
+  }
+
+  protected transfer(): void {
+    this.closeMenu(false)
+    this.transferService.open({ mode: 'create' })
   }
 
   protected closeMenu(refocus: boolean): void {
@@ -157,15 +224,29 @@ export class TransactionsHeader {
   }
 
   protected onDocumentClick(event: MouseEvent): void {
-    if (this.menuOpen() && !this.host.nativeElement.contains(event.target as Node)) {
+    // The path, not `contains`: a level switch has already removed the item that was tapped.
+    if (this.menuOpen() && !event.composedPath().includes(this.host.nativeElement)) {
       this.closeMenu(false)
     }
   }
 
-  /** ↑ / ↓ move between the units, Home / End to the ends, Tab leaves (menu pattern). */
+  /**
+   * ↑ / ↓ move between the items, Home / End to the ends, → opens "ดูตาม", ← goes back, Tab
+   * leaves (menu pattern).
+   */
   protected onMenuKey(event: KeyboardEvent): void {
+    if (event.key === 'ArrowRight' && this.level() === 'main') {
+      event.preventDefault()
+      this.showUnits()
+      return
+    }
+    if (event.key === 'ArrowLeft' && this.level() === 'units') {
+      event.preventDefault()
+      this.showMain()
+      return
+    }
     const items = [
-      ...(this.menu()?.nativeElement.querySelectorAll<HTMLElement>('[role="menuitemradio"]') ?? []),
+      ...(this.menu()?.nativeElement.querySelectorAll<HTMLElement>('[role^="menuitem"]') ?? []),
     ]
     const index = items.indexOf(document.activeElement as HTMLElement)
     const moves: Record<string, number> = {
@@ -189,5 +270,9 @@ export class TransactionsHeader {
       return
     }
     this.transactionService.selectUnit(unit)
+  }
+
+  private focusIn(selector: string): void {
+    setTimeout(() => this.menu()?.nativeElement.querySelector<HTMLElement>(selector)?.focus())
   }
 }

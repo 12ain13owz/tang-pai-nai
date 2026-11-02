@@ -22,6 +22,7 @@ export interface Transaction {
 
 /** A row of the list: the transaction with what it shows of its category and wallet. */
 export interface TransactionItem extends Transaction {
+  kind: 'transaction'
   type: CategoryType
   categoryName: string
   categoryIcon: string
@@ -29,6 +30,55 @@ export interface TransactionItem extends Transaction {
   walletName: string
   currencyCode: string
 }
+
+/** A transfer as the device stores it (docs/features/transfer.md → Data model). */
+export interface Transfer {
+  id: string
+  profileId: string
+  fromWalletId: string
+  toWalletId: string
+  /** Minor units, always > 0. */
+  amount: number
+  occurredOn: string
+  note: string
+  createdAt: number
+  updatedAt: number
+  deletedAt: number | null
+  changeSeq: number | null
+}
+
+/**
+ * One side of a transfer as a row of the list (transfer → Web screens, owner's choice Q5): the
+ * outgoing side (− in the expense colour) or the incoming one (+ in the income colour).
+ */
+export interface TransferItem extends Transfer {
+  kind: 'transfer'
+  side: 'out' | 'in'
+  /** The wallet this row is a side of, and the other one. */
+  walletId: string
+  walletName: string
+  otherWalletId: string
+  otherWalletName: string
+  currencyCode: string
+}
+
+/** A row of the Transactions tab. */
+export type EntryItem = TransactionItem | TransferItem
+
+/** What the transfer form edits. */
+export interface TransferValues {
+  fromWalletId: string
+  toWalletId: string
+  amount: number
+  occurredOn: string
+  note: string
+}
+
+/** Which transfer sheet is open. */
+export type TransferSheetState =
+  | { mode: 'create'; fromWalletId?: string; values?: TransferValues }
+  | { mode: 'edit'; id: string }
+  | { mode: 'fix'; opId: string; id: string; profileId: string; values: TransferValues }
 
 /** What the transaction form edits. */
 export interface TransactionValues {
@@ -53,6 +103,8 @@ export interface MoneySummary {
   income: number
   expense: number
   net: number
+  /** Transfers in − out of the wallets in view (transfer → Web screens: the "โอน" line). */
+  transfer: number
 }
 
 /** Which transaction sheet is open: create, edit, or "fix" of a rejected op. */
@@ -69,6 +121,7 @@ export type TransactionSheetState =
   | { mode: 'fix'; opId: string; id: string; profileId: string; values: TransactionValues }
 
 export const TRANSACTION_TABLE = 'transactions'
+export const TRANSFER_TABLE = 'transfers'
 
 export const TRANSACTION_LIMITS = {
   /** 10¹⁵ minor units (rule 3). */

@@ -4,7 +4,7 @@ import { TranslocoPipe } from '@jsverse/transloco'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { CategoryService } from '@/core/category'
 import { ProfileService } from '@/core/profile'
-import { TransactionService } from '@/core/transaction'
+import { TransactionService, TransferService } from '@/core/transaction'
 import { KeyboardService } from '@/core/viewport'
 import { WalletService } from '@/core/wallet'
 import { AppHeader } from './app-header'
@@ -16,6 +16,7 @@ import { currentUrl, isProfileTab, isWalletTab } from './profile-routes'
 import { ProfileSheet } from './profile-sheet'
 import { ProfileSwitchSheet } from './profile-switch-sheet'
 import { TransactionSheet } from './transaction-sheet'
+import { TransferSheet } from './transfer-sheet'
 import { ViewWalletSheet } from './view-wallet-sheet'
 import { WalletFirstStep } from './wallet-first-step'
 import { WalletSheet } from './wallet-sheet'
@@ -38,6 +39,7 @@ import { WalletSheet } from './wallet-sheet'
     ViewWalletSheet,
     CustomRangeSheet,
     TransactionSheet,
+    TransferSheet,
   ],
   template: `
     <div class="mx-auto flex min-h-dvh max-w-[480px] flex-col">
@@ -87,6 +89,9 @@ import { WalletSheet } from './wallet-sheet'
     @defer (when transactionService.sheet() !== null) {
       <app-transaction-sheet />
     }
+    @defer (when transferService.sheet() !== null) {
+      <app-transfer-sheet />
+    }
   `,
 })
 export class AppShell {
@@ -97,6 +102,8 @@ export class AppShell {
   protected categoryService = inject(CategoryService)
   /** Also keeps its sweep of transactions whose wallet or category was deleted (rule 10). */
   protected transactionService = inject(TransactionService)
+  /** Also keeps its sweep of transfers whose wallet was deleted (transfer rule 8). */
+  protected transferService = inject(TransferService)
   protected switchSheetOpen = this.profileService.switchSheet
   private url = currentUrl()
 

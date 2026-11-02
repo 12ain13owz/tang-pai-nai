@@ -24,6 +24,7 @@ const FIX_ROUTES: Readonly<Record<string, string>> = {
   // The wallet sheet lives in the shell, so it opens on the tab itself (even its first-wallet step).
   [WALLET_TABLE]: '/wallets',
   transactions: '/transactions',
+  transfers: '/transactions',
 }
 
 /**
@@ -232,8 +233,10 @@ export class SyncSheet {
         count(WALLET_TABLE) > 0
           ? this.transloco.translate('sync.withWallets', { count: count(WALLET_TABLE) })
           : null,
-        count('transactions') > 0
-          ? this.transloco.translate('sync.withTransactions', { count: count('transactions') })
+        count('transactions') + count('transfers') > 0
+          ? this.transloco.translate('sync.withTransactions', {
+              count: count('transactions') + count('transfers'),
+            })
           : null,
       ].filter((part) => part !== null)
       return {
@@ -264,6 +267,20 @@ export class SyncSheet {
     const title = row['title'] ?? row['name']
     if (typeof title === 'string') {
       return title
+    }
+    // A transfer: its two wallets and amount (and note).
+    if (typeof row['fromWalletId'] === 'string' && typeof row['toWalletId'] === 'string') {
+      const from = this.walletService.byId(row['fromWalletId'])
+      const to = this.walletService.byId(row['toWalletId'])
+      const minorUnit = this.walletService.minorUnit(from?.currencyCode ?? '')
+      const parts = [
+        `${this.transloco.translate('transfers.title')} ${from?.name ?? ''} → ${to?.name ?? ''}`,
+        typeof row['amount'] === 'number'
+          ? formatAmount(row['amount'], minorUnit, this.languageService.locale())
+          : '',
+        typeof row['note'] === 'string' ? row['note'] : '',
+      ]
+      return parts.filter((part) => part).join(' · ')
     }
     // A transaction has no name: its category and amount (and note) say which one it is.
     if (typeof row['amount'] === 'number' && typeof row['categoryId'] === 'string') {

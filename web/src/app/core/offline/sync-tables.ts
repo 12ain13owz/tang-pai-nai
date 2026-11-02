@@ -98,6 +98,23 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
     ],
     booleans: ['excludeFromReport'],
   },
+  transfers: {
+    key: 'id',
+    columns: [
+      'id',
+      'profileId',
+      'fromWalletId',
+      'toWalletId',
+      'amount',
+      'occurredOn',
+      'note',
+      'createdAt',
+      'updatedAt',
+      'deletedAt',
+      'changeSeq',
+      'updatedBy',
+    ],
+  },
 }
 
 export type SyncRow = Record<string, unknown>

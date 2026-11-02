@@ -58,7 +58,7 @@ import { UpdateBanner } from './update-banner'
             <h1 class="truncate text-lg font-semibold">{{ pageTitleStrategy.pageTitle() }}</h1>
           </div>
         }
-        <app-sync-status class="shrink-0" />
+        <app-sync-status class="-mr-3 shrink-0" />
       </div>
     }
     <app-session-banner />

@@ -82,8 +82,8 @@ merging.
 | 6   | Profile + Wallet           | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
 | 7   | Category                   | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms). [spec](docs/features/category.md)                                                     |
 | 8   | Transaction                | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                         |
-| 9   | **Transfer** ← next        | ⬜  | ⬜  | two linked entries, excluded from income/expense totals                                                                                                                  |
-| 10  | Reports                    | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                                               |
+| 9   | Transfer                   | ✅  | ✅  | two linked rows of one `transfers` row, outside income / expense; ⋮ menu, Wallets tab button. [spec](docs/features/transfer.md)                                          |
+| 10  | **Reports** ← next         | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                                               |
 | 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                                                                       |
 | 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                                                                           |
 | 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                                                                                |
@@ -100,13 +100,54 @@ decision "Local-first").
 
 ---
 
-## Next: Transfer between wallets (#9)
+## Next: Reports (#10)
 
-Not started: write `docs/features/transfer.md` first (two linked entries, left out of income /
-expense totals, ROADMAP → Status). Known, for later:
+Not started: write `docs/features/report.md` first (month summary, by-category breakdown,
+month-to-month trend; ROADMAP → Status). Transfers never count as income or expense there
+(transfer rule 5), and `excludeFromReport` rows stay out. Known, for later:
 
 - Headless Chromium breaks some Thai lines inside a word ("บัน/ทึก"); the app's older notices do
   the same, so it's the test browser's line breaking, not our markup.
+- The 20,000-row timings of 8.1 weren't measured again in #9 (the transaction queries are the
+  same; the list adds a merge of the period's transfer sides, balances one `UNION ALL`).
+
+## Done: Transfer (#9)
+
+- **Decided at the start of #9** (owner, from two rounds of HTML mock-ups, transfer.md → Open
+  questions): a `transfers` table of its own, one row per transfer, shown as two rows (Q1); the
+  same currency only (Q2); no fee field, a fee is its own expense (Q3); its own sheet, opened
+  from the ⋮ menu, now a two-level nav list "โอนเงิน · ดูตาม ›" (choice B, more items will
+  join), and from the Wallets tab (Q4); two rows, the outgoing one first, **red − / green +**
+  with "โอนไปยัง" / "ได้รับจาก" (Q5, replacing DESIGN.md §5's neutral transfers); editing or
+  deleting either row changes the whole transfer (Q6); the to wallet remembered per from wallet
+  (Q7); a "โอน" summary line when the view's transfers don't cancel out; the profile delete
+  counts transfers with transactions.
+- **Decided while building** (owner): the sync status is the **icon on every tab** (it was a
+  word pill outside the Transactions tab); the Wallets tab's "โอนเงิน" is tinted gold so it
+  doesn't look like the outline "เพิ่มกระเป๋าเงิน" (maia's `secondary` looked the same);
+  "Transactions" stays the English tab label.
+- **API**: migration `0013_transfers` (profile and both wallet FKs with cascade),
+  `features/transfer` (sync handler; `check`: the user's live profile with no move, two
+  different live wallets of it, archived accepted, the same currency); a wallet on either side
+  of a live transfer keeps its currency; `isEntryDay` in `shared/utils` (transactions and
+  transfers); OpenAPI `SyncTransferRow`.
+- **Web**: local schema step 9, `SYNC_TABLES`, `PROFILE_CHILD_TABLES`; `core/transaction`
+  `TransferService`, `TransactionService.entries` / `transferSides`, `MoneySummary.transfer`;
+  balances and `hasTransactions` count both sides, a pulled wallet tombstone takes its
+  transfers; `layout/transfer-sheet`; the ⋮ menu's two levels; the Wallets tab button; the sync
+  sheet's refused transfer; `CALC_KEYBOARD` shared by both sheets; `app-sync-status` icon only.
+- **Found and fixed**: the transaction form never dropped a category the newly chosen wallet
+  hides (since 8.1: a control's `valueChanges` read a `computed` fed by the form's, which hadn't
+  emitted yet; `web/AGENTS.md` → Forms); the sync sheet had no name for the transfers table.
+- **Checked**: curl-style scripts on `/sync/push` + `/pull` (every check above, amount, date and
+  note limits, USD switched on for the currency rules, delete then the currency is free).
+  Playwright at 375×812 in th/en × light/dark on `npm run build`: add through the ⋮ menu (the
+  error, the pickers, `500+500`), the two rows in "ทุกกระเป๋า" and one wallet (กสิกร: "โอน
+  −9,000"), edit from the incoming row (both sides 500), delete + undo (both rows), a transfer
+  to the excluded savings from the Wallets tab (ยอดรวม unchanged by internal transfers, −5,000
+  line), the remembered to wallet; `setOffline` (synced 0.5 s after) and the API really stopped
+  ("เซิร์ฟเวอร์ไม่ตอบ · รอ 1", synced by itself 1.5 s after it came back); an untrusted device
+  offline can't save. Tests: API 527, web 464.
 
 ## Done: Transaction 8.2 (#8)
 

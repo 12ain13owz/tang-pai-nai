@@ -5,6 +5,7 @@ import { Component, computed, inject, signal } from '@angular/core'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
+  lucideArrowLeftRight,
   lucideChevronDown,
   lucideChevronRight,
   lucideGripVertical,
@@ -12,6 +13,7 @@ import {
 } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { LanguageService } from '@/core/i18n'
+import { TransferService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
@@ -36,7 +38,13 @@ import { formatMoney } from '@/shared/utils'
     CdkDragPlaceholder,
   ],
   providers: [
-    provideIcons({ lucideChevronDown, lucideChevronRight, lucideGripVertical, lucidePlus }),
+    provideIcons({
+      lucideArrowLeftRight,
+      lucideChevronDown,
+      lucideChevronRight,
+      lucideGripVertical,
+      lucidePlus,
+    }),
   ],
   template: `
     @let open = walletService.openWallets();
@@ -136,21 +144,38 @@ import { formatMoney } from '@/shared/utils'
         }
       </div>
 
-      @if (!walletService.atLimit()) {
-        <button
-          hlmBtn
-          variant="outline"
-          type="button"
-          class="h-11 w-full"
-          [disabled]="!walletService.canWrite()"
-          (click)="walletService.open({ mode: 'create' })"
-        >
-          <ng-icon name="lucidePlus" size="20" aria-hidden="true" />
-          {{ 'wallets.add' | transloco }}
-        </button>
-      } @else {
+      @if (walletService.atLimit()) {
         <p class="text-sm text-muted-foreground">{{ 'wallets.limit' | transloco }}</p>
       }
+      <div class="flex gap-2">
+        @if (!walletService.atLimit()) {
+          <button
+            hlmBtn
+            variant="outline"
+            type="button"
+            class="h-11 min-w-0 flex-1"
+            [disabled]="!walletService.canWrite()"
+            (click)="walletService.open({ mode: 'create' })"
+          >
+            <ng-icon name="lucidePlus" size="20" aria-hidden="true" />
+            {{ 'wallets.add' | transloco }}
+          </button>
+        }
+        @if (walletService.openWallets().length > 1) {
+          <!-- Transfer (#9): a gold tint, so it doesn't read like the outline "add" (owner). -->
+          <button
+            hlmBtn
+            variant="ghost"
+            type="button"
+            class="h-11 min-w-0 flex-1 bg-brand/10 text-brand hover:bg-brand/15 hover:text-brand"
+            [disabled]="!walletService.canWrite()"
+            (click)="transferService.open({ mode: 'create' })"
+          >
+            <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
+            {{ 'transfers.open' | transloco }}
+          </button>
+        }
+      </div>
 
       @if (archived.length > 0) {
         <section class="flex flex-col gap-3">
@@ -221,6 +246,7 @@ import { formatMoney } from '@/shared/utils'
 export class WalletsPage {
   private languageService = inject(LanguageService)
   protected walletService = inject(WalletService)
+  protected transferService = inject(TransferService)
 
   protected defaultIcon = WALLET_DEFAULT_ICON
   protected ordering = signal(false)
