@@ -162,7 +162,12 @@ const KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
                     </button>
                   </div>
                 }
-                <div class="flex flex-col gap-4">
+                <!-- The keypad belongs to the amount row: any other control closes it (8.2). -->
+                <div
+                  class="flex flex-col gap-4"
+                  (pointerdown)="leaveAmount($event)"
+                  (focusin)="leaveAmount($event)"
+                >
                   @if (!transactionService.canWrite()) {
                     <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
                       {{
@@ -849,6 +854,25 @@ export class TransactionSheet {
         this.open.set(state !== null)
       })
     })
+  }
+
+  /**
+   * The keypad shows only while the amount row is in use (owner, 8.2): a tap on, or focus moving
+   * to, any other control of the form settles the expression and closes it. Taps on blank space
+   * leave it open.
+   */
+  protected leaveAmount(event: Event): void {
+    const target = event.target
+    if (
+      !this.keypad() ||
+      !(target instanceof Element) ||
+      target.closest('app-calc-amount-field') ||
+      !target.closest('button, input, label, textarea, select, [role="switch"]')
+    ) {
+      return
+    }
+    this.settleAmount()
+    this.keypad.set(false)
   }
 
   /** Another row: the expression settles and the keypad closes, as in Money Lover. */
