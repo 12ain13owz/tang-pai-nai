@@ -7,6 +7,7 @@ import '@/features/profile'
 import '@/features/category'
 import '@/features/wallet'
 import '@/features/transaction'
+import '@/features/transfer'
 import { syncRouter } from '@/features/sync'
 import { todoRouter } from '@/features/todo'
 
