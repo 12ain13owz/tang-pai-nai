@@ -42,6 +42,7 @@ export class CategoryService {
   openCategories = computed(() => this.categories().filter((category) => !category.isArchived))
   atLimit = computed(() => this.openCategories().length >= CATEGORY_LIMITS.PER_PROFILE)
   canWrite = this.profileService.canWrite
+  serverDown = this.profileService.serverDown
 
   /** Categories with an op still waiting to sync ("รอ sync"). */
   pendingIds = computed(

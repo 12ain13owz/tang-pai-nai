@@ -141,6 +141,9 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
    on: set a PIN; turn off: wipe).
    - **Off (untrusted)**: data is kept in memory only. Nothing is written to browser storage and
      nothing is queued offline. Closing the tab forgets everything except the refresh cookie.
+     "Online" for writing means a network **and a reachable server** (rule 11): while the last
+     round couldn't reach the API, the forms block saving as when offline, so nothing waits in
+     memory for a server that may not come back before the tab closes (decided after 7.2).
    - **On (trusted)**: the user sets a **6-digit PIN**, and the local database is created encrypted
      (rule 4).
 2. The app **locks** every time it's opened, and after **5 minutes** in the background or idle. To
@@ -221,6 +224,12 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
       minutes while the app is open. Only online, with a live session (rule 7: an expired one
       waits for the same user to sign in again).
     - A failed round (offline, API down) changes nothing and the next trigger tries again.
+    - **Server unreachable** (decided after 7.2: the network is up but the API isn't answering,
+      or a proxy answers 502–504 for it): the device marks the server unreachable and tries again
+      by itself after 5 s, 15 s, 30 s, 1 min and 2 min, then every 5 min. A round that reaches
+      the server clears it; going offline, locking or signing out stops the retries; any other
+      trigger (a write, the foreground, "sync ตอนนี้", coming back online) still runs a round at
+      once.
 
 **Conflicts**
 
@@ -302,8 +311,10 @@ opens.
 - **Expired session banner** under the header (4a.1, rule 7).
 - **Sync status** in the header (4a.2): **one pill replaces the online/offline pill**, a dot plus
   words (DESIGN.md §6 Status). In order of precedence: errors "บันทึกไม่สำเร็จ n" (red) /
-  offline "ออฟไลน์" or "ออฟไลน์ · รอ n" (red) / "กำลัง sync" / "รอ sync n" / "sync แล้ว" (green
-  dot). Tapping it opens a bottom sheet: the last sync time, a "sync ตอนนี้" button, rejected ops
+  offline "ออฟไลน์" or "ออฟไลน์ · รอ n" (red) / server unreachable "เซิร์ฟเวอร์ไม่ตอบ" or
+  "เซิร์ฟเวอร์ไม่ตอบ · รอ n" (red, rule 11) / "กำลัง sync" / "รอ sync n" / "sync แล้ว" (green
+  dot). Tapping it opens a bottom sheet: the last sync time (and, while the server is
+  unreachable, a line saying so and that it retries by itself), a "sync ตอนนี้" button, rejected ops
   (with the refused values and the server's message, fix or discard) and conflict notices
   (dismiss). An untrusted device shows the same pill.
 - **Sign-out with unsynced changes** (4a.2, rule 7): sign-out pushes first; if ops are still

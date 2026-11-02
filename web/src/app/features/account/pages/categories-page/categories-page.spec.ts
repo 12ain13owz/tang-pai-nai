@@ -51,6 +51,7 @@ describe('CategoriesPage', () => {
     byId: (id: string) => all().find((c) => c.id === id) ?? null,
     pendingIds: signal(new Set<string>()),
     canWrite: signal(true),
+    serverDown: signal(false),
     atLimit: signal(false),
     open: vi.fn(),
     openFix: vi.fn(),
@@ -91,6 +92,7 @@ describe('CategoriesPage', () => {
     categories.pendingIds.set(new Set(['Tea']))
     categories.atLimit.set(false)
     categories.canWrite.set(true)
+    categories.serverDown.set(false)
     query = new BehaviorSubject(convertToParamMap({}))
     TestBed.configureTestingModule({
       imports: [
@@ -164,6 +166,11 @@ describe('CategoriesPage', () => {
     await settle()
     expect(page().textContent).toContain(th.categories.needsOnline)
     expect(button(th.categories.add)?.disabled).toBe(true)
+    // Online, but the server isn't answering: the notice says that instead.
+    categories.serverDown.set(true)
+    await settle()
+    expect(page().textContent).toContain(th.sync.serverDownWrite)
+    expect(page().textContent).not.toContain(th.categories.needsOnline)
   })
 
   it('says why "add" is gone at 200 open categories', async () => {

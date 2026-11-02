@@ -140,7 +140,12 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
                 <div class="flex flex-col gap-5">
                   @if (!categoryService.canWrite()) {
                     <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                      {{ 'categories.needsOnline' | transloco }}
+                      {{
+                        (categoryService.serverDown()
+                          ? 'sync.serverDownWrite'
+                          : 'categories.needsOnline'
+                        ) | transloco
+                      }}
                     </p>
                   }
                   @if (refusal()) {

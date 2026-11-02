@@ -56,6 +56,8 @@ export class SyncStatus {
     const keys: Record<Status, [string, object]> = {
       errors: ['sync.errors', { count: this.profileService.rejectedItems().length }],
       offline: pending > 0 ? ['sync.offlinePending', { count: pending }] : ['sync.offline', {}],
+      unreachable:
+        pending > 0 ? ['sync.unreachablePending', { count: pending }] : ['sync.unreachable', {}],
       syncing: ['sync.syncing', {}],
       pending: ['sync.pending', { count: pending }],
       synced: ['sync.synced', {}],
@@ -64,7 +66,7 @@ export class SyncStatus {
     return this.transloco.translate(key, params)
   })
   protected pillClass = computed(() =>
-    this.status() === 'errors' || this.status() === 'offline'
+    this.status() === 'errors' || this.status() === 'offline' || this.status() === 'unreachable'
       ? 'bg-destructive/10 text-destructive'
       : 'text-muted-foreground'
   )
@@ -72,6 +74,7 @@ export class SyncStatus {
     switch (this.status()) {
       case 'errors':
       case 'offline':
+      case 'unreachable':
         return 'bg-destructive'
       case 'synced':
         return 'bg-income'

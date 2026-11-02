@@ -129,7 +129,12 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                 <div class="flex flex-col gap-5">
                   @if (!walletService.canWrite()) {
                     <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                      {{ 'wallets.needsOnline' | transloco }}
+                      {{
+                        (walletService.serverDown()
+                          ? 'sync.serverDownWrite'
+                          : 'wallets.needsOnline'
+                        ) | transloco
+                      }}
                     </p>
                   }
                   @if (refusal()) {

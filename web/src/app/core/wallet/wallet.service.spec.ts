@@ -114,7 +114,10 @@ describe('WalletService', () => {
       providers: [
         { provide: OfflineService, useValue: offline },
         { provide: SyncService, useValue: sync },
-        { provide: NetworkStatusService, useValue: { isOnline: signal(true) } },
+        {
+          provide: NetworkStatusService,
+          useValue: { isOnline: signal(true), serverReachable: signal(true) },
+        },
       ],
     })
     TestBed.inject(AuthStore).user.set({ id: 'u1' } as AuthUser)

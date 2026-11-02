@@ -44,7 +44,10 @@ import { formatMoney } from '@/shared/utils'
     <div class="flex flex-col gap-6 p-4">
       @if (!walletService.canWrite()) {
         <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {{ 'wallets.needsOnline' | transloco }}
+          {{
+            (walletService.serverDown() ? 'sync.serverDownWrite' : 'wallets.needsOnline')
+              | transloco
+          }}
         </p>
       }
       <div class="flex flex-col gap-3">

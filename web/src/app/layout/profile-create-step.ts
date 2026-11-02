@@ -21,7 +21,10 @@ import { EmptyState } from '@/shared/components/empty-state'
       </app-empty-state>
       @if (!profileService.canWrite()) {
         <p class="w-full rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {{ 'profiles.needsOnline' | transloco }}
+          {{
+            (profileService.serverDown() ? 'sync.serverDownWrite' : 'profiles.needsOnline')
+              | transloco
+          }}
         </p>
       }
       <button

@@ -149,10 +149,16 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
   shape (`toWallet` in `core/wallet`). A new column on a shipped table is an `ALTER TABLE` step
   with a default, and specs that rebuild an older snapshot drop it first.
 - `SyncService` runs the rounds (push, then pull, `tpn-sync` Web Lock) by itself; screens don't
-  call the API for own data. It exposes `status()` (`errors` / `offline` / `syncing` /
-  `pending` / `synced`), `pendingCount()`, `rejected()`, `notices()`, `lastSyncedAt()`,
+  call the API for own data. It exposes `status()` (`errors` / `offline` / `unreachable` /
+  `syncing` / `pending` / `synced`), `pendingCount()`, `rejected()`, `notices()`, `lastSyncedAt()`,
   `serverTables()`, `sync()`, `flush()` (before sign-out: how many ops would be lost),
   `discard(opId)`, `rejectedOp(opId)`, `dismissNotice(id)`.
+- **Server unreachable** (rule 11): a round, or the session check at open, that can't reach the
+  API sets `NetworkStatusService.serverReachable` false and retries after `RETRY_DELAYS_MS`
+  (5 s … then every 5 min); a round that gets through sets it back, and offline / locked /
+  signed out stops the retries. An untrusted device's `ProfileService.canWrite()` needs it too;
+  its "needs online" notices switch to `sync.serverDownWrite` while `serverDown()`. Specs that
+  stub `NetworkStatusService` give it both `isOnline` and `serverReachable` signals.
 - **Rejected ops**: the local row already went back to the server's version; the op keeps the
   refused values. A refused profile create carries its refused child rows
   (`ProfileService.rejectedItems()`, read by the sheet and the pill): fixing the profile re-sends
@@ -170,7 +176,7 @@ reports) shows the **current profile's** data.
 
 - `ProfileService`: `profiles()` (live, in order), `current()` (the device's choice, else the
   first), `ready()` (false only while a new device waits for its first pull), `canWrite()`
-  (untrusted = online only), `atLimit()`, `nameTaken()`, `save(id | null, values, fixOpId?)`,
+  (untrusted = online and the server answering), `serverDown()`, `atLimit()`, `nameTaken()`, `save(id | null, values, fixOpId?)`,
   `remove(id)`, `moveTo(id, index)`, `select(id)`. The current id is `tpn-profile:<userId>` in
   `localStorage` (trusted) or `sessionStorage` (untrusted); `OfflineService.wipe()` removes it.
   `save()` of a new profile writes the default category set in the same write

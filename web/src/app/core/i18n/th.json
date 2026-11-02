@@ -488,7 +488,11 @@
     "tablecategories": "หมวดหมู่",
     "withCategories": "หมวดหมู่ {{count}} รายการ",
     "withWallets": "กระเป๋าเงิน {{count}} ใบ",
-    "and": " และ"
+    "and": " และ",
+    "unreachable": "เซิร์ฟเวอร์ไม่ตอบ",
+    "unreachablePending": "เซิร์ฟเวอร์ไม่ตอบ · รอ {{count}}",
+    "unreachableText": "ติดต่อเซิร์ฟเวอร์ไม่ได้ จะลองใหม่เองเป็นระยะ",
+    "serverDownWrite": "ติดต่อเซิร์ฟเวอร์ไม่ได้ เครื่องนี้ไม่ได้ใช้งานออฟไลน์ จึงบันทึกได้เมื่อเซิร์ฟเวอร์กลับมา"
   },
   "colors": {
     "label": "สีที่ {{number}}"

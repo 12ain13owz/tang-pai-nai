@@ -83,11 +83,22 @@ export class ProfileService {
         this.roundEnded() ||
         !this.syncService.canSync())
   )
-  /** Rule 10: an untrusted device writes only online (offline-sync rule 1). */
+  /**
+   * Rule 10: an untrusted device writes only online (offline-sync rule 1), and only while the
+   * server answers (rule 11): its rows live in memory until they're pushed.
+   */
   canWrite = computed(
     () =>
       this.offlineService.isOpen() &&
-      (this.offlineService.isTrusted() || this.networkStatusService.isOnline())
+      (this.offlineService.isTrusted() ||
+        (this.networkStatusService.isOnline() && this.networkStatusService.serverReachable()))
+  )
+  /**
+   * Why an untrusted device can't write right now: the network is up but the server isn't
+   * answering (rule 11), rather than no network. Picks the notice's wording.
+   */
+  serverDown = computed(
+    () => this.networkStatusService.isOnline() && !this.networkStatusService.serverReachable()
   )
   atLimit = computed(() => this.profiles().length >= PROFILE_LIMITS.PER_USER)
   /** The open profile sheet (layout/profile-sheet), if any. */

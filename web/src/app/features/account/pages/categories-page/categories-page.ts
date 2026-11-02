@@ -75,7 +75,10 @@ import type { UserIcon } from '@/shared/components/icon-badge'
         </button>
         @if (!categoryService.canWrite()) {
           <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {{ 'categories.needsOnline' | transloco }}
+            {{
+              (categoryService.serverDown() ? 'sync.serverDownWrite' : 'categories.needsOnline')
+                | transloco
+            }}
           </p>
         }
         <div class="flex rounded-lg bg-muted p-1" role="tablist">
