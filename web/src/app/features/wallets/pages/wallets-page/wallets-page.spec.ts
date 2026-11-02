@@ -9,6 +9,7 @@ import { NetworkStatusService } from '@/core/network'
 import { findOp, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
+import { TransferService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import { WalletsPage } from './wallets-page'
 
@@ -165,6 +166,20 @@ describe('WalletsPage', () => {
     expect(wallets.sheet()).toEqual({ mode: 'edit', id: 'Cash' })
     button(/เพิ่มกระเป๋าเงิน/)?.click()
     expect(wallets.sheet()).toEqual({ mode: 'create' })
+  })
+
+  it('offers a transfer once there are two open wallets, in a look unlike "add" (#9)', async () => {
+    wallet('Cash')
+    wallet('Old', { isArchived: true })
+    await settle()
+    expect(button(th.transfers.open)).toBeUndefined()
+    wallet('Bank', { sortOrder: 1 })
+    await settle()
+    const transfer = button(th.transfers.open)
+    expect(transfer?.className).toContain('bg-brand/10')
+    expect(button(/เพิ่มกระเป๋าเงิน/)?.className).not.toContain('bg-brand/10')
+    transfer?.click()
+    expect(TestBed.inject(TransferService).sheet()).toEqual({ mode: 'create' })
   })
 
   it('hides "add" at 20 open wallets and says why (rule 3)', async () => {
