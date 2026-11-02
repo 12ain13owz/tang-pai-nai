@@ -132,6 +132,25 @@ const MIGRATIONS: readonly string[] = [
   CREATE INDEX transactions_profile_day ON transactions (profile_id, occurred_on);
   CREATE INDEX transactions_wallet ON transactions (wallet_id);
   CREATE INDEX transactions_category ON transactions (category_id)`,
+  // #9: transfers (docs/features/transfer.md), one row per transfer. Indexes: a period of the
+  // profile (read with transactions), and each side for balances and "has transactions".
+  `CREATE TABLE transfers (
+    id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL,
+    from_wallet_id TEXT NOT NULL,
+    to_wallet_id TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    occurred_on TEXT NOT NULL,
+    note TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted_at INTEGER,
+    change_seq INTEGER,
+    updated_by TEXT
+  ) STRICT;
+  CREATE INDEX transfers_profile_day ON transfers (profile_id, occurred_on);
+  CREATE INDEX transfers_from_wallet ON transfers (from_wallet_id);
+  CREATE INDEX transfers_to_wallet ON transfers (to_wallet_id)`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null

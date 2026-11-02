@@ -171,8 +171,8 @@ describe('TransactionService', () => {
     transaction('c', { amount: 50000, categoryId: 'salary' })
     transaction('d', { amount: 700, walletId: 'usd' })
     expect(service.summary(november)).toEqual([
-      { currencyCode: 'THB', minorUnit: 2, income: 50000, expense: 1000, net: 49000 },
-      { currencyCode: 'USD', minorUnit: 2, income: 0, expense: 700, net: -700 },
+      { currencyCode: 'THB', minorUnit: 2, income: 50000, expense: 1000, net: 49000, transfer: 0 },
+      { currencyCode: 'USD', minorUnit: 2, income: 0, expense: 700, net: -700, transfer: 0 },
     ])
   })
 

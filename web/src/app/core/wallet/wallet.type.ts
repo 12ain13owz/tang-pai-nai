@@ -82,3 +82,4 @@ export const DEFAULT_CURRENCY = 'THB'
  * 6, 12): `core/transaction` builds on this service, so it can't be imported here.
  */
 export const TRANSACTION_TABLE = 'transactions'
+export const TRANSFER_TABLE = 'transfers'

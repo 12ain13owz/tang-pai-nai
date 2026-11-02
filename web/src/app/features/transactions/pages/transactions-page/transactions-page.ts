@@ -12,12 +12,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideCloud, lucideReceiptText } from '@ng-icons/lucide'
+import { lucideArrowLeftRight, lucideCloud, lucideReceiptText } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { CATEGORY_DEFAULT_ICON } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
-import { periodLabel, signedAmount, TransactionService } from '@/core/transaction'
-import type { PeriodTab, TransactionItem } from '@/core/transaction'
+import { periodLabel, signedAmount, TransactionService, TransferService } from '@/core/transaction'
+import type { EntryItem, PeriodTab } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import { EmptyState } from '@/shared/components/empty-state'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
@@ -35,8 +35,12 @@ interface DayGroup {
   total: string
   totalSign: number
   items: {
-    item: TransactionItem
+    item: EntryItem
+    /** Unique per row: a transfer has two (transfer → Web screens, Q5). */
+    key: string
     amount: string
+    /** Money in (income, a transfer received): the income colour; else the expense colour. */
+    positive: boolean
     /** The wallet's badge, only while "ทุกกระเป๋า" shows several wallets. */
     wallet: { icon: string; color: string; name: string } | null
     pending: boolean
@@ -52,7 +56,7 @@ interface DayGroup {
 @Component({
   selector: 'app-transactions-page',
   imports: [TranslocoPipe, NgIcon, HlmButton, EmptyState, IconBadge],
-  providers: [provideIcons({ lucideCloud, lucideReceiptText })],
+  providers: [provideIcons({ lucideArrowLeftRight, lucideCloud, lucideReceiptText })],
   host: { class: 'flex flex-col' },
   template: `
     <div class="flex flex-col items-center px-4 pt-1 pb-2 text-center">
@@ -118,6 +122,13 @@ interface DayGroup {
             <span class="text-muted-foreground">{{ 'transactions.net' | transloco }}</span>
             <span class="font-semibold tabular-nums">{{ line.net }}</span>
           </div>
+          @if (line.transfer) {
+            <!-- Transfers in − out of the wallets in view, when they don't cancel out. -->
+            <div class="col-span-2 -mt-1 flex justify-between text-sm">
+              <span class="text-muted-foreground">{{ 'transfers.summaryLine' | transloco }}</span>
+              <span class="font-semibold tabular-nums">{{ line.transfer }}</span>
+            </div>
+          }
         </section>
       }
       @for (group of days(); track group.day) {
@@ -141,19 +152,27 @@ interface DayGroup {
             <span class="text-base font-semibold tabular-nums">{{ group.total }}</span>
           </div>
           <ul>
-            @for (row of group.items; track row.item.id) {
+            @for (row of group.items; track row.key) {
               <li>
                 <button
                   type="button"
                   class="flex min-h-15 w-full items-center gap-3 px-4 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                  (click)="transactionService.open({ mode: 'edit', id: row.item.id })"
+                  (click)="openRow(row.item)"
                 >
                   <span class="relative shrink-0">
-                    <app-icon-badge
-                      [icon]="row.item.categoryIcon"
-                      [color]="row.item.categoryColor"
-                      [fallback]="categoryIcon"
-                    />
+                    @if (row.item.kind === 'transfer') {
+                      <span
+                        class="flex size-10 items-center justify-center rounded-full bg-muted text-foreground"
+                      >
+                        <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
+                      </span>
+                    } @else {
+                      <app-icon-badge
+                        [icon]="row.item.categoryIcon"
+                        [color]="row.item.categoryColor"
+                        [fallback]="categoryIcon"
+                      />
+                    }
                     @if (row.wallet; as wallet) {
                       <!-- Which wallet, on "ทุกกระเป๋า" (owner's choice ก in #8). -->
                       <app-icon-badge
@@ -166,9 +185,19 @@ interface DayGroup {
                     }
                   </span>
                   <span class="flex min-w-0 flex-1 flex-col">
-                    <span class="truncate text-base font-semibold">{{
-                      row.item.categoryName
-                    }}</span>
+                    @if (row.item.kind === 'transfer') {
+                      <span class="truncate text-base font-semibold">{{
+                        'transfers.title' | transloco
+                      }}</span>
+                      <span class="truncate text-sm text-muted-foreground">{{
+                        (row.item.side === 'out' ? 'transfers.toWallet' : 'transfers.fromWallet')
+                          | transloco: { name: row.item.otherWalletName }
+                      }}</span>
+                    } @else {
+                      <span class="truncate text-base font-semibold">{{
+                        row.item.categoryName
+                      }}</span>
+                    }
                     @if (row.wallet; as wallet) {
                       <span class="sr-only">{{ wallet.name }}</span>
                     }
@@ -186,8 +215,8 @@ interface DayGroup {
                   </span>
                   <span
                     class="shrink-0 text-right text-base tabular-nums"
-                    [class.text-income]="row.item.type === 'income'"
-                    [class.text-expense]="row.item.type === 'expense'"
+                    [class.text-income]="row.positive"
+                    [class.text-expense]="!row.positive"
                   >
                     {{ row.amount }}
                   </span>
@@ -221,6 +250,7 @@ interface DayGroup {
 })
 export class TransactionsPage {
   protected transactionService = inject(TransactionService)
+  private transferService = inject(TransferService)
   private walletService = inject(WalletService)
   private languageService = inject(LanguageService)
   private transloco = inject(TranslocoService)
@@ -280,6 +310,7 @@ export class TransactionsPage {
       income: formatAmount(line.income, line.minorUnit, locale, true),
       expense: formatAmount(-line.expense, line.minorUnit, locale, true),
       net: formatAmount(line.net, line.minorUnit, locale, true),
+      transfer: line.transfer ? formatAmount(line.transfer, line.minorUnit, locale, true) : null,
     }))
   })
 
@@ -325,9 +356,12 @@ export class TransactionsPage {
         groups.push(group)
       }
       const wallet = showWallet ? wallets.get(item.walletId) : undefined
+      const signed = entrySign(item)
       group.items.push({
         item,
-        amount: money(signedAmount(item.amount, item.type), item.currencyCode),
+        key: item.kind === 'transfer' ? `${item.id}:${item.side}` : item.id,
+        amount: money(signed, item.currencyCode),
+        positive: signed > 0,
         wallet: wallet ? { icon: wallet.icon, color: wallet.color, name: wallet.name } : null,
         pending: pending.has(item.id),
       })
@@ -338,6 +372,10 @@ export class TransactionsPage {
     for (const item of all) {
       if (item.occurredOn < last) {
         break
+      }
+      // Transfer rule 5: a day's net is income − expense only.
+      if (item.kind === 'transfer') {
+        continue
       }
       const sums = daySums.get(item.occurredOn) ?? new Map<string, number>()
       sums.set(
@@ -379,6 +417,7 @@ export class TransactionsPage {
       const fix = params.get('fix')
       if (fix) {
         this.transactionService.openFix(fix)
+        this.transferService.openFix(fix)
         void this.router.navigate([], { queryParams: {}, replaceUrl: true })
       }
     })
@@ -394,6 +433,15 @@ export class TransactionsPage {
         }
       })
     })
+  }
+
+  /** A row opens its form; either side of a transfer opens the whole transfer (Q6). */
+  protected openRow(item: EntryItem): void {
+    if (item.kind === 'transfer') {
+      this.transferService.open({ mode: 'edit', id: item.id })
+    } else {
+      this.transactionService.open({ mode: 'edit', id: item.id })
+    }
   }
 
   protected label(tab: PeriodTab): string {
@@ -434,3 +482,11 @@ export class TransactionsPage {
     }
   }
 }
+
+/** The row's signed amount: a transaction by its category's type, a transfer by its side. */
+const entrySign = (item: EntryItem): number =>
+  item.kind === 'transfer'
+    ? item.side === 'in'
+      ? item.amount
+      : -item.amount
+    : signedAmount(item.amount, item.type)

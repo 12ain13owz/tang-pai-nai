@@ -48,6 +48,7 @@ import type { SelectOption } from '@/shared/types'
 import {
   addDays,
   addQuickAmount,
+  CALC_KEYBOARD,
   evaluate,
   fromDay,
   pressKey,
@@ -60,22 +61,6 @@ import type { TransactionFormGroup } from './transaction-form.type'
 type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
 
 const TYPES: readonly CategoryType[] = ['expense', 'income']
-
-/** Keys a hardware keyboard may type into the keypad. */
-const KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
-  '+': '+',
-  '-': '-',
-  '*': '×',
-  x: '×',
-  '/': '÷',
-  '.': '.',
-  ',': '.',
-  Backspace: '⌫',
-  Delete: 'C',
-  Escape: '=',
-  Enter: '=',
-  '=': '=',
-}
 
 /**
  * The transaction form (docs/features/transaction.md → Web screens; owner's choices in #8): the
@@ -954,7 +939,7 @@ export class TransactionSheet {
     if (!this.keypad() || this.view() !== 'form' || event.target instanceof HTMLInputElement) {
       return
     }
-    const key = /^\d$/.test(event.key) ? (event.key as CalcKey) : KEYBOARD[event.key]
+    const key = /^\d$/.test(event.key) ? (event.key as CalcKey) : CALC_KEYBOARD[event.key]
     if (key) {
       event.preventDefault()
       event.stopPropagation()

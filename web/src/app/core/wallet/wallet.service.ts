@@ -3,7 +3,13 @@ import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } fr
 import type { LocalDatabase } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
 import { cleanHidden, findWallet, toWallet } from './hidden-categories'
-import { DEFAULT_CURRENCY, TRANSACTION_TABLE, WALLET_LIMITS, WALLET_TABLE } from './wallet.type'
+import {
+  DEFAULT_CURRENCY,
+  TRANSACTION_TABLE,
+  TRANSFER_TABLE,
+  WALLET_LIMITS,
+  WALLET_TABLE,
+} from './wallet.type'
 import type {
   Currency,
   CurrencyTotal,
@@ -108,7 +114,8 @@ export class WalletService {
 
   /**
    * Σ income − Σ expense of every live transaction per wallet of the current profile
-   * (transaction rule 12), in one aggregate query. `excludeFromReport` rows count here.
+   * (transaction rule 12), in one aggregate query, − transfers out + transfers in (transfer
+   * rule 6). `excludeFromReport` rows count here.
    */
   private sums = computed(() => {
     const profileId = this.profileService.current()?.id
@@ -119,12 +126,20 @@ export class WalletService {
     const rows = this.read(
       (db) =>
         db.selectObjects(
-          `SELECT t.wallet_id AS wallet, sum(CASE WHEN c.type = 'income' THEN t.amount
-             ELSE -t.amount END) AS total
-           FROM ${TRANSACTION_TABLE} t JOIN categories c ON c.id = t.category_id
-           WHERE t.profile_id = ? AND t.deleted_at IS NULL
+          `SELECT t.wallet_id AS wallet, sum(t.amount) AS total
+           FROM (
+             SELECT t.wallet_id, CASE WHEN c.type = 'income' THEN t.amount ELSE -t.amount END AS amount
+             FROM ${TRANSACTION_TABLE} t JOIN categories c ON c.id = t.category_id
+             WHERE t.profile_id = ? AND t.deleted_at IS NULL
+             UNION ALL
+             SELECT from_wallet_id, -amount FROM ${TRANSFER_TABLE}
+             WHERE profile_id = ? AND deleted_at IS NULL
+             UNION ALL
+             SELECT to_wallet_id, amount FROM ${TRANSFER_TABLE}
+             WHERE profile_id = ? AND deleted_at IS NULL
+           ) t
            GROUP BY t.wallet_id`,
-          [profileId]
+          [profileId, profileId, profileId]
         ),
       []
     )
@@ -134,12 +149,12 @@ export class WalletService {
     return sums
   })
 
-  /** Computed, never stored: `initialBalance` + the wallet's transactions (± transfers, #9). */
+  /** Computed, never stored: `initialBalance` + the wallet's transactions ± transfers. */
   balance(wallet: Wallet): number {
     return wallet.initialBalance + (this.sums().get(wallet.id) ?? 0)
   }
 
-  /** Whether the wallet has live transactions (rules 4 and 6). */
+  /** Whether the wallet has live transactions or transfers (rules 4 and 6, transfer rule 8). */
   hasTransactions(id: string | null): boolean {
     if (id === null) {
       return false
@@ -147,8 +162,10 @@ export class WalletService {
     return this.read(
       (db) =>
         db.selectValue(
-          `SELECT EXISTS (SELECT 1 FROM ${TRANSACTION_TABLE} WHERE wallet_id = ? AND deleted_at IS NULL)`,
-          [id]
+          `SELECT EXISTS (SELECT 1 FROM ${TRANSACTION_TABLE} WHERE wallet_id = ? AND deleted_at IS NULL)
+             OR EXISTS (SELECT 1 FROM ${TRANSFER_TABLE} WHERE from_wallet_id = ? AND deleted_at IS NULL)
+             OR EXISTS (SELECT 1 FROM ${TRANSFER_TABLE} WHERE to_wallet_id = ? AND deleted_at IS NULL)`,
+          [id, id, id]
         ) === 1,
       false
     )

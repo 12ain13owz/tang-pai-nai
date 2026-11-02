@@ -166,3 +166,19 @@ export const addQuickAmount = (expr: string, major: number, minorUnit: number): 
   }
   return next
 }
+
+/** Keys a hardware keyboard may type into the on-screen keypad (digits map to themselves). */
+export const CALC_KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
+  '+': '+',
+  '-': '-',
+  '*': '×',
+  x: '×',
+  '/': '÷',
+  '.': '.',
+  ',': '.',
+  Backspace: '⌫',
+  Delete: 'C',
+  Escape: '=',
+  Enter: '=',
+  '=': '=',
+}
