@@ -24,7 +24,7 @@ No table of its own and no new column. A report reads, for the current profile:
 
 - `transactions` (live, `excludeFromReport = 0`) joined to `categories` (`type`, `parentId`,
   name, icon, colour; archived ones included) and `wallets` (`currencyCode`);
-- `transfers` only for ยอดเริ่มต้น / ยอดสุดท้าย (rule 10), never for income or expense
+- `transfers` only for ยอดเริ่มต้น / ยอดสุดท้าย (rule 9), never for income or expense
   (transfer rule 5).
 
 ## Business rules
