@@ -6,7 +6,8 @@ description: >-
   is stored. Rules (each answers `CONFLICT`): profileId is one of the user's live profiles and
   never changes; walletId and categoryId are the user's live rows of that profile (archived ones
   are accepted); moving to a wallet with another currency is refused. A tombstone runs none of
-  them.
+  them. A live row whose categoryId is a merged category (category rule 15) is moved to the
+  category it was merged into before the checks, and answered `applied` with that row.
 required:
   [
     id,

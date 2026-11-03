@@ -7,6 +7,9 @@ description: >-
   unless this row is archived too; a category with live children stays top-level and keeps its
   type, and one with live transactions keeps its type; name is unique (case-insensitive) among its open siblings (same profile, type and
   parentId); a profile holds at most 200 open categories. A tombstone runs none of them.
+  Merge (rule 15): a tombstone with mergedIntoId (pushed as an upsert) moves the category's live
+  transactions, and its live children, to that category in the same write; a live category pushed
+  under a merged parent is stored merged into the parent's target instead.
 required:
   [
     id,
@@ -65,6 +68,12 @@ properties:
   deletedAt:
     type: [integer, 'null']
     description: Set on a deleted category (a tombstone)
+  mergedIntoId:
+    type: [string, 'null']
+    format: uuid
+    description: >-
+      The category a merged tombstone went into (category rule 15). Always null on a live row; a
+      push without it means null.
   changeSeq:
     type: integer
   updatedBy:
@@ -82,5 +91,6 @@ example:
   createdAt: 1767225600000
   updatedAt: 1767225600000
   deletedAt: null
+  mergedIntoId: null
   changeSeq: 128
   updatedBy: 0199b000-0000-7000-8000-0000000000aa

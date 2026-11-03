@@ -73,4 +73,14 @@ describe('validateCategory', () => {
     expect(result.ok).toBe(false)
     expect(!result.ok && result.message).toContain(message)
   })
+
+  it('keeps mergedIntoId on a tombstone, drops it from a live row and refuses itself', () => {
+    const target = '0199a000-0000-7000-8000-000000000202'
+    const merged = validateCategory({ ...valid, deletedAt: 2000, mergedIntoId: target })
+    expect(merged.ok && merged.row['mergedIntoId']).toBe(target)
+    const live = validateCategory({ ...valid, mergedIntoId: target })
+    expect(live.ok && live.row['mergedIntoId']).toBeNull()
+    expect(validateCategory({ ...valid, deletedAt: 2000, mergedIntoId: valid.id }).ok).toBe(false)
+    expect(validateCategory({ ...valid, deletedAt: 2000, mergedIntoId: 'nope' }).ok).toBe(false)
+  })
 })

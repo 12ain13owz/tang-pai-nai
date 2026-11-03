@@ -331,6 +331,88 @@ describe('CategorySheet', () => {
     expect(toastTitles()).toEqual(['ลบหมวดหมู่ “Tea” แล้ว'])
   })
 
+  describe('merge (rule 15)', () => {
+    const transaction = (id: string, categoryId: string) => {
+      putRow(db, 'transactions', {
+        id,
+        profileId: 'p1',
+        walletId: 'w',
+        categoryId,
+        amount: 1000,
+        occurredOn: '2026-11-02',
+        note: '',
+        excludeFromReport: false,
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+        changeSeq: 5,
+        updatedBy: 'u1',
+      })
+      changes.update((n) => n + 1)
+    }
+    const categoryOf = (id: string) =>
+      db.selectValue('SELECT category_id FROM transactions WHERE id = ?', [id])
+
+    it("merges a used category after the confirm view, from its can't-delete line", async () => {
+      category('Food')
+      category('Coffee', { parentId: 'Food' })
+      category('Cafe', { parentId: 'Food', sortOrder: 1 })
+      transaction('t1', 'Coffee')
+      transaction('t2', 'Coffee')
+      categories.open({ mode: 'edit', id: 'Coffee' })
+      await settle()
+      expect(text()).toContain('หมวดหมู่นี้มีธุรกรรม 2 รายการ จึงลบไม่ได้')
+      expect(button(th.categories.delete)?.disabled).toBe(true)
+      await click(th.categories.mergeLink)
+      expect(text()).toContain(th.categories.mergeOwnParent)
+      row('Cafe')?.click()
+      await settle()
+      expect(text()).toContain('ผสาน “Coffee” เข้ากับ “Cafe” ใช่ไหม')
+      expect(text()).toContain('ย้ายธุรกรรม 2 รายการไปที่ “Cafe”')
+      await click(th.sheet.back)
+      expect(text()).toContain(th.categories.mergeOwnParent)
+      row('Cafe')?.click()
+      await settle()
+      await click(th.categories.mergeConfirm)
+      expect(categories.sheet()).toBeNull()
+      expect(toastTitles()).toEqual(['ผสาน “Coffee” เข้ากับ “Cafe” แล้ว'])
+      expect(categories.byId('Coffee')).toBeNull()
+      expect([categoryOf('t1'), categoryOf('t2')]).toEqual(['Cafe', 'Cafe'])
+    })
+
+    it("chooses what a parent's sub-categories do, from the header", async () => {
+      category('Home')
+      category('Rent', { parentId: 'Home' })
+      category('Bills', { parentId: 'Home', sortOrder: 1 })
+      category('Shop', { sortOrder: 1 })
+      transaction('t1', 'Rent')
+      categories.open({ mode: 'edit', id: 'Home' })
+      await settle()
+      await click(th.categories.mergeAction)
+      expect(row('Rent')).toBeUndefined()
+      row('Shop')?.click()
+      await settle()
+      expect(text()).toContain('หมวดหมู่ย่อย 2 รายการย้ายไปไว้ใต้ “Shop”')
+      expect(text()).toContain('ไม่มีธุรกรรมที่ต้องย้ายไปที่ “Shop”')
+      typeRadio(th.categories.mergeModeAll).click()
+      await settle()
+      expect(text()).toContain('หมวดหมู่ย่อย 2 รายการรวมเข้า “Shop” ด้วย')
+      expect(text()).toContain('ย้ายธุรกรรม 1 รายการไปที่ “Shop”')
+      await click(th.categories.mergeConfirm)
+      expect(categories.childrenOf('Shop')).toEqual([])
+      expect(categories.byId('Rent')).toBeNull()
+      expect(categoryOf('t1')).toBe('Shop')
+    })
+
+    it('offers no merge while there is nowhere to merge into', async () => {
+      category('Only')
+      category('Salary', { type: 'income' })
+      categories.open({ mode: 'edit', id: 'Only' })
+      await settle()
+      expect(button(th.categories.mergeAction)?.disabled).toBe(true)
+    })
+  })
+
   it('asks before throwing away unsaved input, and can go back to it', async () => {
     categories.open({ mode: 'create', type: 'expense', parentId: null })
     await settle()

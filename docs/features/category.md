@@ -9,8 +9,9 @@
 > `layout/category-sheet`, `layout/wallet-sheet`, `features/account/pages/categories-page`.
 > #8.1 made rules 4 and 6's "has transactions" real (type: device + server check) and built the
 > transaction form's picker; sub-categories show in their parent's tinted panel (DESIGN.md §6).
-> **7.3 (merge, rule 15): spec, waiting for the owner's OK** (proposals marked in rule 15 and
-> Open questions → 7.3).
+> **7.3 (merge, rule 15): built** (PR #26, tests in the follow-up): `core/database/category-merge.ts`
+> and the sync hooks `resolve` / `followUp` on the API; `core/category/category-merge.ts`,
+> `CategoryService.merge` and the sheet's `merge` / `confirmMerge` views on the web.
 
 ## Purpose
 
