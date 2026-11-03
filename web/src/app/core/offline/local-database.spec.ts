@@ -20,7 +20,7 @@ describe('LocalDatabase', () => {
       ])
     )
     expect(tables).not.toContain('sync_probes')
-    expect(db.selectValue('PRAGMA user_version')).toBe(9)
+    expect(db.selectValue('PRAGMA user_version')).toBe(10)
     db.close()
   })
 
@@ -36,7 +36,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(9)
+    expect(db.selectValue('PRAGMA user_version')).toBe(10)
     expect(db.selectValue(`SELECT value FROM sync_meta WHERE key = 'deviceId'`)).toBe('d1')
     expect(db.selectValue('SELECT count(*) FROM outbox')).toBe(0)
     expect(db.selectValue('SELECT count(*) FROM profiles')).toBe(0)
@@ -81,7 +81,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(9)
+    expect(db.selectValue('PRAGMA user_version')).toBe(10)
     expect(db.selectValue('SELECT count(*) FROM categories')).toBe(0)
     expect(db.selectValue(`SELECT value FROM sync_meta WHERE key = 'deviceId'`)).toBe('d1')
     db.close()
@@ -91,6 +91,7 @@ describe('LocalDatabase', () => {
     const old = await openTestDatabase()
     old.exec('DROP TABLE transfers')
     old.exec(`DROP TABLE transactions;
+      ALTER TABLE categories DROP COLUMN merged_into_id;
       ALTER TABLE wallets DROP COLUMN hidden_category_ids;
       INSERT INTO wallets (id, profile_id, name, currency_code, initial_balance, icon, color,
         exclude_from_total, is_archived, sort_order, created_at, updated_at)
@@ -100,7 +101,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(9)
+    expect(db.selectValue('PRAGMA user_version')).toBe(10)
     expect(db.selectValue('SELECT hidden_category_ids FROM wallets')).toBe('[]')
     db.close()
   })
@@ -109,13 +110,14 @@ describe('LocalDatabase', () => {
     const old = await openTestDatabase()
     old.exec('DROP TABLE transfers')
     old.exec(`DROP TABLE transactions;
+      ALTER TABLE categories DROP COLUMN merged_into_id;
       INSERT INTO sync_meta (key, value) VALUES ('deviceId', 'd1');
       PRAGMA user_version = 7`)
     const snapshot = old.export()
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(9)
+    expect(db.selectValue('PRAGMA user_version')).toBe(10)
     expect(db.selectValue('SELECT count(*) FROM transactions')).toBe(0)
     expect(
       db
@@ -125,6 +127,22 @@ describe('LocalDatabase', () => {
         )
         .map((row) => row['name'])
     ).toEqual(['transactions_category', 'transactions_profile_day', 'transactions_wallet'])
+    db.close()
+  })
+
+  it('adds categories.merged_into_id (step 10) to a #9 snapshot, null for its categories', async () => {
+    const old = await openTestDatabase()
+    old.exec(`ALTER TABLE categories DROP COLUMN merged_into_id;
+      INSERT INTO categories (id, profile_id, type, parent_id, name, icon, color, is_archived,
+        sort_order, created_at, updated_at)
+        VALUES ('c1', 'p1', 'expense', NULL, 'Food', 'lucideShapes', '#475569', 0, 0, 1, 1);
+      PRAGMA user_version = 9`)
+    const snapshot = old.export()
+    old.close()
+
+    const db = await openTestDatabase(snapshot)
+    expect(db.selectValue('PRAGMA user_version')).toBe(10)
+    expect(db.selectValue('SELECT merged_into_id FROM categories')).toBeNull()
     db.close()
   })
 

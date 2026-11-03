@@ -1,6 +1,6 @@
 import { DOCUMENT } from '@angular/common'
 import { computed, effect, inject, Service, signal, untracked } from '@angular/core'
-import { CATEGORY_TABLE } from '@/core/category'
+import { CATEGORY_TABLE, followMerges, hasMergeLeftovers } from '@/core/category'
 import type { CategoryType } from '@/core/category'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
 import type { LocalDatabase, SqlValue } from '@/core/offline'
@@ -138,9 +138,12 @@ export class TransactionService {
         return
       }
       untracked(() => {
-        if (this.orphans(this.offlineService.db()).length > 0) {
+        const db = this.offlineService.db()
+        if (hasMergeLeftovers(db) || this.orphans(db).length > 0) {
           const now = Date.now()
           this.offlineService.write((tx) => {
+            // A merged category's rows follow it instead (category rule 15).
+            followMerges(tx, now)
             for (const row of this.orphans(tx)) {
               queueWrite(tx, TRANSACTION_TABLE, 'delete', {
                 ...row,

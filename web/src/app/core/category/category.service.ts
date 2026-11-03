@@ -11,9 +11,12 @@ import {
 import type { LocalDatabase } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
 import { cleanHidden, toWallet, TRANSACTION_TABLE, WALLET_TABLE } from '@/core/wallet'
+import { followMerges, hasMergeLeftovers, moveTransactions } from './category-merge'
 import { CATEGORY_LIMITS, CATEGORY_TABLE } from './category.type'
 import type {
   Category,
+  CategoryMergeMode,
+  CategoryMergePlan,
   CategoryNode,
   CategorySheetState,
   CategoryType,
@@ -65,7 +68,8 @@ export class CategoryService {
 
   constructor() {
     // Rule 6: a parent deleted on a device that didn't know all its children leaves live ones
-    // behind; whichever device sees that tombstones the ones it holds.
+    // behind; whichever device sees that tombstones the ones it holds (or, for a merged parent,
+    // merges them into its target, rule 15).
     effect(() => {
       this.offlineService.changes()
       if (!this.canWrite()) {
@@ -73,9 +77,11 @@ export class CategoryService {
       }
       untracked(() => {
         const db = this.offlineService.db()
-        if (this.orphans(db).length > 0) {
+        if (hasMergeLeftovers(db) || this.orphans(db).length > 0) {
           const now = Date.now()
           this.offlineService.write((tx) => {
+            // Rule 15 first: children of a merged parent follow it instead of going.
+            followMerges(tx, now)
             for (const row of this.orphans(tx)) {
               queueWrite(tx, CATEGORY_TABLE, 'delete', { ...row, updatedAt: now, deletedAt: now })
             }
@@ -371,6 +377,206 @@ export class CategoryService {
         queueWrite(db, CATEGORY_TABLE, 'delete', { ...current, updatedAt: now, deletedAt: now })
       }
     })
+  }
+
+  /** Rule 6's line and rule 15's confirm: how many live transactions a category holds. */
+  transactionCount(id: string | null): number {
+    if (id === null) {
+      return 0
+    }
+    return this.read(
+      (db) =>
+        Number(
+          db.selectValue(
+            `SELECT count(*) FROM ${TRANSACTION_TABLE} WHERE category_id = ? AND deleted_at IS NULL`,
+            [id]
+          )
+        ),
+      0
+    )
+  }
+
+  /**
+   * Rule 15: the categories `id` may merge into, as a tree: every open category of its profile
+   * and type, except itself and its own children. A sub-category's own parent comes first.
+   */
+  mergeTargets(id: string): CategoryNode[] {
+    const source = this.byId(id)
+    if (!source) {
+      return []
+    }
+    const nodes = this.toTree(this.ofProfile(source.profileId), source.type, false)
+      .filter((node) => node.category.id !== source.id)
+      .map((node) => ({
+        ...node,
+        children: node.children.filter((child) => child.id !== source.id),
+      }))
+    const own = nodes.findIndex((node) => node.category.id === source.parentId)
+    return own > 0 ? [nodes[own], ...nodes.filter((_, index) => index !== own)] : nodes
+  }
+
+  /** Rule 15: what merging `sourceId` into `targetId` would do; null when it can't. */
+  mergePlan(sourceId: string, targetId: string, mode: CategoryMergeMode): CategoryMergePlan | null {
+    return this.read((db) => {
+      const steps = this.mergeSteps(db, sourceId, targetId, mode)
+      if (!steps) {
+        return null
+      }
+      const count = (id: string) =>
+        Number(
+          db.selectValue(
+            `SELECT count(*) FROM ${TRANSACTION_TABLE} WHERE category_id = ? AND deleted_at IS NULL`,
+            [id]
+          )
+        )
+      const mergedIntoTarget = steps.merges.filter((merge) => merge.into === targetId)
+      return {
+        transactions: [sourceId, ...mergedIntoTarget.map((merge) => merge.child.id)]
+          .map(count)
+          .reduce((sum, value) => sum + value, 0),
+        moved: steps.moves.length + (mode === 'move' ? steps.merges.length : 0),
+        clashes: mode === 'move' ? steps.merges.length : 0,
+        merged: mode === 'all' ? steps.merges.length : 0,
+        parentId: steps.parentId,
+      }
+    }, null)
+  }
+
+  /**
+   * Rule 15: merges `sourceId` into `targetId` in one local write, with no undo (the sheet asks
+   * first). Children move under the target (or its parent) or merge in; transactions move (a
+   * row with a pending op gets its op rewritten, the others change here only: the server makes
+   * the same move when the tombstone lands); merged ids leave the wallets' lists; the merged
+   * categories become tombstones with `mergedIntoId`, pushed last. Whether it merged.
+   */
+  merge(sourceId: string, targetId: string, mode: CategoryMergeMode): boolean {
+    if (!this.canWrite()) {
+      return false
+    }
+    const now = Date.now()
+    let merged = false
+    this.offlineService.write((db) => {
+      const steps = this.mergeSteps(db, sourceId, targetId, mode)
+      if (!steps) {
+        return
+      }
+      let sortOrder = this.nextSortOrder(
+        db,
+        steps.source.profileId,
+        steps.source.type,
+        steps.parentId
+      )
+      for (const child of steps.moves) {
+        queueWrite(db, CATEGORY_TABLE, 'upsert', {
+          ...child,
+          parentId: steps.parentId,
+          sortOrder: sortOrder++,
+          updatedAt: now,
+        })
+        moveOpLast(db, CATEGORY_TABLE, child.id)
+      }
+      const gone = [...steps.merges.map((merge) => merge.child.id), sourceId]
+      this.dropHidden(db, steps.source.profileId, gone, now)
+      for (const { child, into } of [...steps.merges, { child: steps.source, into: targetId }]) {
+        moveTransactions(db, child.id, into, now)
+        queueWrite(db, CATEGORY_TABLE, 'upsert', {
+          ...child,
+          mergedIntoId: into,
+          updatedAt: now,
+          deletedAt: now,
+        })
+        moveOpLast(db, CATEGORY_TABLE, child.id)
+      }
+      merged = true
+    })
+    return merged
+  }
+
+  /** Rule 15's checks and plan: which children move under `parentId`, which merge where. */
+  private mergeSteps(
+    db: LocalDatabase,
+    sourceId: string,
+    targetId: string,
+    mode: CategoryMergeMode
+  ): {
+    source: Category
+    parentId: string
+    moves: Category[]
+    merges: { child: Category; into: string }[]
+  } | null {
+    const source = this.find(db, sourceId)
+    const target = this.find(db, targetId)
+    if (
+      !source ||
+      !target ||
+      source.deletedAt !== null ||
+      target.deletedAt !== null ||
+      target.isArchived ||
+      source.id === target.id ||
+      target.parentId === source.id ||
+      source.profileId !== target.profileId ||
+      source.type !== target.type
+    ) {
+      return null
+    }
+    const parentId = target.parentId ?? target.id
+    const children = this.liveChildren(db, source.id)
+    if (mode === 'all') {
+      return {
+        source,
+        parentId,
+        moves: [],
+        merges: children.map((child) => ({ child, into: target.id })),
+      }
+    }
+    // An open child whose name is taken there merges into that one instead (rule 2).
+    const taken = new Map(
+      this.liveChildren(db, parentId)
+        .filter((child) => !child.isArchived)
+        .map((child) => [child.name.toLowerCase(), child.id])
+    )
+    const moves: Category[] = []
+    const merges: { child: Category; into: string }[] = []
+    for (const child of children) {
+      const clash = child.isArchived ? undefined : taken.get(child.name.toLowerCase())
+      if (clash) {
+        merges.push({ child, into: clash })
+      } else {
+        moves.push(child)
+        if (!child.isArchived) {
+          taken.set(child.name.toLowerCase(), child.id)
+        }
+      }
+    }
+    return { source, parentId, moves, merges }
+  }
+
+  private liveChildren(db: LocalDatabase, parentId: string): Category[] {
+    return db
+      .selectObjects(
+        `SELECT * FROM ${CATEGORY_TABLE} WHERE parent_id = ? AND deleted_at IS NULL ${ORDER}`,
+        [parentId]
+      )
+      .map((row) => fromSql(CATEGORY_TABLE, row) as unknown as Category)
+  }
+
+  /** Rule 15: merged ids leave every live wallet's `hiddenCategoryIds` of the profile. */
+  private dropHidden(db: LocalDatabase, profileId: string, ids: string[], now: number): void {
+    const wallets = db
+      .selectObjects(`SELECT * FROM ${WALLET_TABLE} WHERE profile_id = ? AND deleted_at IS NULL`, [
+        profileId,
+      ])
+      .map((row) => toWallet(fromSql(WALLET_TABLE, row)))
+    for (const wallet of wallets) {
+      const kept = wallet.hiddenCategoryIds.filter((id) => !ids.includes(id))
+      if (kept.length !== wallet.hiddenCategoryIds.length) {
+        queueWrite(db, WALLET_TABLE, 'upsert', {
+          ...wallet,
+          hiddenCategoryIds: kept,
+          updatedAt: now,
+        })
+      }
+    }
   }
 
   /** Rule 10: moves an open category to `to` among its open siblings; rewrites `sortOrder`. */
