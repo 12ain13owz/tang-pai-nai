@@ -146,7 +146,10 @@ Glossary: รายงาน / Report, รายรับ / รายจ่า�
   ต้นงวด / ปลายงวด), E3 average per day, E4 the previous period on a category page, E5 the
   "ไม่รวมในรายงาน" line. **Not** E2 (% against the previous period).
 
-**Open**: the summary card's layout (mock-up round 2): **S1** a statement that adds up top to
-bottom (ยอดเริ่มต้น, รายรับ, รายจ่าย, สุทธิ, then โอนเงิน and ไม่รวมในรายงาน when not zero,
-ยอดสุดท้าย; the average per day under it), **S2** the balances on a card of their own above the
-income / expense card, **S3** the net as the headline with paired tiles. Proposal: **S1**.
+**Open**: the summary card's layout. Round 2 (S1 a statement that adds up, S2 the balances on
+their own card, S3 the net as the headline with paired tiles): the owner liked S3's look but
+not its finish, and found S1 clear but long. Round 3 combines them: **H1** S3's headline and
+tinted income / expense tiles, the balances as one line (ยอดเริ่มต้น → ยอดสุดท้าย), and small
+chips for the average per day, โอนเงิน and ไม่รวมในรายงาน (only when not zero); **H2** the same
+head with a "ยอดเงิน 61,200 → 71,250" row that unfolds S1's statement in place. Proposal:
+**H1**.

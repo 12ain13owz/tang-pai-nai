@@ -56,7 +56,7 @@ figcaption b { color: var(--foreground); }
 .chips { display: flex; gap: 6px; padding: 8px 12px; overflow: hidden; flex: none; border-bottom: 1px solid var(--border); justify-content: flex-end; }
 .chip { white-space: nowrap; font-size: 13px; padding: 5px 10px; border-radius: 999px; color: var(--muted-fg); }
 .chip.on { color: var(--brand); font-weight: 600; box-shadow: inset 0 -2px 0 var(--brand); border-radius: 0; }
-.scroll { flex: 1; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.scroll { flex: 1; overflow: auto; scrollbar-width: none; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
 .tabbar { height: 56px; flex: none; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; text-align: center; font-size: 10.5px; color: var(--muted-fg); background: var(--background); }
 .tabbar .on { color: var(--brand); font-weight: 600; }
 .tabbar .plus { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: var(--primary-fg); display: grid; place-items: center; margin: 0 auto; }
@@ -144,6 +144,27 @@ svg.chart .gl { stroke: var(--grid); stroke-width: 1; }
 .tiles.mt > div { background: transparent; border: 1px solid var(--border); }
 .tiles .v.sm { font-size: 15px; }
 .mini + .mini { padding-top: 4px; }
+.hero { text-align: center; padding: 4px 0 2px; }
+.hero small { color: var(--muted-fg); font-size: 12.5px; }
+.hero .big { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; line-height: 1.25; }
+.tt { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.tt > div { border-radius: 12px; padding: 9px 12px; }
+.tt .ti { background: color-mix(in srgb, var(--income) 10%, var(--card)); }
+.tt .te { background: color-mix(in srgb, var(--expense) 10%, var(--card)); }
+.tt .k { font-size: 12.5px; color: var(--muted-fg); display: flex; align-items: center; gap: 4px; }
+.tt .v { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.flow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.flow .k { font-size: 12px; color: var(--muted-fg); } .flow .v { font-size: 15px; font-weight: 600; }
+.flow .mid { color: var(--muted-fg); display: flex; align-items: center; }
+.flow .mid i { display: block; width: 28px; height: 1px; background: var(--border); }
+.notes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.notes span { font-size: 12px; color: var(--muted-fg); background: var(--muted); border-radius: 999px; padding: 3px 10px; font-variant-numeric: tabular-nums; }
+.more { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; font-size: 14px; }
+.more .k { font-size: 12px; color: var(--muted-fg); }
+.more b { font-weight: 600; }
+.more .chv { color: var(--muted-fg); display: flex; }
+.detail { margin-top: 6px; background: var(--muted); border-radius: 12px; padding: 4px 12px; }
+.detail .ln { padding: 5px 0; font-size: 13.5px; }
 .qs { max-width: 1300px; margin: 0 auto; padding: 0 16px 40px; font-size: 14px; line-height: 1.6; }
 .qs h2 { font-size: 16px; margin: 20px 0 6px; }
 .qs li { margin-bottom: 4px; }
@@ -152,7 +173,7 @@ svg.chart .gl { stroke: var(--grid); stroke-width: 1; }
 <body>
 <header class="page">
   <h1>รายงาน (#10) · mock-up</h1>
-  <p>ข้อมูลตัวอย่าง: ต.ค. 2026, ทุกกระเป๋า, THB. รอบ 2: Q1-B, Q2–Q7 ตามเสนอ, ส่วนเสริม E1 E3 E4 E5 (ไม่เอา E2). เลือกการ์ดสรุป: S1 (ภาพ 1, เสนอ) · S2 (1b) · S3 (1c).
+  <p>ข้อมูลตัวอย่าง: ต.ค. 2026, ทุกกระเป๋า, THB. รอบ 2: Q1-B, Q2–Q7 ตามเสนอ, ส่วนเสริม E1 E3 E4 E5 (ไม่เอา E2). รอบ 3 การ์ดสรุป: H1 (ภาพ 1, เสนอ) · H2 (1b พับ, 1c กาง) · S3 เดิม (1d).
   ตัวเลขทุกตัวคำนวณบนเครื่องจาก local DB ไม่มี API ใหม่.</p>
   <div class="toggle" role="group" aria-label="theme">
     <button data-t="" aria-pressed="true">ตามระบบ</button>
@@ -169,7 +190,7 @@ svg.chart .gl { stroke: var(--grid); stroke-width: 1; }
     <li><b>ส่วนเสริม</b> ยอดเริ่มต้น / ยอดสุดท้าย · เฉลี่ยรายจ่ายต่อวัน · ยอดเดือนก่อนของหมวด · ไม่รวมในรายงาน n รายการ; ไม่เอาการเทียบ % กับช่วงก่อน</li>
   </ul>
   <h2>รอบ 2: เลือกการ์ดสรุป</h2>
-  <ul><li><b>S1 งบที่บวกลบลงตัว (เสนอ)</b> · S2 ยอดเงินแยกการ์ด · S3 สุทธิเป็นตัวเลขหลัก</li></ul>
+  <ul><li>รอบ 2: S3 ถูกใจแต่ยังไม่สวย, S1 ยาวไป</li><li><b>รอบ 3: H1 (เสนอ)</b> S3 + ยอดเงินบรรทัดเดียว + chip · H2 S3 + แถวยอดเงินที่กางเป็นงบ S1 ได้</li></ul>
 </section>
 <script>
 const I = {
@@ -228,6 +249,17 @@ const tabbar = `<div class="tabbar">
 
 const line = (k, v, cls = '', extra = '') => `<div class="ln ${extra}"><span>${k}</span><span class="${cls}">${v}</span></div>`
 const SUM = {
+  // H1: S3's headline and tiles, then the balances as one compact line and small notes.
+  h1: () => `<div class="card"><div class="hero"><small>สุทธิ · ต.ค. 2026</small><div class="big">+16,550.00</div></div>
+    <div class="tt"><div class="ti"><div class="k"><svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 7l10 10M17 7v10H7"/></svg>รายรับ</div><div class="v inc">+45,000.00</div></div><div class="te"><div class="k"><svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 17 17 7M7 7h10v10"/></svg>รายจ่าย</div><div class="v exp">−28,450.00</div></div></div>
+    <div class="flow"><div><div class="k">ยอดเริ่มต้น</div><div class="v">61,200.00</div></div><div class="mid"><i></i>${ic('chevR')}</div><div style="text-align:right"><div class="k">ยอดสุดท้าย</div><div class="v">71,250.00</div></div></div>
+    <div class="notes"><span>เฉลี่ยรายจ่าย 917.74/วัน</span><span>โอนเงิน −5,000.00</span><span>ไม่รวมในรายงาน 2 รายการ ›</span></div></div>`,
+  // H2: H1 folded: the balances row opens S1's statement in place.
+  h2: (open) => `<div class="card"><div class="hero"><small>สุทธิ · ต.ค. 2026</small><div class="big">+16,550.00</div></div>
+    <div class="tt"><div class="ti"><div class="k"><svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 7l10 10M17 7v10H7"/></svg>รายรับ</div><div class="v inc">+45,000.00</div></div><div class="te"><div class="k"><svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 17 17 7M7 7h10v10"/></svg>รายจ่าย</div><div class="v exp">−28,450.00</div></div></div>
+    <div class="more"><span><span class="k">ยอดเงิน</span><br><b>61,200.00 → 71,250.00</b></span><span class="chv">${ic(open ? 'chevD' : 'chevR')}</span></div>
+    ${open ? `<div class="detail">${line('ยอดเริ่มต้น', '61,200.00', '', 'ends')}${line('สุทธิ', '+16,550.00')}${line('โอนเงิน', '−5,000.00', '', 'sm')}${line('ไม่รวมในรายงาน 2 รายการ', '−1,500.00 ›', '', 'sm')}${line('ยอดสุดท้าย', '71,250.00', '', 'ends last')}</div>` : ''}
+    <div class="notes"><span>เฉลี่ยรายจ่าย 917.74/วัน</span></div></div>`,
   // S1: a statement that adds up: start + income − expense ± transfers ± excluded rows = end.
   s1: () => `<div class="card st">
     ${line('ยอดเริ่มต้น', '61,200.00', '', 'ends')}
@@ -256,7 +288,7 @@ const SUM = {
     <div class="mini"><span>เฉลี่ยรายจ่ายต่อวัน</span><span>917.74</span></div>
     <div class="mini"><span>ไม่รวมในรายงาน 2 รายการ</span><span>−1,500.00 ›</span></div></div>`,
 }
-const summary = () => SUM.s1()
+const summary = () => SUM.h1()
 
 function trend(labels, inc, exp, sel, title) {
   const W = 290, H = 150, top = 8, base = 120, left = 34
@@ -309,12 +341,14 @@ const tx = (c, i, name, note, a) => `<div class="tx">${badge(c, i)}<div class="m
 const dayCard = (n, w, m, total, items) => `<div class="day"><div class="dayh"><span class="n">${n}</span><span class="w"><b>${w}</b>${m}</span><span class="t exp">${fmt(-total)}</span></div>${items.join('')}</div>`
 
 const frames = [
-  ['1 · แท็บรายงาน · การ์ดสรุป S1 (เสนอ)', 'การ์ดสรุปแบบงบ: บนลงล่างบวกลบกันได้พอดี ยอดเริ่มต้น + รายรับ − รายจ่าย (= สุทธิ) ± โอนเงิน ± ไม่รวมในรายงาน = ยอดสุดท้าย. สองบรรทัดเล็กโผล่เฉพาะตอนไม่เป็น 0. ใต้นั้น แนวโน้ม → ตามหมวดหลัก (Q1-B).',
+  ['1 · แท็บรายงาน · การ์ดสรุป H1 (S3 + S1, เสนอ)', 'หัวการ์ดแบบ S3: สุทธิตัวใหญ่ + ช่องรายรับ/รายจ่ายพื้นสีจาง ๆ. ยอดเริ่มต้น → ยอดสุดท้ายเหลือบรรทัดเดียว. ส่วนที่ทำให้ยอดสองตัวนี้ต่างจากสุทธิ (โอนเงิน, ไม่รวมในรายงาน) และเฉลี่ยต่อวันเป็น chip เล็ก ๆ โผล่เมื่อไม่เป็น 0.',
     () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${summary()}${trend(M6.l, M6.i, M6.e, 5, 'แนวโน้ม 6 เดือน')}${byCatB()}</div>` + tabbar, 1300],
-  ['1b · การ์ดสรุป S2: แยกยอดเงินออกมา', 'ยอดเริ่มต้น → ยอดสุดท้าย เป็นการ์ดของตัวเองบนสุด (พร้อมวันที่) แล้วการ์ดรายรับ/รายจ่าย/สุทธิแบบแท็บธุรกรรม; เฉลี่ยต่อวันและไม่รวมในรายงานเป็นบรรทัดเล็กท้ายการ์ด.',
-    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${SUM.s2()}${trend(M6.l, M6.i, M6.e, 5, 'แนวโน้ม 6 เดือน')}</div>` + tabbar],
-  ['1c · การ์ดสรุป S3: สุทธิเป็นตัวเลขหลัก', 'สุทธิตัวใหญ่ตรงกลาง, รายรับ/รายจ่ายเป็นช่องคู่, ยอดเริ่มต้น/ยอดสุดท้ายเป็นช่องคู่ใต้นั้น.',
-    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${SUM.s3()}${trend(M6.l, M6.i, M6.e, 5, 'แนวโน้ม 6 เดือน')}</div>` + tabbar],
+  ['1b · H2 พับไว้ (S3 + S1 แบบกดดู)', 'เหมือน H1 แต่แถว "ยอดเงิน 61,200 → 71,250" แตะแล้วกางงบแบบ S1 ออกมาในการ์ด (ภาพ 1c). ปกติสั้นที่สุด รายละเอียดอยู่ครบเมื่ออยากดู.',
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${SUM.h2(false)}${trend(M6.l, M6.i, M6.e, 5, 'แนวโน้ม 6 เดือน')}</div>` + tabbar],
+  ['1c · H2 กางออก', 'งบ S1 ย่อในพื้นสีเทาจาง: ยอดเริ่มต้น + สุทธิ ± โอนเงิน ± ไม่รวมในรายงาน = ยอดสุดท้าย. จำว่ากางหรือพับไว้ต่อเครื่อง.',
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${SUM.h2(true)}${trend(M6.l, M6.i, M6.e, 5, 'แนวโน้ม 6 เดือน')}</div>` + tabbar],
+  ['1d · S3 เดิม (ไว้เทียบ)', 'รอบก่อน.',
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${SUM.s3()}</div>` + tabbar],
   ['2 · Q1-A โดนัท (แบบ Money Lover)', 'โดนัทสีหมวด + รายการ. สีผู้ใช้ซ้ำกันได้ (ร้านอาหาร = อาหาร = สีส้ม) จึงแยกด้วยสีอย่างเดียวไม่ได้ ต้องพึ่งรายการ; เทียบชิ้นที่ใกล้กันยาก.',
     () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${byCatA()}</div>` + tabbar],
   ['3 · Q1-C รายการอย่างเดียว', 'เรียบที่สุด ไม่มีกราฟสัดส่วน มีแค่ % ใต้ชื่อ. กราฟแนวโน้มยังอยู่ด้านบน.',
