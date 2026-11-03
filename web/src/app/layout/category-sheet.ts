@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import type { ValidatorFn } from '@angular/forms'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
@@ -9,13 +9,17 @@ import {
   lucideArchiveRestore,
   lucideCheck,
   lucideChevronRight,
+  lucideMerge,
   lucideTrash2,
+  lucideTriangleAlert,
 } from '@ng-icons/lucide'
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
 import { CATEGORY_DEFAULT_ICON, CATEGORY_LIMITS, CategoryService } from '@/core/category'
 import type {
+  Category,
+  CategoryMergeMode,
   CategorySheetState,
   CategoryType,
   CategoryUnarchiveRefusal,
@@ -46,7 +50,15 @@ import { SheetFrame } from '@/shared/components/sheet'
 import type { SelectOption } from '@/shared/types'
 import type { CategoryFormGroup } from './category-form.type'
 
-type View = 'form' | 'icons' | 'parent' | 'wallets' | 'confirmDelete' | 'confirmDiscard'
+type View =
+  | 'form'
+  | 'icons'
+  | 'parent'
+  | 'wallets'
+  | 'merge'
+  | 'confirmMerge'
+  | 'confirmDelete'
+  | 'confirmDiscard'
 
 const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
   nameTaken: 'categories.unarchiveNameTaken',
@@ -57,8 +69,9 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
 /**
  * The category form (docs/features/category.md → Web screens), a compact sheet (DESIGN.md §6):
  * icon + name, the type, the parent category (a picker view); the icon opens an icon-and-colour
- * view. Create, edit, "fix" a rejected op; in edit mode the header holds archive and delete
- * (after a confirm view, only without sub-categories). Opened through `CategoryService.open()`;
+ * view. Create, edit, "fix" a rejected op; in edit mode the header holds archive, merge (a
+ * picker view, then a confirm view: rule 15) and delete (after a confirm view, only without
+ * sub-categories or transactions). Opened through `CategoryService.open()`;
  * the shell loads it on first use.
  */
 @Component({
@@ -84,7 +97,9 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
       lucideArchiveRestore,
       lucideCheck,
       lucideChevronRight,
+      lucideMerge,
       lucideTrash2,
+      lucideTriangleAlert,
     }),
   ],
   template: `
@@ -100,6 +115,7 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
               <app-sheet-frame
                 [title]="heading() | transloco"
                 [leadingLabel]="'sheet.close' | transloco"
+                [threeActions]="editing() !== null"
                 (leading)="close()"
               >
                 @if (editing(); as category) {
@@ -122,6 +138,18 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
                         size="20"
                         aria-hidden="true"
                       />
+                    </button>
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      class="size-11"
+                      [disabled]="!categoryService.canWrite() || mergeTargets().length === 0"
+                      [attr.aria-label]="'categories.mergeAction' | transloco"
+                      (click)="view.set('merge')"
+                    >
+                      <ng-icon name="lucideMerge" size="20" aria-hidden="true" />
                     </button>
                     <button
                       hlmBtn
@@ -223,7 +251,16 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
                     </p>
                   } @else if (used()) {
                     <p class="rounded-xl bg-muted px-4 py-3 text-sm">
-                      {{ 'categories.deleteUsed' | transloco }}
+                      {{ 'categories.deleteUsed' | transloco: { count: usedCount() } }}
+                      @if (mergeTargets().length > 0 && categoryService.canWrite()) {
+                        <button
+                          type="button"
+                          class="min-h-11 font-semibold text-brand underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                          (click)="view.set('merge')"
+                        >
+                          {{ 'categories.mergeLink' | transloco }}
+                        </button>
+                      }
                     </p>
                   }
                 </div>
@@ -342,6 +379,198 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
               </div>
             </app-sheet-frame>
           }
+          @case ('merge') {
+            <app-sheet-frame
+              [title]="'categories.mergeInto' | transloco"
+              leadingIcon="back"
+              [leadingLabel]="'sheet.back' | transloco"
+              (leading)="view.set('form')"
+            >
+              <ul
+                class="divide-y divide-border rounded-xl border border-border bg-card"
+                [attr.aria-label]="'categories.mergeInto' | transloco"
+              >
+                @for (node of mergeTargets(); track node.category.id) {
+                  <li>
+                    <button
+                      type="button"
+                      class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                      (click)="pickMergeTarget(node.category.id)"
+                    >
+                      <app-icon-badge
+                        [icon]="node.category.icon"
+                        [color]="node.category.color"
+                        [fallback]="defaultIcon"
+                      />
+                      <span class="flex min-w-0 flex-1 flex-col">
+                        <span class="truncate text-base">{{ node.category.name }}</span>
+                        @if (node.category.id === editing()?.parentId) {
+                          <span class="text-xs text-muted-foreground">{{
+                            'categories.mergeOwnParent' | transloco
+                          }}</span>
+                        }
+                      </span>
+                      <ng-icon
+                        name="lucideChevronRight"
+                        size="20"
+                        class="text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                    </button>
+                    @if (node.children.length > 0) {
+                      <ul
+                        class="tpn-tree"
+                        [style.--tree-color]="treeColor(node.category.color)"
+                        [attr.aria-label]="node.category.name"
+                      >
+                        @for (child of node.children; track child.id) {
+                          <li>
+                            <button
+                              type="button"
+                              class="flex min-h-12 w-full items-center gap-3 py-2 pr-4 pl-7 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                              (click)="pickMergeTarget(child.id)"
+                            >
+                              <app-icon-badge
+                                [icon]="child.icon"
+                                [color]="child.color"
+                                [fallback]="defaultIcon"
+                                [size]="32"
+                              />
+                              <span class="min-w-0 flex-1 truncate text-base">{{
+                                child.name
+                              }}</span>
+                              <ng-icon
+                                name="lucideChevronRight"
+                                size="20"
+                                class="text-muted-foreground"
+                                aria-hidden="true"
+                              />
+                            </button>
+                          </li>
+                        }
+                      </ul>
+                    }
+                  </li>
+                }
+              </ul>
+            </app-sheet-frame>
+          }
+          @case ('confirmMerge') {
+            <app-sheet-frame
+              [title]="'categories.mergeAction' | transloco"
+              leadingIcon="back"
+              [leadingLabel]="'sheet.back' | transloco"
+              (leading)="view.set('merge')"
+            >
+              @if (mergeTarget(); as target) {
+                <div class="flex flex-col gap-4">
+                  <div class="flex items-center gap-2 pt-2" aria-hidden="true">
+                    <app-icon-badge
+                      [icon]="f.icon.value"
+                      [color]="f.color.value"
+                      [fallback]="defaultIcon"
+                    />
+                    <ng-icon name="lucideChevronRight" size="20" class="text-muted-foreground" />
+                    <app-icon-badge
+                      [icon]="target.icon"
+                      [color]="target.color"
+                      [fallback]="defaultIcon"
+                    />
+                  </div>
+                  <p class="text-base font-semibold">
+                    {{
+                      'categories.mergeQuestion'
+                        | transloco: { from: editingName(), to: target.name }
+                    }}
+                  </p>
+                  @if (childCount() > 0) {
+                    <app-segmented-field
+                      [control]="mergeMode"
+                      [label]="'categories.mergeChildren' | transloco: { count: childCount() }"
+                      [options]="mergeModeOptions()"
+                    />
+                  }
+                  @if (mergePlan(); as plan) {
+                    <ul class="flex flex-col gap-2 text-sm">
+                      <li class="flex gap-2">
+                        <ng-icon
+                          name="lucideCheck"
+                          size="18"
+                          class="mt-0.5 shrink-0 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                        <span>{{
+                          (plan.transactions > 0
+                            ? 'categories.mergeTransactions'
+                            : 'categories.mergeNoTransactions'
+                          ) | transloco: { count: plan.transactions, name: target.name }
+                        }}</span>
+                      </li>
+                      @if (plan.moved > 0) {
+                        <li class="flex gap-2">
+                          <ng-icon
+                            name="lucideCheck"
+                            size="18"
+                            class="mt-0.5 shrink-0 text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                          <span>{{
+                            (plan.clashes > 0
+                              ? 'categories.mergeMovedClash'
+                              : 'categories.mergeMoved'
+                            )
+                              | transloco
+                                : {
+                                    count: plan.moved,
+                                    clashes: plan.clashes,
+                                    name: mergeParentName(),
+                                  }
+                          }}</span>
+                        </li>
+                      }
+                      @if (plan.merged > 0) {
+                        <li class="flex gap-2">
+                          <ng-icon
+                            name="lucideCheck"
+                            size="18"
+                            class="mt-0.5 shrink-0 text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                          <span>{{
+                            'categories.mergeMerged'
+                              | transloco: { count: plan.merged, name: target.name }
+                          }}</span>
+                        </li>
+                      }
+                      <li class="flex gap-2 text-destructive">
+                        <ng-icon
+                          name="lucideTriangleAlert"
+                          size="18"
+                          class="mt-0.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                        <span>{{
+                          'categories.mergeWarning' | transloco: { name: editingName() }
+                        }}</span>
+                      </li>
+                    </ul>
+                  }
+                </div>
+              }
+              <div sheetFooter class="pt-3">
+                <button
+                  hlmBtn
+                  variant="destructive"
+                  type="button"
+                  class="h-11 w-full text-base"
+                  [disabled]="!mergePlan() || !categoryService.canWrite()"
+                  (click)="merge()"
+                >
+                  {{ 'categories.mergeConfirm' | transloco }}
+                </button>
+              </div>
+            </app-sheet-frame>
+          }
           @case ('confirmDelete') {
             <app-sheet-frame
               [title]="'categories.delete' | transloco"
@@ -438,6 +667,43 @@ export class CategorySheet {
   })
   /** Rules 4 and 6 (#8): with transactions it keeps its type and can only be archived. */
   protected used = computed(() => this.categoryService.hasTransactions(this.editingId()))
+  protected usedCount = computed(() => this.categoryService.transactionCount(this.editingId()))
+  protected treeColor = userColor
+
+  /** Rule 15: where this category can merge into, the one picked, and what children do. */
+  protected mergeTargets = computed(() => {
+    const id = this.editing()?.id
+    return id ? this.categoryService.mergeTargets(id) : []
+  })
+  protected mergeTargetId = signal<string | null>(null)
+  protected mergeTarget = computed<Category | null>(() => {
+    const id = this.mergeTargetId()
+    return id ? this.categoryService.byId(id) : null
+  })
+  protected mergeMode = this.nnfb.control<string>('move')
+  private mergeModeValue = toSignal(this.mergeMode.valueChanges, { initialValue: 'move' })
+  protected mergeModeOptions = computed<SelectOption[]>(() => {
+    this.languageService.language()
+    return [
+      { value: 'move', label: this.transloco.translate('categories.mergeModeMove') },
+      { value: 'all', label: this.transloco.translate('categories.mergeModeAll') },
+    ]
+  })
+  protected mergePlan = computed(() => {
+    const source = this.editing()
+    const target = this.mergeTargetId()
+    return source && target
+      ? this.categoryService.mergePlan(
+          source.id,
+          target,
+          this.mergeModeValue() as CategoryMergeMode
+        )
+      : null
+  })
+  protected mergeParentName = computed(() => {
+    const id = this.mergePlan()?.parentId
+    return id ? (this.categoryService.byId(id)?.name ?? '') : ''
+  })
   /** The profile the name must be unique in (rule 2). */
   private profileId = computed(() => {
     const state = this.state()
@@ -595,6 +861,26 @@ export class CategorySheet {
     this.view.set('form')
   }
 
+  protected pickMergeTarget(id: string): void {
+    this.mergeTargetId.set(id)
+    this.mergeMode.setValue('move')
+    this.view.set('confirmMerge')
+  }
+
+  /** Rule 15: one write, no undo (the confirm view asked); unsaved edits go with the sheet. */
+  protected merge(): void {
+    const source = this.editing()
+    const target = this.mergeTarget()
+    if (!source || !target) {
+      return
+    }
+    const mode = this.mergeMode.value as CategoryMergeMode
+    if (this.categoryService.merge(source.id, target.id, mode)) {
+      toast(this.transloco.translate('categories.merged', { from: source.name, to: target.name }))
+      this.finish()
+    }
+  }
+
   protected save(): void {
     const state = this.state()
     if (!state || this.form.invalid || !this.categoryService.canWrite()) {
@@ -713,6 +999,7 @@ export class CategorySheet {
 
   private start(state: CategorySheetState): void {
     this.view.set('form')
+    this.mergeTargetId.set(null)
     this.dirty.set(false)
     this.refusal.set(null)
     if (state.mode === 'create') {

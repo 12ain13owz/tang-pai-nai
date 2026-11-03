@@ -18,7 +18,14 @@ import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
   providers: [provideIcons({ lucideChevronLeft, lucideX })],
   host: { class: 'flex min-h-0 flex-1 flex-col' },
   template: `
-    <div class="grid min-h-13 grid-cols-[5.5rem_minmax(0,1fr)_5.5rem] items-center">
+    <div
+      class="grid min-h-13 items-center"
+      [class]="
+        threeActions()
+          ? 'grid-cols-[2.75rem_minmax(0,1fr)_8.25rem]'
+          : 'grid-cols-[5.5rem_minmax(0,1fr)_5.5rem]'
+      "
+    >
       <div class="justify-self-start">
         <button
           hlmBtn
@@ -52,5 +59,10 @@ export class SheetFrame {
   /** X closes the sheet; ‹ goes back to the sheet's previous view. */
   leadingIcon = input<'close' | 'back'>('close')
   leadingLabel = input.required<string>()
+  /**
+   * Three header icons (the category form's archive, merge and delete): the right side takes
+   * their width and the title centres in what is left, instead of running under them.
+   */
+  threeActions = input(false)
   leading = output()
 }
