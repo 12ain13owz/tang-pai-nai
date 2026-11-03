@@ -22,6 +22,7 @@ import { WalletService } from '@/core/wallet'
 import { EmptyState } from '@/shared/components/empty-state'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
+import { PeriodStrip, Swipe } from '@/shared/components/period'
 import { addDays, formatAmount, formatMoney, fromDay } from '@/shared/utils'
 
 /** One day's card: the big date, its words, the day's net and its rows (rule 13's order). */
@@ -55,7 +56,7 @@ interface DayGroup {
  */
 @Component({
   selector: 'app-transactions-page',
-  imports: [TranslocoPipe, NgIcon, HlmButton, EmptyState, IconBadge],
+  imports: [TranslocoPipe, NgIcon, HlmButton, EmptyState, IconBadge, PeriodStrip, Swipe],
   providers: [provideIcons({ lucideArrowLeftRight, lucideCloud, lucideReceiptText })],
   host: { class: 'flex flex-col' },
   template: `
@@ -75,30 +76,13 @@ interface DayGroup {
         </span>
       }
     </div>
-    <div
-      #strip
-      class="flex [scrollbar-width:none] gap-1 overflow-x-auto px-2 pb-2 [&::-webkit-scrollbar]:hidden"
-      role="tablist"
-      [attr.aria-label]="'transactions.periods' | transloco"
-    >
-      @for (tab of transactionService.tabs(); track tab) {
-        <button
-          type="button"
-          role="tab"
-          class="min-h-10 shrink-0 rounded-full px-3.5 text-sm whitespace-nowrap text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-selected:bg-muted aria-selected:font-semibold aria-selected:text-foreground"
-          [attr.aria-selected]="tab === transactionService.tab()"
-          [attr.data-tab]="tab"
-          (click)="transactionService.tab.set(tab)"
-        >
-          {{ label(tab) }}
-        </button>
-      }
-    </div>
-    <div
-      class="flex flex-col gap-3 px-4 pt-1 pb-4"
-      (pointerdown)="swipeStart($event)"
-      (pointerup)="swipeEnd($event)"
-    >
+    <app-period-strip
+      [chips]="chips()"
+      [selected]="transactionService.tab()"
+      [label]="'transactions.periods' | transloco"
+      (chosen)="choose($event)"
+    />
+    <div class="flex flex-col gap-3 px-4 pt-1 pb-4" appSwipe (swiped)="move($event)">
       @for (line of summary(); track line.currencyCode) {
         <section
           class="grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl border border-border bg-card px-4 py-3"
@@ -256,8 +240,6 @@ export class TransactionsPage {
   private transloco = inject(TranslocoService)
   private route = inject(ActivatedRoute)
   private router = inject(Router)
-  private strip = viewChild.required<ElementRef<HTMLElement>>('strip')
-  private swipeFrom: { x: number; y: number } | null = null
   private more = viewChild<ElementRef<HTMLElement>>('more')
   private readonly PAGE = 100
   /**
@@ -421,18 +403,6 @@ export class TransactionsPage {
         void this.router.navigate([], { queryParams: {}, replaceUrl: true })
       }
     })
-    // Keep the chosen tab in view (the strip starts at the oldest period).
-    effect(() => {
-      const tab = this.transactionService.tab()
-      this.transactionService.tabs()
-      const strip = this.strip().nativeElement
-      queueMicrotask(() => {
-        const button = strip.querySelector<HTMLElement>(`[data-tab="${String(tab)}"]`)
-        if (button) {
-          strip.scrollLeft = button.offsetLeft - (strip.clientWidth - button.offsetWidth) / 2
-        }
-      })
-    })
   }
 
   /** A row opens its form; either side of a transfer opens the whole transfer (Q6). */
@@ -444,39 +414,30 @@ export class TransactionsPage {
     }
   }
 
-  protected label(tab: PeriodTab): string {
+  /** The period tabs with their labels (`09/2026 · เดือนที่แล้ว · เดือนนี้ · อนาคต`). */
+  protected chips = computed(() => {
     this.languageService.language()
-    const result = periodLabel(
-      this.transactionService.unit(),
-      tab,
-      this.transactionService.today(),
-      this.transactionService.custom()
-    )
-    return 'key' in result ? this.transloco.translate(result.key) : result.text
-  }
+    const unit = this.transactionService.unit()
+    const today = this.transactionService.today()
+    const custom = this.transactionService.custom()
+    return this.transactionService.tabs().map((tab) => {
+      const result = periodLabel(unit, tab, today, custom)
+      return {
+        id: tab,
+        label: 'key' in result ? this.transloco.translate(result.key) : result.text,
+      }
+    })
+  })
 
-  protected swipeStart(event: PointerEvent): void {
-    this.swipeFrom = event.pointerType === 'mouse' ? null : { x: event.clientX, y: event.clientY }
+  protected choose(id: number | string): void {
+    this.transactionService.tab.set(id as PeriodTab)
   }
 
   /** A sideways swipe over the list moves to the next or previous period. */
-  protected swipeEnd(event: PointerEvent): void {
-    const from = this.swipeFrom
-    this.swipeFrom = null
-    if (!from) {
-      return
-    }
-    const dx = event.clientX - from.x
-    const dy = event.clientY - from.y
-    if (Math.abs(dx) < 60 || Math.abs(dy) > 40) {
-      return
-    }
+  protected move(step: 1 | -1): void {
     const tabs = this.transactionService.tabs()
     const index = tabs.indexOf(this.transactionService.tab())
-    if (index < 0 || (index === 0 && dx > 0)) {
-      return
-    }
-    const next = tabs.at(index + (dx < 0 ? 1 : -1))
+    const next = index < 0 ? undefined : tabs[index + step]
     if (next !== undefined) {
       this.transactionService.tab.set(next)
     }
