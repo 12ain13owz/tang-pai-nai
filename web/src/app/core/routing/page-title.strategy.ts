@@ -16,6 +16,8 @@ export class PageTitleStrategy extends TitleStrategy {
   private snapshot: RouterStateSnapshot | null = null
 
   pageTitle = signal('')
+  /** A page whose title is data (a category's name in Reports) sets it here while it shows. */
+  private titleOverride: string | null = null
 
   constructor() {
     super()
@@ -27,11 +29,18 @@ export class PageTitleStrategy extends TitleStrategy {
     this.render()
   }
 
+  /** Shows `title` instead of the route's until it's set back to null. */
+  setOverride(title: string | null): void {
+    this.titleOverride = title
+    this.render()
+  }
+
   private render(): void {
     const appName = this.transloco.translate('app.name')
     const key = this.snapshot ? this.buildTitle(this.snapshot) : undefined
-    const pageTitle = key ? this.transloco.translate(key) : appName
+    const routeTitle: string = key ? this.transloco.translate(key) : appName
+    const pageTitle = this.titleOverride ?? routeTitle
     this.pageTitle.set(pageTitle)
-    this.title.setTitle(key ? `${pageTitle} · ${appName}` : appName)
+    this.title.setTitle(key || this.titleOverride ? `${pageTitle} · ${appName}` : appName)
   }
 }

@@ -6,7 +6,13 @@ import { lucideChevronLeft } from '@ng-icons/lucide'
 import { ProfileService } from '@/core/profile'
 import { PageTitleStrategy } from '@/core/routing'
 import { WalletService } from '@/core/wallet'
-import { currentUrl, isProfileTab, isTransactionsTab, parentOf } from './profile-routes'
+import {
+  currentUrl,
+  isProfileTab,
+  isReportsTab,
+  isTransactionsTab,
+  parentOf,
+} from './profile-routes'
 import { ProfileSwitcher } from './profile-switcher'
 import { SessionBanner } from './session-banner'
 import { SyncStatus } from './sync-status'
@@ -35,7 +41,7 @@ import { UpdateBanner } from './update-banner'
       <h1 class="sr-only">{{ pageTitleStrategy.pageTitle() }}</h1>
       <!-- Its own chunk (initial bundle budget); the placeholder keeps the header's height. -->
       @defer (on immediate) {
-        <app-transactions-header />
+        <app-transactions-header [view]="reportsHeader() ? 'reports' : 'transactions'" />
       } @placeholder {
         <div class="h-14"></div>
       }
@@ -74,14 +80,18 @@ export class AppHeader {
   /** The profile tabs show the current profile instead of the title (profile.md → Web screens). */
   /** A page inside the Account tab goes back to it (owner's choice A1 in #7). */
   protected parent = computed(() => parentOf(this.url()))
+  /** The Reports tab's own page shares the Transactions tab's header (report.md Q2–Q3). */
+  protected reportsHeader = computed(() => isReportsTab(this.url()))
   /** The Transactions tab's own header, once its first-wallet step is done (wallet rule 12). */
   protected transactionsHeader = computed(
     () =>
-      isTransactionsTab(this.url()) &&
+      (isTransactionsTab(this.url()) || this.reportsHeader()) &&
       this.profileService.current() !== null &&
       this.walletService.hasWallet()
   )
+  /** A page inside a tab (‹) shows its title instead of the profile. */
   protected showSwitcher = computed(
-    () => isProfileTab(this.url()) && this.profileService.current() !== null
+    () =>
+      isProfileTab(this.url()) && this.parent() === null && this.profileService.current() !== null
   )
 }

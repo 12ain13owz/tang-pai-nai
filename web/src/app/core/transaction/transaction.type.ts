@@ -91,6 +91,16 @@ export interface TransactionValues {
 }
 
 /** Days from `from` to `to`, both included; null is open on that side. */
+/** Narrows `TransactionService.list` (the report's drill-downs, report.md). */
+export interface ListFilter {
+  /** Only rows on these categories. */
+  categoryIds?: readonly string[]
+  /** Only rows counted in reports, or only the ones left out (`excludeFromReport`). */
+  report?: 'counted' | 'excluded'
+  /** Only rows of wallets in this currency. */
+  currencyCode?: string
+}
+
 export interface DayRange {
   from: string | null
   to: string | null

@@ -6,6 +6,7 @@ import th from '@/core/i18n/th.json'
 import { SyncService } from '@/core/offline'
 import type { SyncStatus } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
+import { ReportService } from '@/core/report'
 import { TransactionService, TransferService } from '@/core/transaction'
 import type { PeriodUnit, TransferSheetState } from '@/core/transaction'
 import { TransactionsHeader } from './transactions-header'
@@ -51,6 +52,10 @@ describe('TransactionsHeader', () => {
       ],
       providers: [
         { provide: TransactionService, useValue: transactions },
+        {
+          provide: ReportService,
+          useValue: { unit: signal('month'), customSheet: signal(false), selectUnit: vi.fn() },
+        },
         {
           provide: TransferService,
           useValue: { open: (state: TransferSheetState) => transferSheet.set(state) },

@@ -1,4 +1,4 @@
-import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core'
+import { Component, computed, ElementRef, inject, input, signal, viewChild } from '@angular/core'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
@@ -13,6 +13,8 @@ import {
 } from '@ng-icons/lucide'
 import { LanguageService } from '@/core/i18n'
 import { ProfileService } from '@/core/profile'
+import { REPORT_UNITS, ReportService } from '@/core/report'
+import type { ReportUnit } from '@/core/report'
 import { PERIOD_UNITS, TransactionService, TransferService } from '@/core/transaction'
 import type { PeriodUnit } from '@/core/transaction'
 import { IconBadge } from '@/shared/components/icon-badge'
@@ -23,7 +25,8 @@ import { SyncStatus } from './sync-status'
  * profile's icon on the left, the wallet switcher in the very centre, the sync icon and the ⋮
  * menu on the right; both sides are the same width so the switcher stays centred. The menu is a
  * two-level list (transfer.md → Web screens, owner's choice B in #9): "โอนเงิน" and "ดูตาม ›",
- * which turns the menu into the units.
+ * which turns the menu into the units. The Reports tab uses it too (report.md Q2–Q3): the same
+ * wallet, its own units (month, quarter, year, custom) and no "โอนเงิน".
  */
 @Component({
   selector: 'app-transactions-header',
@@ -109,15 +112,17 @@ import { SyncStatus } from './sync-status'
         (keydown)="onMenuKey($event)"
       >
         @if (level() === 'main') {
-          <button
-            type="button"
-            role="menuitem"
-            class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
-            (click)="transfer()"
-          >
-            <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
-            <span class="flex-1">{{ 'transfers.open' | transloco }}</span>
-          </button>
+          @if (view() === 'transactions') {
+            <button
+              type="button"
+              role="menuitem"
+              class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+              (click)="transfer()"
+            >
+              <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
+              <span class="flex-1">{{ 'transfers.open' | transloco }}</span>
+            </button>
+          }
           <button
             type="button"
             role="menuitem"
@@ -128,7 +133,7 @@ import { SyncStatus } from './sync-status'
             <ng-icon name="lucideCalendarRange" size="20" aria-hidden="true" />
             <span class="flex-1">{{ 'transactions.viewBy' | transloco }}</span>
             <span class="flex items-center gap-0.5 text-sm text-muted-foreground">
-              {{ 'transactions.unit.' + transactionService.unit() | transloco }}
+              {{ 'transactions.unit.' + currentUnit() | transloco }}
               <ng-icon name="lucideChevronRight" size="16" aria-hidden="true" />
             </span>
           </button>
@@ -143,18 +148,18 @@ import { SyncStatus } from './sync-status'
             <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
             {{ 'transactions.viewBy' | transloco }}
           </button>
-          @for (unit of units; track unit) {
+          @for (unit of units(); track unit) {
             <button
               type="button"
               role="menuitemradio"
               class="flex min-h-11 w-full items-center justify-between gap-6 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
-              [class.font-semibold]="unit === transactionService.unit()"
-              [class.text-brand]="unit === transactionService.unit()"
-              [attr.aria-checked]="unit === transactionService.unit()"
+              [class.font-semibold]="unit === currentUnit()"
+              [class.text-brand]="unit === currentUnit()"
+              [attr.aria-checked]="unit === currentUnit()"
               (click)="choose(unit)"
             >
               {{ 'transactions.unit.' + unit | transloco }}
-              @if (unit === transactionService.unit()) {
+              @if (unit === currentUnit()) {
                 <ng-icon name="lucideCheck" size="18" aria-hidden="true" />
               }
             </button>
@@ -168,10 +173,18 @@ export class TransactionsHeader {
   protected profileService = inject(ProfileService)
   protected transactionService = inject(TransactionService)
   private transferService = inject(TransferService)
+  private reportService = inject(ReportService)
   private languageService = inject(LanguageService)
   private transloco = inject(TranslocoService)
 
-  protected readonly units = PERIOD_UNITS
+  /** Which tab it heads: the Transactions tab's menu, or the Reports tab's (report.md Q2). */
+  view = input<'transactions' | 'reports'>('transactions')
+  protected units = computed<readonly PeriodUnit[]>(() =>
+    this.view() === 'reports' ? REPORT_UNITS : PERIOD_UNITS
+  )
+  protected currentUnit = computed<PeriodUnit>(() =>
+    this.view() === 'reports' ? this.reportService.unit() : this.transactionService.unit()
+  )
   protected walletName = computed(() => {
     this.languageService.language()
     return (
@@ -265,6 +278,14 @@ export class TransactionsHeader {
 
   protected choose(unit: PeriodUnit): void {
     this.closeMenu(true)
+    if (this.view() === 'reports') {
+      if (unit === 'custom') {
+        this.reportService.customSheet.set(true)
+      } else {
+        this.reportService.selectUnit(unit as ReportUnit)
+      }
+      return
+    }
     if (unit === 'custom') {
       this.transactionService.customSheet.set(true)
       return
