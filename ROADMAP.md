@@ -83,8 +83,8 @@ merging.
 | 7   | Category                   | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms); 7.3 merge. [spec](docs/features/category.md)                                          |
 | 8   | Transaction                | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                         |
 | 9   | Transfer                   | ✅  | ✅  | two linked rows of one `transfers` row, outside income / expense; ⋮ menu, Wallets tab button. [spec](docs/features/transfer.md)                                          |
-| 10  | **Reports** ← next         | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                                               |
-| 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                                                                       |
+| 10  | Reports                    | —   | ✅  | on the device: H1 summary with balances, trend, by category with drill-down pages; Transactions header shared. [spec](docs/features/report.md)                           |
+| 11  | **Budget** ← next          | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                                                                       |
 | 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                                                                           |
 | 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                                                                                |
 | 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                                                                       |
@@ -100,18 +100,57 @@ decision "Local-first").
 
 ---
 
-## Next: Reports (#10)
+## Next: Budget (#11)
 
-Not started: write `docs/features/report.md` first (month summary, by-category breakdown,
-month-to-month trend; ROADMAP → Status). Transfers never count as income or expense there
-(transfer rule 5), and `excludeFromReport` rows stay out. A merged category (7.3) is a
-tombstone whose transactions already moved to its target, so reports read live categories as
-usual. The initial bundle is 708 kB after 7.3 (warning at 750 kB). Known, for later:
+Not started: write `docs/features/budget.md` first (per category or total, per period,
+progress and an over-budget warning; ROADMAP → Status). The report's by-category aggregate
+(`ReportService.byCategory` / `categoryTotal`, report.md → Volume) is the spending a budget
+compares with, and its periods are `period.ts`'s. Known, for later:
 
+- The initial bundle is 713 kB after #10 (warning at 750 kB); keep new screens lazy and their
+  services out of the shell (#10 moved its range sheet into the page for this).
 - Headless Chromium breaks some Thai lines inside a word ("บัน/ทึก"); the app's older notices do
   the same, so it's the test browser's line breaking, not our markup.
-- The 20,000-row timings of 8.1 weren't measured again in #9 (the transaction queries are the
-  same; the list adds a merge of the period's transfer sides, balances one `UNION ALL`).
+
+## Done: Reports (#10)
+
+- **Decided at the start of #10** (owner, three rounds of the mock-up
+  `docs/features/mockups/report.html`; report.md → Open questions): by category as a thin
+  split bar over a ranked list with bars (Q1-B), drawn with our own elements, **no chart
+  library**; month (default) / quarter / year / custom through the ⋮ "ดูตาม", its own choice
+  kept per profile, trend 6 months / 4 quarters / 5 years (Q2); the Transactions tab's wallet
+  switcher and chosen wallet (Q3); money on a parent itself as "ไม่ระบุหมวดย่อย" (Q4); drill-down
+  pages in the tab, rows open the transaction sheet (Q5); one currency at a time with chips
+  only when needed (Q6); no API (Q7); extras ยอดเริ่มต้น / ยอดสุดท้าย (owner's wording),
+  average per day, the previous period on a category page, the "ไม่รวมในรายงาน" line and page,
+  not the % against the previous period; the summary card **H1** (S3's net headline and tinted
+  tiles + S1's balances on one line + small chips).
+- **Decided while building** (owner, from screenshots): the previous period named by its
+  dates ("เทียบกับ ก.ย. 2026: 1,135.00", not "เดือนที่แล้ว", which is also a chip); a wallet with
+  only transfers shows its summary (its balances moved); a category page lists only counted
+  rows; no "อื่น ๆ" fold; the chips stay on the report pages.
+- **Found and fixed**: the Transactions tab jumped back to "เดือนนี้" (and its remembered
+  wallet) after any save or pull while another period was chosen (since 8.1):
+  `ProfileService.current()` is a new object after every write or pull, which re-ran the
+  effect that restores the view. `ProfileService.currentId()` now feeds it (and the report's);
+  a spec fails without it.
+- **Web** (no API change): `core/report` (`ReportService`: unit / tab / custom / type /
+  currency, `summaries`, `breakdown`, `byCategory`, `categoryTotal`, `trend`,
+  `previousRange`, balances as one `UNION ALL` aggregate); `features/reports` (the tab, the
+  category and left-out pages, `components/` summary card, trend, share list, day list,
+  `report-view.ts`); `TransactionService.list` filter; `layout/transactions-header` `view`
+  input (`app-header` shows it on `/reports`, `parentOf` goes up a report page, the
+  `PageTitleStrategy.setOverride` title); `shared/components/period` (`app-period-strip`,
+  `appSwipe`, `app-custom-range-sheet` with `range` / `applied`, now used by both tabs).
+- **Checked**: Playwright at 375×812 in th/en × light/dark on `npm run build` with a seeded
+  family (Oct: 151,625 + 21,569 − 5,000 transfer − 1,500 left out = 166,694); the bar tap, the
+  left-out page, a parent, "ไม่ระบุหมวดย่อย" and a child, quarter / year / custom, the savings
+  wallet; `setOffline` (an edit moves the totals at once, synced 0.3 s after) and the API
+  really stopped ("เซิร์ฟเวอร์ไม่ตอบ · รอ 1", synced by itself 15.6 s after it came back, its
+  boot included); 20,000 rows (report.md → Volume: the tab ≈ 0.12 s, a period 0.09–0.15 s, a
+  year of one category ≈ 0.28 s; the Transactions tab again: month ≈ 0.10 s, "ทั้งหมด" ≈ 0.47
+  s). Tests: web 511 (API unchanged, 544). Initial bundle 713 kB.
+- **Known**: several currencies are built but only seen in specs (only THB is active).
 
 ## Done: Category merge (7.3)
 

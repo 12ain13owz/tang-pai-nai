@@ -72,6 +72,12 @@ export class ProfileService {
     return profiles.find((profile) => profile.id === this.storedId()) ?? profiles.at(0) ?? null
   })
   /**
+   * The current profile's id. `current()` is a new object after every local write or pull (the
+   * rows are read again), so an effect that should run only when the profile **changes** (a
+   * screen's remembered view) reads this instead.
+   */
+  currentId = computed(() => this.current()?.id ?? null)
+  /**
    * Whether the device knows its profiles: false only while a new device waits for its first
    * pull, so the create step doesn't flash before the user's profiles arrive.
    */

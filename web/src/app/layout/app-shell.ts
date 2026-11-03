@@ -7,10 +7,10 @@ import { ProfileService } from '@/core/profile'
 import { TransactionService, TransferService } from '@/core/transaction'
 import { KeyboardService } from '@/core/viewport'
 import { WalletService } from '@/core/wallet'
+import { CustomRangeSheet } from '@/shared/components/period'
 import { AppHeader } from './app-header'
 import { BottomTabBar } from './bottom-tab-bar'
 import { CategorySheet } from './category-sheet'
-import { CustomRangeSheet } from './custom-range-sheet'
 import { ProfileCreateStep } from './profile-create-step'
 import { currentUrl, isProfileTab, isWalletTab } from './profile-routes'
 import { ProfileSheet } from './profile-sheet'
@@ -84,7 +84,11 @@ import { WalletSheet } from './wallet-sheet'
       <app-view-wallet-sheet [(open)]="transactionService.walletSheet" />
     }
     @defer (when transactionService.customSheet()) {
-      <app-custom-range-sheet [(open)]="transactionService.customSheet" />
+      <app-custom-range-sheet
+        [(open)]="transactionService.customSheet"
+        [range]="transactionService.custom()"
+        (applied)="transactionService.selectCustom($event)"
+      />
     }
     @defer (when transactionService.sheet() !== null) {
       <app-transaction-sheet />

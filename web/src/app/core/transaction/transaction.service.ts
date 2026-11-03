@@ -14,6 +14,7 @@ import type { PeriodTab, PeriodUnit } from './period'
 import type {
   DayRange,
   EntryItem,
+  ListFilter,
   MoneySummary,
   Transaction,
   TransactionItem,
@@ -119,7 +120,7 @@ export class TransactionService {
   constructor() {
     // Each profile has its own remembered wallet and unit; a new profile starts on "ทุกกระเป๋า".
     effect(() => {
-      const profileId = this.profileService.current()?.id ?? ''
+      const profileId = this.profileService.currentId() ?? ''
       untracked(() => {
         const saved = this.readView(profileId)
         this.viewWalletId.set(saved.walletId)
@@ -161,8 +162,12 @@ export class TransactionService {
    * The current profile's live transactions in `range` (in order, rule 13), with their category
    * and wallet; only `walletIds` when given.
    */
-  list(range: DayRange, walletIds: readonly string[] | null = null): TransactionItem[] {
-    const where = this.where(range, walletIds)
+  list(
+    range: DayRange,
+    walletIds: readonly string[] | null = null,
+    filter: ListFilter = {}
+  ): TransactionItem[] {
+    const where = this.where(range, walletIds, filter)
     if (!where) {
       return []
     }
@@ -497,7 +502,8 @@ export class TransactionService {
   /** The WHERE clause of `list` / `summary`, or null when no wallet is chosen. */
   private where(
     range: DayRange,
-    walletIds: readonly string[] | null
+    walletIds: readonly string[] | null,
+    filter: ListFilter = {}
   ): { sql: string; params: SqlValue[] } | null {
     const profileId = this.profileService.current()?.id
     if (!profileId || walletIds?.length === 0) {
@@ -516,6 +522,17 @@ export class TransactionService {
     if (walletIds) {
       parts.push(`t.wallet_id IN (${walletIds.map(() => '?').join(', ')})`)
       params.push(...walletIds)
+    }
+    if (filter.categoryIds) {
+      parts.push(`t.category_id IN (${filter.categoryIds.map(() => '?').join(', ') || 'NULL'})`)
+      params.push(...filter.categoryIds)
+    }
+    if (filter.report) {
+      parts.push(`t.exclude_from_report = ${filter.report === 'excluded' ? 1 : 0}`)
+    }
+    if (filter.currencyCode) {
+      parts.push(`t.wallet_id IN (SELECT id FROM ${WALLET_TABLE} WHERE currency_code = ?)`)
+      params.push(filter.currencyCode)
     }
     return { sql: parts.join(' AND '), params }
   }

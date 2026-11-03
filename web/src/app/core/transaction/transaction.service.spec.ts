@@ -291,6 +291,46 @@ describe('TransactionService', () => {
     expect(service.range()).toEqual({ from: '2026-01-01', to: '2026-12-31' })
   })
 
+  it('keeps the chosen period and wallet after a write or a pull (the profile row is read again)', () => {
+    service.today.set('2026-11-02')
+    transaction('old', { occurredOn: '2026-08-20' })
+    TestBed.tick()
+    service.selectWallet('card')
+    service.tab.set(-1)
+    service.save(null, values)
+    TestBed.tick()
+    pulled('profiles', {
+      id: 'p1',
+      name: 'renamed',
+      icon: 'lucideHouse',
+      color: '#16a34a',
+      sortOrder: 0,
+    })
+    TestBed.tick()
+    expect(service.tab()).toBe(-1)
+    expect(service.viewWalletId()).toBe('card')
+  })
+
+  it('narrows the list to categories, counted or excluded rows, and a currency (report.md)', () => {
+    wallet('usd', { currencyCode: 'USD' })
+    category('coffee', 'expense', { parentId: 'food' })
+    transaction('a')
+    transaction('b', { categoryId: 'coffee' })
+    transaction('c', { categoryId: 'coffee', excludeFromReport: true })
+    transaction('d', { categoryId: 'coffee', walletId: 'usd' })
+    transaction('e', { categoryId: 'salary' })
+    const ids = (filter: Parameters<TransactionService['list']>[2]) =>
+      service
+        .list(november, null, filter)
+        .map((item) => item.id)
+        .sort()
+    expect(ids({ categoryIds: ['food', 'coffee'] })).toEqual(['a', 'b', 'c', 'd'])
+    expect(ids({ categoryIds: ['coffee'], report: 'counted' })).toEqual(['b', 'd'])
+    expect(ids({ report: 'excluded' })).toEqual(['c'])
+    expect(ids({ categoryIds: ['coffee'], currencyCode: 'THB' })).toEqual(['b', 'c'])
+    expect(ids({ categoryIds: [] })).toEqual([])
+  })
+
   it('opens a fix with the refused values', () => {
     service.save(null, values)
     const op = listOps(db, 'pending')[0]

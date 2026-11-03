@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reports mock-up (#10)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --background: oklch(0.975 0.007 265); --foreground: oklch(0.2 0.03 265);
+  --card: oklch(1 0 0); --muted: oklch(0.94 0.014 265); --muted-fg: oklch(0.48 0.03 265);
+  --primary: oklch(0.8 0.15 80); --primary-fg: oklch(0.2 0.03 70);
+  --destructive: oklch(0.55 0.22 27); --border: oklch(0.91 0.014 265); --brand: oklch(0.53 0.12 75);
+  --income: oklch(0.52 0.14 155); --expense: oklch(0.55 0.2 25); --mix: 9%; --grid: oklch(0.91 0.014 265);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+    --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+    --primary: oklch(0.82 0.15 82); --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+    --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22); --mix: 15%; --grid: oklch(1 0 0 / 8%);
+  }
+}
+:root[data-theme="dark"] {
+  --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+  --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+  --primary: oklch(0.82 0.15 82); --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+  --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22); --mix: 15%; --grid: oklch(1 0 0 / 8%);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--foreground);
+  font-family: "Noto Sans Thai", system-ui, sans-serif; font-size: 15px; }
+header.page { max-width: 1300px; margin: 0 auto; padding: 24px 16px 8px; }
+header.page h1 { font-size: 20px; margin: 0 0 4px; }
+header.page p { margin: 0; color: var(--muted-fg); font-size: 14px; line-height: 1.5; }
+.toggle { margin-top: 10px; display: inline-flex; gap: 4px; background: var(--muted); border-radius: 10px; padding: 3px; }
+.toggle button { border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--card); font-weight: 600; }
+.grid { max-width: 1300px; margin: 0 auto; padding: 16px; display: flex; flex-wrap: wrap; gap: 24px; }
+figure { margin: 0; width: 320px; max-width: 100%; }
+figcaption { font-size: 13px; color: var(--muted-fg); margin-bottom: 6px; min-height: 72px; line-height: 1.45; }
+figcaption b { color: var(--foreground); }
+.phone { height: 690px; border: 1px solid var(--border); border-radius: 24px; overflow: hidden;
+  background: var(--background); display: flex; flex-direction: column; position: relative; }
+.hdr { height: 52px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 6px;
+  border-bottom: 1px solid var(--border); flex: none; }
+.hdr .l { display: flex; align-items: center; gap: 2px; }
+.hdr .r { display: flex; justify-content: flex-end; }
+.hdr .ttl { font-weight: 600; font-size: 17px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; background: var(--muted); border-radius: 999px; padding: 4px 10px 4px 4px; font-size: 14px; font-weight: 500; }
+.ib { width: 40px; height: 40px; display: grid; place-items: center; color: var(--foreground); }
+.ib.ok { color: var(--income); }
+.chips { display: flex; gap: 6px; padding: 8px 12px; overflow: hidden; flex: none; border-bottom: 1px solid var(--border); justify-content: flex-end; }
+.chip { white-space: nowrap; font-size: 13px; padding: 5px 10px; border-radius: 999px; color: var(--muted-fg); }
+.chip.on { color: var(--brand); font-weight: 600; box-shadow: inset 0 -2px 0 var(--brand); border-radius: 0; }
+.scroll { flex: 1; overflow: auto; scrollbar-width: none; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.tabbar { height: 56px; flex: none; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; text-align: center; font-size: 10.5px; color: var(--muted-fg); background: var(--background); }
+.tabbar .on { color: var(--brand); font-weight: 600; }
+.tabbar .plus { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: var(--primary-fg); display: grid; place-items: center; margin: 0 auto; }
+.tabbar div > svg { display: block; margin: 0 auto 2px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+.card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 500; color: var(--muted-fg); display: flex; justify-content: space-between; align-items: center; }
+.sum { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.sum .k { font-size: 12.5px; color: var(--muted-fg); }
+.sum .v { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sum .d { font-size: 11.5px; color: var(--muted-fg); }
+.sum .net { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 8px; display: flex; justify-content: space-between; align-items: baseline; }
+.inc { color: var(--income); } .exp { color: var(--expense); }
+.extra { outline: 2px dashed var(--brand); outline-offset: 2px; border-radius: 6px; position: relative; }
+.tag { font-size: 10px; font-weight: 700; color: var(--brand); border: 1px solid var(--brand); border-radius: 6px; padding: 0 4px; margin-left: 4px; vertical-align: 1px; }
+.mini { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted-fg); padding-top: 6px; font-variant-numeric: tabular-nums; }
+.seg { display: flex; background: var(--muted); border-radius: 10px; padding: 3px; margin-bottom: 10px; }
+.seg span { flex: 1; text-align: center; padding: 5px; border-radius: 8px; font-size: 13.5px; color: var(--muted-fg); }
+.seg span.on { background: var(--card); color: var(--foreground); font-weight: 600; }
+.badge { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: #fff; flex: none; }
+.badge.s { width: 26px; height: 26px; } .badge.s svg { width: 14px; height: 14px; }
+.badge.l { width: 48px; height: 48px; } .badge.l svg { width: 24px; height: 24px; }
+.crow { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.crow + .crow { border-top: 1px solid var(--border); }
+.crow .mid { flex: 1; min-width: 0; }
+.crow .nm { display: flex; justify-content: space-between; gap: 8px; font-size: 14.5px; }
+.crow .nm b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crow .amt { font-variant-numeric: tabular-nums; font-weight: 500; }
+.crow .sub { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted-fg); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.bar { height: 6px; border-radius: 3px; background: var(--muted); margin-top: 5px; overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 3px; }
+.chev { color: var(--muted-fg); flex: none; }
+.stack { display: flex; height: 12px; gap: 2px; border-radius: 6px; overflow: hidden; margin: 2px 0 6px; }
+.stack i { display: block; height: 100%; }
+.legend { display: flex; gap: 12px; font-size: 12px; color: var(--muted-fg); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+.donutwrap { display: flex; justify-content: center; position: relative; margin: 4px 0 8px; }
+.donutwrap .c { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font-size: 12px; color: var(--muted-fg); }
+.donutwrap .c b { display: block; font-size: 16px; color: var(--foreground); font-variant-numeric: tabular-nums; }
+.day { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 4px 14px; }
+.dayh { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.dayh .n { font-size: 26px; font-weight: 600; width: 34px; }
+.dayh .w { flex: 1; font-size: 12px; line-height: 1.3; color: var(--muted-fg); }
+.dayh .w b { display: block; color: var(--foreground); font-weight: 500; font-size: 13px; }
+.dayh .t { font-variant-numeric: tabular-nums; font-weight: 500; }
+.tx { display: flex; align-items: center; gap: 10px; min-height: 52px; }
+.tx .mid { flex: 1; font-size: 14.5px; } .tx .mid small { display: block; color: var(--muted-fg); font-size: 12px; }
+.tx .amt { font-variant-numeric: tabular-nums; }
+.total { text-align: center; padding: 6px 0 2px; }
+.total .big { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.total small { color: var(--muted-fg); font-size: 12.5px; }
+.menu { position: absolute; top: 46px; right: 10px; width: 210px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgb(0 0 0 / .18); padding: 4px; z-index: 3; }
+.menu .it { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; font-size: 14px; }
+.menu .it.hd { color: var(--muted-fg); font-size: 13px; border-bottom: 1px solid var(--border); border-radius: 0; margin-bottom: 2px; }
+.menu .it.on { background: var(--muted); font-weight: 600; }
+.menu .it .ck { margin-left: auto; color: var(--brand); }
+.dim { position: absolute; inset: 0; background: rgb(0 0 0 / .25); z-index: 2; }
+.empty { flex: 1; display: grid; place-items: center; text-align: center; padding: 24px; }
+.empty .ic { width: 64px; height: 64px; border-radius: 50%; background: var(--muted); display: grid; place-items: center; margin: 0 auto 12px; color: var(--muted-fg); }
+.empty h4 { margin: 0 0 4px; font-size: 16px; } .empty p { margin: 0 0 14px; color: var(--muted-fg); font-size: 13.5px; }
+.btn { height: 40px; border-radius: 10px; border: 0; font: inherit; font-weight: 600; padding: 0 16px; background: var(--primary); color: var(--primary-fg); }
+.note { font-size: 12px; color: var(--muted-fg); text-align: center; }
+.ccy { display: flex; gap: 6px; margin-bottom: 8px; }
+.ccy span { font-size: 12.5px; padding: 3px 10px; border-radius: 999px; background: var(--muted); }
+.ccy span.on { background: var(--brand); color: var(--card); font-weight: 600; }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.badge svg.i { width: 18px; height: 18px; }
+svg.chart text { fill: var(--muted-fg); font-size: 10.5px; font-family: inherit; }
+svg.chart .gl { stroke: var(--grid); stroke-width: 1; }
+.st { padding: 4px 14px; }
+.ln { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+.ln span:last-child { font-weight: 500; }
+.ln.ends { font-weight: 600; } .ln.ends span:last-child { font-size: 16px; font-weight: 600; }
+.ln.ends:first-child { border-bottom: 1px solid var(--border); }
+.ln.last { border-top: 1px solid var(--border); }
+.ln.net { border-top: 1px dashed var(--border); font-weight: 600; }
+.ln.sm { font-size: 13px; color: var(--muted-fg); padding: 4px 0; }
+.st .foot { font-size: 12.5px; color: var(--muted-fg); padding: 2px 0 8px; }
+.two { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px; }
+.two .k, .tiles .k { font-size: 12.5px; color: var(--muted-fg); }
+.two .v, .tiles .v { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.two .d { font-size: 11.5px; color: var(--muted-fg); }
+.two .arr { color: var(--muted-fg); }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.tiles > div { background: var(--muted); border-radius: 10px; padding: 8px 10px; }
+.tiles.mt > div { background: transparent; border: 1px solid var(--border); }
+.tiles .v.sm { font-size: 15px; }
+.mini + .mini { padding-top: 4px; }
+.hero { text-align: center; padding: 4px 0 2px; }
+.hero small { color: var(--muted-fg); font-size: 12.5px; }
+.hero .big { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; line-height: 1.25; }
+.tt { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.tt > div { border-radius: 12px; padding: 9px 12px; }
+.tt .ti { background: color-mix(in srgb, var(--income) 10%, var(--card)); }
+.tt .te { background: color-mix(in srgb, var(--expense) 10%, var(--card)); }
+.tt .k { font-size: 12.5px; color: var(--muted-fg); display: flex; align-items: center; gap: 4px; }
+.tt .v { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.flow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.flow .k { font-size: 12px; color: var(--muted-fg); } .flow .v { font-size: 15px; font-weight: 600; }
+.flow .mid { color: var(--muted-fg); display: flex; align-items: center; }
+.flow .mid i { display: block; width: 28px; height: 1px; background: var(--border); }
+.notes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.notes span { font-size: 12px; color: var(--muted-fg); background: var(--muted); border-radius: 999px; padding: 3px 10px; font-variant-numeric: tabular-nums; }
+.more { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; font-size: 14px; }
+.more .k { font-size: 12px; color: var(--muted-fg); }
+.more b { font-weight: 600; }
+.more .chv { color: var(--muted-fg); display: flex; }
+.detail { margin-top: 6px; background: var(--muted); border-radius: 12px; padding: 4px 12px; }
+.detail .ln { padding: 5px 0; font-size: 13.5px; }
+.qs { max-width: 1300px; margin: 0 auto; padding: 0 16px 40px; font-size: 14px; line-height: 1.6; }
+.qs h2 { font-size: 16px; margin: 20px 0 6px; }
+.qs li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>รายงาน (#10) · mock-up</h1>
+  <p>ข้อมูลตัวอย่าง: ต.ค. 2026, ทุกกระเป๋า, THB. รอบ 2: Q1-B, Q2–Q7 ตามเสนอ, ส่วนเสริม E1 E3 E4 E5 (ไม่เอา E2). รอบ 3 การ์ดสรุป: H1 (ภาพ 1, เสนอ) · H2 (1b พับ, 1c กาง) · S3 เดิม (1d).
+  ตัวเลขทุกตัวคำนวณบนเครื่องจาก local DB ไม่มี API ใหม่.</p>
+  <div class="toggle" role="group" aria-label="theme">
+    <button data-t="" aria-pressed="true">ตามระบบ</button>
+    <button data-t="light" aria-pressed="false">สว่าง</button>
+    <button data-t="dark" aria-pressed="false">มืด</button>
+  </div>
+</header>
+<div class="grid" id="grid"></div>
+<section class="qs">
+  <h2>ตัดสินแล้ว (รอบ 1)</h2>
+  <ul>
+    <li><b>Q1</b> B: แถบสัดส่วน + รายการเรียงมากไปน้อยมีแถบสีหมวด · วาด SVG เอง ไม่ใช้ lib</li>
+    <li><b>Q2–Q7</b> ตามเสนอ (เดือน/ไตรมาส/ปี/กำหนดเอง · กระเป๋าร่วมกับแท็บธุรกรรม · "ไม่ระบุหมวดย่อย" · หน้าในแท็บ · chip สกุลเงิน · ไม่มี API)</li>
+    <li><b>ส่วนเสริม</b> ยอดเริ่มต้น / ยอดสุดท้าย · เฉลี่ยรายจ่ายต่อวัน · ยอดเดือนก่อนของหมวด · ไม่รวมในรายงาน n รายการ; ไม่เอาการเทียบ % กับช่วงก่อน</li>
+  </ul>
+  <h2>รอบ 2: เลือกการ์ดสรุป</h2>
+  <ul><li>รอบ 2: S3 ถูกใจแต่ยังไม่สวย, S1 ยาวไป</li><li><b>รอบ 3: H1 (เสนอ)</b> S3 + ยอดเงินบรรทัดเดียว + chip · H2 S3 + แถวยอดเงินที่กางเป็นงบ S1 ได้</li></ul>
+</section>
+<script>
+const I = {
+  utensils: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+  home: '<path d="M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>',
+  car: '<path d="M5 17h14v-5l-2-5H7l-2 5Z"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/>',
+  bag: '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+  heart: '<path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/>',
+  film: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M17 3v18M3 7.5h4M3 12h18M3 16.5h4M17 7.5h4M17 16.5h4"/>',
+  coffee: '<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v2M10 2v2M14 2v2"/>',
+  store: '<path d="m2 7 4.4-4.4A2 2 0 0 1 7.8 2h8.4a2 2 0 0 1 1.4.6L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M2 7h20v3a3 3 0 0 1-5 2 3 3 0 0 1-5 0 3 3 0 0 1-5 0 3 3 0 0 1-5-2Z"/>',
+  basket: '<path d="m15 11-1 9M19 11l-4-7M2 11h20M3.5 11l1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.7-7.4M4.5 15.5h15M5 11l4-7M9 11l1 9"/>',
+  wallet: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+  briefcase: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+  tag: '<path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4Z"/><circle cx="7.5" cy="7.5" r=".5"/>',
+  chevR: '<path d="m9 18 6-6-6-6"/>', chevL: '<path d="m15 18-6-6 6-6"/>', chevD: '<path d="m6 9 6 6 6-6"/>',
+  dots: '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
+  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9Z"/><path d="m9 14 2 2 4-4"/>',
+  list: '<path d="M3 5h.01M3 12h.01M3 19h.01M8 5h13M8 12h13M8 19h13"/>',
+  pie: '<path d="M21 12c.6 0 1-.4 1-1A10 10 0 0 0 13 2c-.6 0-1 .4-1 1v8c0 .6.4 1 1 1Z"/><path d="M21.2 15.9A10 10 0 1 1 8 2.8"/>',
+  user: '<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>',
+  plus: '<path d="M5 12h14M12 5v14"/>', cal: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  arrows: '<path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/>', check: '<path d="M20 6 9 17l-5-5"/>', chart: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9M13 17V5M8 17v-3"/>',
+}
+const ic = (n, cls = 'i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`
+const badge = (c, n, s = '') => `<span class="badge ${s}" style="background:${c}">${ic(n)}</span>`
+const fmt = (n, sign = false) => (sign && n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+const EXP = [
+  { n: 'อาหาร', c: '#c2410c', i: 'utensils', a: 9820, kids: [
+    { n: 'ร้านอาหาร', c: '#c2410c', i: 'utensils', a: 4200 }, { n: 'ตลาด', c: '#15803d', i: 'basket', a: 3100 },
+    { n: 'กาแฟ', c: '#a16207', i: 'coffee', a: 1350 }, { n: 'ไม่ระบุหมวดย่อย', c: '#c2410c', i: 'utensils', a: 1170, direct: true } ] },
+  { n: 'ที่อยู่อาศัย', c: '#0f766e', i: 'home', a: 8500 },
+  { n: 'เดินทาง', c: '#2563eb', i: 'car', a: 4230 },
+  { n: 'ช้อปปิ้ง', c: '#db2777', i: 'bag', a: 3600 },
+  { n: 'สุขภาพ', c: '#dc2626', i: 'heart', a: 1200 },
+  { n: 'บันเทิง', c: '#9333ea', i: 'film', a: 1100 },
+]
+const INC = [
+  { n: 'เงินเดือน', c: '#15803d', i: 'briefcase', a: 42000 },
+  { n: 'ขายของ', c: '#0e7490', i: 'tag', a: 3000 },
+]
+const sum = (l) => l.reduce((s, x) => s + x.a, 0)
+const pct = (a, t) => `${Math.round((a / t) * 1000) / 10}%`
+
+const header = (title, back = false, menu = true) => `
+  <div class="hdr">
+    <div class="l">${back ? `<span class="ib">${ic('chevL')}</span><span class="ttl">${title}</span>` : `<span class="badge s" style="background:#2563eb">${ic('user')}</span>`}</div>
+    <div>${back ? '' : `<span class="pill"><span class="badge s" style="background:#475569">${ic('wallet')}</span>ทุกกระเป๋า ${ic('chevD')}</span>`}</div>
+    <div class="r"><span class="ib ok">${ic('cloud')}</span>${menu && !back ? `<span class="ib">${ic('dots')}</span>` : ''}</div>
+  </div>`
+const chips = (list, on) => `<div class="chips">${list.map((c) => `<span class="chip ${c === on ? 'on' : ''}">${c}</span>`).join('')}</div>`
+const tabbar = `<div class="tabbar">
+  <div>${ic('list')}ธุรกรรม</div><div>${ic('wallet')}กระเป๋า</div><div><span class="plus">${ic('plus')}</span></div>
+  <div class="on">${ic('pie')}รายงาน</div><div>${ic('user')}บัญชีผู้ใช้</div></div>`
+
+const line = (k, v, cls = '', extra = '') => `<div class="ln ${extra}"><span>${k}</span><span class="${cls}">${v}</span></div>`
+const SUM = {
+  // H1: S3's headline and tiles, then the balances as one compact line and small notes.
+  h1: () => `<div class="card"><div class="hero"><small>สุทธิ · ต.ค. 2026</small><div class="big">+16,550.00</div></div>
+    <div class="tt"><div class="ti"><div class="k"><svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 7l10 10M17 7v10H7"/></svg>รายรับ</div><div class="v inc">+45,000.00</div></div><div class="te"><div class="k"><svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 17 17 7M7 7h10v10"/></svg>รายจ่าย</div><div class="v exp">−28,450.00</div></div></div>
+    <div class="flow"><div><div class="k">ยอดเริ่มต้น</div><div class="v">61,200.00</div></div><div class="mid"><i></i>${ic('chevR')}</div><div style="text-align:right"><div class="k">ยอดสุดท้าย</div><div class="v">71,250.00</div></div></div>
+    <div class="notes"><span>เฉลี่ยรายจ่าย 917.74/วัน</span><span>โอนเงิน −5,000.00</span><span>ไม่รวมในรายงาน 2 รายการ ›</span></div></div>`,
+  // H2: H1 folded: the balances row opens S1's statement in place.
+  h2: (open) => `<div class="card"><div class="hero"><small>สุทธิ · ต.ค. 2026</small><div class="big">+16,550.00</div></div>
+    <div class="tt"><div class="ti"><div class="k"><svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 7l10 10M17 7v10H7"/></svg>รายรับ</div><div class="v inc">+45,000.00</div></div><div class="te"><div class="k"><svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M7 17 17 7M7 7h10v10"/></svg>รายจ่าย</div><div class="v exp">−28,450.00</div></div></div>
+    <div class="more"><span><span class="k">ยอดเงิน</span><br><b>61,200.00 → 71,250.00</b></span><span class="chv">${ic(open ? 'chevD' : 'chevR')}</span></div>
+    ${open ? `<div class="detail">${line('ยอดเริ่มต้น', '61,200.00', '', 'ends')}${line('สุทธิ', '+16,550.00')}${line('โอนเงิน', '−5,000.00', '', 'sm')}${line('ไม่รวมในรายงาน 2 รายการ', '−1,500.00 ›', '', 'sm')}${line('ยอดสุดท้าย', '71,250.00', '', 'ends last')}</div>` : ''}
+    <div class="notes"><span>เฉลี่ยรายจ่าย 917.74/วัน</span></div></div>`,
+  // S1: a statement that adds up: start + income − expense ± transfers ± excluded rows = end.
+  s1: () => `<div class="card st">
+    ${line('ยอดเริ่มต้น', '61,200.00', '', 'ends')}
+    ${line('รายรับ', '+45,000.00', 'inc')}
+    ${line('รายจ่าย', '−28,450.00', 'exp')}
+    ${line('สุทธิ', '+16,550.00', '', 'net')}
+    ${line('โอนเงิน', '−5,000.00', '', 'sm')}
+    ${line('ไม่รวมในรายงาน 2 รายการ ›', '−1,500.00', '', 'sm')}
+    ${line('ยอดสุดท้าย', '71,250.00', '', 'ends last')}
+    <div class="foot">เฉลี่ยรายจ่าย 917.74 ต่อวัน</div></div>`,
+  // S2: balances on their own card, then the period's money.
+  s2: () => `<div class="card"><div class="two">
+      <div><div class="k">ยอดเริ่มต้น</div><div class="v">61,200.00</div><div class="d">1 ต.ค. 2026</div></div>
+      <div class="arr">${ic('chevR')}</div>
+      <div style="text-align:right"><div class="k">ยอดสุดท้าย</div><div class="v">71,250.00</div><div class="d">31 ต.ค. 2026</div></div></div></div>
+    <div class="card"><div class="sum">
+      <div><div class="k">รายรับ</div><div class="v inc">+45,000.00</div></div>
+      <div><div class="k">รายจ่าย</div><div class="v exp">−28,450.00</div></div>
+      <div class="net"><span class="k">สุทธิ</span><span class="v">+16,550.00</span></div></div>
+      <div class="mini"><span>เฉลี่ยรายจ่ายต่อวัน</span><span>917.74</span></div>
+      <div class="mini"><span>ไม่รวมในรายงาน 2 รายการ</span><span>−1,500.00 ›</span></div></div>`,
+  // S3: the net as the headline, the rest around it.
+  s3: () => `<div class="card"><div class="total"><small>สุทธิ ต.ค. 2026</small><div class="big">+16,550.00</div></div>
+    <div class="tiles"><div><div class="k">รายรับ</div><div class="v inc">+45,000.00</div></div><div><div class="k">รายจ่าย</div><div class="v exp">−28,450.00</div></div></div>
+    <div class="tiles mt"><div><div class="k">ยอดเริ่มต้น</div><div class="v sm">61,200.00</div></div><div><div class="k">ยอดสุดท้าย</div><div class="v sm">71,250.00</div></div></div>
+    <div class="mini"><span>เฉลี่ยรายจ่ายต่อวัน</span><span>917.74</span></div>
+    <div class="mini"><span>ไม่รวมในรายงาน 2 รายการ</span><span>−1,500.00 ›</span></div></div>`,
+}
+const summary = () => SUM.h1()
+
+function trend(labels, inc, exp, sel, title) {
+  const W = 290, H = 150, top = 8, base = 120, left = 34
+  const max = Math.ceil(Math.max(...inc, ...exp) / 10000) * 10000
+  const y = (v) => base - (v / max) * (base - top)
+  const gw = (W - left) / labels.length, bw = Math.min(14, gw / 3.2)
+  let s = ''
+  for (let k = 0; k <= 2; k++) {
+    const v = (max / 2) * k, yy = y(v)
+    s += `<line class="gl" x1="${left}" x2="${W}" y1="${yy}" y2="${yy}"/><text x="${left - 6}" y="${yy + 3.5}" text-anchor="end">${v === 0 ? '0' : v / 1000 + 'k'}</text>`
+  }
+  labels.forEach((l, i) => {
+    const cx = left + gw * i + gw / 2, op = i === sel ? 1 : 0.38
+    const bar = (v, x, col) => { const h = base - y(v); return `<path d="M${x} ${base}v${-(h - 3)}q0 -3 3 -3h${bw - 6}q3 0 3 3v${h - 3}z" fill="${col}" opacity="${op}"><title>${l}: ${v.toLocaleString()}</title></path>` }
+    s += bar(inc[i], cx - bw - 1, 'var(--income)') + bar(exp[i], cx + 1, 'var(--expense)')
+    s += `<text x="${cx}" y="${base + 15}" text-anchor="middle" style="${i === sel ? 'fill:var(--foreground);font-weight:600' : ''}">${l}</text>`
+    if (i === sel) s += `<rect x="${cx - gw / 2 + 2}" y="${top - 4}" width="${gw - 4}" height="${base - top + 26}" rx="8" fill="none" stroke="var(--brand)" stroke-width="1.5"/>`
+  })
+  return `<div class="card"><h3>${title}<span class="legend"><span><i style="background:var(--income)"></i>รายรับ</span><span><i style="background:var(--expense)"></i>รายจ่าย</span></span></h3>
+    <svg class="chart" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${title}">${s}</svg>
+    <div class="note">แตะแท่งเพื่อดูช่วงนั้น</div></div>`
+}
+const M6 = { l: ['พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.'], i: [42000, 42000, 45500, 42000, 43200, 45000], e: [24100, 31800, 26900, 22300, 30150, 28450] }
+
+function rows(list, total, opts = {}) {
+  return list.map((x) => `<div class="crow">${badge(x.c, x.i)}<div class="mid">
+      <div class="nm"><b>${x.n}</b><span class="amt">${fmt(x.a)}</span></div>
+      ${opts.bars === false ? `<div class="sub"><span>${pct(x.a, total)}</span>${x.kids ? `<span>${x.kids.length - 1} หมวดย่อย</span>` : ''}</div>`
+        : `<div class="bar"><i style="width:${(x.a / list[0].a) * 100}%;background:${x.c}"></i></div><div class="sub"><span>${pct(x.a, total)}</span>${x.kids ? `<span>${x.kids.length - 1} หมวดย่อย</span>` : ''}${x.direct ? '<span>บันทึกที่หมวดหลักโดยตรง</span>' : ''}</div>`}
+    </div><span class="chev">${ic('chevR')}</span></div>`).join('')
+}
+const stack = (list, total) => `<div class="stack">${list.map((x) => `<i style="flex:${x.a / total};background:${x.c}" title="${x.n}"></i>`).join('')}</div>`
+
+function byCatB(type = 'exp') {
+  const list = type === 'exp' ? EXP : INC, t = sum(list)
+  return `<div class="card"><div class="seg"><span class="${type === 'exp' ? 'on' : ''}">รายจ่าย</span><span class="${type === 'inc' ? 'on' : ''}">รายรับ</span></div>
+    <h3>ตามหมวดหมู่<span>${fmt(t)}</span></h3>${stack(list, t)}${rows(list, t)}</div>`
+}
+function donut(list) {
+  const t = sum(list), R = 54, C = 2 * Math.PI * R, gap = 2
+  let off = 0, s = ''
+  for (const x of list) { const len = (x.a / t) * C; s += `<circle r="${R}" cx="70" cy="70" fill="none" stroke="${x.c}" stroke-width="18" stroke-dasharray="${Math.max(len - gap, 0.5)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"/>`; off += len }
+  return `<div class="donutwrap"><svg width="140" height="140" viewBox="0 0 140 140" role="img" aria-label="สัดส่วนรายจ่าย">${s}</svg><div class="c"><div>รายจ่าย<b>${fmt(t)}</b></div></div></div>`
+}
+const byCatA = () => `<div class="card"><div class="seg"><span class="on">รายจ่าย</span><span>รายรับ</span></div>${donut(EXP)}${rows(EXP, sum(EXP), { bars: false })}</div>`
+const byCatC = () => `<div class="card"><div class="seg"><span class="on">รายจ่าย</span><span>รายรับ</span></div><h3>ตามหมวดหมู่<span>${fmt(sum(EXP))}</span></h3>${rows(EXP, sum(EXP), { bars: false })}</div>`
+
+const MONTH_CHIPS = ['08/2026', 'เดือนที่แล้ว', 'เดือนนี้']
+const tx = (c, i, name, note, a) => `<div class="tx">${badge(c, i)}<div class="mid">${name}${note ? `<small>${note}</small>` : ''}</div><span class="amt exp">${fmt(-a)}</span></div>`
+const dayCard = (n, w, m, total, items) => `<div class="day"><div class="dayh"><span class="n">${n}</span><span class="w"><b>${w}</b>${m}</span><span class="t exp">${fmt(-total)}</span></div>${items.join('')}</div>`
+
+const frames = [
+  ['1 · แท็บรายงาน · การ์ดสรุป H1 (S3 + S1, เสนอ)', 'หัวการ์ดแบบ S3: สุทธิตัวใหญ่ + ช่องรายรับ/รายจ่ายพื้นสีจาง ๆ. ยอดเริ่มต้น → ยอดสุดท้ายเหลือบรรทัดเดียว. ส่วนที่ทำให้ยอดสองตัวนี้ต่างจากสุทธิ (โอนเงิน, ไม่รวมในรายงาน) และเฉลี่ยต่อวันเป็น chip เล็ก ๆ โผล่เมื่อไม่เป็น 0.',
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${summary()}${trend(M6.l, M6.i, M6.e, 5, 'แนวโน้ม 6 เดือน')}${byCatB()}</div>` + tabbar, 1300],
+  ['1b · H2 พับไว้ (S3 + S1 แบบกดดู)', 'เหมือน H1 แต่แถว "ยอดเงิน 61,200 → 71,250" แตะแล้วกางงบแบบ S1 ออกมาในการ์ด (ภาพ 1c). ปกติสั้นที่สุด รายละเอียดอยู่ครบเมื่ออยากดู.',
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${SUM.h2(false)}${trend(M6.l, M6.i, M6.e, 5, 'แนวโน้ม 6 เดือน')}</div>` + tabbar],
+  ['1c · H2 กางออก', 'งบ S1 ย่อในพื้นสีเทาจาง: ยอดเริ่มต้น + สุทธิ ± โอนเงิน ± ไม่รวมในรายงาน = ยอดสุดท้าย. จำว่ากางหรือพับไว้ต่อเครื่อง.',
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${SUM.h2(true)}${trend(M6.l, M6.i, M6.e, 5, 'แนวโน้ม 6 เดือน')}</div>` + tabbar],
+  ['1d · S3 เดิม (ไว้เทียบ)', 'รอบก่อน.',
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${SUM.s3()}</div>` + tabbar],
+  ['2 · Q1-A โดนัท (แบบ Money Lover)', 'โดนัทสีหมวด + รายการ. สีผู้ใช้ซ้ำกันได้ (ร้านอาหาร = อาหาร = สีส้ม) จึงแยกด้วยสีอย่างเดียวไม่ได้ ต้องพึ่งรายการ; เทียบชิ้นที่ใกล้กันยาก.',
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${byCatA()}</div>` + tabbar],
+  ['3 · Q1-C รายการอย่างเดียว', 'เรียบที่สุด ไม่มีกราฟสัดส่วน มีแค่ % ใต้ชื่อ. กราฟแนวโน้มยังอยู่ด้านบน.',
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${byCatC()}</div>` + tabbar],
+  ['4 · แตะหมวดหลัก "อาหาร" (Q4, Q5)', 'หน้าในแท็บ ‹ กลับ, ช่วงและกระเป๋าเดิม. หมวดย่อย + แถว "ไม่ระบุหมวดย่อย" (บันทึกลงอาหารโดยตรง) รวมกันเท่ายอดหมวดหลักเสมอ. ล่างคือธุรกรรมทั้งหมดของหมวด แตะแถว → ชีตแก้ไขเดิม.',
+    () => { const p = EXP[0]; return header('อาหาร', true) + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">
+      <div class="card"><div class="total">${badge(p.c, p.i, 'l')}<div class="big exp" style="margin-top:6px">${fmt(-p.a)}</div><small>34.5% ของรายจ่าย ต.ค. 2026</small>
+      <div class="mini" style="justify-content:center"><span>เดือนที่แล้ว 10,940.00</span></div></div></div>
+      <div class="card"><h3>หมวดหมู่ย่อย</h3>${stack(p.kids, p.a)}${rows(p.kids, p.a)}</div>
+      <div class="note">ธุรกรรม 23 รายการ</div>
+      ${dayCard('31', 'เมื่อวาน', 'ตุลาคม 2026', 545, [tx('#a16207', 'coffee', 'กาแฟ', '', 95), tx('#c2410c', 'utensils', 'อาหาร', 'ข้าวกล่องที่ทำงาน', 450)])}
+      ${dayCard('30', 'วันศุกร์', 'ตุลาคม 2026', 1280, [tx('#c2410c', 'utensils', 'ร้านอาหาร', 'ฉลองวันเกิด', 1280)])}
+      </div>` + tabbar }],
+  ['5 · แตะหมวดย่อย "กาแฟ"', 'เฉพาะธุรกรรมของหมวดย่อยนั้น. แตะ "ไม่ระบุหมวดย่อย" ได้หน้าแบบเดียวกัน ที่มีเฉพาะรายการที่บันทึกลงหมวดหลักโดยตรง.',
+    () => header('กาแฟ', true) + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">
+      <div class="card"><div class="total">${badge('#a16207', 'coffee', 'l')}<div class="big exp" style="margin-top:6px">${fmt(-1350)}</div><small>อาหาร › กาแฟ · 13.7% ของอาหาร</small></div></div>
+      <div class="note">ธุรกรรม 12 รายการ</div>
+      ${dayCard('31', 'เมื่อวาน', 'ตุลาคม 2026', 95, [tx('#a16207', 'coffee', 'กาแฟ', 'ลาเต้', 95)])}
+      ${dayCard('29', 'วันพฤหัสบดี', 'ตุลาคม 2026', 190, [tx('#a16207', 'coffee', 'กาแฟ', '', 95), tx('#a16207', 'coffee', 'กาแฟ', 'เลี้ยงทีม', 95)])}
+      ${dayCard('27', 'วันอังคาร', 'ตุลาคม 2026', 120, [tx('#a16207', 'coffee', 'กาแฟ', '', 120)])}
+      </div>` + tabbar],
+  ['6 · ⋮ "ดูตาม" (Q2)', 'เมนู 2 ชั้นแบบเดิม แต่หน่วยของรายงานมีแค่ เดือน / ไตรมาส / ปี / กำหนดเอง. จำแยกจากแท็บธุรกรรม ต่อโปรไฟล์.',
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${SUM.s1()}</div><div class="dim"></div>
+      <div class="menu"><div class="it hd">${ic('chevL')} ดูตาม</div>
+      <div class="it on">${ic('cal')} เดือน <span class="ck">${ic('check')}</span></div><div class="it">${ic('cal')} ไตรมาส</div><div class="it">${ic('cal')} ปี</div><div class="it">${ic('cal')} กำหนดเอง…</div></div>` + tabbar],
+  ['7 · ดูตามปี + แท็บรายรับ', 'แนวโน้มเปลี่ยนตามหน่วย: ปี → 5 ปี (ไตรมาส → 4 ไตรมาส). กำหนดเอง → ไม่มีการ์ดแนวโน้ม.',
+    () => header() + chips(['2024', 'ปีที่แล้ว', 'ปีนี้'], 'ปีนี้') + `<div class="scroll">${trend(['2022', '2023', '2024', '2025', '2026'], [380000, 455000, 498000, 512000, 438700], [302000, 341000, 366500, 389200, 297600], 4, 'แนวโน้ม 5 ปี')}${byCatB('inc')}</div>` + tabbar],
+  ['8 · หลายสกุลเงิน (Q6, ยังไม่เกิดจริง)', 'สรุปเป็นการ์ดต่อสกุลเงินเหมือนแท็บธุรกรรม; แนวโน้มและตามหมวดใช้ทีละสกุล ด้วย chip ที่โผล่เฉพาะตอนมีมากกว่า 1 สกุล.',
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${SUM.s1()}
+      <div class="card"><div class="sum"><div><div class="k">รายรับ</div><div class="v inc">+0.00</div></div><div><div class="k">รายจ่าย</div><div class="v exp">−US$320.50</div></div><div class="net"><span class="k">สุทธิ</span><span class="v">−US$320.50</span></div></div></div>
+      <div><div class="ccy"><span class="on">THB</span><span>USD</span></div>${byCatB()}</div></div>` + tabbar],
+  ['9 · ช่วงที่ไม่มีธุรกรรม', 'empty state เดิม + ปุ่มเพิ่มธุรกรรม. ไม่โชว์การ์ดเปล่า.',
+    () => header() + chips(['10/2026', 'เดือนที่แล้ว', 'เดือนนี้'], 'เดือนนี้') + `<div class="empty"><div><div class="ic">${ic('chart')}</div><h4>ยังไม่มีธุรกรรมในช่วงนี้</h4><p>บันทึกรายรับรายจ่าย แล้วรายงานจะแสดงที่นี่</p><button class="btn">เพิ่มธุรกรรม</button></div></div>` + tabbar],
+]
+document.getElementById('grid').innerHTML = frames.map(([t, d, f, h]) =>
+  `<figure><figcaption><b>${t}</b><br>${d}</figcaption><div class="phone" ${h ? `style="height:${h}px"` : ''}>${f()}</div></figure>`).join('')
+for (const b of document.querySelectorAll('.toggle button')) b.onclick = () => {
+  document.documentElement.dataset.theme = b.dataset.t
+  if (!b.dataset.t) delete document.documentElement.dataset.theme
+  for (const o of document.querySelectorAll('.toggle button')) o.setAttribute('aria-pressed', o === b)
+}
+</script>
+</body>
+</html>
