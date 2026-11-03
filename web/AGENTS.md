@@ -256,8 +256,8 @@ fixOpId?, profileId?, hiddenIn?)` (a row that changes siblings goes last among t
   of a parent that is a tombstone here (category rule 6); the shell injects the service so it
   runs.
 - **Merge** (7.3, category rule 15): `CategoryService.mergeTargets(id)` (the tree it may go
-  into), `mergePlan(source, target, mode)` (counts for the confirm view), `merge(source, target,
-  mode)` (one write: children move or merge, merged ids leave `hiddenCategoryIds`, tombstones
+  into), `mergePlan(source, target, mode)` (counts for the confirm view),
+  `merge(source, target, mode)` (one write: children move or merge, merged ids leave `hiddenCategoryIds`, tombstones
   with `mergedIntoId` pushed last as upserts), `transactionCount(id)`.
   `core/category/category-merge.ts`: `mergeTargetOf` (follows `merged_into_id`, as the API's
   `findMergeTarget`), `moveRow` (a row with a **pending op** gets the op rewritten and moved last;
