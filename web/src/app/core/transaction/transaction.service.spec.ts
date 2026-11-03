@@ -258,6 +258,16 @@ describe('TransactionService', () => {
     ])
   })
 
+  it('moves live transactions of a merged category to its target instead (category rule 15)', () => {
+    category('coffee', 'expense')
+    transaction('t1', { categoryId: 'coffee' })
+    category('coffee', 'expense', { deletedAt: 9, mergedIntoId: 'food' })
+    TestBed.tick()
+    expect(service.byId('t1')).toMatchObject({ categoryId: 'food', deletedAt: null })
+    // The server makes the same move: nothing to push.
+    expect(listOps(db, 'pending')).toHaveLength(0)
+  })
+
   it('shows every wallet but those left out of the total, archived ones included (rule 11)', () => {
     wallet('kid', { excludeFromTotal: true })
     wallet('old', { isArchived: true })

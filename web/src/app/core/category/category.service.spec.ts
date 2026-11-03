@@ -375,4 +375,155 @@ describe('CategoryService', () => {
     work()
     changes.update((n) => n + 1)
   }
+
+  describe('merge (rule 15)', () => {
+    const walletRow = (id: string, hiddenCategoryIds: string[]) =>
+      putRow(db, 'wallets', {
+        id,
+        profileId: 'p1',
+        name: id,
+        currencyCode: 'THB',
+        initialBalance: 0,
+        icon: 'lucideWallet',
+        color: '#16a34a',
+        excludeFromTotal: false,
+        isArchived: false,
+        sortOrder: 0,
+        hiddenCategoryIds,
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+        changeSeq: 3,
+        updatedBy: 'u1',
+      })
+    const row = (table: string, id: string) =>
+      db.selectObjects(`SELECT * FROM ${table} WHERE id = ?`, [id])[0]
+
+    beforeEach(() => {
+      pulled(category('Food', { sortOrder: 0 }))
+      pulled(category('Rice', { parentId: 'Food', sortOrder: 0 }))
+      pulled(category('Water', { parentId: 'Food', sortOrder: 1 }))
+      pulled(category('Home', { sortOrder: 1 }))
+      pulled(category('Rent', { parentId: 'Home', sortOrder: 0 }))
+      pulled(category('Bills', { parentId: 'Home', sortOrder: 1 }))
+      pulled(category('Old', { parentId: 'Home', sortOrder: 2, isArchived: true }))
+      pulled(category('Shop', { sortOrder: 2 }))
+      pulled(category('Bills2', { parentId: 'Shop', name: 'bills' }))
+      pulled(category('Salary', { type: 'income' }))
+      pulled(category('Shut', { isArchived: true, sortOrder: 3 }))
+    })
+
+    it('offers every open category of the type but itself and its children, own parent first', () => {
+      const names = (id: string) =>
+        service
+          .mergeTargets(id)
+          .map((node) => [node.category.name, node.children.map((child) => child.name)])
+      expect(names('Water')).toEqual([
+        ['Food', ['Rice']],
+        ['Home', ['Rent', 'Bills']],
+        ['Shop', ['bills']],
+      ])
+      expect(names('Home')).toEqual([
+        ['Food', ['Rice', 'Water']],
+        ['Shop', ['bills']],
+      ])
+      expect(names('Rent')[0][0]).toBe('Home')
+    })
+
+    it("moves a sub-category's transactions here only and pushes its tombstone last", () => {
+      txRow('t1', { categoryId: 'Water' })
+      txRow('t2', { categoryId: 'Water', deletedAt: 5 })
+      // t3 was added here and hasn't synced yet: its op is pending.
+      tx(() =>
+        db.transaction((tdb) =>
+          queueWrite(tdb, 'transactions', 'upsert', {
+            id: 't3',
+            profileId: 'p1',
+            walletId: 'w',
+            categoryId: 'Water',
+            amount: 1000,
+            occurredOn: '2026-11-02',
+            note: '',
+            excludeFromReport: false,
+            createdAt: 1,
+            updatedAt: 1,
+            deletedAt: null,
+          })
+        )
+      )
+      walletRow('cash', ['Water', 'Rice'])
+      tx(() => undefined)
+      expect(service.mergePlan('Water', 'Rice', 'move')).toMatchObject({ transactions: 2 })
+      expect(service.merge('Water', 'Rice', 'move')).toBe(true)
+      expect(row('transactions', 't1')['category_id']).toBe('Rice')
+      expect(row('transactions', 't2')['category_id']).toBe('Water')
+      expect(row('categories', 'Water')).toMatchObject({ merged_into_id: 'Rice' })
+      expect(service.byId('Water')).toBeNull()
+      // t1 had no op: the server makes the same move. t3's pending op now carries the move.
+      expect(ops().map((op) => [op.table, op.rowId])).toEqual([
+        ['wallets', 'cash'],
+        ['transactions', 't3'],
+        ['categories', 'Water'],
+      ])
+      expect(ops()[0].row['hiddenCategoryIds']).toEqual(['Rice'])
+      expect(ops()[1].row['categoryId']).toBe('Rice')
+      expect(ops()[2]).toMatchObject({ op: 'upsert', row: { mergedIntoId: 'Rice' } })
+      expect(ops()[2].row['deletedAt']).not.toBeNull()
+    })
+
+    it("moves a parent's children under the target, merging a clash into the same name", () => {
+      txRow('t1', { categoryId: 'Bills' })
+      txRow('t2', { categoryId: 'Home' })
+      expect(service.mergePlan('Home', 'Shop', 'move')).toEqual({
+        transactions: 1,
+        moved: 3,
+        clashes: 1,
+        merged: 0,
+        parentId: 'Shop',
+      })
+      service.merge('Home', 'Shop', 'move')
+      expect(service.childrenOf('Shop').map((c) => c.name)).toEqual(['bills', 'Rent', 'Old'])
+      expect(row('categories', 'Bills')).toMatchObject({ merged_into_id: 'Bills2' })
+      expect(row('transactions', 't1')['category_id']).toBe('Bills2')
+      expect(row('transactions', 't2')['category_id']).toBe('Shop')
+      expect(ops().map((op) => op.rowId)).toEqual(['Rent', 'Old', 'Bills', 'Home'])
+    })
+
+    it('merges every child into the target in "all", and children go under a sub-target\'s parent', () => {
+      txRow('t1', { categoryId: 'Rent' })
+      expect(service.mergePlan('Home', 'Rice', 'all')).toMatchObject({
+        transactions: 1,
+        merged: 3,
+        moved: 0,
+      })
+      expect(service.mergePlan('Home', 'Rice', 'move')).toMatchObject({ parentId: 'Food' })
+      service.merge('Home', 'Rice', 'all')
+      expect(row('transactions', 't1')['category_id']).toBe('Rice')
+      expect(service.childrenOf('Food').map((c) => c.name)).toEqual(['Rice', 'Water'])
+      expect(ops().map((op) => op.rowId)).toEqual(['Rent', 'Bills', 'Old', 'Home'])
+    })
+
+    it('refuses an archived, other-type, own, child or unknown target', () => {
+      for (const target of ['Shut', 'Salary', 'Home', 'Rent', 'nope']) {
+        expect(service.merge('Home', target, 'move')).toBe(false)
+        expect(service.mergePlan('Home', target, 'move')).toBeNull()
+      }
+      expect(ops()).toHaveLength(0)
+      expect(service.transactionCount('Home')).toBe(0)
+    })
+
+    it('makes rows of a merged tombstone pulled from another device follow it (rule 15)', () => {
+      txRow('t1', { categoryId: 'Water' })
+      pulled(
+        category('Water', { parentId: 'Food', deletedAt: 5, changeSeq: 11, mergedIntoId: 'Rice' })
+      )
+      pulled(category('Home', { deletedAt: 5, changeSeq: 11, mergedIntoId: 'Food' }))
+      TestBed.tick()
+      expect(row('transactions', 't1')['category_id']).toBe('Rice')
+      expect(row('categories', 'Rent')).toMatchObject({ merged_into_id: 'Food' })
+      expect(service.byId('Rent')).toBeNull()
+      // Moves the server makes too: no ops.
+      expect(ops()).toHaveLength(0)
+    })
+  })
 })
