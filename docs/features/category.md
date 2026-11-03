@@ -273,16 +273,12 @@ children), as in Money Lover; the **server** moves the transactions when the mer
 lands (one op, no network needed to merge, rule 15); shared wallets (#16) stay on the roadmap,
 since a merge only meets an unmoved row when one user's two devices are both offline.
 
-**Still proposed** (rule 15 is written this way; change on request):
-
-1. The source may be archived, the target may not (rule 15). OK?
-2. A child whose name clashes when moving under the target merges into the same-named child
-   (proposal in the task). A clash the merging device couldn't see (another device added the
-   name offline) refuses that child's move, and the server then merges it into the target
-   parent itself. OK?
-3. Hidden per wallet: merged ids are just removed; the target keeps its own state (a hidden
-   source doesn't make the target hidden). OK?
-4. No undo, a confirm view instead (like profile and wallet delete). OK?
+Also settled (owner, at the start of 7.3): an archived source may merge, the target may not;
+a clashing child merges into the same-named child, and one whose move is refused (a clash
+another offline device made) is merged into the target by the server; merged ids leave the
+wallets' lists and the target keeps its own hidden state; a confirm view, no undo. Moving one
+wallet's transactions to another category (and hiding the old one there) is not a merge: it
+is #15's bulk edit.
 
 Settled at the start of 7.2 (owner): rule 13's details (a parent's id only, archived ids kept,
 a type may be hidden entirely, the row in create and edit), and the profile delete confirm

@@ -88,7 +88,7 @@ merging.
 | 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                                                                           |
 | 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                                                                                |
 | 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                                                                       |
-| 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                                                                                          |
+| 15  | Search, filter, CSV export | ⬜  | ⬜  | + bulk edit: move many transactions (e.g. one wallet's) to another category (owner, 7.3)                                                                                 |
 | 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                                                                   |
 | 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
 
@@ -120,6 +120,9 @@ transactions to another one of the same type, then delete it, from the category 
   network needed to merge. A merge only meets a row it didn't move when one user's two devices
   are both offline (later-edit-wins can't settle it: different rows), so shared wallets (#16)
   stay on the roadmap.
+- **Also decided**: archived source ok, target open; refused child moves merge into the
+  target; the target keeps its own hidden state; confirm, no undo. A per-wallet move is #15's
+  bulk edit, not a merge.
 - Then API (migration `0014`, `categories.merged_into_id`, the handler's follow-ups, the
   transaction check's redirect), web (local schema step, `CategoryService.merge`, the sweep, the
   sheet's `merge` / `confirmMerge` views), tests, and this file.
