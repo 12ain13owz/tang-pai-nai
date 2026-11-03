@@ -4,16 +4,16 @@ One file per feature: **what it does and the rules it enforces**, in plain langu
 AI can understand a feature without reading its code. These docs are the shared spec for both
 `api/` and `web/`.
 
-| Feature        | Doc                                | Status                     |
-| -------------- | ---------------------------------- | -------------------------- |
-| Auth           | [auth.md](auth.md)                 | Built (4.1–4.4b)           |
-| Currency       | [currency.md](currency.md)         | API with 4a.2              |
-| Profile        | [profile.md](profile.md)           | Built (6.1)                |
-| Wallet         | [wallet.md](wallet.md)             | Built (6.2)                |
-| Category       | [category.md](category.md)         | Built (7.1, 7.2); 7.3 spec |
-| Transaction    | [transaction.md](transaction.md)   | Built (8.1, 8.2)           |
-| Transfer       | [transfer.md](transfer.md)         | Built (#9)                 |
-| Offline & sync | [offline-sync.md](offline-sync.md) | Built (4a.1, 4a.2)         |
+| Feature        | Doc                                | Status             |
+| -------------- | ---------------------------------- | ------------------ |
+| Auth           | [auth.md](auth.md)                 | Built (4.1–4.4b)   |
+| Currency       | [currency.md](currency.md)         | API with 4a.2      |
+| Profile        | [profile.md](profile.md)           | Built (6.1)        |
+| Wallet         | [wallet.md](wallet.md)             | Built (6.2)        |
+| Category       | [category.md](category.md)         | Built (7.1–7.3)    |
+| Transaction    | [transaction.md](transaction.md)   | Built (8.1, 8.2)   |
+| Transfer       | [transfer.md](transfer.md)         | Built (#9)         |
+| Offline & sync | [offline-sync.md](offline-sync.md) | Built (4a.1, 4a.2) |
 
 Order of work and project-wide decisions live in [`../../ROADMAP.md`](../../ROADMAP.md), not here.
 

@@ -80,10 +80,10 @@ merging.
 | 4a  | Offline sync foundation    | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                |
 | 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                      |
 | 6   | Profile + Wallet           | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
-| 7   | Category **7.3 ← next**    | 🚧  | 🚧  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms); 7.3 merge (spec). [spec](docs/features/category.md)                                   |
+| 7   | Category                   | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms); 7.3 merge. [spec](docs/features/category.md)                                          |
 | 8   | Transaction                | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                         |
 | 9   | Transfer                   | ✅  | ✅  | two linked rows of one `transfers` row, outside income / expense; ⋮ menu, Wallets tab button. [spec](docs/features/transfer.md)                                          |
-| 10  | Reports (after 7.3)        | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                                               |
+| 10  | **Reports** ← next         | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                                               |
 | 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                                                                       |
 | 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                                                                           |
 | 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                                                                                |
@@ -100,13 +100,26 @@ decision "Local-first").
 
 ---
 
-## Next: Category merge (7.3)
+## Next: Reports (#10)
 
-Before Reports, so retiring a category doesn't mean moving its transactions one by one. Today a
-category with transactions can only be archived (category rule 6), so nothing is lost, but there
-is no way to fold it into another. **7.3 adds "ผสาน"** (category rule 15): move a category's
-transactions to another one of the same type, then delete it, from the category form in Account
-› หมวดหมู่ (a header icon beside archive / delete, views in the same sheet).
+Not started: write `docs/features/report.md` first (month summary, by-category breakdown,
+month-to-month trend; ROADMAP → Status). Transfers never count as income or expense there
+(transfer rule 5), and `excludeFromReport` rows stay out. A merged category (7.3) is a
+tombstone whose transactions already moved to its target, so reports read live categories as
+usual. The initial bundle is 708 kB after 7.3 (warning at 750 kB). Known, for later:
+
+- Headless Chromium breaks some Thai lines inside a word ("บัน/ทึก"); the app's older notices do
+  the same, so it's the test browser's line breaking, not our markup.
+- The 20,000-row timings of 8.1 weren't measured again in #9 (the transaction queries are the
+  same; the list adds a merge of the period's transfer sides, balances one `UNION ALL`).
+
+## Done: Category merge (7.3)
+
+Done before Reports, so retiring a category doesn't mean moving its transactions one by one (a
+category with transactions could only be archived, category rule 6). **7.3 added "ผสาน"**
+(category rule 15): move a category's transactions to another one of the same type, then
+delete it, from the category form in Account › หมวดหมู่ (a header icon beside archive /
+delete, views in the same sheet).
 
 - **Decided at the start of 7.3** (owner; category.md rule 15, mock-up
   `docs/features/mockups/category-merge.html`): a category merges into **any** category of the
@@ -123,7 +136,7 @@ transactions to another one of the same type, then delete it, from the category 
 - **Also decided**: archived source ok, target open; refused child moves merge into the
   target; the target keeps its own hidden state; confirm, no undo. A per-wallet move is #15's
   bulk edit, not a merge.
-- **Built, waiting for the owner's check** (tests come after it):
+- **Built** (PR #26) and **tested** (the follow-up PR):
   - API: migration `0014_category_merged_into`; the sync service's optional handler hooks
     `resolve` (a pushed row adjusted before its checks) and `followUp` (rows a written row
     implies, with a block of `changeSeq`s from `takeSeqs(n)`); `core/database/category-merge.ts`
@@ -139,20 +152,15 @@ transactions to another one of the same type, then delete it, from the category 
     Playwright at 375×812 on `ng serve` with the API: กาแฟ → ร้านอาหาร (17 rows, total
     unchanged), ที่อยู่อาศัย → ช้อปปิ้ง in both modes (a clash merges into ค่าไฟ, a moved child
     keeps its hidden state), dark mode; the server's rows checked after.
-  - Pending: tests (API: hooks, `findMergeTarget`, both handlers; web: `category-merge`,
-    `merge`, the sheet), OpenAPI `SyncCategoryRow.mergedIntoId`, a two-device run in the
-    browser.
-
-## Next after 7.3: Reports (#10)
-
-Not started: write `docs/features/report.md` first (month summary, by-category breakdown,
-month-to-month trend; ROADMAP → Status). Transfers never count as income or expense there
-(transfer rule 5), and `excludeFromReport` rows stay out. Known, for later:
-
-- Headless Chromium breaks some Thai lines inside a word ("บัน/ทึก"); the app's older notices do
-  the same, so it's the test browser's line breaking, not our markup.
-- The 20,000-row timings of 8.1 weren't measured again in #9 (the transaction queries are the
-  same; the list adds a merge of the period's transfer sides, balances one `UNION ALL`).
+  - Two devices in the browser (Playwright, `ng serve` + the API): B trusted and offline adds
+    to กาแฟ while A merges กาแฟ → ร้านอาหาร; B back online shows all four rows on ร้านอาหาร
+    (its pending op was moved by the server, then pulled), nothing deleted, the server agrees.
+  - Tests: API 544 (sync hooks, `takeSeqs`, `findMergeTarget`, both handlers, the schema),
+    web 479 (`category-merge`, `CategoryService.merge`, the transaction sweep, the sheet);
+    OpenAPI `SyncCategoryRow.mergedIntoId`.
+- **Known**: a child move refused for a clash another offline device made (the server then
+  merges that child into the target) stays in the sync sheet as a refused item until it is
+  discarded; its "fix" opens a category that is gone. Rare; not handled.
 
 ## Done: Transfer (#9)
 
