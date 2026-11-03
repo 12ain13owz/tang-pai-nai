@@ -17,6 +17,8 @@ export type Category = {
   color: string
   isArchived: boolean
   sortOrder: number
+  /** The category it was merged into (rule 15); null unless it's a merged tombstone. */
+  mergedIntoId: string | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null

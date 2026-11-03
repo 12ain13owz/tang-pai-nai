@@ -1,10 +1,11 @@
-import { and, asc, count, eq, gt, isNull, lt, max, ne, sql } from 'drizzle-orm'
+import { and, asc, count, eq, gt, inArray, isNull, lt, max, ne, sql } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
+import { findMergeTarget } from '@/core/database/category-merge'
 import { categories } from '@/core/database/schema/category'
 import { profiles } from '@/core/database/schema/profile'
 import { transactions } from '@/core/database/schema/transaction'
 import { wrapUnexpected } from '@/core/error'
-import type { SyncRowInput, SyncTableHandler } from '@/core/sync'
+import type { SyncRow, SyncRowInput, SyncTableHandler } from '@/core/sync'
 import { CATEGORY_LIMITS, CATEGORY_MESSAGE } from './category.const'
 import { validateCategory } from './category.schema'
 import type { Category } from './category.entity'
@@ -144,6 +145,101 @@ const checkCategory = async (
   return row.isArchived === true ? null : checkOpen(executor, row, profileId, parentId)
 }
 
+/** Moves the live transactions of `fromIds` to `targetId`, each with its own `changeSeq`. */
+const moveTransactions = async (
+  executor: Executor,
+  userId: string,
+  fromIds: string[],
+  targetId: string,
+  updatedAt: number,
+  takeSeqs: (count: number) => Promise<number>
+) => {
+  const live = and(inArray(transactions.categoryId, fromIds), isNull(transactions.deletedAt))
+  const [{ total }] = await executor.select({ total: count() }).from(transactions).where(live)
+  if (total === 0) {
+    return
+  }
+  const first = await takeSeqs(total)
+  // One statement for any number of rows: each gets the next seq of the block, in id order.
+  const ids = sql.join(
+    fromIds.map((id) => sql`${id}`),
+    sql`, `
+  )
+  await executor.run(sql`
+    UPDATE transactions
+       SET category_id = ${targetId}, updated_at = ${updatedAt}, updated_by = ${userId},
+           change_seq = ${first - 1} + moved.rn
+      FROM (SELECT id, row_number() OVER (ORDER BY id) AS rn
+              FROM transactions
+             WHERE category_id IN (${ids}) AND deleted_at IS NULL) AS moved
+     WHERE transactions.id = moved.id`)
+}
+
+/**
+ * Rule 15: a merged category's tombstone moves what still points at it to the category it was
+ * merged into: its live children (another device's, or a move that was refused) are merged in
+ * too, and every live transaction of it and of them moves. A plain tombstone changes nothing.
+ */
+const followMerge = async (
+  executor: Executor,
+  userId: string,
+  row: SyncRow,
+  takeSeqs: (count: number) => Promise<number>
+) => {
+  if (row.deletedAt === null || row.deletedAt === undefined || !row.mergedIntoId) {
+    return
+  }
+  const target = await findMergeTarget(executor, userId, row.id)
+  if (!target) {
+    return
+  }
+  const children = await executor
+    .select({ id: categories.id })
+    .from(categories)
+    .where(and(eq(categories.parentId, row.id), isNull(categories.deletedAt)))
+  const childIds = children.map((child) => child.id)
+  if (childIds.length > 0) {
+    const first = await takeSeqs(childIds.length)
+    for (const [index, id] of childIds.entries()) {
+      await executor
+        .update(categories)
+        .set({
+          deletedAt: row.deletedAt,
+          mergedIntoId: target.id,
+          updatedAt: row.updatedAt,
+          updatedBy: userId,
+          changeSeq: first + index,
+        })
+        .where(eq(categories.id, id))
+    }
+  }
+  await moveTransactions(
+    executor,
+    userId,
+    [row.id, ...childIds],
+    target.id,
+    row.updatedAt,
+    takeSeqs
+  )
+}
+
+/**
+ * Rule 15: a live category pushed under a merged parent (a device that added it before it pulled
+ * the merge, since a round pushes first) is merged into the parent's target instead of refused,
+ * so the transactions that follow it aren't refused either.
+ */
+const followMergedParent = async (
+  executor: Executor,
+  userId: string,
+  row: SyncRowInput
+): Promise<SyncRowInput> => {
+  if (row.deletedAt !== null || typeof row.parentId !== 'string') {
+    return row
+  }
+  const target = await findMergeTarget(executor, userId, row.parentId)
+  return target ? { ...row, deletedAt: row.updatedAt, mergedIntoId: target.id } : row
+}
+
 /** The categories table's sync handler (docs/features/category.md rule 1). */
 export const categorySyncHandler: SyncTableHandler = {
   table: 'categories',
@@ -168,6 +264,8 @@ export const categorySyncHandler: SyncTableHandler = {
         },
         { id }
       ),
+    resolve: async (executor, userId, row) =>
+      run('resolve', async () => followMergedParent(executor, userId, row), { id: row.id }),
     check: async (executor, userId, row) =>
       run('check', async () => checkCategory(executor, userId, row), { id: row.id }),
     write: async (executor, userId, row) =>
@@ -185,6 +283,10 @@ export const categorySyncHandler: SyncTableHandler = {
             color: String(row.color),
             isArchived: row.isArchived === true,
             sortOrder: Number(row.sortOrder),
+            mergedIntoId:
+              row.deletedAt !== null && typeof row.mergedIntoId === 'string'
+                ? row.mergedIntoId
+                : null,
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
             deletedAt: row.deletedAt,
@@ -200,6 +302,8 @@ export const categorySyncHandler: SyncTableHandler = {
         },
         { id: row.id }
       ),
+    followUp: async (executor, userId, row, takeSeqs) =>
+      run('followUp', async () => followMerge(executor, userId, row, takeSeqs), { id: row.id }),
     purge: async (executor, before) =>
       run('purge', async () => {
         const old = lt(categories.deletedAt, before)

@@ -80,15 +80,15 @@ merging.
 | 4a  | Offline sync foundation    | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                |
 | 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                      |
 | 6   | Profile + Wallet           | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
-| 7   | Category                   | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms). [spec](docs/features/category.md)                                                     |
+| 7   | Category **7.3 ← next**    | 🚧  | 🚧  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms); 7.3 merge (spec). [spec](docs/features/category.md)                                   |
 | 8   | Transaction                | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                         |
 | 9   | Transfer                   | ✅  | ✅  | two linked rows of one `transfers` row, outside income / expense; ⋮ menu, Wallets tab button. [spec](docs/features/transfer.md)                                          |
-| 10  | **Reports** ← next         | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                                               |
+| 10  | Reports (after 7.3)        | ⬜  | ⬜  | month summary, by-category breakdown, month-to-month trend                                                                                                               |
 | 11  | Budget                     | ⬜  | ⬜  | per category (or total) per period, progress + over-budget warning                                                                                                       |
 | 12  | Recurring transactions     | ⬜  | ⬜  | rules + Vercel Cron to materialise due entries                                                                                                                           |
 | 13  | Debt / loan                | ⬜  | ⬜  | "lent to / borrowed from" with repayments                                                                                                                                |
 | 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                                                                       |
-| 15  | Search, filter, CSV export | ⬜  | ⬜  |                                                                                                                                                                          |
+| 15  | Search, filter, CSV export | ⬜  | ⬜  | + bulk edit: move many transactions (e.g. one wallet's) to another category (owner, 7.3)                                                                                 |
 | 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                                                                   |
 | 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
 
@@ -100,7 +100,50 @@ decision "Local-first").
 
 ---
 
-## Next: Reports (#10)
+## Next: Category merge (7.3)
+
+Before Reports, so retiring a category doesn't mean moving its transactions one by one. Today a
+category with transactions can only be archived (category rule 6), so nothing is lost, but there
+is no way to fold it into another. **7.3 adds "ผสาน"** (category rule 15): move a category's
+transactions to another one of the same type, then delete it, from the category form in Account
+› หมวดหมู่ (a header icon beside archive / delete, views in the same sheet).
+
+- **Decided at the start of 7.3** (owner; category.md rule 15, mock-up
+  `docs/features/mockups/category-merge.html`): a category merges into **any** category of the
+  same profile and type, top-level or sub-category, except itself and its own children (as in
+  Money Lover: "ค่าน้ำ" into "ค่าข้าว" or into "อาหาร"); a parent's children move under the
+  target (or the target's parent) with a name clash merging, or all merge in; a confirm view,
+  no undo; merged ids leave `hiddenCategoryIds`; the "can't delete" line offers the merge.
+- **Sync, decided** (owner): the device merges locally and queues **one** op (the tombstone
+  with `mergedIntoId`); the **server** moves the transactions (and leftover children) when it
+  lands, and moves a late transaction pushed to the merged category instead of refusing it. No
+  network needed to merge. A merge only meets a row it didn't move when one user's two devices
+  are both offline (later-edit-wins can't settle it: different rows), so shared wallets (#16)
+  stay on the roadmap.
+- **Also decided**: archived source ok, target open; refused child moves merge into the
+  target; the target keeps its own hidden state; confirm, no undo. A per-wallet move is #15's
+  bulk edit, not a merge.
+- **Built, waiting for the owner's check** (tests come after it):
+  - API: migration `0014_category_merged_into`; the sync service's optional handler hooks
+    `resolve` (a pushed row adjusted before its checks) and `followUp` (rows a written row
+    implies, with a block of `changeSeq`s from `takeSeqs(n)`); `core/database/category-merge.ts`
+    `findMergeTarget` (≤ 5 hops, same owner, profile and type); a merged tombstone moves its
+    transactions (one `UPDATE … FROM`) and merges leftover children; a late transaction, or a
+    child pushed under a merged parent, follows the merge instead of being refused.
+  - Web: local schema step 10 (`categories.merged_into_id`), `core/category/category-merge.ts`,
+    `CategoryService.merge` / `mergePlan` / `mergeTargets` / `transactionCount`, both sweeps run
+    `followMerges` first, the sheet's merge icon and `merge` / `confirmMerge` views, the
+    can't-delete line with a merge link, `app-sheet-frame` `threeActions`.
+  - Checked: a scenario script on the real push service (1,200 transactions merged in one op,
+    23 ms; a late push and an offline child follow; a chain of merges; leftover children).
+    Playwright at 375×812 on `ng serve` with the API: กาแฟ → ร้านอาหาร (17 rows, total
+    unchanged), ที่อยู่อาศัย → ช้อปปิ้ง in both modes (a clash merges into ค่าไฟ, a moved child
+    keeps its hidden state), dark mode; the server's rows checked after.
+  - Pending: tests (API: hooks, `findMergeTarget`, both handlers; web: `category-merge`,
+    `merge`, the sheet), OpenAPI `SyncCategoryRow.mergedIntoId`, a two-device run in the
+    browser.
+
+## Next after 7.3: Reports (#10)
 
 Not started: write `docs/features/report.md` first (month summary, by-category breakdown,
 month-to-month trend; ROADMAP → Status). Transfers never count as income or expense there

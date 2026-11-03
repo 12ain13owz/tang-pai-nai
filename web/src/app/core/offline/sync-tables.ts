@@ -71,6 +71,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
       'color',
       'isArchived',
       'sortOrder',
+      'mergedIntoId',
       'createdAt',
       'updatedAt',
       'deletedAt',

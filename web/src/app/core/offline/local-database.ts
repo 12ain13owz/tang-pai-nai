@@ -151,6 +151,8 @@ const MIGRATIONS: readonly string[] = [
   CREATE INDEX transfers_profile_day ON transfers (profile_id, occurred_on);
   CREATE INDEX transfers_from_wallet ON transfers (from_wallet_id);
   CREATE INDEX transfers_to_wallet ON transfers (to_wallet_id)`,
+  // #7.3: the category a merged tombstone went into (category rule 15).
+  `ALTER TABLE categories ADD COLUMN merged_into_id TEXT`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null

@@ -15,6 +15,8 @@ export interface Category {
   color: string
   isArchived: boolean
   sortOrder: number
+  /** The category a merged tombstone went into (rule 15); null otherwise. */
+  mergedIntoId?: string | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null
@@ -42,6 +44,23 @@ export type CategorySheetState =
   | { mode: 'create'; type: CategoryType; parentId: string | null }
   | { mode: 'edit'; id: string }
   | { mode: 'fix'; opId: string; id: string; profileId: string; values: CategoryValues }
+
+/** What a top-level category's children do in a merge (rule 15). */
+export type CategoryMergeMode = 'move' | 'all'
+
+/** What a merge would do, for the confirm view (rule 15). */
+export interface CategoryMergePlan {
+  /** Transactions that land on the target (the source's, and merged children's). */
+  transactions: number
+  /** Children moved under `parentId` (the target, or the target's parent). */
+  moved: number
+  /** Of the moved ones, merged into a same-named child there instead. */
+  clashes: number
+  /** Children merged into the target ("all"). */
+  merged: number
+  /** Where moved children go. */
+  parentId: string
+}
 
 /** Why a category can't come back from the archive (rules 2, 7, 11). */
 export type CategoryUnarchiveRefusal = 'nameTaken' | 'limit' | 'parentArchived'

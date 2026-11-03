@@ -255,12 +255,22 @@ fixOpId?, profileId?, hiddenIn?)` (a row that changes siblings goes last among t
   (among open siblings), `sheet` / `open()` / `openFix()`. An effect tombstones live children
   of a parent that is a tombstone here (category rule 6); the shell injects the service so it
   runs.
+- **Merge** (7.3, category rule 15): `CategoryService.mergeTargets(id)` (the tree it may go
+  into), `mergePlan(source, target, mode)` (counts for the confirm view),
+  `merge(source, target, mode)` (one write: children move or merge, merged ids leave `hiddenCategoryIds`, tombstones
+  with `mergedIntoId` pushed last as upserts), `transactionCount(id)`.
+  `core/category/category-merge.ts`: `mergeTargetOf` (follows `merged_into_id`, as the API's
+  `findMergeTarget`), `moveRow` (a row with a **pending op** gets the op rewritten and moved last;
+  any other changes locally only, because the server makes the same move), `moveTransactions`,
+  `followMerges` / `hasMergeLeftovers`: both sweeps (category rule 6, transaction rule 10) run
+  it first, so rows of a merged tombstone follow it instead of being deleted.
 - **Outbox order matters** when a row points at another: a category put under a parent queued
   after it calls `moveOpLast()` (`core/offline/outbox.ts`) so the parent is pushed first, and
   unarchiving a parent moves its children's ops after its own.
-- `layout/category-sheet` (views `form` / `icons` / `parent` / `wallets` / `confirmDelete` /
-  `confirmDiscard`; `app-segmented-field` for the type, disabled while it follows a parent or
-  the row has children) is `@defer`red by the shell; `features/account/pages/categories-page`
+- `layout/category-sheet` (views `form` / `icons` / `parent` / `wallets` / `merge` /
+  `confirmMerge` / `confirmDelete` / `confirmDiscard`; three header icons in edit mode, so it
+  passes `threeActions` to `app-sheet-frame`; `app-segmented-field` for the type, disabled
+  while it follows a parent or the row has children) is `@defer`red by the shell; `features/account/pages/categories-page`
   is Account › หมวดหมู่ with a two-level order mode (an inner `cdkDropList` per parent).
   `layout/wallet-sheet` has a `categories` view (tabs + `app-toggle-list-field`) for the
   wallet's `hiddenCategoryIds`.

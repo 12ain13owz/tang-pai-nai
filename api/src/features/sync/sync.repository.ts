@@ -11,6 +11,8 @@ export interface SyncRepository {
   transaction<T>(work: (tx: SyncRepository) => Promise<T>): Promise<T>
   /** The next `changeSeq` from the database-wide counter. */
   nextSeq(): Promise<number>
+  /** Reserves `count` `changeSeq`s in a row (at least 1); answers the first. */
+  takeSeqs(count: number): Promise<number>
   /** The highest `changeSeq` handed out so far (every row up to it has committed). */
   lastSeq(): Promise<number>
   purgedSeq(): Promise<number>
@@ -32,6 +34,10 @@ export interface SyncRepository {
   pull(table: string, userId: string, since: number, limit: number): Promise<SyncRow[]>
   find(table: string, id: string): Promise<{ ownerId: string; row: SyncRow } | null>
   check(table: string, userId: string, row: SyncRowInput): Promise<string | null>
+  /** The handler's `resolve`, or the row as is. */
+  resolve(table: string, userId: string, row: SyncRowInput): Promise<SyncRowInput>
   write(table: string, userId: string, row: SyncRowWrite): Promise<SyncRow>
+  /** The handler's `followUp`, if it has one. */
+  followUp(table: string, userId: string, row: SyncRow): Promise<void>
   purge(table: string, before: number): Promise<{ removed: number; maxSeq: number }>
 }

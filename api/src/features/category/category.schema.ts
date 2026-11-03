@@ -37,10 +37,22 @@ const row = z
     createdAt: epochMs,
     updatedAt: epochMs,
     deletedAt: epochMs.nullable().default(null),
+    // Rule 15: only a tombstone carries it; a device from before 7.3 sends none.
+    mergedIntoId: z
+      .uuid({ error: ERRORS.invalidField('mergedIntoId') })
+      .nullable()
+      .default(null),
   })
   .refine((value) => value.parentId !== value.id, {
     message: ERRORS.invalidField('parentId'),
   })
+  .refine((value) => value.mergedIntoId !== value.id, {
+    message: ERRORS.invalidField('mergedIntoId'),
+  })
+  .transform((value) => ({
+    ...value,
+    mergedIntoId: value.deletedAt === null ? null : value.mergedIntoId,
+  }))
 
 export const validateCategory = (input: unknown): SyncValidation => {
   const result = row.safeParse(input)

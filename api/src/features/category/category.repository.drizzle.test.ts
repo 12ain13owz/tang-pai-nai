@@ -35,6 +35,7 @@ const category = (
   color: '#475569',
   isArchived: false,
   sortOrder: 0,
+  mergedIntoId: null,
   createdAt: 1000,
   updatedAt: 1000,
   deletedAt: null,

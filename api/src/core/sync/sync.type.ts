@@ -35,8 +35,24 @@ export interface SyncPushHandler {
   find(executor: Executor, id: string): Promise<{ ownerId: string; row: SyncRow } | null>
   /** A feature rule about other rows (e.g. a unique name); the message when it's broken. */
   check(executor: Executor, userId: string, row: SyncRowInput): Promise<string | null>
+  /**
+   * Optional: adjusts a pushed live row before the conflict rules and `check` (a transaction on
+   * a merged category moves to the category it was merged into, category rule 15).
+   */
+  resolve?(executor: Executor, userId: string, row: SyncRowInput): Promise<SyncRowInput>
   /** Inserts or replaces the row, owned by `userId`; answers it as pull would. */
   write(executor: Executor, userId: string, row: SyncRowWrite): Promise<SyncRow>
+  /**
+   * Optional: writes on other rows that a written row implies, in the same transaction (a merged
+   * category's tombstone moves what still points at it, category rule 15). Each written row needs
+   * its own `changeSeq`: `takeSeqs(n)` reserves `n` in a row and answers the first.
+   */
+  followUp?(
+    executor: Executor,
+    userId: string,
+    row: SyncRow,
+    takeSeqs: (count: number) => Promise<number>
+  ): Promise<void>
   /** Deletes tombstones deleted before `before`; the count and the highest `changeSeq` removed. */
   purge(executor: Executor, before: number): Promise<{ removed: number; maxSeq: number }>
 }

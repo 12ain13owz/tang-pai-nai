@@ -1,5 +1,6 @@
 import { and, asc, eq, gt, isNull, lt, max } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
+import { findMergeTarget } from '@/core/database/category-merge'
 import { categories } from '@/core/database/schema/category'
 import { profiles } from '@/core/database/schema/profile'
 import { transactions } from '@/core/database/schema/transaction'
@@ -90,6 +91,22 @@ const checkParents = async (
   return null
 }
 
+/**
+ * Category rule 15: a live row on a merged category (added or edited on a device that hadn't
+ * pulled the merge) moves to the category it was merged into, instead of being refused.
+ */
+const followMergedCategory = async (
+  executor: Executor,
+  userId: string,
+  row: SyncRowInput
+): Promise<SyncRowInput> => {
+  if (row.deletedAt !== null) {
+    return row
+  }
+  const target = await findMergeTarget(executor, userId, String(row.categoryId))
+  return target ? { ...row, categoryId: target.id } : row
+}
+
 /** Rules a device can't check offline (transaction rules 1, 5); the message or null. */
 const checkTransaction = async (
   executor: Executor,
@@ -135,6 +152,8 @@ export const transactionSyncHandler: SyncTableHandler = {
         },
         { id }
       ),
+    resolve: async (executor, userId, row) =>
+      run('resolve', async () => followMergedCategory(executor, userId, row), { id: row.id }),
     check: async (executor, userId, row) =>
       run('check', async () => checkTransaction(executor, userId, row), { id: row.id }),
     write: async (executor, userId, row) =>
