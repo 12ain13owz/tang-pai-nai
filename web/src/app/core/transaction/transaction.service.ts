@@ -119,7 +119,7 @@ export class TransactionService {
   constructor() {
     // Each profile has its own remembered wallet and unit; a new profile starts on "ทุกกระเป๋า".
     effect(() => {
-      const profileId = this.profileService.current()?.id ?? ''
+      const profileId = this.profileService.currentId() ?? ''
       untracked(() => {
         const saved = this.readView(profileId)
         this.viewWalletId.set(saved.walletId)
