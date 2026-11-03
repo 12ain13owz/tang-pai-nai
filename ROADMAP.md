@@ -123,9 +123,25 @@ transactions to another one of the same type, then delete it, from the category 
 - **Also decided**: archived source ok, target open; refused child moves merge into the
   target; the target keeps its own hidden state; confirm, no undo. A per-wallet move is #15's
   bulk edit, not a merge.
-- Then API (migration `0014`, `categories.merged_into_id`, the handler's follow-ups, the
-  transaction check's redirect), web (local schema step, `CategoryService.merge`, the sweep, the
-  sheet's `merge` / `confirmMerge` views), tests, and this file.
+- **Built, waiting for the owner's check** (tests come after it):
+  - API: migration `0014_category_merged_into`; the sync service's optional handler hooks
+    `resolve` (a pushed row adjusted before its checks) and `followUp` (rows a written row
+    implies, with a block of `changeSeq`s from `takeSeqs(n)`); `core/database/category-merge.ts`
+    `findMergeTarget` (≤ 5 hops, same owner, profile and type); a merged tombstone moves its
+    transactions (one `UPDATE … FROM`) and merges leftover children; a late transaction, or a
+    child pushed under a merged parent, follows the merge instead of being refused.
+  - Web: local schema step 10 (`categories.merged_into_id`), `core/category/category-merge.ts`,
+    `CategoryService.merge` / `mergePlan` / `mergeTargets` / `transactionCount`, both sweeps run
+    `followMerges` first, the sheet's merge icon and `merge` / `confirmMerge` views, the
+    can't-delete line with a merge link, `app-sheet-frame` `threeActions`.
+  - Checked: a scenario script on the real push service (1,200 transactions merged in one op,
+    23 ms; a late push and an offline child follow; a chain of merges; leftover children).
+    Playwright at 375×812 on `ng serve` with the API: กาแฟ → ร้านอาหาร (17 rows, total
+    unchanged), ที่อยู่อาศัย → ช้อปปิ้ง in both modes (a clash merges into ค่าไฟ, a moved child
+    keeps its hidden state), dark mode; the server's rows checked after.
+  - Pending: tests (API: hooks, `findMergeTarget`, both handlers; web: `category-merge`,
+    `merge`, the sheet), OpenAPI `SyncCategoryRow.mergedIntoId`, a two-device run in the
+    browser.
 
 ## Next after 7.3: Reports (#10)
 
