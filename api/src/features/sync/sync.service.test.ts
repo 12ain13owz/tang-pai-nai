@@ -317,6 +317,53 @@ describe('createSyncService › push', () => {
   })
 })
 
+describe('createSyncService › push hooks (category rule 15)', () => {
+  it('runs resolve before the checks and answers the resolved row', async () => {
+    const renamed: Record<string, string> = { Old: 'New', Dup: 'Taken' }
+    const { service, memory } = setup({
+      resolves: { notes: (row) => ({ ...row, title: renamed[String(row.title)] ?? row.title }) },
+    })
+    await one(service, ALICE, PHONE, op({ row: note('n1', 'Taken', NOW) }))
+    // The resolved title clashes with n1, so the check refuses it.
+    const clash = await one(service, ALICE, PHONE, op({ row: note('n2', 'Dup', NOW) }))
+    expect(clash).toMatchObject({ status: 'rejected', message: 'Title in use' })
+    const moved = await one(service, ALICE, PHONE, op({ row: note('n3', 'Old', NOW) }))
+    expect(moved).toMatchObject({ status: 'applied', row: { title: 'New' } })
+    expect(memory.row('notes', 'n3')?.row).toMatchObject({ title: 'New' })
+  })
+
+  it('runs followUp after an upsert and a delete, with seqs after the row', async () => {
+    const calls: { id: string; deletedAt: unknown; first: number; changeSeq: number }[] = []
+    const { service } = setup({
+      followUps: {
+        notes: {
+          seqs: () => 3,
+          run: (row, first) =>
+            calls.push({ id: row.id, deletedAt: row.deletedAt, first, changeSeq: row.changeSeq }),
+        },
+      },
+    })
+    await one(service, ALICE, PHONE, op({ row: note('n1', 'Coffee', NOW) }))
+    await one(service, ALICE, PHONE, op({ op: 'delete', row: { id: 'n1', updatedAt: NOW } }))
+    expect(calls).toEqual([
+      { id: 'n1', deletedAt: null, first: 3, changeSeq: 2 },
+      { id: 'n1', deletedAt: NOW, first: 7, changeSeq: 6 },
+    ])
+    // The block was taken: the next row's seq comes after it.
+    const next = await one(service, ALICE, PHONE, op({ row: note('n2', 'Tea', NOW) }))
+    expect(next).toMatchObject({ changeSeq: 10 })
+  })
+
+  it('runs no followUp for a rejected op', async () => {
+    let calls = 0
+    const { service } = setup({
+      followUps: { notes: { seqs: () => 1, run: () => (calls += 1) } },
+    })
+    await one(service, ALICE, PHONE, op({ row: note('n1', '', NOW) }))
+    expect(calls).toBe(0)
+  })
+})
+
 describe('createSyncService › pull', () => {
   it("returns the user's rows and master data in changeSeq order, with the tables", async () => {
     const { service } = setup()

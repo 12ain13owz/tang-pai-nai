@@ -237,4 +237,22 @@ describe('transactionSyncHandler', () => {
     await db.delete(profiles)
     expect(await push.find(db, 't2')).toBeNull()
   })
+
+  it('moves a live row on a merged category to its target before the checks (rule 15)', async () => {
+    await db
+      .insert(categories)
+      .values([
+        category('coffee', 'alice', 'pa', { deletedAt: 900, mergedIntoId: 'food' }),
+        category('tea', 'alice', 'pa', { deletedAt: 900, mergedIntoId: 'deadcat' }),
+      ])
+    const late = { ...transaction('t9', 0, { categoryId: 'coffee' }), changeSeq: undefined }
+    expect(await push.resolve?.(db, 'alice', late)).toEqual({ ...late, categoryId: 'food' })
+    // A plain tombstone, a dead end or a tombstone row stays as pushed (and the check decides).
+    for (const categoryId of ['deadcat', 'tea', 'food']) {
+      const row = transaction('t9', 0, { categoryId })
+      expect(await push.resolve?.(db, 'alice', row)).toBe(row)
+    }
+    const deleted = transaction('t9', 0, { categoryId: 'coffee', deletedAt: 5 })
+    expect(await push.resolve?.(db, 'alice', deleted)).toBe(deleted)
+  })
 })

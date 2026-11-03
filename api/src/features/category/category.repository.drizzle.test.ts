@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/libsql/migrator'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -7,6 +8,7 @@ import { env } from '@/core/config'
 import type { Database } from '@/core/database'
 import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
+import { categories } from '@/core/database/schema/category'
 import { profiles } from '@/core/database/schema/profile'
 import { transactions } from '@/core/database/schema/transaction'
 import { wallets } from '@/core/database/schema/wallet'
@@ -275,5 +277,141 @@ describe('categorySyncHandler', () => {
     expect(
       await push.check(db, 'alice', category('home', 'Home', 0, { type: 'income' }))
     ).toBeNull()
+  })
+
+  describe('merge (rule 15)', () => {
+    let seq = 100
+    const takeSeqs = async (count: number) => {
+      const first = seq + 1
+      seq += count
+      return Promise.resolve(first)
+    }
+    const tombstone = (id: string, name: string, mergedIntoId: string, extra = {}) =>
+      category(id, name, 60, { deletedAt: 900, updatedAt: 900, mergedIntoId, ...extra })
+
+    beforeEach(async () => {
+      seq = 100
+      await db.insert(wallets).values({
+        id: 'cash',
+        userId: 'alice',
+        profileId: 'pa',
+        name: 'Cash',
+        currencyCode: 'THB',
+        initialBalance: 0,
+        icon: 'lucideWallet',
+        color: '#15803d',
+        excludeFromTotal: false,
+        isArchived: false,
+        sortOrder: 0,
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+        changeSeq: 40,
+        updatedBy: 'alice',
+      })
+      for (const [id, name, extra] of [
+        ['food', 'Food', {}],
+        ['rice', 'Rice', { parentId: 'food' }],
+        ['water', 'Water', { parentId: 'food' }],
+        ['home', 'Home', {}],
+        ['rent', 'Rent', { parentId: 'home' }],
+        ['salary', 'Salary', { type: 'income' }],
+      ] as const) {
+        await push.write(db, 'alice', category(id, name, 15, extra))
+      }
+    })
+
+    const addTransactions = async (categoryId: string, ids: string[], deletedAt?: number) => {
+      await db.insert(transactions).values(
+        ids.map((id) => ({
+          id,
+          userId: 'alice',
+          profileId: 'pa',
+          walletId: 'cash',
+          categoryId,
+          amount: 100,
+          occurredOn: '2026-11-02',
+          note: '',
+          excludeFromReport: false,
+          createdAt: 1,
+          updatedAt: 1,
+          deletedAt: deletedAt ?? null,
+          changeSeq: 50,
+          updatedBy: 'alice',
+        }))
+      )
+    }
+    const transaction = async (id: string) =>
+      (await db.select().from(transactions).where(eq(transactions.id, id))).at(0)
+    const stored = async (id: string) =>
+      (await db.select().from(categories).where(eq(categories.id, id))).at(0)
+
+    it('stores mergedIntoId on a tombstone only', async () => {
+      const written = await push.write(db, 'alice', tombstone('water', 'Water', 'rice'))
+      expect(written.mergedIntoId).toBe('rice')
+      const live = await push.write(
+        db,
+        'alice',
+        category('rent', 'Rent', 61, { mergedIntoId: 'x' })
+      )
+      expect(live.mergedIntoId).toBeNull()
+    })
+
+    it("moves a merged tombstone's live transactions, each with its own seq", async () => {
+      await addTransactions('water', ['t1', 't2', 't3'])
+      await addTransactions('water', ['t4'], 5)
+      const row = await push.write(db, 'alice', tombstone('water', 'Water', 'rice'))
+      await push.followUp?.(db, 'alice', row, takeSeqs)
+      const moved = await Promise.all(['t1', 't2', 't3'].map(transaction))
+      expect(moved.map((t) => t?.categoryId)).toEqual(['rice', 'rice', 'rice'])
+      expect(moved.map((t) => t?.changeSeq)).toEqual([101, 102, 103])
+      expect(moved[0]).toMatchObject({ updatedAt: 900, updatedBy: 'alice' })
+      // A deleted transaction stays where it was.
+      expect(await transaction('t4')).toMatchObject({ categoryId: 'water', changeSeq: 50 })
+    })
+
+    it("merges a top-level source's leftover children into the target, with their rows", async () => {
+      await addTransactions('home', ['t1'])
+      await addTransactions('rent', ['t2'])
+      const row = await push.write(db, 'alice', tombstone('home', 'Home', 'food'))
+      await push.followUp?.(db, 'alice', row, takeSeqs)
+      expect(await stored('rent')).toMatchObject({
+        deletedAt: 900,
+        mergedIntoId: 'food',
+        changeSeq: 101,
+      })
+      expect((await transaction('t1'))?.categoryId).toBe('food')
+      expect((await transaction('t2'))?.categoryId).toBe('food')
+    })
+
+    it('changes nothing for a plain tombstone or one whose target is gone or unfit', async () => {
+      await addTransactions('water', ['t1'])
+      await push.write(db, 'alice', category('gone', 'Gone', 16, { deletedAt: 5 }))
+      for (const target of [null, 'gone', 'salary', 'nope']) {
+        const row = await push.write(db, 'alice', {
+          ...tombstone('water', 'Water', 'rice'),
+          mergedIntoId: target,
+        })
+        await push.followUp?.(db, 'alice', row, takeSeqs)
+      }
+      expect(await transaction('t1')).toMatchObject({ categoryId: 'water', changeSeq: 50 })
+      expect(seq).toBe(100)
+    })
+
+    it('merges a live child pushed under a merged parent into its target', async () => {
+      await push.write(db, 'alice', tombstone('home', 'Home', 'food'))
+      const child = category('new', 'New', 0, { parentId: 'home', updatedAt: 1200 })
+      expect(await push.resolve?.(db, 'alice', child)).toEqual({
+        ...child,
+        deletedAt: 1200,
+        mergedIntoId: 'food',
+      })
+      // Under a live parent, or a plain tombstone, it stays as pushed.
+      const underFood = category('new', 'New', 0, { parentId: 'food' })
+      expect(await push.resolve?.(db, 'alice', underFood)).toBe(underFood)
+      await push.write(db, 'alice', category('rent', 'Rent', 61, { deletedAt: 5 }))
+      const top = category('new', 'New', 0)
+      expect(await push.resolve?.(db, 'alice', top)).toBe(top)
+    })
   })
 })
