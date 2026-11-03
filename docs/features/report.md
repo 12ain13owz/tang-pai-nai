@@ -1,8 +1,9 @@
 # Report
 
-> Status: **Spec** (#10). Q1–Q7 and the extras settled by the owner (round 1 of the mock-up
-> `docs/features/mockups/report.html`); the summary card's layout is still open (S1–S3). No API change is planned: everything is
-> computed on the device from the local database.
+> Status: **Built** (#10), web only: every figure is computed on the device from the local
+> database, no API change. Web: `core/report` (`ReportService`), `features/reports` (the tab,
+> `/reports/category/:id[/:sub]`, `/reports/excluded`), the Transactions header in its
+> `reports` view. Mock-up: `docs/features/mockups/report.html` (three rounds).
 
 ## Purpose
 
@@ -57,16 +58,23 @@ No table of its own and no new column. A report reads, for the current profile:
    (transaction rule 12, transfers and `excludeFromReport` rows included) at the end of the day
    before the period, **ยอดสุดท้าย** / Ending balance = at the end of its last day. So ยอดสุดท้าย
    − ยอดเริ่มต้น = net + the view's transfer net + the `excludeFromReport` rows' signed sum. On
-   "ทุกกระเป๋า" it's the wallets of rule 2 (archived ones too, unlike ยอดรวม). Not shown for
-   "ทั้งหมด"-like ranges with no start (a custom range always has both dates).
-10. **Average expense per day** (E3) = expense ÷ the period's days; for the current period, the
-    days up to today. Shown for periods of more than one day.
+   "ทุกกระเป๋า" it's the wallets of rule 2 (archived ones too, unlike ยอดรวม). Every report
+   unit has both ends (there is no "ทั้งหมด"; a custom range always has both dates).
+10. **Average expense per day** (E3) = expense ÷ the period's days, rounded half up to the
+    minor unit; for the current period, the days up to today. Shown for periods of more than
+    one day with some expense.
 11. **Left out** (E5): when the period has `excludeFromReport` rows, a line "ไม่รวมในรายงาน n
     รายการ" with their signed sum opens a page listing them, so a low total is explained.
 12. **Previous period** (E4): a category page shows the same category's amount in the period
-    before (same unit, same wallets). The summary has **no** "% against the previous period"
-    (E2, declined by the owner).
-13. Nothing in this tab writes, except through the transaction sheet a row opens (its own rules
+    before (same unit and length, same wallets), named by its dates ("เทียบกับ ก.ย. 2026:
+    1,135.00"), since "เดือนที่แล้ว" would clash with the chip of that name. The summary has
+    **no** "% against the previous period" (E2, declined by the owner).
+13. **A category page lists the rows it counts** (not `excludeFromReport` ones, which have
+    their own page, rule 11), in the chosen currency, so its list adds up to its total.
+14. **Empty**: the tab shows the empty state only when the period has no income, expense,
+    left-out row or transfer in view; a wallet with only transfers (savings) still gets its
+    summary, since its balances moved.
+15. Nothing in this tab writes, except through the transaction sheet a row opens (its own rules
     apply). Works the same offline; an untrusted device reads what it has pulled.
 
 ## Volume
@@ -74,16 +82,20 @@ No table of its own and no new column. A report reads, for the current profile:
 Up to tens of thousands of rows (transaction.md → Volume). Every figure is **one aggregate
 query** through the (`profile_id`, `occurred_on`) index, never a scan of every row into memory:
 
-- summary: the existing `TransactionService.summary` (`GROUP BY currency, type`);
-- by category: `GROUP BY` the top-level id (`coalesce(c.parent_id, c.id)`), type and currency;
-  a parent's breakdown groups by `category_id` within that parent;
-- trend: `GROUP BY` the period key (`substr(occurred_on, 1, 7)` for months, …) over the
-  covered span, for both types at once;
-- a drill-down list is the period's rows of those categories, drawn 100 at a time like the
-  Transactions tab.
+- summary: the existing `TransactionService.summary` (`GROUP BY currency, type`) plus one
+  aggregate for the left-out rows and one per balance (`UNION ALL` of the transactions and both
+  sides of transfers up to a day, `GROUP BY` currency);
+- by category: `GROUP BY` the top-level id (`coalesce(c.parent_id, c.id)`) of one type and
+  currency; a parent's split groups by `category_id` within it;
+- trend: one aggregate over the covered span, each row put in its period by a `CASE` on
+  `occurred_on` (any unit), `GROUP BY` period and type;
+- a drill-down list is `TransactionService.list` with a filter (categories, counted or left
+  out, currency), drawn 100 rows at a time like the Transactions tab.
 
-To be measured with **20,000 rows** over 3 years on `npm run build` (switching period, opening
-the tab, a drill-down), as in 8.1, and the Transactions tab measured again after #9.
+**Checked in #10** with 20,000 rows over 3 years (Playwright, `npm run build`): the first pull
+≈ 3.4 s, opening the tab ≈ 0.12 s, switching month or year 0.09–0.15 s, a whole year of one
+category (3,283 rows) ≈ 0.28 s, back to the tab ≈ 0.06 s. The Transactions tab measured again
+after #9: switching month ≈ 0.10 s, "ทั้งหมด" ≈ 0.47 s, the next 100 rows ≈ 0.08 s.
 
 ## Endpoints
 
@@ -91,29 +103,47 @@ None. The tab reads the local database only.
 
 ## Web screens
 
-Proposal, to be confirmed with the mock-up (Open questions):
+Owner's choices in #10 (mock-up rounds 1–3; DESIGN.md → Reports):
 
 - **Reports tab** (`features/reports`, lazy):
-  - header like the Transactions tab: profile icon left, the **wallet switcher** in the centre,
-    sync icon and **⋮** right (⋮: "ดูตาม · เดือน ›" → month / quarter / year / custom, Q2);
-  - the **period chips** under it (`09/2026 · เดือนที่แล้ว · เดือนนี้`), a sideways swipe moves
-    period;
-  - **summary card** (layout open: S1–S3 in the mock-up): ยอดเริ่มต้น, รายรับ, รายจ่าย,
-    สุทธิ, ยอดสุดท้าย (rules 9–11), the average expense per day and "ไม่รวมในรายงาน n
-    รายการ" (one card per currency, Q6);
-  - **trend card**: income and expense bars for the last periods (Q2), the chosen one
-    highlighted; tapping a bar chooses that period;
-  - **by category card**: รายจ่าย / รายรับ tabs, a chart (Q1), then one row per top-level
-    category: badge, name, share, amount; a row opens the category's page.
-- **Category page** (`/reports/category/:id`, ‹ back to the tab, same period and wallets):
-  - the category's total, its share and the previous period's amount (rule 12); for a parent, one row per sub-category plus
-    "ไม่ระบุหมวดย่อย" (rule 5); a sub-category row opens its own page;
-  - then **every transaction of the category in the period** (a parent: its children's and
-    its own), in day cards like the Transactions tab; a row opens the transaction sheet (edit,
-    delete with undo).
-- Empty period: `app-empty-state` "ยังไม่มีธุรกรรมในช่วงนี้" with "เพิ่มธุรกรรม".
+  - header: the Transactions tab's (profile icon, the **wallet switcher** in the centre, sync
+    icon, ⋮), the same chosen wallet (Q3); its ⋮ holds only "ดูตาม · เดือน ›" → เดือน / ไตรมาส /
+    ปี / กำหนดเอง… (Q2), its own choice kept per profile on the device; custom opens the
+    tab's own range sheet;
+  - the **period chips** (`09/2026 · เดือนที่แล้ว · เดือนนี้`, no "อนาคต"), a sideways swipe
+    moves period;
+  - the **summary card** (owner's choice **H1**, one per currency): "สุทธิ · ต.ค. 2026" and
+    the net large, รายรับ / รายจ่าย as tiles tinted with the money colours (↙ / ↗ beside the
+    word), ยอดเริ่มต้น → ยอดสุดท้าย on one line, then small chips only when they say
+    something: "เฉลี่ยรายจ่าย 755.84/วัน", "โอนเงิน −5,000.00", "ไม่รวมในรายงาน 2 รายการ
+    −1,500.00 ›" (a link to its page);
+  - **currency chips** above the trend and breakdown, only when the view has more than one
+    currency (Q6);
+  - the **trend card** "แนวโน้ม 6 เดือน" (4 ไตรมาส, 5 ปี; none for a custom range): a pair of
+    bars per period, the chosen one full strength and outlined, the others faded, a compact
+    scale (`50K`), "แตะแท่งเพื่อดูช่วงนั้น"; each pair is a button naming its period and both
+    amounts;
+  - the **by category card** (Q1-B): รายจ่าย / รายรับ tabs, "ตามหมวดหมู่" with the type's
+    total, a thin bar split by category, then the top-level categories largest first: badge,
+    name, amount, a bar of its size in its colour, the share, and "2 หมวดย่อย" / "เก็บถาวร";
+    a row opens the category page;
+  - an empty period: `app-empty-state` "ยังไม่มีธุรกรรมในช่วงนี้" with "เพิ่มธุรกรรม" (rule 14).
+- **Category page** (`/reports/category/:id`, the header ‹ and the category's name; same
+  period, wallet and currency; the chips and swipe work here too):
+  - a card: the badge, the total in the type's colour, "89.7% ของรายจ่าย · ต.ค. 2026", "เทียบกับ
+    ก.ย. 2026: 400.00" (rule 12);
+  - for a parent with sub-categories: "หมวดหมู่ย่อย" as the same split list, with
+    "ไม่ระบุหมวดย่อย · บันทึกที่หมวดหลักโดยตรง" for its own money (Q4);
+  - "ธุรกรรม n รายการ" and the day cards of the Transactions tab (rule 13); a row opens the
+    transaction sheet.
+- **Sub-category / "ไม่ระบุหมวดย่อย" page** (`/reports/category/:id/:sub`, `sub` = a child's id
+  or `direct`): "อาหาร › กาแฟ" over the total, the share of the parent, the rows; ‹ goes back
+  to the parent's page. The header reads "อาหาร · ไม่ระบุหมวดย่อย" for `direct`.
+- **Left out page** (`/reports/excluded`, "ไม่รวมในรายงาน"): one line on what the switch does,
+  then the period's left-out rows in day cards.
 
-Glossary: รายงาน / Report, รายรับ / รายจ่าย, สุทธิ / Net, หมวดหมู่หลัก / ย่อย (DESIGN.md §11).
+Glossary: รายงาน / Report, รายรับ / รายจ่าย, สุทธิ / Net, ยอดเริ่มต้น / ยอดสุดท้าย (Starting /
+Ending balance), หมวดหมู่หลัก / ย่อย (DESIGN.md §11).
 
 ## Interactions
 
@@ -146,10 +176,19 @@ Glossary: รายงาน / Report, รายรับ / รายจ่า�
   ต้นงวด / ปลายงวด), E3 average per day, E4 the previous period on a category page, E5 the
   "ไม่รวมในรายงาน" line. **Not** E2 (% against the previous period).
 
-**Open**: the summary card's layout. Round 2 (S1 a statement that adds up, S2 the balances on
+**Summary card**: round 2 (S1 a statement that adds up, S2 the balances on
 their own card, S3 the net as the headline with paired tiles): the owner liked S3's look but
 not its finish, and found S1 clear but long. Round 3 combines them: **H1** S3's headline and
 tinted income / expense tiles, the balances as one line (ยอดเริ่มต้น → ยอดสุดท้าย), and small
 chips for the average per day, โอนเงิน and ไม่รวมในรายงาน (only when not zero); **H2** the same
-head with a "ยอดเงิน 61,200 → 71,250" row that unfolds S1's statement in place. Proposal:
-**H1**.
+head with a "ยอดเงิน 61,200 → 71,250" row that unfolds S1's statement in place. The owner
+chose **H1**.
+
+**Decided while building** (owner, from the Playwright screenshots): the previous period is
+named by its dates (rule 12); a wallet with only transfers shows its summary, not the empty
+state (rule 14); a category page lists only counted rows (rule 13); every category is listed,
+no "อื่น ๆ" fold; the report pages keep the chips; the average per day of the current period
+counts up to today.
+
+**Known**: several currencies are built (chips, one card per currency) but only seen in
+specs, since only THB is active.

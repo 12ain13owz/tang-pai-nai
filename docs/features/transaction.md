@@ -142,7 +142,8 @@ A family using the app daily reaches **tens of thousands of rows** over a few ye
   requests on a new device, done once.
 - **Checked in 8.1** with 20,000 rows over 3 years (Playwright, `npm run build`): the first pull
   ≈ 5.5 s, switching month ≈ 0.17 s, "ทั้งหมด" ≈ 0.8 s (it froze for 12 s before the 100-row
-  pages), a save shows in the list in ≈ 0.2 s.
+  pages), a save shows in the list in ≈ 0.2 s. **Again in #10** (after the transfers): switching
+  month ≈ 0.10 s, "ทั้งหมด" ≈ 0.47 s, the next 100 rows ≈ 0.08 s.
 
 ## Endpoints
 
@@ -251,8 +252,9 @@ offline but edit / delete online only (offline-sync rules 13–16, #16).
   "can delete" read this table (rules 10, 12).
 - **Category**: requires `categoryId`; its `type` decides income or expense; "can change type"
   and "can delete" read this table (rule 10). Hidden categories are left out of the picker only.
-- Reports (#10) and budgets (#11) are computed from this table; a parent category's total
-  includes its children's.
+- Reports (#10, [report.md](report.md)) and budgets (#11) are computed from this table; a
+  parent category's total includes its children's. `list` takes a filter (categories, counted
+  or left-out rows, a currency) for the report's pages.
 
 ## Open questions
 

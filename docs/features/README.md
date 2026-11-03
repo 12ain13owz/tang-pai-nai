@@ -13,6 +13,7 @@ AI can understand a feature without reading its code. These docs are the shared 
 | Category       | [category.md](category.md)         | Built (7.1–7.3)    |
 | Transaction    | [transaction.md](transaction.md)   | Built (8.1, 8.2)   |
 | Transfer       | [transfer.md](transfer.md)         | Built (#9)         |
+| Report         | [report.md](report.md)             | Built (#10)        |
 | Offline & sync | [offline-sync.md](offline-sync.md) | Built (4a.1, 4a.2) |
 
 Order of work and project-wide decisions live in [`../../ROADMAP.md`](../../ROADMAP.md), not here.

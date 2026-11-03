@@ -37,7 +37,8 @@ choice that isn't decided yet is marked **Proposal** until the owner confirms it
   | Page           | fills the rest                           | Bottom padding = tab bar height + safe area |
   | Bottom tab bar | 64px (`h-16`) + `safe-area-inset-bottom` | Hidden while the on-screen keyboard is open |
 
-- **Transactions tab header** (#8, Money Lover style): three columns of which the outer two
+- **Transactions tab header** (#8, Money Lover style; the Reports tab uses it too since #10,
+  its ⋮ holding only "ดูตาม"): three columns of which the outer two
   are equal, so the **wallet switcher** (a pill: wallet badge, name, ▾) sits in the very
   centre; the profile's 28px icon left, the sync icon and the ⋮ menu right. The ⋮ menu (#9,
   owner's choice B, so later items fit) is a two-level nav list: rows with an icon ("โอนเงิน",
@@ -275,6 +276,20 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   2", "บันทึกไม่สำเร็จ 1") are its label, announced politely (`role="status"`), and the sync
   sheet it opens (last sync, "sync ตอนนี้", rejected items with fix / discard, conflict
   notices) says them in full.
+- **Reports tab** (#10, owner's choices from a three-round mock-up; report.md → Web screens):
+  the Transactions tab's header and period chips. The **summary card (H1)**: "สุทธิ · ต.ค.
+  2026" small over the net large and centred; รายรับ / รายจ่าย as two tiles tinted with the
+  money colours (`bg-income/10`, `bg-expense/10`; ↙ / ↗ beside the word, the amount coloured
+  only when not zero); ยอดเริ่มต้น → ยอดสุดท้าย on one line under a rule; then small `bg-muted`
+  chips only when they say something (average per day, โอนเงิน, "ไม่รวมในรายงาน n รายการ ›" as a
+  link). The **trend**: a pair of bars per period in the money colours (4px rounded tops), the
+  chosen pair full strength and outlined in `ring-brand`, the others at 40%, a three-line
+  compact scale, one muted hint line; each pair is a button. The **split list** (by category,
+  a parent's sub-categories): a thin bar split by category (2px gaps), then rows largest
+  first: 40px badge, name and amount, a 6px bar of its size in the category's colour, the
+  share and one muted note ("2 หมวดย่อย", "เก็บถาวร", "บันทึกที่หมวดหลักโดยตรง"), › ; the badge and
+  name carry identity, since user colours may repeat. Charts are drawn with plain elements and
+  tokens, never a chart library.
 - **Transfer form** (#9): the transaction form's frame and rows without type tabs or category:
   from wallet and to wallet (each with its balance on the right, a small "จาก" / "ไปยัง" over
   the name) with a round ⇅ swap button on the line between them, then amount (keypad), note,
@@ -386,23 +401,24 @@ WCAG 2.2 AA, as in `AGENTS.md`:
   `เกิดข้อผิดพลาด`.
 - **Glossary**: use these words everywhere, so the same thing is never called two names.
 
-  | Concept          | Thai                                 | English          | Note                                          |
-  | ---------------- | ------------------------------------ | ---------------- | --------------------------------------------- |
-  | Transaction      | ธุรกรรม                              | Transaction      |                                               |
-  | Profile          | โปรไฟล์                              | Profile          | #6.1; a separate area of money                |
-  | Wallet           | กระเป๋าเงิน                          | Wallet           | Thai tab bar label shortens to กระเป๋า        |
-  | Category         | หมวดหมู่                             | Category         |                                               |
-  | Sub-category     | หมวดหมู่ย่อย / หมวดหมู่หลัก (parent) | Sub-category     | #7; "Parent category" in English              |
-  | Income / expense | รายรับ / รายจ่าย                     | Income / Expense |                                               |
-  | Balance          | คงเหลือ (summary), ยอดเงิน (wallet)  | Balance          |                                               |
-  | Transfer         | โอนเงิน                              | Transfer         | #9                                            |
-  | Budget           | งบประมาณ                             | Budget           | #11                                           |
-  | Report           | รายงาน                               | Report           |                                               |
-  | Account (user)   | บัญชีผู้ใช้                          | Account          | Not บัญชี alone (could mean a bank account)   |
-  | Online / offline | ออนไลน์ / ออฟไลน์                    | Online / Offline |                                               |
-  | Sync             | sync                                 | Sync             | Stays English in Thai: "รอ sync", "sync แล้ว" |
-  | Undo             | เลิกทำ                               | Undo             |                                               |
-  | Theme / mode     | ธีม / โหมดสี                         | Theme / Mode     | Theme names themselves stay English           |
+  | Concept          | Thai                                 | English                   | Note                                          |
+  | ---------------- | ------------------------------------ | ------------------------- | --------------------------------------------- |
+  | Transaction      | ธุรกรรม                              | Transaction               |                                               |
+  | Profile          | โปรไฟล์                              | Profile                   | #6.1; a separate area of money                |
+  | Wallet           | กระเป๋าเงิน                          | Wallet                    | Thai tab bar label shortens to กระเป๋า        |
+  | Category         | หมวดหมู่                             | Category                  |                                               |
+  | Sub-category     | หมวดหมู่ย่อย / หมวดหมู่หลัก (parent) | Sub-category              | #7; "Parent category" in English              |
+  | Income / expense | รายรับ / รายจ่าย                     | Income / Expense          |                                               |
+  | Balance          | คงเหลือ (summary), ยอดเงิน (wallet)  | Balance                   |                                               |
+  | Transfer         | โอนเงิน                              | Transfer                  | #9                                            |
+  | Budget           | งบประมาณ                             | Budget                    | #11                                           |
+  | Start / end bal. | ยอดเริ่มต้น / ยอดสุดท้าย             | Starting / Ending balance | #10, a period's balances (not ต้นงวด)         |
+  | Report           | รายงาน                               | Report                    |                                               |
+  | Account (user)   | บัญชีผู้ใช้                          | Account                   | Not บัญชี alone (could mean a bank account)   |
+  | Online / offline | ออนไลน์ / ออฟไลน์                    | Online / Offline          |                                               |
+  | Sync             | sync                                 | Sync                      | Stays English in Thai: "รอ sync", "sync แล้ว" |
+  | Undo             | เลิกทำ                               | Undo                      |                                               |
+  | Theme / mode     | ธีม / โหมดสี                         | Theme / Mode              | Theme names themselves stay English           |
 
 ## 12. Before opening a PR with UI changes
 

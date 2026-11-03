@@ -83,9 +83,13 @@ layout    ->  core, shared
   `LanguageService` (`core/i18n`), `NetworkStatusService` (`core/network`), `KeyboardService`
   (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`), `OfflineService`
   and `SyncService` (`core/offline`), `ProfileService` (`core/profile`), `WalletService`
-  (`core/wallet`), `CategoryService` (`core/category`), `TransactionService` (`core/transaction`).
+  (`core/wallet`), `CategoryService` (`core/category`), `TransactionService` (`core/transaction`),
+  `ReportService` (`core/report`, kept out of the shell so it stays in the lazy chunks).
 - The header shows ‹ on a page inside the Account tab (`parentOf` in `layout/profile-routes`):
-  the Account tab is grouped rows that each open a page (owner's choice A1 in #7).
+  the Account tab is grouped rows that each open a page (owner's choice A1 in #7). A report page
+  goes one level up (`/reports/category/<id>/<sub>` → `/reports/category/<id>` → `/reports`). A
+  page whose title is data (a category's name) calls `PageTitleStrategy.setOverride(title)`
+  and sets it back to `null` on destroy.
 - The service worker (`ngsw-config.json`) caches the **app shell only**. Never add `dataGroups`:
   data comes from the local DB ([offline-sync](../docs/features/offline-sync.md) → Layers). It is
   off in `ng serve`, so check PWA behaviour against `npm run build` output served with an SPA
@@ -189,8 +193,11 @@ reports) shows the **current profile's** data.
   which `AppShell` renders instead of the page on the data tabs while there is no profile. Data
   pages can therefore assume `current()` is set.
 - A feature's rows carry `profileId` (from 6.2) and its queries filter by
-  `profileService.current()`. Deleting a profile must tombstone its rows in the same
-  `OfflineService.write()` (profile rule 8).
+  `profileService.current()`. `current()` is a **new object after every write or pull** (the
+  rows are read again), so an effect that should run only when the profile changes (restoring a
+  screen's remembered view) reads `profileService.currentId()` instead (fixed in #10: the
+  Transactions tab jumped back to this period after a save). Deleting a profile must tombstone
+  its rows in the same `OfflineService.write()` (profile rule 8).
 - Reordering a list: an order mode with one CDK drag handle per row (`cdkDropList` /
   `cdkDrag` / `cdkDragHandle`, `cdkDragStartDelay` `{ touch: 300, mouse: 0 }`,
   `cdkDragPreviewClass="tpn-drag-preview"`) plus ↑ / ↓ on the handle; see
@@ -321,6 +328,35 @@ values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `rem
 - Specs: `transaction.service.spec.ts`, `transfer.service.spec.ts`, `transaction-sheet.spec.ts`,
   `transfer-sheet.spec.ts`, `transactions-page.spec.ts` put their rows with `putRow` like the
   other tables; `transactions-header.spec.ts` stubs the services (the menu only).
+
+### Reports (`core/report`, #10)
+
+Spec: [report.md](../docs/features/report.md). Read only: every figure is an aggregate over the
+local database, nothing is stored.
+
+- `ReportService`: its own `unit` (`ReportUnit`: month / quarter / year / custom, kept per
+  profile in `tpn-profile:report:unit:…`, never custom), `tab` (a number, no "อนาคต"),
+  `custom`, `customSheet`, `type` (the breakdown's tab), `chosenCurrency` / `currencyCode()`;
+  `walletIds` and `today` are the Transactions tab's (Q3). `range()` / `previousRange()` always
+  have both ends. `summaries()` (per currency: income, expense, net, transfer, left-out count
+  and sum, `start` / `end` balances, `perDay`), `hasData()`, `breakdown()`, `trend()`; the
+  page-level reads `byCategory(range, walletIds, type, currency, parentId?)` (a parent's split,
+  its own money as `direct`) and `categoryTotal(range, walletIds, ids, currency)`.
+- `features/reports`: the tab page, `/reports/category/:id[/:sub]` (`sub` = a child's id or
+  `direct`) and `/reports/excluded`; `components/` (summary card H1, trend bars as buttons,
+  share list, the day list drawn 100 at a time); `report-view.ts` (`reportView()`: chips,
+  swipe, money; `periodName`, `sharePercent`). Its lists come from `TransactionService.list`
+  with a third argument, a `ListFilter` (`categoryIds`, `report` `counted` | `excluded`,
+  `currencyCode`).
+- Charts are plain elements with token colours (no chart library, owner's choice in #10):
+  heights and widths as `%` styles, every bar pair a button with an `aria-label`.
+- The header is `layout/transactions-header` with `view="reports"` (only "ดูตาม", the report
+  units); `app-header` shows it on `/reports` itself (`isReportsTab`). The tab's custom range
+  sheet lives in the page (`@defer`), so the shell never loads `ReportService`.
+- Shared with the Transactions tab: `shared/components/period` (`app-period-strip`, the
+  `appSwipe` directive, `app-custom-range-sheet` with `range` in and `applied` out).
+- Specs: `report.service.spec.ts` on a test database; the pages use
+  `features/reports/report-testing.ts` (`setUpReports()`: real services, a seeded October).
 
 ### Inside a feature
 
