@@ -252,7 +252,7 @@ offline but edit / delete online only (offline-sync rules 13–16, #16).
   "can delete" read this table (rules 10, 12).
 - **Category**: requires `categoryId`; its `type` decides income or expense; "can change type"
   and "can delete" read this table (rule 10). Hidden categories are left out of the picker only.
-- Reports (#10, [report.md](report.md)) and budgets (#11) are computed from this table; a
+- Reports (#10, [report.md](report.md)) and budgets (backlog) are computed from this table; a
   parent category's total includes its children's. `list` takes a filter (categories, counted
   or left-out rows, a currency) for the report's pages.
 

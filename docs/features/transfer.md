@@ -20,7 +20,7 @@ month's รายรับ / รายจ่าย stay what was really earned a
 - **A fee field** (Q3): a bank fee is an ordinary expense in a category, which the user enters
   as its own transaction.
 - Transfers between profiles (a profile is a separate area of money) and between users (#16).
-- Recurring transfers (#12), budgets (#11; transfers never count against a budget).
+- Recurring transfers (#12), budgets (backlog; transfers never count against a budget).
 
 ## Data model
 
@@ -60,7 +60,7 @@ different amounts or dates, delete / undo / conflicts work exactly as for a tran
 3. `amount` 1 to 10¹⁵ minor units, typed on the same calculator keypad (transaction rule 3).
 4. `occurredOn` and `note`: as transaction rules 4 and 6.
 5. **Not income or expense.** A transfer is left out of รายรับ, รายจ่าย and สุทธิ everywhere
-   (the summary card, a day's net, reports #10, budgets #11).
+   (the summary card, a day's net, reports #10, budgets if they come).
 6. **Balance**: a wallet's ยอดเงิน = `initialBalance` + Σ income − Σ expense − Σ transfers out +
    Σ transfers in (transaction rule 12; one aggregate for all wallets). ยอดรวม sums balances
    (wallet rule 7), so a transfer between two counted wallets leaves it unchanged, and one to a
@@ -135,7 +135,7 @@ None of its own: table `transfers` in `/sync/pull` and `/sync/push` (OpenAPI
 - **Wallet**: both sides; balance, "has transactions" (rule 8).
 - **Transaction**: shares the form, the list, the order and the period tabs (the oldest row
   of either table starts the tabs).
-- **Reports (#10), Budget (#11)**: never read this table for income / expense.
+- **Reports (#10), Budget (backlog)**: never read this table for income / expense.
 
 ## Open questions
 
