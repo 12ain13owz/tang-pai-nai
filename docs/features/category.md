@@ -191,6 +191,9 @@ shows when the profile is created (rule 8).
       (transactions to the target, children merged into the target) without new ops: the
       server did the same moves, and their rows arrive in the same pull. A row with a pending
       op keeps it (its push is redirected as above).
+    - **On the wire** the merged tombstone is an `upsert` with `deletedAt` and `mergedIntoId`
+      set (a plain `delete` op carries only `id` and `updatedAt`); the delete-beats-edit rule
+      treats it as a delete. A live row's `mergedIntoId` is stored as null.
     - **Outbox order**: the children's moves (with `moveOpLast`, rule 3's parent first), then
       the wallets, then the tombstones (children merged into the target first, the source last).
     - Merging never adds an open category, so rule 11's limit doesn't apply. A rename of a

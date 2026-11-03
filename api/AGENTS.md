@@ -176,6 +176,13 @@ transactions) reads that table from `@/core/database/schema`, never the other fe
   `null`), `write(executor, userId, row)` (upsert, answers the row as pull would) and
   `purge(executor, before)` (old tombstones). The functions that touch the DB live in the
   feature's `*.repository.drizzle.ts` and run on the `executor` they get (the push transaction).
+  Two optional hooks (7.3, category rule 15): `resolve(executor, userId, row)` adjusts a pushed
+  row before the conflict rules and `check` (a transaction on a merged category moves to its
+  target), and `followUp(executor, userId, row, takeSeqs)` writes other rows a written row
+  implies, in the same transaction (a merged category's tombstone moves its transactions and
+  children); every row it writes gets a `changeSeq` from `takeSeqs(n)` (a block, so one
+  `UPDATE … FROM` can move thousands). The merge lookup both read is
+  `@/core/database/category-merge` (`findMergeTarget`), not either feature.
 - **The service owns the rules**: one write transaction per op (the `changeSeq` counter in
   `sync_state` is taken inside it, so rows commit in order), idempotency via `sync_ops`, the
   clock clamp, the conflict rules (later edit wins, tie keeps the server row, delete beats edit)

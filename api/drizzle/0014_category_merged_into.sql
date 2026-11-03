@@ -1,0 +1,1 @@
+ALTER TABLE `categories` ADD `merged_into_id` text;

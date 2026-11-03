@@ -19,7 +19,7 @@ describe('validateCategory', () => {
   it('accepts a category, trims the name and defaults deletedAt to null', () => {
     expect(validateCategory(valid)).toEqual({
       ok: true,
-      row: { ...valid, name: 'กาแฟ', deletedAt: null },
+      row: { ...valid, name: 'กาแฟ', deletedAt: null, mergedIntoId: null },
     })
   })
 
@@ -34,6 +34,7 @@ describe('validateCategory', () => {
       'icon',
       'id',
       'isArchived',
+      'mergedIntoId',
       'name',
       'parentId',
       'profileId',

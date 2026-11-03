@@ -26,6 +26,11 @@ export const categories = sqliteTable(
     color: text().notNull(),
     isArchived: integer({ mode: 'boolean' }).notNull(),
     sortOrder: integer().notNull(),
+    /**
+     * The category this one was merged into (category rule 15); only a tombstone carries it. No FK:
+     * purging either row must never cascade into the other.
+     */
+    mergedIntoId: text(),
     ...syncColumns,
   },
   (table) => [
