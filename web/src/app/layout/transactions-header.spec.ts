@@ -7,6 +7,7 @@ import { SyncService } from '@/core/offline'
 import type { SyncStatus } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
 import { ReportService } from '@/core/report'
+import type { ReportUnit } from '@/core/report'
 import { TransactionService, TransferService } from '@/core/transaction'
 import type { PeriodUnit, TransferSheetState } from '@/core/transaction'
 import { TransactionsHeader } from './transactions-header'
@@ -22,6 +23,14 @@ describe('TransactionsHeader', () => {
     customSheet,
     unit,
     selectUnit: (next: PeriodUnit) => unit.set(next),
+  }
+
+  const reportUnit = signal<ReportUnit>('month')
+  const reportCustomSheet = signal(false)
+  const reports = {
+    unit: reportUnit,
+    customSheet: reportCustomSheet,
+    selectUnit: (next: ReportUnit) => reportUnit.set(next),
   }
 
   const element = () => fixture.nativeElement as HTMLElement
@@ -41,6 +50,9 @@ describe('TransactionsHeader', () => {
 
   beforeEach(async () => {
     unit.set('month')
+    reportUnit.set('month')
+    reportCustomSheet.set(false)
+    customSheet.set(false)
     transferSheet.set(null)
     TestBed.configureTestingModule({
       imports: [
@@ -52,10 +64,7 @@ describe('TransactionsHeader', () => {
       ],
       providers: [
         { provide: TransactionService, useValue: transactions },
-        {
-          provide: ReportService,
-          useValue: { unit: signal('month'), customSheet: signal(false), selectUnit: vi.fn() },
-        },
+        { provide: ReportService, useValue: reports },
         {
           provide: TransferService,
           useValue: { open: (state: TransferSheetState) => transferSheet.set(state) },
@@ -123,5 +132,32 @@ describe('TransactionsHeader', () => {
     await settle()
     expect(transferSheet()).toEqual({ mode: 'create' })
     expect(items()).toEqual([])
+  })
+
+  it('heads the Reports tab with only ดูตาม and the report units (report.md Q2)', async () => {
+    fixture.componentRef.setInput('view', 'reports')
+    await settle()
+    menuButton()?.click()
+    await settle()
+    expect(items()).toHaveLength(1)
+    expect(item(th.transfers.open)).toBeUndefined()
+    item(th.transactions.viewBy)?.click()
+    await settle()
+    expect(items().slice(1)).toEqual(
+      ['month', 'quarter', 'year', 'custom'].map(
+        (key) => th.transactions.unit[key as keyof typeof th.transactions.unit]
+      )
+    )
+    item(th.transactions.unit.quarter)?.click()
+    await settle()
+    expect(reportUnit()).toBe('quarter')
+    expect(unit()).toBe('month')
+    menuButton()?.click()
+    await settle()
+    item(th.transactions.viewBy)?.click()
+    await settle()
+    item(th.transactions.unit.custom)?.click()
+    expect(reportCustomSheet()).toBe(true)
+    expect(customSheet()).toBe(false)
   })
 })
