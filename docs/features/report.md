@@ -13,7 +13,7 @@ transactions as the Transactions tab and never stores a total (ROADMAP → Money
 
 ## Out of scope
 
-- Budgets and their progress (#11), events / trips (#14), search, filters and CSV export (#15).
+- Budgets (in the backlog since #10), events / trips (#14), search, filters and CSV export (#15).
 - Converting between currencies (ROADMAP → Backlog "FX / multi-currency reports"): every figure
   is in one currency at a time.
 - Shared wallets seen as a member (#16): the report covers the signed-in user's own wallets.
@@ -151,7 +151,7 @@ Ending balance), หมวดหมู่หลัก / ย่อย (DESIGN.md 
 - **Category**: type, parent and colour decide the grouping and the badges.
 - **Wallet**: currency and `excludeFromTotal` decide which rows count (rules 2–3).
 - **Transfer**: never income or expense (transfer rule 5).
-- **Budget** (#11) will reuse the by-category aggregate.
+- **Budget** (backlog) would reuse the by-category aggregate.
 
 ## Open questions
 

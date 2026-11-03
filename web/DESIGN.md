@@ -411,7 +411,7 @@ WCAG 2.2 AA, as in `AGENTS.md`:
   | Income / expense | รายรับ / รายจ่าย                     | Income / Expense          |                                               |
   | Balance          | คงเหลือ (summary), ยอดเงิน (wallet)  | Balance                   |                                               |
   | Transfer         | โอนเงิน                              | Transfer                  | #9                                            |
-  | Budget           | งบประมาณ                             | Budget                    | #11                                           |
+  | Budget           | งบประมาณ                             | Budget                    | backlog (was #11)                             |
   | Start / end bal. | ยอดเริ่มต้น / ยอดสุดท้าย             | Starting / Ending balance | #10, a period's balances (not ต้นงวด)         |
   | Report           | รายงาน                               | Report                    |                                               |
   | Account (user)   | บัญชีผู้ใช้                          | Account                   | Not บัญชี alone (could mean a bank account)   |
