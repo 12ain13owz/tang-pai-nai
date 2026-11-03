@@ -94,7 +94,8 @@ export const createSyncService = ({
     if (!validation.ok) {
       return rejected(op.opId, SyncRejectCode.VALIDATION, validation.message, existing?.row)
     }
-    const candidate = clampTimes(validation.row, now)
+    // A live row the feature adjusts first (a transaction on a merged category, category rule 15).
+    const candidate = await tx.resolve(op.table, userId, clampTimes(validation.row, now))
 
     if (existing && conflict) {
       const lost = await settleConflict(tx, userId, deviceId, op, existing, candidate, now)
@@ -108,6 +109,7 @@ export const createSyncService = ({
       return rejected(op.opId, SyncRejectCode.CONFLICT, broken, existing?.row)
     }
     const row = await stamp(tx, op.table, userId, candidate)
+    await tx.followUp(op.table, userId, row)
     if (existing && conflict) {
       await record(tx, op.table, lostLater(existing, userId, deviceId, row.changeSeq, now))
     }
@@ -177,6 +179,7 @@ export const createSyncService = ({
       deletedAt,
     }
     const row = await stamp(tx, op.table, userId, tombstone)
+    await tx.followUp(op.table, userId, row)
     if (conflict) {
       await record(tx, op.table, lostLater(existing, userId, deviceId, row.changeSeq, now))
     }

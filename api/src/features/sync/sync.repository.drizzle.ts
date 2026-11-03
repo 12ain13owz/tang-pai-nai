@@ -30,7 +30,7 @@ export const createDrizzleSyncRepository = (
     return found
   }
 
-  return {
+  const repo: SyncRepository = {
     transaction: async (work) =>
       run('transaction', async () =>
         db.transaction(async (tx) => work(createDrizzleSyncRepository(tx, registry)))
@@ -44,6 +44,16 @@ export const createDrizzleSyncRepository = (
           .where(eq(syncState.id, STATE_ID))
           .returning({ lastSeq: syncState.lastSeq })
         return state.lastSeq
+      }),
+
+    takeSeqs: async (count) =>
+      run('takeSeqs', async () => {
+        const [state] = await db
+          .update(syncState)
+          .set({ lastSeq: sql`${syncState.lastSeq} + ${count}` })
+          .where(eq(syncState.id, STATE_ID))
+          .returning({ lastSeq: syncState.lastSeq })
+        return state.lastSeq - count + 1
       }),
 
     lastSeq: async () =>
@@ -134,7 +144,18 @@ export const createDrizzleSyncRepository = (
     pull: async (table, userId, since, limit) => handler(table).pull(db, userId, since, limit),
     find: async (table, id) => pushHandler(table).find(db, id),
     check: async (table, userId, row) => pushHandler(table).check(db, userId, row),
+    resolve: async (table, userId, row) => {
+      const handlerPush = pushHandler(table)
+      return handlerPush.resolve ? handlerPush.resolve(db, userId, row) : row
+    },
     write: async (table, userId, row) => pushHandler(table).write(db, userId, row),
+    followUp: async (table, userId, row) => {
+      const handlerPush = pushHandler(table)
+      if (handlerPush.followUp) {
+        await handlerPush.followUp(db, userId, row, async (count) => repo.takeSeqs(count))
+      }
+    },
     purge: async (table, before) => pushHandler(table).purge(db, before),
   }
+  return repo
 }

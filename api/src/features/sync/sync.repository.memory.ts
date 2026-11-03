@@ -17,7 +17,13 @@ export interface MemorySyncOptions {
   checks?: Record<string, CheckRule>
   /** Rows per table that every user may pull (master data). */
   shared?: Record<string, SyncRow[]>
+  /** A table's `resolve` (a pushed row the server adjusts before its checks). */
+  resolves?: Record<string, (row: SyncRowInput) => SyncRowInput>
+  /** A table's `followUp`: called with each written row and the first of the seqs it took. */
+  followUps?: Record<string, { seqs: (row: SyncRow) => number; run: FollowUpRule }>
 }
+
+type FollowUpRule = (row: SyncRow, firstSeq: number) => void
 
 /**
  * The sync port in memory, for service tests: any table name works, rows are stored as given,
@@ -32,6 +38,8 @@ export const createMemorySyncRepository = (options: MemorySyncOptions = {}) => {
     tables: new Map(),
   }
   const checks = new Map<string, CheckRule>(Object.entries(options.checks ?? {}))
+  const resolves = new Map(Object.entries(options.resolves ?? {}))
+  const followUps = new Map(Object.entries(options.followUps ?? {}))
   for (const [table, rows] of Object.entries(options.shared ?? {})) {
     state.tables.set(table, new Map(rows.map((row) => [row.id, { ownerId: '*', row }])))
     state.lastSeq = Math.max(state.lastSeq, ...rows.map((row) => row.changeSeq))
@@ -64,6 +72,10 @@ export const createMemorySyncRepository = (options: MemorySyncOptions = {}) => {
       }
     },
     nextSeq: async () => Promise.resolve(++state.lastSeq),
+    takeSeqs: async (count) => {
+      state.lastSeq += count
+      return Promise.resolve(state.lastSeq - count + 1)
+    },
     lastSeq: async () => Promise.resolve(state.lastSeq),
     purgedSeq: async () => Promise.resolve(state.purgedSeq),
     raisePurgedSeq: async (seq) => {
@@ -129,6 +141,16 @@ export const createMemorySyncRepository = (options: MemorySyncOptions = {}) => {
         .filter((stored) => stored.ownerId === userId)
         .map((stored) => stored.row)
       return Promise.resolve(rule ? rule(own, userId, row) : null)
+    },
+    resolve: async (name, _userId, row) => Promise.resolve(resolves.get(name)?.(row) ?? row),
+    followUp: async (name, _userId, row) => {
+      const followUp = followUps.get(name)
+      if (followUp) {
+        const count = followUp.seqs(row)
+        if (count > 0) {
+          followUp.run(row, await repo.takeSeqs(count))
+        }
+      }
     },
     write: async (name, userId, row) => {
       const stored = { ...row } as SyncRow
