@@ -125,6 +125,25 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
 .badge svg.i { width: 18px; height: 18px; }
 svg.chart text { fill: var(--muted-fg); font-size: 10.5px; font-family: inherit; }
 svg.chart .gl { stroke: var(--grid); stroke-width: 1; }
+.st { padding: 4px 14px; }
+.ln { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+.ln span:last-child { font-weight: 500; }
+.ln.ends { font-weight: 600; } .ln.ends span:last-child { font-size: 16px; font-weight: 600; }
+.ln.ends:first-child { border-bottom: 1px solid var(--border); }
+.ln.last { border-top: 1px solid var(--border); }
+.ln.net { border-top: 1px dashed var(--border); font-weight: 600; }
+.ln.sm { font-size: 13px; color: var(--muted-fg); padding: 4px 0; }
+.st .foot { font-size: 12.5px; color: var(--muted-fg); padding: 2px 0 8px; }
+.two { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px; }
+.two .k, .tiles .k { font-size: 12.5px; color: var(--muted-fg); }
+.two .v, .tiles .v { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.two .d { font-size: 11.5px; color: var(--muted-fg); }
+.two .arr { color: var(--muted-fg); }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.tiles > div { background: var(--muted); border-radius: 10px; padding: 8px 10px; }
+.tiles.mt > div { background: transparent; border: 1px solid var(--border); }
+.tiles .v.sm { font-size: 15px; }
+.mini + .mini { padding-top: 4px; }
 .qs { max-width: 1300px; margin: 0 auto; padding: 0 16px 40px; font-size: 14px; line-height: 1.6; }
 .qs h2 { font-size: 16px; margin: 20px 0 6px; }
 .qs li { margin-bottom: 4px; }
@@ -133,7 +152,7 @@ svg.chart .gl { stroke: var(--grid); stroke-width: 1; }
 <body>
 <header class="page">
   <h1>รายงาน (#10) · mock-up</h1>
-  <p>ข้อมูลตัวอย่าง: ต.ค. 2026, ทุกกระเป๋า, THB. ภาพ 1 คือข้อเสนอหลัก (Q1-B). กรอบเส้นประทอง <span class="tag">E1</span> = ส่วนเสริมที่เลือกได้.
+  <p>ข้อมูลตัวอย่าง: ต.ค. 2026, ทุกกระเป๋า, THB. รอบ 2: Q1-B, Q2–Q7 ตามเสนอ, ส่วนเสริม E1 E3 E4 E5 (ไม่เอา E2). เลือกการ์ดสรุป: S1 (ภาพ 1, เสนอ) · S2 (1b) · S3 (1c).
   ตัวเลขทุกตัวคำนวณบนเครื่องจาก local DB ไม่มี API ใหม่.</p>
   <div class="toggle" role="group" aria-label="theme">
     <button data-t="" aria-pressed="true">ตามระบบ</button>
@@ -143,16 +162,14 @@ svg.chart .gl { stroke: var(--grid); stroke-width: 1; }
 </header>
 <div class="grid" id="grid"></div>
 <section class="qs">
-  <h2>สิ่งที่ต้องตัดสิน (รายละเอียดใน docs/features/report.md → Open questions)</h2>
+  <h2>ตัดสินแล้ว (รอบ 1)</h2>
   <ul>
-    <li><b>Q1</b> กราฟตามหมวด: A โดนัท · <b>B แถบแบ่งสัดส่วน + รายการเรียงมากไปน้อยมีแถบ (เสนอ)</b> · C รายการอย่างเดียว. วาด SVG เอง ไม่ใช้ lib</li>
-    <li><b>Q2</b> ช่วงเวลา: เดือน (ค่าเริ่ม) / ไตรมาส / ปี / กำหนดเอง ผ่าน ⋮ "ดูตาม" + chip แบบแท็บธุรกรรม; แนวโน้ม 6 เดือน / 4 ไตรมาส / 5 ปี</li>
-    <li><b>Q3</b> กระเป๋า: ตัวสลับเดิม ใช้กระเป๋าที่เลือกร่วมกับแท็บธุรกรรม (ช่วงเวลาแยกกัน)</li>
-    <li><b>Q4</b> เงินที่บันทึกลงหมวดหลักโดยตรง: แถว "ไม่ระบุหมวดย่อย" ใต้หมวดหลัก</li>
-    <li><b>Q5</b> เจาะลง: หน้าในแท็บ (‹ กลับ) ไม่ใช่ชีต · แถวธุรกรรมเปิดชีตแก้ไขเดิม</li>
-    <li><b>Q6</b> หลายสกุลเงิน: chip เลือกสกุลเงิน โผล่เมื่อมี &gt;1 สกุลเท่านั้น (ภาพ 8)</li>
-    <li><b>E1–E5</b> ส่วนเสริม: ยอดต้น/ปลายงวด · เทียบงวดก่อน · เฉลี่ยต่อวัน · ยอดงวดก่อนของหมวด · บรรทัด "ไม่รวมในรายงาน"</li>
+    <li><b>Q1</b> B: แถบสัดส่วน + รายการเรียงมากไปน้อยมีแถบสีหมวด · วาด SVG เอง ไม่ใช้ lib</li>
+    <li><b>Q2–Q7</b> ตามเสนอ (เดือน/ไตรมาส/ปี/กำหนดเอง · กระเป๋าร่วมกับแท็บธุรกรรม · "ไม่ระบุหมวดย่อย" · หน้าในแท็บ · chip สกุลเงิน · ไม่มี API)</li>
+    <li><b>ส่วนเสริม</b> ยอดเริ่มต้น / ยอดสุดท้าย · เฉลี่ยรายจ่ายต่อวัน · ยอดเดือนก่อนของหมวด · ไม่รวมในรายงาน n รายการ; ไม่เอาการเทียบ % กับช่วงก่อน</li>
   </ul>
+  <h2>รอบ 2: เลือกการ์ดสรุป</h2>
+  <ul><li><b>S1 งบที่บวกลบลงตัว (เสนอ)</b> · S2 ยอดเงินแยกการ์ด · S3 สุทธิเป็นตัวเลขหลัก</li></ul>
 </section>
 <script>
 const I = {
@@ -209,17 +226,37 @@ const tabbar = `<div class="tabbar">
   <div>${ic('list')}ธุรกรรม</div><div>${ic('wallet')}กระเป๋า</div><div><span class="plus">${ic('plus')}</span></div>
   <div class="on">${ic('pie')}รายงาน</div><div>${ic('user')}บัญชีผู้ใช้</div></div>`
 
-const summary = (extras = true) => `
-  <div class="card">
-    <div class="sum">
-      <div><div class="k">รายรับ</div><div class="v inc">+45,000.00</div>${extras ? '<div class="d extra">+4.2% จากเดือนที่แล้ว <span class="tag">E2</span></div>' : ''}</div>
-      <div><div class="k">รายจ่าย</div><div class="v exp">−28,450.00</div>${extras ? '<div class="d extra">−5.6% จากเดือนที่แล้ว</div>' : ''}</div>
-      <div class="net"><span class="k">สุทธิ</span><span class="v">+16,550.00</span></div>
-    </div>
-    ${extras ? `<div class="mini extra"><span>เฉลี่ยรายจ่าย/วัน <span class="tag">E3</span></span><span>917.74</span></div>
-    <div class="mini extra" style="margin-top:6px"><span>ยอดต้นงวด → ปลายงวด <span class="tag">E1</span></span><span>61,200.00 → 77,750.00</span></div>
-    <div class="mini extra" style="margin-top:6px"><span>ไม่รวมในรายงาน 2 รายการ <span class="tag">E5</span></span><span>›</span></div>` : ''}
-  </div>`
+const line = (k, v, cls = '', extra = '') => `<div class="ln ${extra}"><span>${k}</span><span class="${cls}">${v}</span></div>`
+const SUM = {
+  // S1: a statement that adds up: start + income − expense ± transfers ± excluded rows = end.
+  s1: () => `<div class="card st">
+    ${line('ยอดเริ่มต้น', '61,200.00', '', 'ends')}
+    ${line('รายรับ', '+45,000.00', 'inc')}
+    ${line('รายจ่าย', '−28,450.00', 'exp')}
+    ${line('สุทธิ', '+16,550.00', '', 'net')}
+    ${line('โอนเงิน', '−5,000.00', '', 'sm')}
+    ${line('ไม่รวมในรายงาน 2 รายการ ›', '−1,500.00', '', 'sm')}
+    ${line('ยอดสุดท้าย', '71,250.00', '', 'ends last')}
+    <div class="foot">เฉลี่ยรายจ่าย 917.74 ต่อวัน</div></div>`,
+  // S2: balances on their own card, then the period's money.
+  s2: () => `<div class="card"><div class="two">
+      <div><div class="k">ยอดเริ่มต้น</div><div class="v">61,200.00</div><div class="d">1 ต.ค. 2026</div></div>
+      <div class="arr">${ic('chevR')}</div>
+      <div style="text-align:right"><div class="k">ยอดสุดท้าย</div><div class="v">71,250.00</div><div class="d">31 ต.ค. 2026</div></div></div></div>
+    <div class="card"><div class="sum">
+      <div><div class="k">รายรับ</div><div class="v inc">+45,000.00</div></div>
+      <div><div class="k">รายจ่าย</div><div class="v exp">−28,450.00</div></div>
+      <div class="net"><span class="k">สุทธิ</span><span class="v">+16,550.00</span></div></div>
+      <div class="mini"><span>เฉลี่ยรายจ่ายต่อวัน</span><span>917.74</span></div>
+      <div class="mini"><span>ไม่รวมในรายงาน 2 รายการ</span><span>−1,500.00 ›</span></div></div>`,
+  // S3: the net as the headline, the rest around it.
+  s3: () => `<div class="card"><div class="total"><small>สุทธิ ต.ค. 2026</small><div class="big">+16,550.00</div></div>
+    <div class="tiles"><div><div class="k">รายรับ</div><div class="v inc">+45,000.00</div></div><div><div class="k">รายจ่าย</div><div class="v exp">−28,450.00</div></div></div>
+    <div class="tiles mt"><div><div class="k">ยอดเริ่มต้น</div><div class="v sm">61,200.00</div></div><div><div class="k">ยอดสุดท้าย</div><div class="v sm">71,250.00</div></div></div>
+    <div class="mini"><span>เฉลี่ยรายจ่ายต่อวัน</span><span>917.74</span></div>
+    <div class="mini"><span>ไม่รวมในรายงาน 2 รายการ</span><span>−1,500.00 ›</span></div></div>`,
+}
+const summary = () => SUM.s1()
 
 function trend(labels, inc, exp, sel, title) {
   const W = 290, H = 150, top = 8, base = 120, left = 34
@@ -272,8 +309,12 @@ const tx = (c, i, name, note, a) => `<div class="tx">${badge(c, i)}<div class="m
 const dayCard = (n, w, m, total, items) => `<div class="day"><div class="dayh"><span class="n">${n}</span><span class="w"><b>${w}</b>${m}</span><span class="t exp">${fmt(-total)}</span></div>${items.join('')}</div>`
 
 const frames = [
-  ['1 · แท็บรายงาน (ข้อเสนอ Q1-B)', 'เหมือนแท็บธุรกรรม: ตัวสลับกระเป๋ากลางจอ, ⋮ "ดูตาม", chip ช่วงเวลา. สรุป → แนวโน้ม 6 เดือน → ตามหมวดหลัก (รวมหมวดย่อย) เรียงมากไปน้อย. แตะแถว → หน้าหมวด.',
+  ['1 · แท็บรายงาน · การ์ดสรุป S1 (เสนอ)', 'การ์ดสรุปแบบงบ: บนลงล่างบวกลบกันได้พอดี ยอดเริ่มต้น + รายรับ − รายจ่าย (= สุทธิ) ± โอนเงิน ± ไม่รวมในรายงาน = ยอดสุดท้าย. สองบรรทัดเล็กโผล่เฉพาะตอนไม่เป็น 0. ใต้นั้น แนวโน้ม → ตามหมวดหลัก (Q1-B).',
     () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${summary()}${trend(M6.l, M6.i, M6.e, 5, 'แนวโน้ม 6 เดือน')}${byCatB()}</div>` + tabbar, 1300],
+  ['1b · การ์ดสรุป S2: แยกยอดเงินออกมา', 'ยอดเริ่มต้น → ยอดสุดท้าย เป็นการ์ดของตัวเองบนสุด (พร้อมวันที่) แล้วการ์ดรายรับ/รายจ่าย/สุทธิแบบแท็บธุรกรรม; เฉลี่ยต่อวันและไม่รวมในรายงานเป็นบรรทัดเล็กท้ายการ์ด.',
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${SUM.s2()}${trend(M6.l, M6.i, M6.e, 5, 'แนวโน้ม 6 เดือน')}</div>` + tabbar],
+  ['1c · การ์ดสรุป S3: สุทธิเป็นตัวเลขหลัก', 'สุทธิตัวใหญ่ตรงกลาง, รายรับ/รายจ่ายเป็นช่องคู่, ยอดเริ่มต้น/ยอดสุดท้ายเป็นช่องคู่ใต้นั้น.',
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${SUM.s3()}${trend(M6.l, M6.i, M6.e, 5, 'แนวโน้ม 6 เดือน')}</div>` + tabbar],
   ['2 · Q1-A โดนัท (แบบ Money Lover)', 'โดนัทสีหมวด + รายการ. สีผู้ใช้ซ้ำกันได้ (ร้านอาหาร = อาหาร = สีส้ม) จึงแยกด้วยสีอย่างเดียวไม่ได้ ต้องพึ่งรายการ; เทียบชิ้นที่ใกล้กันยาก.',
     () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${byCatA()}</div>` + tabbar],
   ['3 · Q1-C รายการอย่างเดียว', 'เรียบที่สุด ไม่มีกราฟสัดส่วน มีแค่ % ใต้ชื่อ. กราฟแนวโน้มยังอยู่ด้านบน.',
@@ -281,7 +322,7 @@ const frames = [
   ['4 · แตะหมวดหลัก "อาหาร" (Q4, Q5)', 'หน้าในแท็บ ‹ กลับ, ช่วงและกระเป๋าเดิม. หมวดย่อย + แถว "ไม่ระบุหมวดย่อย" (บันทึกลงอาหารโดยตรง) รวมกันเท่ายอดหมวดหลักเสมอ. ล่างคือธุรกรรมทั้งหมดของหมวด แตะแถว → ชีตแก้ไขเดิม.',
     () => { const p = EXP[0]; return header('อาหาร', true) + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">
       <div class="card"><div class="total">${badge(p.c, p.i, 'l')}<div class="big exp" style="margin-top:6px">${fmt(-p.a)}</div><small>34.5% ของรายจ่าย ต.ค. 2026</small>
-      <div class="mini extra" style="justify-content:center;gap:8px"><span>เดือนที่แล้ว 10,940.00 · −10.2%</span><span class="tag">E4</span></div></div></div>
+      <div class="mini" style="justify-content:center"><span>เดือนที่แล้ว 10,940.00</span></div></div></div>
       <div class="card"><h3>หมวดหมู่ย่อย</h3>${stack(p.kids, p.a)}${rows(p.kids, p.a)}</div>
       <div class="note">ธุรกรรม 23 รายการ</div>
       ${dayCard('31', 'เมื่อวาน', 'ตุลาคม 2026', 545, [tx('#a16207', 'coffee', 'กาแฟ', '', 95), tx('#c2410c', 'utensils', 'อาหาร', 'ข้าวกล่องที่ทำงาน', 450)])}
@@ -296,13 +337,13 @@ const frames = [
       ${dayCard('27', 'วันอังคาร', 'ตุลาคม 2026', 120, [tx('#a16207', 'coffee', 'กาแฟ', '', 120)])}
       </div>` + tabbar],
   ['6 · ⋮ "ดูตาม" (Q2)', 'เมนู 2 ชั้นแบบเดิม แต่หน่วยของรายงานมีแค่ เดือน / ไตรมาส / ปี / กำหนดเอง. จำแยกจากแท็บธุรกรรม ต่อโปรไฟล์.',
-    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${summary(false)}</div><div class="dim"></div>
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${SUM.s1()}</div><div class="dim"></div>
       <div class="menu"><div class="it hd">${ic('chevL')} ดูตาม</div>
       <div class="it on">${ic('cal')} เดือน <span class="ck">${ic('check')}</span></div><div class="it">${ic('cal')} ไตรมาส</div><div class="it">${ic('cal')} ปี</div><div class="it">${ic('cal')} กำหนดเอง…</div></div>` + tabbar],
   ['7 · ดูตามปี + แท็บรายรับ', 'แนวโน้มเปลี่ยนตามหน่วย: ปี → 5 ปี (ไตรมาส → 4 ไตรมาส). กำหนดเอง → ไม่มีการ์ดแนวโน้ม.',
     () => header() + chips(['2024', 'ปีที่แล้ว', 'ปีนี้'], 'ปีนี้') + `<div class="scroll">${trend(['2022', '2023', '2024', '2025', '2026'], [380000, 455000, 498000, 512000, 438700], [302000, 341000, 366500, 389200, 297600], 4, 'แนวโน้ม 5 ปี')}${byCatB('inc')}</div>` + tabbar],
   ['8 · หลายสกุลเงิน (Q6, ยังไม่เกิดจริง)', 'สรุปเป็นการ์ดต่อสกุลเงินเหมือนแท็บธุรกรรม; แนวโน้มและตามหมวดใช้ทีละสกุล ด้วย chip ที่โผล่เฉพาะตอนมีมากกว่า 1 สกุล.',
-    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${summary(false)}
+    () => header() + chips(MONTH_CHIPS, 'เดือนนี้') + `<div class="scroll">${SUM.s1()}
       <div class="card"><div class="sum"><div><div class="k">รายรับ</div><div class="v inc">+0.00</div></div><div><div class="k">รายจ่าย</div><div class="v exp">−US$320.50</div></div><div class="net"><span class="k">สุทธิ</span><span class="v">−US$320.50</span></div></div></div>
       <div><div class="ccy"><span class="on">THB</span><span>USD</span></div>${byCatB()}</div></div>` + tabbar],
   ['9 · ช่วงที่ไม่มีธุรกรรม', 'empty state เดิม + ปุ่มเพิ่มธุรกรรม. ไม่โชว์การ์ดเปล่า.',
