@@ -185,12 +185,15 @@ shows when the profile is created (rule 8).
     - **Late rows follow the merge**: a pushed **live
       transaction** whose `categoryId` is a merged tombstone is **moved to its target** by the
       server check instead of refused, and the push answers `applied` with the moved row, so
-      the device shows it at once. A **category** pushed under a merged parent (a child added
-      offline) is refused as today (`CONFLICT`, the parent is gone) and the user fixes it.
+      the device shows it at once. A live **category** pushed under a merged parent (a child
+      added offline: a round pushes before it pulls, so that device didn't know yet) is
+      merged into the parent's target the same way, so its transactions pushed after it
+      follow too and nothing is refused.
     - **Devices that pull a merged tombstone** move their local rows that still point at it
       (transactions to the target, children merged into the target) without new ops: the
-      server did the same moves, and their rows arrive in the same pull. A row with a pending
-      op keeps it (its push is redirected as above).
+      server did the same moves, and their rows arrive in the same pull. A row with a
+      **pending op** has its op rewritten with the move instead (the op holds the values it
+      pushes). The merging device does the same with its own rows.
     - **On the wire** the merged tombstone is an `upsert` with `deletedAt` and `mergedIntoId`
       set (a plain `delete` op carries only `id` and `updatedAt`); the delete-beats-edit rule
       treats it as a delete. A live row's `mergedIntoId` is stored as null.

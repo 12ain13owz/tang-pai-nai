@@ -223,6 +223,23 @@ const followMerge = async (
   )
 }
 
+/**
+ * Rule 15: a live category pushed under a merged parent (a device that added it before it pulled
+ * the merge, since a round pushes first) is merged into the parent's target instead of refused,
+ * so the transactions that follow it aren't refused either.
+ */
+const followMergedParent = async (
+  executor: Executor,
+  userId: string,
+  row: SyncRowInput
+): Promise<SyncRowInput> => {
+  if (row.deletedAt !== null || typeof row.parentId !== 'string') {
+    return row
+  }
+  const target = await findMergeTarget(executor, userId, row.parentId)
+  return target ? { ...row, deletedAt: row.updatedAt, mergedIntoId: target.id } : row
+}
+
 /** The categories table's sync handler (docs/features/category.md rule 1). */
 export const categorySyncHandler: SyncTableHandler = {
   table: 'categories',
@@ -247,6 +264,8 @@ export const categorySyncHandler: SyncTableHandler = {
         },
         { id }
       ),
+    resolve: async (executor, userId, row) =>
+      run('resolve', async () => followMergedParent(executor, userId, row), { id: row.id }),
     check: async (executor, userId, row) =>
       run('check', async () => checkCategory(executor, userId, row), { id: row.id }),
     write: async (executor, userId, row) =>
