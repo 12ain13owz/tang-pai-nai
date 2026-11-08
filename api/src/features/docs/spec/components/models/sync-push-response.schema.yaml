@@ -33,7 +33,12 @@ properties:
             changeSeq:
               type: [integer, 'null']
             notice:
-              $ref: './sync-notice.schema.yaml'
+              description: >-
+                With `overridden`: the version that lost. Absent when the server kept its row
+                quietly (a second create of one recurring occurrence, or versions that are the
+                same change)
+              allOf:
+                - $ref: './sync-notice.schema.yaml'
             code:
               type: string
               enum: [VALIDATION, CONFLICT, ID_TAKEN, UNKNOWN_TABLE, READ_ONLY]

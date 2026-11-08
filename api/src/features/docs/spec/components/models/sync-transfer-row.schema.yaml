@@ -53,6 +53,14 @@ properties:
     type: string
     maxLength: 500
     description: Trimmed; '' when empty (a push without it means '')
+  recurringId:
+    type: [string, 'null']
+    format: uuid
+    description: >-
+      The recurring rule this row is an occurrence of (docs/features/recurring.md), null
+      otherwise (a push without it means null). An occurrence's id is made from its rule and day,
+      so two devices record one occurrence under one id: a create (baseSeq null) of an id the
+      server already has answers `overridden` with the stored row and no notice.
   createdAt:
     type: integer
   updatedAt:

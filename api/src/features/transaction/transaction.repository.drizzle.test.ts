@@ -256,4 +256,10 @@ describe('transactionSyncHandler', () => {
     const deleted = transaction('t9', 0, { categoryId: 'coffee', deletedAt: 5 })
     expect(await push.resolve?.(db, 'alice', deleted)).toBe(deleted)
   })
+
+  it('stores the recurring rule of an occurrence, and keeps the stored one on a second create (recurring rule 9)', async () => {
+    const row = { id: 'x', createdAt: 1, updatedAt: 1, deletedAt: null }
+    expect(push.keepsStored?.({ ...row, recurringId: 'r1' })).toBe(true)
+    expect(push.keepsStored?.({ ...row, recurringId: null })).toBe(false)
+  })
 })

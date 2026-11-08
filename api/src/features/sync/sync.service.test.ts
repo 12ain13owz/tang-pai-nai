@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createSyncRegistry } from '@/core/sync'
-import type { SyncRow, SyncValidation } from '@/core/sync'
+import type { SyncPushHandler, SyncRow, SyncValidation } from '@/core/sync'
 import { SYNC_LIMITS, SyncErrorCode } from './sync.const'
 import { createMemorySyncRepository } from './sync.repository.memory'
 import { createSyncService } from './sync.service'
@@ -33,7 +33,10 @@ const validateNote = (input: unknown): SyncValidation => {
 
 const THB: SyncRow = { id: 'THB', code: 'THB', changeSeq: 1, updatedAt: NOW, isActive: true }
 
-const setup = (options: MemorySyncOptions = {}) => {
+const setup = (
+  options: MemorySyncOptions = {},
+  hooks: Pick<SyncPushHandler, 'keepsStored' | 'sameChange'> = {}
+) => {
   let now = NOW
   let ids = 0
   const registry = createSyncRegistry()
@@ -42,7 +45,7 @@ const setup = (options: MemorySyncOptions = {}) => {
   registry.register({
     table: 'notes',
     pull: noop,
-    push: { validate: validateNote, find: noop, check: noop, write: noop, purge: noop },
+    push: { validate: validateNote, find: noop, check: noop, write: noop, purge: noop, ...hooks },
   })
   const memory = createMemorySyncRepository({
     shared: { currencies: [THB] },
@@ -318,6 +321,73 @@ describe('createSyncService › push', () => {
 })
 
 describe('createSyncService › push hooks (category rule 15)', () => {
+  describe('quiet hooks (recurring rule 9)', () => {
+    // A row titled "occ…" stands for a recurring occurrence; titles in any case are the same change.
+    const quiet = () =>
+      setup(
+        {},
+        {
+          keepsStored: (row) => String(row.title).startsWith('occ'),
+          sameChange: (a, b) => String(a.title).toLowerCase() === String(b.title).toLowerCase(),
+        }
+      )
+
+    it("keeps the server's row for a second create of an occurrence, with no notice", async () => {
+      const { service, memory, tick, now } = quiet()
+      await one(service, ALICE, PHONE, op({ row: note('o1', 'occ', NOW) })) // 2
+      tick(1000)
+      await one(service, ALICE, PHONE, op({ row: note('o1', 'occ edited', now()), baseSeq: 2 })) // 3
+      tick(1000)
+      const result = await one(service, ALICE, LAPTOP, op({ row: note('o1', 'occ', now()) }))
+      expect(result).toEqual({
+        opId: result.opId,
+        status: 'overridden',
+        changeSeq: 3,
+        row: expect.objectContaining({ title: 'occ edited' }) as unknown,
+      })
+      expect(memory.history()).toEqual([])
+    })
+
+    it('keeps a skipped (deleted) occurrence deleted, quietly too', async () => {
+      const { service, memory } = quiet()
+      await one(service, ALICE, PHONE, op({ row: note('o1', 'occ', NOW, { deletedAt: NOW }) }))
+      const result = await one(service, ALICE, LAPTOP, op({ row: note('o1', 'occ', NOW + 5) }))
+      expect(result).toMatchObject({ status: 'overridden', row: { deletedAt: NOW } })
+      expect(memory.history()).toEqual([])
+    })
+
+    it('treats other rows as before: a stale create still conflicts with a notice', async () => {
+      const { service, memory } = quiet()
+      await one(service, ALICE, PHONE, op({ row: note('n1', 'Coffee', NOW + 5) }))
+      await one(service, ALICE, LAPTOP, op({ row: note('n1', 'Tea', NOW) }))
+      expect(memory.history()).toHaveLength(1)
+    })
+
+    it('writes no notice when the versions are the same change, whichever wins', async () => {
+      const { service, memory, tick, now } = quiet()
+      await one(service, ALICE, PHONE, op({ row: note('n1', 'Coffee', NOW) })) // 2
+      tick(1000)
+      // Later: it wins, the loser is the same change.
+      const won = await one(
+        service,
+        ALICE,
+        LAPTOP,
+        op({ row: note('n1', 'COFFEE', now()), baseSeq: 1 })
+      )
+      expect(won.status).toBe('applied')
+      // Older: it loses, with no notice.
+      const lost = await one(
+        service,
+        ALICE,
+        PHONE,
+        op({ row: note('n1', 'coffee', NOW), baseSeq: 1 })
+      )
+      expect(lost).toMatchObject({ status: 'overridden' })
+      expect(lost).not.toHaveProperty('notice')
+      expect(memory.history()).toEqual([])
+    })
+  })
+
   it('runs resolve before the checks and answers the resolved row', async () => {
     const renamed: Record<string, string> = { Old: 'New', Dup: 'Taken' }
     const { service, memory } = setup({

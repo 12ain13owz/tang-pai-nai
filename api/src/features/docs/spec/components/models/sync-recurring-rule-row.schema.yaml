@@ -1,0 +1,133 @@
+type: object
+description: >-
+  A row of the `recurring_rules` table (docs/features/recurring.md) as it travels in /sync/pull
+  and /sync/push: a rule for money that repeats. The device records each due occurrence as a
+  transaction or transfer with `recurringId`. Rules (each answers `CONFLICT`): profileId is one of
+  the user's live profiles and never changes; walletId (and toWalletId of a transfer rule) are
+  live wallets of the user in that profile, archived ones accepted, a transfer's two of the same
+  currency; categoryId of a transaction rule is a live category of the profile; at most 100 live
+  rules per profile. A tombstone runs none of them. A rule on a merged category follows it, and
+  with the schedule unchanged `nextOn` never moves back; two versions that differ only in nextOn
+  conflict without a notice. A live rule fixes its wallets' currency and its category's type.
+required:
+  [
+    id,
+    profileId,
+    kind,
+    walletId,
+    categoryId,
+    toWalletId,
+    amount,
+    note,
+    excludeFromReport,
+    startOn,
+    frequency,
+    interval,
+    endOn,
+    endCount,
+    confirm,
+    nextOn,
+    isPaused,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    changeSeq,
+    updatedBy,
+  ]
+properties:
+  id:
+    type: string
+    format: uuid
+    description: UUIDv7 made on the device
+  profileId:
+    type: string
+    format: uuid
+  kind:
+    type: string
+    enum: [transaction, transfer]
+  walletId:
+    type: string
+    format: uuid
+    description: The transaction's wallet, or the wallet a transfer leaves
+  categoryId:
+    type: [string, 'null']
+    format: uuid
+    description: A transaction rule's category (its type gives the sign); null for a transfer
+  toWalletId:
+    type: [string, 'null']
+    format: uuid
+    description: A transfer rule's wallet the money goes to; null for a transaction
+  amount:
+    type: integer
+    minimum: 1
+    maximum: 1000000000000000
+    description: Minor units of the wallet's currency
+  note:
+    type: string
+    maxLength: 500
+  excludeFromReport:
+    type: boolean
+    description: Copied to each occurrence; always false for a transfer rule
+  startOn:
+    type: string
+    format: date
+    description: The first occurrence; occurrence k is startOn + k × interval units
+  frequency:
+    type: string
+    enum: [day, week, month, year]
+    description: A day the month doesn't have (31 in April) is its last day
+  interval:
+    type: integer
+    minimum: 1
+    maximum: 99
+  endOn:
+    type: [string, 'null']
+    format: date
+    description: No occurrence after it; on or after startOn; never with endCount
+  endCount:
+    type: [integer, 'null']
+    minimum: 1
+    maximum: 999
+    description: No occurrence after this many (recorded or skipped)
+  confirm:
+    type: boolean
+    description: Ask before recording a due occurrence; false records it by itself
+  nextOn:
+    type: [string, 'null']
+    format: date
+    description: The first occurrence not recorded or skipped yet; null once the rule has ended
+  isPaused:
+    type: boolean
+  createdAt:
+    type: integer
+  updatedAt:
+    type: integer
+  deletedAt:
+    type: [integer, 'null']
+  changeSeq:
+    type: integer
+  updatedBy:
+    type: string
+example:
+  id: 0199b000-0000-7000-8000-000000000501
+  profileId: 0199b000-0000-7000-8000-000000000001
+  kind: transaction
+  walletId: 0199b000-0000-7000-8000-000000000101
+  categoryId: 0199b000-0000-7000-8000-000000000201
+  toWalletId: null
+  amount: 850000
+  note: ค่าเช่าคอนโด
+  excludeFromReport: false
+  startOn: '2026-11-01'
+  frequency: month
+  interval: 1
+  endOn: null
+  endCount: null
+  confirm: false
+  nextOn: '2026-12-01'
+  isPaused: false
+  createdAt: 1793600000000
+  updatedAt: 1793600000000
+  deletedAt: null
+  changeSeq: 902
+  updatedBy: 0199b000-0000-7000-8000-00000000a001
