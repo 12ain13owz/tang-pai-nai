@@ -14,18 +14,20 @@ describe('LocalDatabase', () => {
         'profiles',
         'sync_meta',
         'sync_notices',
+        'recurring_rules',
         'transactions',
         'transfers',
         'wallets',
       ])
     )
     expect(tables).not.toContain('sync_probes')
-    expect(db.selectValue('PRAGMA user_version')).toBe(10)
+    expect(db.selectValue('PRAGMA user_version')).toBe(11)
     db.close()
   })
 
   it('brings a 4a.1 snapshot (schema step 1) up to date and keeps its data', async () => {
     const old = await openTestDatabase()
+    old.exec('DROP TABLE recurring_rules')
     old.exec('DROP TABLE transfers')
     old.exec(
       'DROP TABLE currencies; DROP TABLE outbox; DROP TABLE sync_notices; DROP TABLE profiles; DROP TABLE wallets; DROP TABLE categories; DROP TABLE transactions'
@@ -36,7 +38,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(10)
+    expect(db.selectValue('PRAGMA user_version')).toBe(11)
     expect(db.selectValue(`SELECT value FROM sync_meta WHERE key = 'deviceId'`)).toBe('d1')
     expect(db.selectValue('SELECT count(*) FROM outbox')).toBe(0)
     expect(db.selectValue('SELECT count(*) FROM profiles')).toBe(0)
@@ -48,6 +50,7 @@ describe('LocalDatabase', () => {
 
   it('drops the dev-only sync_probes with its ops and notices (step 5), keeping the rest', async () => {
     const old = await openTestDatabase()
+    old.exec('DROP TABLE recurring_rules')
     old.exec('DROP TABLE transfers')
     old.exec(`DROP TABLE transactions;
       DROP TABLE categories;
@@ -71,6 +74,7 @@ describe('LocalDatabase', () => {
 
   it('adds categories (step 6) to a 6.2 snapshot', async () => {
     const old = await openTestDatabase()
+    old.exec('DROP TABLE recurring_rules')
     old.exec('DROP TABLE transfers')
     old.exec(`DROP TABLE transactions;
       DROP TABLE categories;
@@ -81,7 +85,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(10)
+    expect(db.selectValue('PRAGMA user_version')).toBe(11)
     expect(db.selectValue('SELECT count(*) FROM categories')).toBe(0)
     expect(db.selectValue(`SELECT value FROM sync_meta WHERE key = 'deviceId'`)).toBe('d1')
     db.close()
@@ -89,6 +93,7 @@ describe('LocalDatabase', () => {
 
   it('adds wallets.hidden_category_ids (step 7) to a 7.1 snapshot, [] for its wallets', async () => {
     const old = await openTestDatabase()
+    old.exec('DROP TABLE recurring_rules')
     old.exec('DROP TABLE transfers')
     old.exec(`DROP TABLE transactions;
       ALTER TABLE categories DROP COLUMN merged_into_id;
@@ -101,13 +106,14 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(10)
+    expect(db.selectValue('PRAGMA user_version')).toBe(11)
     expect(db.selectValue('SELECT hidden_category_ids FROM wallets')).toBe('[]')
     db.close()
   })
 
   it('adds transactions (step 8) with its indexes to a 7.2 snapshot', async () => {
     const old = await openTestDatabase()
+    old.exec('DROP TABLE recurring_rules')
     old.exec('DROP TABLE transfers')
     old.exec(`DROP TABLE transactions;
       ALTER TABLE categories DROP COLUMN merged_into_id;
@@ -117,7 +123,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(10)
+    expect(db.selectValue('PRAGMA user_version')).toBe(11)
     expect(db.selectValue('SELECT count(*) FROM transactions')).toBe(0)
     expect(
       db
@@ -132,7 +138,10 @@ describe('LocalDatabase', () => {
 
   it('adds categories.merged_into_id (step 10) to a #9 snapshot, null for its categories', async () => {
     const old = await openTestDatabase()
-    old.exec(`ALTER TABLE categories DROP COLUMN merged_into_id;
+    old.exec(`DROP TABLE recurring_rules;
+      ALTER TABLE transactions DROP COLUMN recurring_id;
+      ALTER TABLE transfers DROP COLUMN recurring_id;
+      ALTER TABLE categories DROP COLUMN merged_into_id;
       INSERT INTO categories (id, profile_id, type, parent_id, name, icon, color, is_archived,
         sort_order, created_at, updated_at)
         VALUES ('c1', 'p1', 'expense', NULL, 'Food', 'lucideShapes', '#475569', 0, 0, 1, 1);
@@ -141,8 +150,27 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(10)
+    expect(db.selectValue('PRAGMA user_version')).toBe(11)
     expect(db.selectValue('SELECT merged_into_id FROM categories')).toBeNull()
+    db.close()
+  })
+
+  it('adds recurring_rules and recurring_id (step 11) to a 7.3 snapshot, null for its rows', async () => {
+    const old = await openTestDatabase()
+    old.exec(`DROP TABLE recurring_rules;
+      ALTER TABLE transactions DROP COLUMN recurring_id;
+      ALTER TABLE transfers DROP COLUMN recurring_id;
+      INSERT INTO transactions (id, profile_id, wallet_id, category_id, amount, occurred_on, note,
+        exclude_from_report, created_at, updated_at)
+        VALUES ('t1', 'p1', 'w1', 'c1', 100, '2026-11-01', '', 0, 1, 1);
+      PRAGMA user_version = 10`)
+    const snapshot = old.export()
+    old.close()
+
+    const db = await openTestDatabase(snapshot)
+    expect(db.selectValue('PRAGMA user_version')).toBe(11)
+    expect(db.selectValue('SELECT recurring_id FROM transactions')).toBeNull()
+    expect(db.selectValue('SELECT count(*) FROM recurring_rules')).toBe(0)
     db.close()
   })
 

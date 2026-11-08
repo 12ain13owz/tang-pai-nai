@@ -10,6 +10,7 @@ import { NetworkStatusService } from '@/core/network'
 import { findOp, getRow, listOps, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
+import { occurrenceId, RecurringService } from '@/core/recurring'
 import { QuickAmountsService, TransactionService } from '@/core/transaction'
 import { TransactionSheet } from './transaction-sheet'
 
@@ -36,6 +37,7 @@ describe('TransactionSheet', () => {
   const sync = {
     canSync: signal(false),
     isSyncing: signal(false),
+    rounds: signal(0),
     lastSyncedAt: signal<number | null>(1),
     rejectedOp: (opId: string) => findOp(db, opId),
   }
@@ -394,5 +396,144 @@ describe('TransactionSheet', () => {
     await open({ mode: 'create' })
     expect(text()).toContain(th.transactions.needsOnline)
     expect(button(th.transactions.save)?.disabled).toBe(true)
+  })
+
+  describe('recurring (docs/features/recurring.md)', () => {
+    const rule = (id: string, extra: object = {}) => {
+      putRow(db, 'recurring_rules', {
+        ...base,
+        id,
+        profileId: 'p1',
+        kind: 'transaction',
+        walletId: 'Cash',
+        categoryId: 'Food',
+        toWalletId: null,
+        amount: 85000,
+        note: 'rent',
+        excludeFromReport: false,
+        startOn: '2026-10-01',
+        frequency: 'month',
+        interval: 1,
+        endOn: null,
+        endCount: null,
+        confirm: false,
+        nextOn: '2026-12-01',
+        isPaused: false,
+        ...extra,
+      })
+      changes.update((n) => n + 1)
+    }
+    /** A radio of the "ทำซ้ำ" view by the text of its row. */
+    const choose = async (label: string) => {
+      const row = [...body().querySelectorAll('label')].find((el) =>
+        el.textContent.trim().startsWith(label)
+      )
+      row?.querySelector<HTMLInputElement>('input[type="radio"]')?.click()
+      await settle()
+    }
+
+    beforeEach(() => {
+      transactions.today.set('2026-11-08')
+    })
+
+    it('repeats from the form: a rule and its first occurrence in one save (rule 8, Q5)', async () => {
+      await open({ mode: 'create', occurredOn: '2026-11-01' })
+      await keys('8', '5', '0')
+      await click('หมวดหมู่ ', true)
+      await click('Food')
+      await click(th.transactions.more)
+      await click(th.recurring.repeat, true)
+      await choose(th.recurring.preset.month)
+      await choose(th.recurring.ask)
+      await click(th.sheet.back)
+      expect(text()).toContain('ทุกเดือน วันที่ 1')
+      expect(text()).toContain(th.recurring.start)
+      // Save and add another hides while a rule is set.
+      expect(button(th.transactions.saveAndAdd)).toBeUndefined()
+      await submit()
+      const [stored] = db.selectObjects('SELECT id FROM recurring_rules')
+      const ruleId = String(stored['id'])
+      expect(getRow(db, 'recurring_rules', ruleId)).toMatchObject({
+        kind: 'transaction',
+        walletId: 'Cash',
+        categoryId: 'Food',
+        amount: 85000,
+        startOn: '2026-11-01',
+        frequency: 'month',
+        confirm: true,
+        nextOn: '2026-12-01',
+      })
+      expect(getRow(db, 'transactions', occurrenceId(ruleId, '2026-11-01'))).toMatchObject({
+        amount: 85000,
+        recurringId: ruleId,
+      })
+      expect(toastState.toasts().at(0)?.title).toBe(th.recurring.created)
+    })
+
+    it('edits a rule in its sheet; pause and delete sit in the header (rules 4–6)', async () => {
+      rule('r1')
+      await open({ mode: 'rule', id: 'r1' })
+      expect(text()).toContain(th.recurring.editHeading)
+      expect(text()).toContain('ทุกเดือน วันที่ 1')
+      await click('จำนวนเงิน', true)
+      await keys('C', '9', '0', '0')
+      await submit()
+      expect(getRow(db, 'recurring_rules', 'r1')).toMatchObject({
+        amount: 90000,
+        nextOn: '2026-12-01',
+      })
+      await open({ mode: 'rule', id: 'r1' })
+      await click(th.recurring.pause)
+      expect(getRow(db, 'recurring_rules', 'r1')?.['isPaused']).toBe(true)
+      await click(th.recurring.delete)
+      expect(TestBed.inject(RecurringService).byId('r1')).toBeNull()
+      expect(transactions.sheet()).toBeNull()
+    })
+
+    it("records a due occurrence with this month's amount (rule 10)", async () => {
+      rule('r1', { confirm: true, nextOn: '2026-11-01' })
+      await open({
+        mode: 'create',
+        occurrence: { ruleId: 'r1', on: '2026-11-01' },
+        values: {
+          walletId: 'Cash',
+          categoryId: 'Food',
+          amount: 85000,
+          occurredOn: '2026-11-01',
+          note: 'rent',
+          excludeFromReport: false,
+        },
+      })
+      expect(button(th.recurring.repeat, true)).toBeUndefined()
+      await keys('C', '9', '1', '2')
+      await submit()
+      expect(getRow(db, 'transactions', occurrenceId('r1', '2026-11-01'))).toMatchObject({
+        amount: 91200,
+        occurredOn: '2026-11-01',
+        recurringId: 'r1',
+      })
+      expect(getRow(db, 'recurring_rules', 'r1')?.['nextOn']).toBe('2026-12-01')
+    })
+
+    it('shows the rule an occurrence came from, and opens it (rule 11)', async () => {
+      rule('r1')
+      putRow(db, 'transactions', {
+        ...base,
+        id: 't1',
+        profileId: 'p1',
+        walletId: 'Cash',
+        categoryId: 'Food',
+        amount: 85000,
+        occurredOn: '2026-11-01',
+        note: '',
+        excludeFromReport: false,
+        recurringId: 'r1',
+      })
+      changes.update((n) => n + 1)
+      await open({ mode: 'edit', id: 't1' })
+      expect(text()).toContain(th.recurring.fromRule)
+      await click(th.recurring.fromRule, true)
+      expect(transactions.sheet()).toEqual({ mode: 'rule', id: 'r1' })
+    })
   })
 })

@@ -10,7 +10,8 @@ import { NetworkStatusService } from '@/core/network'
 import { findOp, getRow, listOps, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
-import { TransferService } from '@/core/transaction'
+import { occurrenceId } from '@/core/recurring'
+import { TransactionService, TransferService } from '@/core/transaction'
 import { TransferSheet } from './transfer-sheet'
 
 describe('TransferSheet', () => {
@@ -36,6 +37,7 @@ describe('TransferSheet', () => {
   const sync = {
     canSync: signal(false),
     isSyncing: signal(false),
+    rounds: signal(0),
     lastSyncedAt: signal<number | null>(1),
     rejectedOp: (opId: string) => findOp(db, opId),
   }
@@ -266,5 +268,33 @@ describe('TransferSheet', () => {
     await open({ mode: 'create' })
     expect(text()).toContain(th.transfers.needsOnline)
     expect(button(th.transactions.save)?.disabled).toBe(true)
+  })
+
+  it('repeats a transfer every month, recording today’s one (recurring.md Q4)', async () => {
+    TestBed.inject(TransactionService).today.set('2026-11-08')
+    await open({ mode: 'create', repeat: true })
+    await click('จาก ', true)
+    await choose('Bank')
+    await click('ไปยัง ', true)
+    await choose('Cash')
+    await click('จำนวนเงิน ', true)
+    await keys('เพิ่ม 500')
+    expect(text()).toContain('ทุกเดือน วันที่ 8')
+    await submit()
+    const [stored] = db.selectObjects('SELECT id FROM recurring_rules')
+    const ruleId = String(stored['id'])
+    expect(getRow(db, 'recurring_rules', ruleId)).toMatchObject({
+      kind: 'transfer',
+      walletId: 'Bank',
+      toWalletId: 'Cash',
+      categoryId: null,
+      amount: 50000,
+      nextOn: '2026-12-08',
+    })
+    expect(getRow(db, 'transfers', occurrenceId(ruleId, '2026-11-08'))).toMatchObject({
+      fromWalletId: 'Bank',
+      toWalletId: 'Cash',
+      recurringId: ruleId,
+    })
   })
 })

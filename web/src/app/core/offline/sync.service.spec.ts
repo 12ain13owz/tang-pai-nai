@@ -232,6 +232,28 @@ describe('SyncService', () => {
     expect(service.notices()).toEqual([])
   })
 
+  it('takes the winner with no notice when the server kept its row quietly (recurring rule 9)', async () => {
+    offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p1', 'Tea')))
+    await drive(service.sync(), (ops, req) =>
+      req.flush(
+        envelope({
+          results: [
+            {
+              opId: ops[0].opId,
+              status: 'overridden',
+              row: { ...profile('p1', 'Latte'), changeSeq: 7 },
+              changeSeq: 7,
+            },
+          ],
+        })
+      )
+    )
+    expect(getRow(db, 'profiles', 'p1')).toMatchObject({ name: 'Latte', changeSeq: 7 })
+    expect(countOps(db, 'pending')).toBe(0)
+    expect(service.notices()).toEqual([])
+    expect(service.rounds()).toBeGreaterThan(0)
+  })
+
   it("keeps a rejected op aside and puts the server's row back", async () => {
     putRow(db, 'profiles', { ...profile('p1', 'Coffee'), changeSeq: 5 })
     offline.write((tx) => {
