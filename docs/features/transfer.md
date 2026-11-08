@@ -20,7 +20,9 @@ month's รายรับ / รายจ่าย stay what was really earned a
 - **A fee field** (Q3): a bank fee is an ordinary expense in a category, which the user enters
   as its own transaction.
 - Transfers between profiles (a profile is a separate area of money) and between users (#16).
-- Recurring transfers (#12), budgets (backlog; transfers never count against a budget).
+- Budgets (backlog; transfers never count against a budget). Recurring transfers are built in
+  #12 ([recurring.md](recurring.md), Q4): a rule records each occurrence as a transfer with
+  `recurringId`.
 
 ## Data model
 

@@ -81,7 +81,9 @@ No user-data table exists before #6, so 4a.2 syncs:
   the server table (migration `0008`; `0009` deletes its `change_history` rows).
 
 The real user-data tables since then: **profiles** (#6.1), **wallets** (#6.2; `wallet_members`
-exists beside it, server only, empty until #16), **categories** (#7.1) and **transactions** (#8.1).
+exists beside it, server only, empty until #16), **categories** (#7.1), **transactions** (#8.1), **transfers** (#9) and **recurring_rules**
+(#12, whose occurrences one user's devices write under deterministic ids, so the server keeps
+its row for a second create quietly: [recurring.md](recurring.md) rule 9).
 
 ### Server: sync tables
 

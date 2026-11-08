@@ -1,7 +1,12 @@
 # Recurring transactions
 
-> Status: **Spec, agreed** (#12): the owner took every proposal of round 1 (Open questions). Mock-up: [mockups/recurring.html](mockups/recurring.html).
-> Builds on [transaction.md](transaction.md), [transfer.md](transfer.md) and
+> Status: **Built** (#12; Open questions: what the owner settled). API:
+> `api/src/features/recurring/` (sync handler only) and the sync service's `keepsStored` /
+> `sameChange` hooks. Web: `core/recurring` (`RecurringService`, `schedule.ts`,
+> `occurrence-id.ts`, `describe.ts`), `layout/repeat-view` / `repeat-row` in the transaction
+> and transfer sheets, `features/account/pages/recurring-page`, `features/transactions`
+> (`components/due-sheet`, the due card, the upcoming rows). Mock-up:
+> [mockups/recurring.html](mockups/recurring.html). Builds on [transaction.md](transaction.md), [transfer.md](transfer.md) and
 > [offline-sync.md](offline-sync.md).
 
 ## Purpose
@@ -127,8 +132,12 @@ and one list, one sheet and one sweep serve both.
     first: **บันทึก** (writes the occurrence as the rule says, on its date), **ข้าม** (writes the
     occurrence as a **tombstone** with the deterministic id, so every device knows it was
     skipped), or a tap that opens the transaction form filled from the rule (the amount of this
-    month's bill), whose save records it. Either moves `nextOn` past it. "บันทึกทั้งหมด"
-    records every due item as is. Each action has undo in the toast.
+    month's bill), whose save records it. Either moves `nextOn` to the first occurrence not
+    handled yet. "บันทึกทั้งหมด" records every due item as is. **No undo** in their toasts
+    (decided while building): an undo after the push would reach other devices as a skip; a
+    recorded one is an ordinary row to edit or delete.
+    - Two devices offline: one records a due item, the other skips it. The skip wins (delete
+      beats edit) and the recording device is told once ("ถูกแก้ไขโดย…"), as for any conflict.
 11. **Telling the user**: after a pass that recorded something, one toast at the top
     "บันทึกรายการซ้ำ n รายการ" with "ดู" (the rules page). Rows from a rule carry a small ↻ after
     the category name.
@@ -162,9 +171,17 @@ and one list, one sheet and one sweep serve both.
 ## Volume
 
 Rules are tens per profile, so every rule query reads the whole (indexed) profile list. A pass
-of rule 7 is one local write however many occurrences it records. Projecting 3 months of a
-daily rule is ~90 rows, drawn in the 100-row pages of the list. To check with 20,000 rows: the
-pass at unlock, the "อนาคต" tab, the rules page.
+of rule 7 is one local write however many occurrences it records, and **no write at all** when
+nothing changes (a due ask-first rule writes nothing: the pass runs after every write, so an
+empty write would run it again forever). Whether an occurrence exists is a primary-key lookup
+of its deterministic id. Projecting 3 months of a daily rule is ~90 rows, drawn in the 100-row
+pages of the list. "บันทึกแล้ว n ครั้ง" counts the rule's rows without an index (one rule at a
+time).
+
+**Checked in #12** with 20,000 transactions over 3 years and 8 rules (Playwright, `npm run
+build`): the first pull ≈ 3.6 s; "อนาคต" 0.06–0.08 s (0.88 s on the first tap right after the
+pull, while the device still saved its snapshot); switching month 0.04–0.16 s; the due sheet ≈
+0.12 s; the rules page 0.16–0.29 s.
 
 ## Endpoints
 
@@ -183,12 +200,16 @@ Mock-up: [mockups/recurring.html](mockups/recurring.html) (frame numbers below).
   Back on the form the date row reads "เริ่ม", the row shows the rule, and a line says the next
   date. Only when adding; "save and add another" hides while "ทำซ้ำ" is set. The
   29th–31st get a line on short months (4).
-- **Transfer form**: the same row and view, if transfers repeat (Q4).
+- **Transfer form** (Q4): the same row and view, in a card of its own under the date row (the
+  transfer form has no "เพิ่มเติม").
 - **Rules page** (5, 7) Account › ข้อมูลของฉัน › **"รายการซ้ำ"**, also from the ⋮ menu (11):
   "ใช้อยู่" (by next date), "หยุดไว้", "สิ้นสุดแล้ว (n)" folded; a row = badge (wallet badge
   on its corner), category · note (a transfer: "โอนเงิน กสิกร → ออมทรัพย์"), the schedule and
   next date (or the due date, or why it stopped), the signed amount; "ถามก่อน" as a small tag.
-  - in the header opens the transaction form with "ทุกเดือน" set. Empty: `app-empty-state`.
+  Under the list (decided while building: a page in the Account tab has no room for header
+  actions) "เพิ่มรายการซ้ำ" (outline, the transaction form with "ทุกเดือน" set) and, with two
+  open wallets or more, a gold-tinted "โอนเงิน" (the transfer form with it set). Empty:
+  `app-empty-state`.
 - **Rule sheet** (6): the transaction (or transfer) sheet in rule mode, "แก้ไขรายการซ้ำ", with
   pause / resume and delete in the header, and a line "ครั้งถัดไป … · บันทึกแล้ว n ครั้ง".
 - **Transactions tab** (8–11): the ↻ mark on rows from a rule; the "ถึงกำหนด" card and sheet;
@@ -196,8 +217,12 @@ Mock-up: [mockups/recurring.html](mockups/recurring.html) (frame numbers below).
 - **A recorded occurrence** opened in the form (12): "เพิ่มเติม" open, with a row "จากรายการซ้ำ ·
   ทุกเดือน วันที่ 1 ›" that opens the rule. Deleting it skips that occurrence (it is never made
   again).
-- **Sync sheet**: a refused rule reads "รายการซ้ำ: ค่าเช่า · 8,500.00 · ทุกเดือน"; "แก้" opens
-  the rule sheet (`FIX_ROUTES`).
+- **Sync sheet**: a refused rule reads as its category, amount and note (a transfer rule as
+  "โอนเงิน กสิกร → ออมทรัพย์ · 5,000.00"); "แก้" opens the rules page, which opens the rule's
+  sheet with the refused values (`FIX_ROUTES`).
+- **Wallet, category and profile delete confirms** count the rules that go with them
+  ("รายการซ้ำ n รายการที่ใช้กระเป๋านี้จะถูกลบด้วย"). Account › ข้อมูลของฉัน has the row
+  "รายการซ้ำ · n รายการใน <profile>".
 
 Glossary: รายการซ้ำ / Recurring, ทำซ้ำ / Repeat, ถึงกำหนด / Due, ข้าม / Skip,
 หยุดชั่วคราว / Pause.
@@ -239,3 +264,10 @@ Glossary: รายการซ้ำ / Recurring, ทำซ้ำ / Repeat, ถ
   hidden while "ทำซ้ำ" is set, at most 100 live rules per profile. **Not** taken in round 1
   (offered as options): a projected-total line on the "อนาคต" summary card, and "make this
   repeat" on an existing transaction (a copy with "ทำซ้ำ" does the same).
+
+**Decided while building** (owner, from the Playwright screenshots): no undo on "บันทึก" /
+"ข้าม" of a due item (rule 10); one device's skip beats another's record of the same due item,
+with one notice (rule 10); the rules page's add buttons under the list; the transfer form's
+"ทำซ้ำ" in a card of its own. Amounts typed on the keypad still show without grouping
+(`8500`, the result line `= 8,620.00` has it), as since #8; grouping while typing is the next
+change (its own PR).

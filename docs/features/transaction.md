@@ -19,7 +19,8 @@ a few taps from the centre ➕.
 - Transfers between wallets ([transfer.md](transfer.md), #9: their own table, shown in this
   list), debt / loan (#13; Money Lover's third
   tab "หนี้สิน/เงินกู้" is not in the form).
-- Recurring rules (#12), events / trips (#14), attachments and receipt photos, the AI / chat
+- Recurring rules ([recurring.md](recurring.md), #12: a rule records its occurrences as
+  ordinary transactions with `recurringId`), events / trips (#14), attachments and receipt photos, the AI / chat
   entry of the reference app (backlog).
 - Search and filter beyond month + wallet (#15).
 - Members adding to a shared wallet (#16): until then every transaction belongs to a wallet the
