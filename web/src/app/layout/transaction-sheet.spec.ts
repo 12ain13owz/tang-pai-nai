@@ -296,6 +296,19 @@ describe('TransactionSheet', () => {
     expect(text()).toContain('= 600.00')
   })
 
+  it('shows the amount grouped in thousands while the form keeps the plain figures', async () => {
+    await open({ mode: 'create' })
+    await keys('8', '5', '0', '0')
+    expect(text()).toContain('8,500')
+    await quick('1,000')
+    expect(text()).toContain('8,500+1,000')
+    await click('หมวดหมู่ ', true)
+    await click('Food')
+    await submit()
+    const [op] = listOps(db, 'pending')
+    expect(getRow(db, 'transactions', op.rowId)?.['amount']).toBe(950000)
+  })
+
   it('leaves the quick amounts out when they are turned off', async () => {
     TestBed.inject(QuickAmountsService).setEnabled(false)
     await open({ mode: 'create' })

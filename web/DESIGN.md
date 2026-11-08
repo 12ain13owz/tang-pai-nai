@@ -201,7 +201,8 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   (password, phone) keep labels.
 - **Transaction form** (owner's choice in #8, from the Money Lover screenshot): the type tabs,
   then **one card of rows told apart by their icons, no labels above them** (labels stay for
-  screen readers): wallet, amount (the currency code and the figures large, a small "จำนวนเงิน"
+  screen readers): wallet, amount (the currency code and the figures large, each number grouped
+  in thousands as typed, `8,500+1,000`, after #12; a small "จำนวนเงิน"
   over them since it has no icon), category, note, date (‹ › a day, the middle opens the date
   picker), and less used options folded under "เพิ่มเติม". The amount is typed on an
   **on-screen calculator keypad** (`app-calc-keypad`: C ÷ × ⌫ / digits / 000 . =) that opens by

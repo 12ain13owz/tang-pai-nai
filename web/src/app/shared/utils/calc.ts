@@ -76,6 +76,21 @@ export const pressKey = (expr: string, key: CalcKey, minorUnit: number): string 
 }
 
 /** Whether `expr` holds an operator, so "=" has something to work out. */
+/**
+ * The expression as the amount row shows it: each number's whole part grouped in thousands the
+ * locale's way (`8500+1200.5` → `8,500+1,200.5`), the decimals as typed. Display only: the
+ * control keeps `8500` (owner, after #12).
+ */
+export const groupExpression = (expr: string, locale: string): string => {
+  const group =
+    new Intl.NumberFormat(locale).formatToParts(1000).find((part) => part.type === 'group')
+      ?.value ?? ','
+  return expr.replace(/\d+/g, (digits, offset: number) =>
+    // Digits after a decimal point stay as typed.
+    expr[offset - 1] === '.' ? digits : digits.replace(/\B(?=(\d{3})+(?!\d))/g, group)
+  )
+}
+
 export const hasOperator = (expr: string): boolean => /[+\-×÷]/.test(expr.replace(/^-/, ''))
 
 interface Fraction {

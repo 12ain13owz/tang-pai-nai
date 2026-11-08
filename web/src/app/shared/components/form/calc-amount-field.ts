@@ -3,12 +3,12 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import type { FormControl } from '@angular/forms'
 import { map, startWith, switchMap } from 'rxjs'
 import { TranslocoService } from '@jsverse/transloco'
-import { evaluate, formatAmount, hasOperator } from '@/shared/utils'
+import { evaluate, formatAmount, groupExpression, hasOperator } from '@/shared/utils'
 import { firstErrorMessage } from './field-error'
 
 /**
  * The transaction form's amount row (transaction.md → Web screens): the currency code, the
- * expression typed on `app-calc-keypad` in large figures and, while it holds an operator, its
+ * expression typed on `app-calc-keypad` in large figures (grouped in thousands for display) and, while it holds an operator, its
  * result. The control holds the expression text (`120+65`); the form works it out with
  * `evaluate`. Tapping the row asks for the keypad (`activate`); the phone keyboard never opens.
  */
@@ -68,8 +68,9 @@ export class CalcAmountField {
     { initialValue: { value: '', touched: false } }
   )
   private value = computed(() => this.state().value)
+  /** The expression grouped in thousands (`8,500`); the control keeps `8500`. */
   protected shown = computed(() => {
-    const text = this.value().replace(/-/g, '−')
+    const text = groupExpression(this.value(), this.locale()).replace(/-/g, '−')
     return text === '' ? '0' : text
   })
   protected preview = computed(() => {

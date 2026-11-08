@@ -268,6 +268,5 @@ Glossary: รายการซ้ำ / Recurring, ทำซ้ำ / Repeat, ถ
 **Decided while building** (owner, from the Playwright screenshots): no undo on "บันทึก" /
 "ข้าม" of a due item (rule 10); one device's skip beats another's record of the same due item,
 with one notice (rule 10); the rules page's add buttons under the list; the transfer form's
-"ทำซ้ำ" in a card of its own. Amounts typed on the keypad still show without grouping
-(`8500`, the result line `= 8,620.00` has it), as since #8; grouping while typing is the next
-change (its own PR).
+"ทำซ้ำ" in a card of its own. Amounts typed on the keypad showed without grouping (`8500`)
+since #8; grouping while typing came right after #12 (transaction.md → Web screens).
