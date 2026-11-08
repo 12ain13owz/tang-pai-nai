@@ -29,6 +29,11 @@ const row = z.object({
   excludeFromReport: z
     .boolean({ error: ERRORS.invalidType('Exclude from report', 'boolean') })
     .default(false),
+  /** The recurring rule it is an occurrence of (docs/features/recurring.md); null otherwise. */
+  recurringId: z
+    .uuid({ error: ERRORS.invalidField('recurringId') })
+    .nullable()
+    .default(null),
   createdAt: epochMs,
   updatedAt: epochMs,
   deletedAt: epochMs.nullable().default(null),

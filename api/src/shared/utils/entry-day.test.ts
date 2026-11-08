@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { isEntryDay } from './entry-day'
+import { isCalendarDay, isEntryDay } from './entry-day'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -14,5 +14,14 @@ describe('isEntryDay', () => {
     for (const day of ['1999-12-31', '2027-11-05', '2026-02-30', '26-11-02', '2026-1-2', '']) {
       expect(isEntryDay(day)).toBe(false)
     }
+  })
+})
+
+describe('isCalendarDay', () => {
+  it('takes a real date from 2000 on with no upper bound (a rule’s end or next date)', () => {
+    expect(isCalendarDay('2099-12-31')).toBe(true)
+    expect(isCalendarDay('2027-02-30')).toBe(false)
+    expect(isCalendarDay('1999-12-31')).toBe(false)
+    expect(isCalendarDay('2027-1-1')).toBe(false)
   })
 })

@@ -27,6 +27,11 @@ const row = z
       .trim()
       .max(TRANSFER_LIMITS.NOTE_MAX, ERRORS.maxLength('Note', TRANSFER_LIMITS.NOTE_MAX))
       .default(''),
+    /** The recurring rule it is an occurrence of (docs/features/recurring.md); null otherwise. */
+    recurringId: z
+      .uuid({ error: ERRORS.invalidField('recurringId') })
+      .nullable()
+      .default(null),
     createdAt: epochMs,
     updatedAt: epochMs,
     deletedAt: epochMs.nullable().default(null),

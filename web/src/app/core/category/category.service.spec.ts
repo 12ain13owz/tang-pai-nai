@@ -413,6 +413,42 @@ describe('CategoryService', () => {
       pulled(category('Shut', { isArchived: true, sortOrder: 3 }))
     })
 
+    it('moves its recurring rules with it, and takes them when deleted (recurring rules 13–15)', () => {
+      const rule = (id: string, categoryId: string) =>
+        putRow(db, 'recurring_rules', {
+          id,
+          profileId: 'p1',
+          kind: 'transaction',
+          walletId: 'w',
+          categoryId,
+          toWalletId: null,
+          amount: 1000,
+          note: '',
+          excludeFromReport: false,
+          startOn: '2026-11-01',
+          frequency: 'month',
+          interval: 1,
+          endOn: null,
+          endCount: null,
+          confirm: false,
+          nextOn: '2026-12-01',
+          isPaused: false,
+          createdAt: 1,
+          updatedAt: 1,
+          deletedAt: null,
+          changeSeq: 1,
+          updatedBy: 'u1',
+        })
+      rule('r1', 'Water')
+      rule('r2', 'Shut')
+      tx(() => undefined)
+      expect(service.ruleCount('Water')).toBe(1)
+      expect(service.merge('Water', 'Rice', 'move')).toBe(true)
+      expect(row('recurring_rules', 'r1')['category_id']).toBe('Rice')
+      service.remove('Shut')
+      expect(row('recurring_rules', 'r2')['deleted_at']).not.toBeNull()
+    })
+
     it('offers every open category of the type but itself and its children, own parent first', () => {
       const names = (id: string) =>
         service

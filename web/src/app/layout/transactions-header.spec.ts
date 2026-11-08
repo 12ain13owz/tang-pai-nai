@@ -1,6 +1,7 @@
 import { computed, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import type { ComponentFixture } from '@angular/core/testing'
+import { Router } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import th from '@/core/i18n/th.json'
 import { SyncService } from '@/core/offline'
@@ -92,8 +93,9 @@ describe('TransactionsHeader', () => {
   it('opens a two-level menu: โอนเงิน and ดูตาม with the current unit (owner’s choice B)', async () => {
     menuButton()?.click()
     await settle()
-    expect(items()).toHaveLength(2)
+    expect(items()).toHaveLength(3)
     expect(item(th.transfers.open)).toBeDefined()
+    expect(item(th.recurring.menu)).toBeDefined()
     expect(item(th.transactions.viewBy)?.textContent).toContain(th.transactions.unit.month)
   })
 
@@ -105,7 +107,7 @@ describe('TransactionsHeader', () => {
     expect(items().slice(1)).toEqual(Object.values(th.transactions.unit))
     item(th.transactions.viewBy)?.click() // the ‹ back item reads "ดูตาม" too
     await settle()
-    expect(items()).toHaveLength(2)
+    expect(items()).toHaveLength(3)
   })
 
   it('chooses a unit and closes, or opens the custom range sheet', async () => {
@@ -131,6 +133,16 @@ describe('TransactionsHeader', () => {
     item(th.transfers.open)?.click()
     await settle()
     expect(transferSheet()).toEqual({ mode: 'create' })
+    expect(items()).toEqual([])
+  })
+
+  it('opens Account › รายการซ้ำ from the menu (recurring.md Q5)', async () => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true)
+    menuButton()?.click()
+    await settle()
+    item(th.recurring.menu)?.click()
+    await settle()
+    expect(navigate).toHaveBeenCalledWith('/account/recurring')
     expect(items()).toEqual([])
   })
 

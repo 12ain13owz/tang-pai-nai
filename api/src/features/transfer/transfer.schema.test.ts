@@ -27,7 +27,7 @@ describe('validateTransfer', () => {
   it('accepts a transfer, trims the note and defaults deletedAt to null', () => {
     expect(validateTransfer(valid)).toEqual({
       ok: true,
-      row: { ...valid, note: 'กดตู้', deletedAt: null },
+      row: { ...valid, note: 'กดตู้', recurringId: null, deletedAt: null },
     })
   })
 

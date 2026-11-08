@@ -50,7 +50,11 @@ describe('AccountPage', () => {
         { provide: SyncService, useValue: syncService },
         {
           provide: ProfileService,
-          useValue: { current: signal({ name: 'ส่วนตัว' }), profiles: signal([{}, {}]) },
+          useValue: {
+            current: signal({ id: 'p1', name: 'ส่วนตัว' }),
+            profiles: signal([{}, {}]),
+            ruleCount: () => 2,
+          },
         },
         {
           provide: DeviceStorageService,
@@ -91,12 +95,15 @@ describe('AccountPage', () => {
     expect(links).toEqual([
       '/account/profiles',
       '/account/categories',
+      '/account/recurring',
       '/account/security',
       '/account/appearance',
       '/account/device',
     ])
     const text = page().textContent
     expect(text).toContain('ของโปรไฟล์ ส่วนตัว')
+    // Recurring (#12): how many rules the profile holds.
+    expect(text).toContain('2 รายการใน ส่วนตัว')
     expect(text).toContain('ไทย · ตามระบบ · Midnight Gold')
     expect(text).toContain('เปิดในเบราว์เซอร์ · ไม่รองรับการเก็บถาวร')
   })

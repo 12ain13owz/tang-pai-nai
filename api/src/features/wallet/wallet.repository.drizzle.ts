@@ -2,6 +2,7 @@ import { and, asc, count, eq, gt, isNull, lt, max, ne, or, sql } from 'drizzle-o
 import type { Executor } from '@/core/database'
 import { currencies } from '@/core/database/schema/currency'
 import { profiles } from '@/core/database/schema/profile'
+import { recurringRules } from '@/core/database/schema/recurring'
 import { transactions } from '@/core/database/schema/transaction'
 import { transfers } from '@/core/database/schema/transfer'
 import { wallets } from '@/core/database/schema/wallet'
@@ -41,6 +42,37 @@ const countOpenOthers = async (
 }
 
 /** Rules a device can't check offline (wallet rules 2–4); the broken rule's message or null. */
+/** Rule 4: live transactions, transfers on either side or recurring rules use the wallet. */
+const isUsed = async (executor: Executor, id: string) => {
+  const used = await executor
+    .select({ id: transactions.id })
+    .from(transactions)
+    .where(and(eq(transactions.walletId, id), isNull(transactions.deletedAt)))
+    .limit(1)
+  const moved = await executor
+    .select({ id: transfers.id })
+    .from(transfers)
+    .where(
+      and(
+        or(eq(transfers.fromWalletId, id), eq(transfers.toWalletId, id)),
+        isNull(transfers.deletedAt)
+      )
+    )
+    .limit(1)
+  // Recurring rule 15: a live rule on either side fixes it too.
+  const repeats = await executor
+    .select({ id: recurringRules.id })
+    .from(recurringRules)
+    .where(
+      and(
+        or(eq(recurringRules.walletId, id), eq(recurringRules.toWalletId, id)),
+        isNull(recurringRules.deletedAt)
+      )
+    )
+    .limit(1)
+  return used.length > 0 || moved.length > 0 || repeats.length > 0
+}
+
 const checkWallet = async (
   executor: Executor,
   userId: string,
@@ -87,26 +119,9 @@ const checkWallet = async (
     }
   }
   // Rule 4: the currency is fixed once the wallet has live transactions or transfers
-  // (transfer rule 8).
-  if (stored && stored.currencyCode !== currencyCode) {
-    const used = await executor
-      .select({ id: transactions.id })
-      .from(transactions)
-      .where(and(eq(transactions.walletId, row.id), isNull(transactions.deletedAt)))
-      .limit(1)
-    const moved = await executor
-      .select({ id: transfers.id })
-      .from(transfers)
-      .where(
-        and(
-          or(eq(transfers.fromWalletId, row.id), eq(transfers.toWalletId, row.id)),
-          isNull(transfers.deletedAt)
-        )
-      )
-      .limit(1)
-    if (used.length > 0 || moved.length > 0) {
-      return WALLET_MESSAGE.CURRENCY_FIXED
-    }
+  // (transfer rule 8), or recurring rules (#12).
+  if (stored && stored.currencyCode !== currencyCode && (await isUsed(executor, row.id))) {
+    return WALLET_MESSAGE.CURRENCY_FIXED
   }
   // Rule 3: archived wallets neither hold a name nor count toward the 20.
   if (row.isArchived === true) {

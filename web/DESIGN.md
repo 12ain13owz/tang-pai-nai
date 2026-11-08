@@ -296,6 +296,29 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   date. Opened from the ⋮ menu and from a gold-tinted "โอนเงิน" on the Wallets tab
   (`bg-brand/10 text-brand`, beside the outline "เพิ่มกระเป๋าเงิน": two secondary actions side by
   side must not look the same).
+- **Recurring** (#12, owner's choices from a mock-up; recurring.md → Web screens):
+  - **"ทำซ้ำ" row**: in the transaction form under "เพิ่มเติม" (the transfer form: a card of its
+    own under the date row), the repeat icon, "ไม่ทำซ้ำ" or the rule in `text-brand`
+    semibold ("ทุกเดือน วันที่ 1") with its end and how it records in a muted line; the date
+    row then reads "เริ่ม" over the date, and a muted line under the card names the next date.
+    On a recorded occurrence the same row reads "จากรายการซ้ำ" and opens the rule.
+  - **"ทำซ้ำ" view** (a later view of the same sheet, ‹ back keeps the choice): a card of
+    radio rows (ไม่ทำซ้ำ, ทุกวัน, ทุกสัปดาห์ / ทุกเดือน / ทุกปี each with the date's weekday,
+    day or day and month under it, กำหนดเอง with a −/+ stepper and unit chips), then "สิ้นสุด"
+    and "เมื่อถึงกำหนด" as titled cards of radio rows with a muted line each.
+  - **Due card**: at the top of the Transactions tab in every period, a 44px+ button tinted
+    `bg-brand/10` with a `border-brand/30` line, a round `bg-brand` bell, "ถึงกำหนด n รายการ"
+    and which ones; it opens the due sheet (rows with a tinted "บันทึก" and an outline "ข้าม",
+    a tap on a row opens the form to edit it first, "บันทึกทั้งหมด (n)" pinned).
+  - **Upcoming rows** ("อนาคต" only, never counted): the list's row at 65% opacity, the badge
+    in a dashed `outline-muted-foreground` ring, the repeat icon and "ยังไม่บันทึก" in the muted
+    line; a tap opens the rule. A recorded occurrence carries a small repeat icon after its
+    category name.
+  - **Rules page** (Account › รายการซ้ำ): titled groups ("ใช้อยู่ (n)", "หยุดไว้ (n)",
+    "สิ้นสุดแล้ว (n)" folded), rows like the list's with the schedule and next date in the
+    muted line, a small "ถามก่อน" tag (`bg-brand/10 text-brand`), a stopped rule's reason in
+    `text-destructive` with an alert icon; the add buttons under the list (outline + the
+    gold-tinted transfer one, as on the Wallets tab).
 - **Bottom sheet** (owner's choice in #6.2): **every sheet is the same near-full height**
   (`92dvh`, the page's header still showing above it), so its main action always sits in the same
   place. Inside, `app-sheet-frame`: a header bar with **close (X) on the left** (or **‹ back** in
@@ -414,6 +437,7 @@ WCAG 2.2 AA, as in `AGENTS.md`:
   | Budget           | งบประมาณ                             | Budget                    | backlog (was #11)                             |
   | Start / end bal. | ยอดเริ่มต้น / ยอดสุดท้าย             | Starting / Ending balance | #10, a period's balances (not ต้นงวด)         |
   | Report           | รายงาน                               | Report                    |                                               |
+  | Recurring        | รายการซ้ำ / ทำซ้ำ (the form's row)   | Recurring / Repeat        | #12; ถึงกำหนด / Due, ข้าม / Skip              |
   | Account (user)   | บัญชีผู้ใช้                          | Account                   | Not บัญชี alone (could mean a bank account)   |
   | Online / offline | ออนไลน์ / ออฟไลน์                    | Online / Offline          |                                               |
   | Sync             | sync                                 | Sync                      | Stays English in Thai: "รอ sync", "sync แล้ว" |

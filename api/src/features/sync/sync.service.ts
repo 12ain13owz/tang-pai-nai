@@ -76,7 +76,7 @@ export const createSyncService = ({
     userId: string,
     deviceId: string,
     op: PushOp,
-    pushHandler: Pick<SyncPushHandler, 'validate'>
+    pushHandler: Pick<SyncPushHandler, 'validate' | 'keepsStored' | 'sameChange'>
   ): Promise<OpResult> => {
     const now = clock()
     const existing = await tx.find(op.table, op.row.id)
@@ -89,16 +89,35 @@ export const createSyncService = ({
     if (op.op === 'delete') {
       return remove(tx, userId, deviceId, op, existing, conflict, now)
     }
+    return upsert(tx, userId, deviceId, op, existing, conflict, pushHandler, now)
+  }
 
+  const upsert = async (
+    tx: SyncRepository,
+    userId: string,
+    deviceId: string,
+    op: PushOp,
+    existing: Stored | null,
+    conflict: boolean,
+    pushHandler: Pick<SyncPushHandler, 'validate' | 'keepsStored' | 'sameChange'>,
+    now: number
+  ): Promise<OpResult> => {
     const validation = pushHandler.validate(op.row)
     if (!validation.ok) {
       return rejected(op.opId, SyncRejectCode.VALIDATION, validation.message, existing?.row)
     }
+    // A second create of one recurring occurrence keeps the server's row, silently (recurring
+    // rule 9).
+    if (existing && op.baseSeq === null && pushHandler.keepsStored?.(validation.row) === true) {
+      return keptQuietly(op, existing)
+    }
     // A live row the feature adjusts first (a transaction on a merged category, category rule 15).
     const candidate = await tx.resolve(op.table, userId, clampTimes(validation.row, now))
+    const same = (a: Record<string, unknown>, b: Record<string, unknown>) =>
+      pushHandler.sameChange?.(a, b) === true
 
     if (existing && conflict) {
-      const lost = await settleConflict(tx, userId, deviceId, op, existing, candidate, now)
+      const lost = await settleConflict(tx, userId, deviceId, op, existing, candidate, now, same)
       if (lost) {
         return lost
       }
@@ -110,11 +129,19 @@ export const createSyncService = ({
     }
     const row = await stamp(tx, op.table, userId, candidate)
     await tx.followUp(op.table, userId, row)
-    if (existing && conflict) {
+    if (existing && conflict && !same(existing.row, row)) {
       await record(tx, op.table, lostLater(existing, userId, deviceId, row.changeSeq, now))
     }
     return { opId: op.opId, status: 'applied', row, changeSeq: row.changeSeq }
   }
+
+  /** The server's row wins with no conflict notice (recurring rule 9). */
+  const keptQuietly = (op: PushOp, existing: Stored): OpResult => ({
+    opId: op.opId,
+    status: 'overridden',
+    row: existing.row,
+    changeSeq: existing.row.changeSeq,
+  })
 
   /** Rule 12 between one user's devices: `overridden` when the pushed version loses, else null. */
   const settleConflict = async (
@@ -124,7 +151,8 @@ export const createSyncService = ({
     op: PushOp,
     existing: Stored,
     candidate: SyncRowInput,
-    now: number
+    now: number,
+    same: (a: Record<string, unknown>, b: Record<string, unknown>) => boolean
   ): Promise<OpResult | null> => {
     const existingDeleted = (existing.row.deletedAt ?? null) !== null
     // Delete beats edit; otherwise the later edit wins, and a tie goes to the server's row.
@@ -133,6 +161,10 @@ export const createSyncService = ({
       (candidate.deletedAt !== null || candidate.updatedAt > existing.row.updatedAt)
     if (candidateWins) {
       return null
+    }
+    // Versions that differ in nothing the user changed lose without a notice.
+    if (same(candidate, existing.row)) {
+      return keptQuietly(op, existing)
     }
     const notice = await record(tx, op.table, {
       previous: candidate,

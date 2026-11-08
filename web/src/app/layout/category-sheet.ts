@@ -591,6 +591,15 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
                 <p class="text-sm text-muted-foreground">
                   {{ 'categories.deleteText' | transloco }}
                 </p>
+                @if (categoryService.ruleCount(editingId()); as count) {
+                  <!-- Recurring rule 14: its rules go with it. -->
+                  <p class="text-sm text-muted-foreground">
+                    {{
+                      'recurring.deleteLine'
+                        | transloco: { count: count, what: ('recurring.whatCategory' | transloco) }
+                    }}
+                  </p>
+                }
               </div>
               <div sheetFooter class="pt-3">
                 <button
@@ -989,7 +998,12 @@ export class CategorySheet {
     if (parent && type.value !== parent.type) {
       type.setValue(parent.type, { emitEvent: false })
     }
-    const locked = parent !== null || this.childCount() > 0 || this.used()
+    // Recurring rule 15: a live rule on it fixes its type too.
+    const locked =
+      parent !== null ||
+      this.childCount() > 0 ||
+      this.used() ||
+      this.categoryService.ruleCount(this.editingId()) > 0
     if (locked && type.enabled) {
       type.disable({ emitEvent: false })
     } else if (!locked && type.disabled) {

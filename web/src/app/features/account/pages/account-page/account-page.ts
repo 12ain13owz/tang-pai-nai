@@ -6,6 +6,7 @@ import {
   lucideChevronRight,
   lucideLogOut,
   lucidePalette,
+  lucideRepeat,
   lucideShapes,
   lucideShieldCheck,
   lucideSmartphone,
@@ -36,6 +37,7 @@ interface AccountItem {
       lucideChevronRight,
       lucideLogOut,
       lucidePalette,
+      lucideRepeat,
       lucideShapes,
       lucideShieldCheck,
       lucideSmartphone,
@@ -193,6 +195,17 @@ export class AccountPage {
             label: 'account.categories',
             hint: profile
               ? t('account.categoriesHint', { name: profile.name })
+              : t('account.profilesNone'),
+          },
+          {
+            link: '/account/recurring',
+            icon: 'lucideRepeat',
+            label: 'account.recurring',
+            hint: profile
+              ? t('account.recurringHint', {
+                  name: profile.name,
+                  count: this.profileService.ruleCount(profile.id),
+                })
               : t('account.profilesNone'),
           },
         ],

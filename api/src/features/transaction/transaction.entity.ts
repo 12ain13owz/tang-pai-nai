@@ -12,6 +12,8 @@ export type Transaction = {
   /** `''` when empty. */
   note: string
   excludeFromReport: boolean
+  /** The recurring rule it is an occurrence of; null otherwise. */
+  recurringId: string | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null

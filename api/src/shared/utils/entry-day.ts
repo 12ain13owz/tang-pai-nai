@@ -22,3 +22,7 @@ export const isEntryDay = (value: string): boolean =>
   isRealDate(value) &&
   value >= ENTRY_DAY.FIRST &&
   value <= new Date(Date.now() + ENTRY_DAY.FUTURE_DAYS * DAY_MS).toISOString().slice(0, 10)
+
+/** `YYYY-MM-DD` and a real date, with no range (a recurring rule's end or next date). */
+export const isCalendarDay = (value: string): boolean =>
+  ENTRY_DAY.PATTERN.test(value) && isRealDate(value) && value >= ENTRY_DAY.FIRST

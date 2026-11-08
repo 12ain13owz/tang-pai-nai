@@ -124,6 +124,8 @@ components:
       $ref: './components/models/sync-transaction-row.schema.yaml'
     SyncTransferRow:
       $ref: './components/models/sync-transfer-row.schema.yaml'
+    SyncRecurringRuleRow:
+      $ref: './components/models/sync-recurring-rule-row.schema.yaml'
   responses:
     SuccessResponse:
       $ref: './components/responses/success.response.yaml'

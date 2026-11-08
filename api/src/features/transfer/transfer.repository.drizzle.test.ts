@@ -29,6 +29,7 @@ const transfer = (id: string, changeSeq: number, extra: Partial<SyncRowWrite> = 
   amount: 100000,
   occurredOn: '2026-11-02',
   note: '',
+  recurringId: null,
   createdAt: 1000,
   updatedAt: 1000,
   deletedAt: null,
@@ -199,5 +200,11 @@ describe('transferSyncHandler', () => {
     expect(await push.find(db, 'r4')).toBeNull()
     await db.delete(profiles)
     expect(await push.find(db, 'r2')).toBeNull()
+  })
+
+  it('stores the recurring rule of an occurrence, and keeps the stored one on a second create (recurring rule 9)', async () => {
+    const row = { id: 'x', createdAt: 1, updatedAt: 1, deletedAt: null }
+    expect(push.keepsStored?.({ ...row, recurringId: 'r1' })).toBe(true)
+    expect(push.keepsStored?.({ ...row, recurringId: null })).toBe(false)
   })
 })

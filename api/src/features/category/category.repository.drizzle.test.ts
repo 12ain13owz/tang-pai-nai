@@ -10,6 +10,7 @@ import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
 import { categories } from '@/core/database/schema/category'
 import { profiles } from '@/core/database/schema/profile'
+import { recurringRules } from '@/core/database/schema/recurring'
 import { transactions } from '@/core/database/schema/transaction'
 import { wallets } from '@/core/database/schema/wallet'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
@@ -279,6 +280,56 @@ describe('categorySyncHandler', () => {
     ).toBeNull()
   })
 
+  it('keeps the type of a category with a live recurring rule (recurring rule 15)', async () => {
+    await push.write(db, 'alice', category('home', 'Home', 16))
+    await db.insert(wallets).values({
+      id: 'cash',
+      userId: 'alice',
+      profileId: 'pa',
+      name: 'Cash',
+      currencyCode: 'THB',
+      initialBalance: 0,
+      icon: 'lucideWallet',
+      color: '#15803d',
+      excludeFromTotal: false,
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 40,
+      updatedBy: 'alice',
+    })
+    await db.insert(recurringRules).values({
+      id: 'r1',
+      userId: 'alice',
+      profileId: 'pa',
+      kind: 'transaction',
+      walletId: 'cash',
+      categoryId: 'home',
+      toWalletId: null,
+      amount: 100,
+      note: '',
+      excludeFromReport: false,
+      startOn: '2026-11-01',
+      frequency: 'month',
+      interval: 1,
+      endOn: null,
+      endCount: null,
+      confirm: false,
+      nextOn: '2026-12-01',
+      isPaused: false,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 70,
+      updatedBy: 'alice',
+    })
+    expect(await push.check(db, 'alice', category('home', 'Home', 0, { type: 'income' }))).toBe(
+      CATEGORY_MESSAGE.TYPE_USED
+    )
+  })
+
   describe('merge (rule 15)', () => {
     let seq = 100
     const takeSeqs = async (count: number) => {
@@ -368,6 +419,47 @@ describe('categorySyncHandler', () => {
       expect(moved[0]).toMatchObject({ updatedAt: 900, updatedBy: 'alice' })
       // A deleted transaction stays where it was.
       expect(await transaction('t4')).toMatchObject({ categoryId: 'water', changeSeq: 50 })
+    })
+
+    it("moves a merged tombstone's live recurring rules too (recurring rule 13)", async () => {
+      const rule = (id: string, extra: object) => ({
+        id,
+        userId: 'alice',
+        profileId: 'pa',
+        kind: 'transaction',
+        walletId: 'cash',
+        categoryId: null as string | null,
+        toWalletId: null as string | null,
+        amount: 100,
+        note: '',
+        excludeFromReport: false,
+        startOn: '2026-11-01',
+        frequency: 'month',
+        interval: 1,
+        endOn: null,
+        endCount: null,
+        confirm: false,
+        nextOn: '2026-12-01',
+        isPaused: false,
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null as number | null,
+        changeSeq: 70,
+        updatedBy: 'alice',
+        ...extra,
+      })
+      await db
+        .insert(recurringRules)
+        .values([
+          rule('r1', { categoryId: 'water' }),
+          rule('r2', { categoryId: 'water', deletedAt: 5 }),
+        ])
+      const row = await push.write(db, 'alice', tombstone('water', 'Water', 'rice'))
+      await push.followUp?.(db, 'alice', row, takeSeqs)
+      const [r1] = await db.select().from(recurringRules).where(eq(recurringRules.id, 'r1'))
+      const [r2] = await db.select().from(recurringRules).where(eq(recurringRules.id, 'r2'))
+      expect(r1).toMatchObject({ categoryId: 'rice', changeSeq: 101, updatedBy: 'alice' })
+      expect(r2).toMatchObject({ categoryId: 'water', changeSeq: 70 })
     })
 
     it("merges a top-level source's leftover children into the target, with their rows", async () => {

@@ -10,7 +10,14 @@ import {
 } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
-import { cleanHidden, toWallet, TRANSACTION_TABLE, WALLET_TABLE } from '@/core/wallet'
+import {
+  cleanHidden,
+  RECURRING_TABLE,
+  toWallet,
+  tombstoneRules,
+  TRANSACTION_TABLE,
+  WALLET_TABLE,
+} from '@/core/wallet'
 import { followMerges, hasMergeLeftovers, moveTransactions } from './category-merge'
 import { CATEGORY_LIMITS, CATEGORY_TABLE } from './category.type'
 import type {
@@ -365,6 +372,23 @@ export class CategoryService {
     )
   }
 
+  /** Live recurring rules on the category: they fix its type (recurring rules 14–15). */
+  ruleCount(id: string | null): number {
+    if (id === null) {
+      return 0
+    }
+    return this.read(
+      (db) =>
+        Number(
+          db.selectValue(
+            `SELECT count(*) FROM ${RECURRING_TABLE} WHERE category_id = ? AND deleted_at IS NULL`,
+            [id]
+          )
+        ),
+      0
+    )
+  }
+
   /** Rule 6: a tombstone, after the sheet's confirm view; only without live children or transactions. */
   remove(id: string): void {
     if (this.childrenOf(id).length > 0 || this.hasTransactions(id)) {
@@ -375,6 +399,8 @@ export class CategoryService {
       const current = this.find(db, id)
       if (current) {
         queueWrite(db, CATEGORY_TABLE, 'delete', { ...current, updatedAt: now, deletedAt: now })
+        // Recurring rule 14: its rules go with it, in the same write.
+        tombstoneRules(db, 'category_id = ?', [id], now)
       }
     })
   }

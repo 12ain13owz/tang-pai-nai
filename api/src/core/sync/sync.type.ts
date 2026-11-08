@@ -40,6 +40,18 @@ export interface SyncPushHandler {
    * a merged category moves to the category it was merged into, category rule 15).
    */
   resolve?(executor: Executor, userId: string, row: SyncRowInput): Promise<SyncRowInput>
+  /**
+   * Optional: a pushed **create** (`baseSeq` null) of a row the server already has keeps the
+   * server's row and answers it as `overridden`, with no conflict notice, when this is true. Two
+   * devices record one occurrence of a recurring rule under the same id (recurring rule 9), so
+   * the second one must not undo an edit or a skip made since.
+   */
+  keepsStored?(row: SyncRowInput): boolean
+  /**
+   * Optional: two versions of a row that differ in nothing the user would call a change (a
+   * recurring rule's `nextOn`, recurring rule 9). A conflict between them writes no notice.
+   */
+  sameChange?(a: Record<string, unknown>, b: Record<string, unknown>): boolean
   /** Inserts or replaces the row, owned by `userId`; answers it as pull would. */
   write(executor: Executor, userId: string, row: SyncRowWrite): Promise<SyncRow>
   /**

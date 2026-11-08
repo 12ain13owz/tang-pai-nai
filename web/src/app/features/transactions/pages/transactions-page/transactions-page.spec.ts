@@ -37,6 +37,7 @@ describe('TransactionsPage', () => {
   const sync = {
     canSync: signal(false),
     isSyncing: signal(false),
+    rounds: signal(0),
     lastSyncedAt: signal<number | null>(1),
     rejectedOp: (opId: string) => findOp(db, opId),
   }
@@ -242,5 +243,62 @@ describe('TransactionsPage', () => {
     const summary = element().querySelector(`section[aria-label="${th.transactions.summary}"]`)
     expect(summary?.textContent).toContain(th.transfers.summaryLine)
     expect(summary?.textContent).toContain('+1,000.00')
+  })
+
+  describe('recurring (docs/features/recurring.md)', () => {
+    const rule = (id: string, extra: object = {}) =>
+      put('recurring_rules', {
+        id,
+        profileId: 'p1',
+        kind: 'transaction',
+        walletId: 'cash',
+        categoryId: 'food',
+        toWalletId: null,
+        amount: 18000,
+        note: 'water',
+        excludeFromReport: false,
+        startOn: '2026-11-05',
+        frequency: 'month',
+        interval: 1,
+        endOn: null,
+        endCount: null,
+        confirm: true,
+        nextOn: '2026-11-05',
+        isPaused: false,
+        ...extra,
+      })
+
+    beforeEach(() => {
+      transactions.today.set('2026-11-08')
+    })
+
+    it('shows a card for the due ask-first ones, opening the due sheet (rule 10)', async () => {
+      rule('r1')
+      await settle()
+      const card = [...element().querySelectorAll('button')].find((b) =>
+        b.textContent.includes('ถึงกำหนด 1 รายการ')
+      )
+      expect(card?.textContent).toContain('Food 5 พ.ย.')
+      card?.click()
+      await settle()
+      await fixture.whenStable()
+      expect(document.body.textContent).toContain(th.recurring.dueHeading)
+    })
+
+    it('lists the ones to come in "อนาคต", faded and not counted, and marks recorded ones (rules 11, 17)', async () => {
+      rule('r1', { confirm: false, nextOn: '2026-12-05' })
+      transaction('t1', { occurredOn: '2026-11-05', recurringId: 'r1' })
+      await settle()
+      expect(rows()[0].querySelector('ng-icon[name="lucideRepeat"]')).not.toBeNull()
+      transactions.tab.set('future')
+      await settle()
+      const text = element().textContent
+      expect(text).toContain(th.recurring.notRecorded)
+      expect(rows().map((row) => row.textContent.includes('Food'))).toEqual([true, true, true])
+      // Nothing to come is counted: no summary card for "อนาคต" without stored rows.
+      expect(
+        element().querySelector('section[aria-label="' + th.transactions.summary + '"]')
+      ).toBeNull()
+    })
   })
 })

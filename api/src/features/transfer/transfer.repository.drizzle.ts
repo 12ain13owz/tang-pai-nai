@@ -81,6 +81,9 @@ const checkTransfer = async (
   return null
 }
 
+/** An occurrence of a recurring rule (docs/features/recurring.md rule 9). */
+const isOccurrence = (row: SyncRowInput) => typeof row.recurringId === 'string'
+
 /** The transfers table's sync handler (docs/features/transfer.md rule 1). */
 export const transferSyncHandler: SyncTableHandler = {
   table: 'transfers',
@@ -95,6 +98,9 @@ export const transferSyncHandler: SyncTableHandler = {
       return rows.map(toTransfer)
     }),
   push: {
+    // Recurring rule 9: two devices record one occurrence under the same id; the second create
+    // keeps the server's row (maybe edited or skipped since).
+    keepsStored: isOccurrence,
     validate: validateTransfer,
     find: async (executor, id) =>
       run(
@@ -120,6 +126,7 @@ export const transferSyncHandler: SyncTableHandler = {
             amount: Number(row.amount),
             occurredOn: String(row.occurredOn),
             note: typeof row.note === 'string' ? row.note : '',
+            recurringId: typeof row.recurringId === 'string' ? row.recurringId : null,
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
             deletedAt: row.deletedAt,

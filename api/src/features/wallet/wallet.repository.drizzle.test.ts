@@ -11,6 +11,7 @@ import { users } from '@/core/database/schema/auth'
 import { categories } from '@/core/database/schema/category'
 import { currencies } from '@/core/database/schema/currency'
 import { profiles } from '@/core/database/schema/profile'
+import { recurringRules } from '@/core/database/schema/recurring'
 import { transactions } from '@/core/database/schema/transaction'
 import { transfers } from '@/core/database/schema/transfer'
 import { wallets } from '@/core/database/schema/wallet'
@@ -283,6 +284,69 @@ describe('walletSyncHandler', () => {
     expect(await usd('w1', 'Cash')).toBe(WALLET_MESSAGE.CURRENCY_FIXED)
     expect(await usd('w2', 'Card')).toBe(WALLET_MESSAGE.CURRENCY_FIXED)
     // Only a deleted transfer: the currency is free again.
+    expect(await usd('w3', 'Savings')).toBeNull()
+  })
+
+  it('keeps the currency of a wallet with a live recurring rule on either side (recurring rule 15)', async () => {
+    await db.update(currencies).set({ isActive: true }).where(eq(currencies.code, 'USD'))
+    await push.write(db, 'alice', wallet('w1', 'Cash', 15))
+    await push.write(db, 'alice', wallet('w2', 'Card', 16))
+    await push.write(db, 'alice', wallet('w3', 'Savings', 17))
+    await db.insert(categories).values({
+      id: 'c1',
+      userId: 'alice',
+      profileId: 'pa',
+      type: 'expense',
+      parentId: null,
+      name: 'Rent',
+      icon: 'lucideShapes',
+      color: '#475569',
+      isArchived: false,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      changeSeq: 1,
+      updatedBy: 'alice',
+    })
+    const rule = (id: string, extra: object) => ({
+      id,
+      userId: 'alice',
+      profileId: 'pa',
+      kind: 'transaction',
+      walletId: 'cash',
+      categoryId: null as string | null,
+      toWalletId: null as string | null,
+      amount: 100,
+      note: '',
+      excludeFromReport: false,
+      startOn: '2026-11-01',
+      frequency: 'month',
+      interval: 1,
+      endOn: null,
+      endCount: null,
+      confirm: false,
+      nextOn: '2026-12-01',
+      isPaused: false,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null as number | null,
+      changeSeq: 70,
+      updatedBy: 'alice',
+      ...extra,
+    })
+    await db
+      .insert(recurringRules)
+      .values([
+        rule('r1', { walletId: 'w1', categoryId: 'c1' }),
+        rule('r2', { kind: 'transfer', walletId: 'w3', toWalletId: 'w2' }),
+        rule('r3', { walletId: 'w3', categoryId: 'c1', deletedAt: 5 }),
+      ])
+    const usd = async (id: string, name: string) =>
+      push.check(db, 'alice', wallet(id, name, 0, { currencyCode: 'USD' }))
+    expect(await usd('w1', 'Cash')).toBe(WALLET_MESSAGE.CURRENCY_FIXED)
+    expect(await usd('w2', 'Card')).toBe(WALLET_MESSAGE.CURRENCY_FIXED)
+    await db.update(recurringRules).set({ deletedAt: 5 }).where(eq(recurringRules.id, 'r2'))
     expect(await usd('w3', 'Savings')).toBeNull()
   })
 })

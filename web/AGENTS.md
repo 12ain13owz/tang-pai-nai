@@ -163,6 +163,11 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
   signed out stops the retries. An untrusted device's `ProfileService.canWrite()` needs it too;
   its "needs online" notices switch to `sync.serverDownWrite` while `serverDown()`. Specs that
   stub `NetworkStatusService` give it both `isOnline` and `serverReachable` signals.
+- `SyncService.rounds()` counts finished (or failed) rounds since the app loaded: work that
+  should follow the first pull waits for it (the recurring pass, #12). An `overridden` result
+  may come **without a notice** (the server kept its row quietly), so nothing is stored then.
+  Specs that stub `SyncService` for a component that reaches `RecurringService` give it
+  `rounds: signal(0)`, `canSync` and `isSyncing`.
 - **Rejected ops**: the local row already went back to the server's version; the op keeps the
   refused values. A refused profile create carries its refused child rows
   (`ProfileService.rejectedItems()`, read by the sheet and the pill): fixing the profile re-sends
@@ -357,6 +362,39 @@ local database, nothing is stored.
   `appSwipe` directive, `app-custom-range-sheet` with `range` in and `applied` out).
 - Specs: `report.service.spec.ts` on a test database; the pages use
   `features/reports/report-testing.ts` (`setUpReports()`: real services, a seeded October).
+
+### Recurring (`core/recurring`, #12)
+
+Spec: [recurring.md](../docs/features/recurring.md).
+
+- `RecurringService`: `items()` (the current profile's live rules as `RuleItem`s: state
+  `active` / `paused` / `stopped` (an archived wallet or category) / `ended`, names, signs),
+  `due()` (ask-first occurrences up to today), `byId()`, `itemOf()`, `recordedCount()`,
+  `create(values)` (the rule and its occurrences up to today in one write), `update(id, values,
+fixOpId?)` (a new schedule starts from today; a refused create comes back), `setPaused()`,
+  `remove()` / `restore()`, `confirm(ruleId, on, values?)`, `skip(ruleId, on)` (a tombstone with
+  the occurrence's id), `confirmAll()`, `upcoming(range, walletIds)` (3 months, never stored),
+  `open(id)` (the transaction or transfer sheet in `rule` mode). An effect is the **recording
+  pass**: after the first sync round (`SyncService.rounds()`) or at once when it can't sync,
+  never while a round runs, over every profile; it sweeps rules of deleted wallets or
+  categories (after `followMerges`) and **opens no write when nothing changes** (an empty write
+  re-runs the pass forever).
+- An occurrence's id is `occurrenceId(ruleId, day)` (`occurrence-id.ts`, SHA-256 in plain JS so
+  it works inside a synchronous local write; a UUID v8). Whether one exists (live or skipped) is
+  a lookup by that id; never write it twice.
+- `schedule.ts` (pure: `occurrenceOn`, `indexOnOrAfter`, `isPastEnd`, `nextOnOrAfter`,
+  `occurrencesBetween`, `lastOccurrence`; always counted from `startOn` with `addMonths`'
+  clamp), `describe.ts` (texts for a schedule, given a translate function and a locale).
+- `core/wallet` / `core/category` read the table by name (`RECURRING_TABLE`, `tombstoneRules` in
+  `core/wallet`): deleting a wallet or category tombstones its rules in the same write, a rule
+  fixes a wallet's currency (`canChangeCurrency`) and a category's type (`ruleCount`), and
+  `moveTransactions` (a merge) moves rules too.
+- UI: `layout/repeat-view` (the "ทำซ้ำ" view, `value` is a `model`) and `layout/repeat-row`, used
+  by both sheets (states `create` with `repeat` / `occurrence`, `rule`, `fixRule`);
+  `features/account/pages/recurring-page`; `features/transactions/components/due-sheet`
+  (`@defer`red by the page) and the page's due card and upcoming rows (`group.upcoming`).
+- Specs: `recurring.service.spec.ts` on a test database (the pass runs on `TestBed.tick()`);
+  the sheets and pages put `recurring_rules` rows with `putRow`.
 
 ### Inside a feature
 

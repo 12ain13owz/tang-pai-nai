@@ -1,6 +1,6 @@
 import { findPending, fromSql, moveOpLast, putRow, queueWrite } from '@/core/offline'
 import type { LocalDatabase, SyncRow } from '@/core/offline'
-import { TRANSACTION_TABLE } from '@/core/wallet'
+import { RECURRING_TABLE, TRANSACTION_TABLE } from '@/core/wallet'
 import { CATEGORY_TABLE } from './category.type'
 
 /** How many merges in a row are followed (a target merged again later), as on the server. */
@@ -62,28 +62,36 @@ export const moveRow = (
   }
 }
 
-/** Moves the live transactions of `fromId` to `toId` (rule 15); how many. */
+/**
+ * Moves the live transactions of `fromId` to `toId` (rule 15), and its live recurring rules
+ * (recurring rule 13); how many transactions.
+ */
 export const moveTransactions = (
   db: LocalDatabase,
   fromId: string,
   toId: string,
   now: number
 ): number => {
-  const rows = db.selectObjects(
-    `SELECT * FROM ${TRANSACTION_TABLE} WHERE category_id = ? AND deleted_at IS NULL`,
-    [fromId]
-  )
-  for (const row of rows) {
-    const transaction = fromSql(TRANSACTION_TABLE, row) as SyncRow & { id: string }
-    moveRow(db, TRANSACTION_TABLE, transaction, { categoryId: toId }, now)
+  let moved = 0
+  for (const table of [TRANSACTION_TABLE, RECURRING_TABLE]) {
+    const rows = db.selectObjects(
+      `SELECT * FROM ${table} WHERE category_id = ? AND deleted_at IS NULL`,
+      [fromId]
+    )
+    for (const row of rows) {
+      moveRow(db, table, fromSql(table, row) as SyncRow & { id: string }, { categoryId: toId }, now)
+    }
+    if (table === TRANSACTION_TABLE) {
+      moved = rows.length
+    }
   }
-  return rows.length
+  return moved
 }
 
 interface MergeLeftovers {
   /** Live children of a merged parent, with the target each is merged into. */
   children: { child: SyncRow & { id: string }; target: string }[]
-  /** Merged categories that still hold live transactions, with their targets. */
+  /** Merged categories that still hold live transactions or rules, with their targets. */
   categories: { id: string; target: string }[]
 }
 
@@ -98,7 +106,9 @@ const mergeLeftovers = (db: LocalDatabase): MergeLeftovers => {
     .map((child) => ({ child, target: mergeTargetOf(db, String(child['parentId'])) }))
   const categories = db
     .selectObjects(
-      `SELECT DISTINCT t.category_id AS id FROM ${TRANSACTION_TABLE} t
+      `SELECT DISTINCT t.category_id AS id
+       FROM (SELECT category_id, deleted_at FROM ${TRANSACTION_TABLE}
+             UNION ALL SELECT category_id, deleted_at FROM ${RECURRING_TABLE}) t
        JOIN ${CATEGORY_TABLE} c ON c.id = t.category_id
        WHERE t.deleted_at IS NULL AND c.deleted_at IS NOT NULL AND c.merged_into_id IS NOT NULL`
     )

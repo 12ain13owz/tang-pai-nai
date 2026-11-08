@@ -70,27 +70,27 @@ merging.
 
 ## Status
 
-| #   | Feature / phase                   | API | Web | Notes                                                                                                                                                                    |
-| --- | --------------------------------- | --- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0   | Starter repos                     | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                                                                  |
-| 1   | Local dev workflow                | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                                                                              |
-| 2   | Database foundation               | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                                                               |
-| 3   | App shell                         | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                                                                           |
-| 4   | Auth                              | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                                                                             |
-| 4a  | Offline sync foundation           | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                |
-| 5   | Currency                          | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                      |
-| 6   | Profile + Wallet                  | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
-| 7   | Category                          | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms); 7.3 merge. [spec](docs/features/category.md)                                          |
-| 8   | Transaction                       | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                         |
-| 9   | Transfer                          | ✅  | ✅  | two linked rows of one `transfers` row, outside income / expense; ⋮ menu, Wallets tab button. [spec](docs/features/transfer.md)                                          |
-| 10  | Reports                           | —   | ✅  | on the device: H1 summary with balances, trend, by category with drill-down pages; Transactions header shared. [spec](docs/features/report.md)                           |
-| 11  | Budget                            | ⏸   | ⏸   | moved to the backlog after #10 (owner: not used in Money Lover; reports cover it); see Backlog                                                                           |
-| 12  | **Recurring transactions** ← next | ⬜  | ⬜  | rules for entries that repeat (salary, rent, bills); how due entries appear is open (see Next)                                                                           |
-| 13  | Debt / loan                       | ⬜  | ⬜  | "lent to / borrowed from" with repayments; money counted once (owner, after #10; see Backlog)                                                                            |
-| 14  | Event / trip                      | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                                                                       |
-| 15  | Search, filter, CSV export        | ⬜  | ⬜  | + bulk edit: move many transactions (e.g. one wallet's) to another category (owner, 7.3)                                                                                 |
-| 16  | Family sharing                    | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                                                                   |
-| 17  | Deploy (Vercel)                   | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
+| #   | Feature / phase            | API | Web | Notes                                                                                                                                                                    |
+| --- | -------------------------- | --- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                                                                  |
+| 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                                                                              |
+| 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                                                               |
+| 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                                                                           |
+| 4   | Auth                       | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                                                                             |
+| 4a  | Offline sync foundation    | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                |
+| 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                      |
+| 6   | Profile + Wallet           | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
+| 7   | Category                   | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms); 7.3 merge. [spec](docs/features/category.md)                                          |
+| 8   | Transaction                | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                         |
+| 9   | Transfer                   | ✅  | ✅  | two linked rows of one `transfers` row, outside income / expense; ⋮ menu, Wallets tab button. [spec](docs/features/transfer.md)                                          |
+| 10  | Reports                    | —   | ✅  | on the device: H1 summary with balances, trend, by category with drill-down pages; Transactions header shared. [spec](docs/features/report.md)                           |
+| 11  | Budget                     | ⏸   | ⏸   | moved to the backlog after #10 (owner: not used in Money Lover; reports cover it); see Backlog                                                                           |
+| 12  | Recurring transactions     | ✅  | ✅  | rules recorded on the device when due (or asked first), deterministic ids, "อนาคต" shows what comes. [spec](docs/features/recurring.md)                                  |
+| 13  | **Debt / loan** ← next     | ⬜  | ⬜  | "lent to / borrowed from" with repayments; money counted once (owner, after #10; see Backlog)                                                                            |
+| 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                                                                       |
+| 15  | Search, filter, CSV export | ⬜  | ⬜  | + bulk edit: move many transactions (e.g. one wallet's) to another category (owner, 7.3)                                                                                 |
+| 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                                                                   |
+| 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
@@ -100,32 +100,73 @@ decision "Local-first").
 
 ---
 
-## Next: Recurring transactions (#12)
+## Next: Debt / loan (#13)
 
-Not started: write `docs/features/recurring.md` first (ROADMAP → Status). Reviewed with the
-owner after #10: the order from here is **#12 → #13 → #14 → #15 → #16**, then #17 when the
-owner asks; Budget (#11) went to the backlog. Points for the spec, to put to the owner with a
-proposal (none decided):
-
-- **How a due entry appears.** The row's old note said "Vercel Cron to materialise due
-  entries", but the app is offline-first and local-only until #17: a server job can't run in
-  the sandbox and wouldn't reach an offline device. Options: the device writes due entries
-  when it opens (synced like any write, and a server rule or a deterministic id keeps two
-  devices from writing the same one), a server job after #17, or "due" items to confirm with
-  one tap (Money Lover's style) rather than written silently.
-- What repeats: transactions only, or transfers too (transfer.md → Out of scope names
-  "Recurring transfers (#12)"); daily / weekly / monthly (the 31st in a short month) / yearly;
-  an end date or a count; skip or edit one occurrence.
-- Where it lives: a row in the transaction form ("ทำซ้ำ" under เพิ่มเติม), a list in Account ›,
-  and how upcoming entries show in the Transactions tab ("อนาคต" tab of the month view).
-- A new synced table (rules), so API + web + OpenAPI, as #8 / #9.
+Not started: write `docs/features/debt.md` first, with a mock-up (owner's way since #10). The
+order stays **#13 → #14 → #15 → #16**, then #17 when the owner asks. The owner's direction is in
+the Backlog ("Debt / loan (#13)"): borrowed money isn't income, and **money is counted as an
+expense once**, when spent or when repaid (probably a choice per debt). Points to put to the
+owner with a proposal (none decided): a debt as its own table or as a kind of wallet; lent vs
+borrowed; repayments as transfers, transactions or their own rows; interest; how a debt shows
+in the Wallets tab, the totals and the reports; instalments as a recurring rule (#12 can record
+them).
 
 Known, for later:
 
-- The initial bundle is 713 kB after #10 (warning at 750 kB); keep new screens lazy and their
-  services out of the shell (#10 moved its range sheet into the page for this).
+- The initial bundle is 716.8 kB after #12 (warning at 750 kB); keep new screens lazy and their
+  services out of the shell (#12 loads `RecurringService` with a dynamic `import()` after the
+  shell's first render).
+- Amounts typed on the keypad show without grouping (`8500`); grouping while typing (display
+  only) is the owner's next small change after #12, its own PR.
 - Headless Chromium breaks some Thai lines inside a word ("บัน/ทึก"); the app's older notices do
   the same, so it's the test browser's line breaking, not our markup.
+
+## Done: Recurring transactions (#12)
+
+- **Decided at the start of #12** (owner: "ตามเสนอ", round 1 of the mock-up
+  `docs/features/mockups/recurring.html`; recurring.md → Open questions): the **device** records
+  due occurrences when the app opens (after the first sync round, or at once offline), each rule
+  **"บันทึกให้อัตโนมัติ"** or **"ถามก่อนบันทึก"** (a due card to record, edit or skip) (Q1);
+  **deterministic occurrence ids** + the server keeping its row for a second create, quietly,
+  and `nextOn` only moving forward (Q2); day / week / month / year with "every n", the 31st →
+  the month's last day, an end by date or count (Q3); transfers repeat too (Q4); a "ทำซ้ำ" row
+  under "เพิ่มเติม", Account › รายการซ้ำ + a ⋮ row, the due card, upcoming rows in "อนาคต" (Q5);
+  an edit changes what isn't recorded, delete of an occurrence = skip (Q6); an archived wallet
+  or category stops a rule (no catch-up), a merge moves it, a delete takes it, a live rule fixes
+  currency and type (Q7); 3 months of upcoming, never counted (Q8). Extras: the toast after a
+  pass, no "save and add" while repeating, 100 rules per profile.
+- **Decided while building** (owner, from screenshots): no undo on a due item's "บันทึก" /
+  "ข้าม"; one device's skip beats another's record of the same due item (one notice); the rules
+  page's add buttons under the list; the transfer form's "ทำซ้ำ" in its own card.
+- **API**: migration `0015_recurring` (`recurring_rules`, `recurring_id` on transactions and
+  transfers); `features/recurring` (checks, 100 per profile, `resolve`: a merged category and
+  `nextOn` only forward, `sameChange`); the sync service's optional hooks `keepsStored` (a
+  create of an id the server has keeps its row, answered `overridden` with no notice) and
+  `sameChange` (no notice between versions that are the same change); a category merge's
+  `followUp` moves its rules; a live rule fixes a wallet's currency and a category's type;
+  `isCalendarDay`; OpenAPI `SyncRecurringRuleRow`, `recurringId`.
+- **Web**: local schema step 11; `core/recurring` (`RecurringService`: the recording pass in an
+  effect after `SyncService.rounds()`, due / confirm / skip / confirmAll, update / pause /
+  remove, `upcoming`, sweeps; `schedule.ts`; `occurrence-id.ts` (SHA-256 in plain JS, a UUID v8);
+  `describe.ts`); the shell loads it with a dynamic `import()`; `layout/repeat-view`,
+  `layout/repeat-row` and the `rule` / `fixRule` modes of both sheets; Account › รายการซ้ำ; the
+  due card and `components/due-sheet`, upcoming rows and the ↻ mark on the Transactions tab;
+  wallet / category / profile delete take or count rules; the sync sheet's fix route.
+- **Found and fixed while building**: the recording pass opened a write for a due ask-first
+  rule though it wrote nothing; the write re-ran the pass, so the page hung in a loop (a spec
+  hangs without the fix).
+- **Checked**: an HTTP script on `/sync/push` + `/pull` (a duplicate create keeps an edited and a
+  skipped row, no notice; a stale `nextOn` stays forward; merge moves rules; type and currency
+  locks). Playwright at 375×812 in th/en × light/dark on `npm run build`: a seeded family's rules
+  recorded at open (the 31st → 30 Nov; an archived wallet's rule skipped ahead), the due card,
+  sheet and edit-before-record, "อนาคต", the menu, the rules page and sheet, a rule from the
+  form; two devices of one user offline across midnight (Playwright clock) recording the same
+  occurrences: one row each on the server, A's edit kept, both rules on the same next date;
+  `setOffline` and the API really stopped ("เซิร์ฟเวอร์ไม่ตอบ · รอ 2", synced by itself 13.9 s
+  after it came back); 20,000 rows (recurring.md → Volume). Tests: API 569, web 549. Initial
+  bundle 716.8 kB.
+- **Known**: a rule's "บันทึกแล้ว n ครั้ง" counts its rows without an index (fine for one rule
+  at a time). Reminders / push notifications wait for #17 (no server job before deploy).
 
 ## Done: Reports (#10)
 
@@ -1092,7 +1133,7 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   member asks for it: per category or total per period, progress and an over-budget warning;
   the spending is `ReportService.byCategory` / `categoryTotal` (report.md → Volume), and it
   would sit in the Reports tab (the tab bar has no free slot). Needs a synced table.
-- **Debt / loan (#13), owner's direction after #10**: borrowed money isn't income though the
+- **Debt / loan (#13, next), owner's direction after #10**: borrowed money isn't income though the
   cash really goes up. The rule for the spec: **money is counted as an expense once**, either
   when it is spent (the purchase is an expense; repaying the principal isn't, only interest
   is) or when it is repaid (an instalment plan: each instalment is an expense, the purchase

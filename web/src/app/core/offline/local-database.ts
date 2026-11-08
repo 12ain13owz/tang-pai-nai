@@ -153,6 +153,38 @@ const MIGRATIONS: readonly string[] = [
   CREATE INDEX transfers_to_wallet ON transfers (to_wallet_id)`,
   // #7.3: the category a merged tombstone went into (category rule 15).
   `ALTER TABLE categories ADD COLUMN merged_into_id TEXT`,
+  // #12: recurring rules (docs/features/recurring.md) and the rule an occurrence came from.
+  // Indexes: the profile's rules, and the rules of a wallet (either side) or a category.
+  `CREATE TABLE recurring_rules (
+    id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    wallet_id TEXT NOT NULL,
+    category_id TEXT,
+    to_wallet_id TEXT,
+    amount INTEGER NOT NULL,
+    note TEXT NOT NULL,
+    exclude_from_report INTEGER NOT NULL,
+    start_on TEXT NOT NULL,
+    frequency TEXT NOT NULL,
+    interval INTEGER NOT NULL,
+    end_on TEXT,
+    end_count INTEGER,
+    confirm INTEGER NOT NULL,
+    next_on TEXT,
+    is_paused INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted_at INTEGER,
+    change_seq INTEGER,
+    updated_by TEXT
+  ) STRICT;
+  CREATE INDEX recurring_rules_profile ON recurring_rules (profile_id);
+  CREATE INDEX recurring_rules_wallet ON recurring_rules (wallet_id);
+  CREATE INDEX recurring_rules_to_wallet ON recurring_rules (to_wallet_id);
+  CREATE INDEX recurring_rules_category ON recurring_rules (category_id);
+  ALTER TABLE transactions ADD COLUMN recurring_id TEXT;
+  ALTER TABLE transfers ADD COLUMN recurring_id TEXT`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null

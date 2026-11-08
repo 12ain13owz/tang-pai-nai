@@ -304,6 +304,15 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                   {{ 'wallets.deleteHeading' | transloco: { name: editingName() } }}
                 </p>
                 <p class="text-sm text-muted-foreground">{{ 'wallets.deleteText' | transloco }}</p>
+                @if (walletService.ruleCount(editing()?.id ?? null); as count) {
+                  <!-- Recurring rule 14: its rules go with it. -->
+                  <p class="text-sm text-muted-foreground">
+                    {{
+                      'recurring.deleteLine'
+                        | transloco: { count: count, what: ('recurring.whatWallet' | transloco) }
+                    }}
+                  </p>
+                }
               </div>
               <div sheetFooter class="pt-3">
                 <button

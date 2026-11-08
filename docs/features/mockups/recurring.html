@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recurring mock-up (#12)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --background: oklch(0.975 0.007 265); --foreground: oklch(0.2 0.03 265);
+  --card: oklch(1 0 0); --muted: oklch(0.94 0.014 265); --muted-fg: oklch(0.48 0.03 265);
+  --primary: oklch(0.8 0.15 80); --primary-fg: oklch(0.2 0.03 70);
+  --destructive: oklch(0.55 0.22 27); --border: oklch(0.91 0.014 265); --brand: oklch(0.53 0.12 75);
+  --income: oklch(0.52 0.14 155); --expense: oklch(0.55 0.2 25);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+    --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+    --primary: oklch(0.82 0.15 82); --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+    --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+  }
+}
+:root[data-theme="dark"] {
+  --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+  --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+  --primary: oklch(0.82 0.15 82); --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+  --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--foreground);
+  font-family: "Noto Sans Thai", system-ui, sans-serif; font-size: 15px; }
+header.page { max-width: 1300px; margin: 0 auto; padding: 24px 16px 8px; }
+header.page h1 { font-size: 20px; margin: 0 0 4px; }
+header.page p { margin: 0; color: var(--muted-fg); font-size: 14px; line-height: 1.5; }
+.toggle { margin-top: 10px; display: inline-flex; gap: 4px; background: var(--muted); border-radius: 10px; padding: 3px; }
+.toggle button { border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--card); font-weight: 600; }
+.grid { max-width: 1300px; margin: 0 auto; padding: 16px; display: flex; flex-wrap: wrap; gap: 24px; }
+figure { margin: 0; width: 320px; max-width: 100%; }
+figcaption { font-size: 13px; color: var(--muted-fg); margin-bottom: 6px; min-height: 92px; line-height: 1.45; }
+figcaption b { color: var(--foreground); }
+.phone { height: 690px; border: 1px solid var(--border); border-radius: 24px; overflow: hidden;
+  background: var(--background); display: flex; flex-direction: column; position: relative; }
+.hdr { height: 52px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 6px;
+  border-bottom: 1px solid var(--border); flex: none; }
+.hdr .l { display: flex; align-items: center; gap: 2px; }
+.hdr .r { display: flex; justify-content: flex-end; }
+.hdr .ttl { font-weight: 600; font-size: 16px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; background: var(--muted); border-radius: 999px; padding: 4px 10px 4px 4px; font-size: 14px; font-weight: 500; }
+.ib { width: 40px; height: 40px; display: grid; place-items: center; color: var(--foreground); }
+.ib.ok { color: var(--income); } .ib.red { color: var(--destructive); }
+.bal { text-align: center; padding: 8px 0 2px; flex: none; }
+.bal small { font-size: 12px; color: var(--muted-fg); } .bal div { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.chips { display: flex; gap: 6px; padding: 6px 12px; overflow: hidden; flex: none; border-bottom: 1px solid var(--border); justify-content: flex-end; }
+.chip { white-space: nowrap; font-size: 13px; padding: 5px 10px; color: var(--muted-fg); }
+.chip.on { color: var(--brand); font-weight: 600; box-shadow: inset 0 -2px 0 var(--brand); }
+.scroll { flex: 1; overflow: auto; scrollbar-width: none; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.tabbar { height: 56px; flex: none; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; text-align: center; font-size: 10.5px; color: var(--muted-fg); background: var(--background); }
+.tabbar .on { color: var(--brand); font-weight: 600; }
+.tabbar .plus { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: var(--primary-fg); display: grid; place-items: center; margin: 0 auto; }
+.tabbar div > svg { display: block; margin: 0 auto 2px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; }
+.inc { color: var(--income); } .exp { color: var(--expense); } .mut { color: var(--muted-fg); }
+.badge { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: #fff; flex: none; position: relative; }
+.badge.m { background: var(--muted); color: var(--muted-fg); }
+.badge .w { position: absolute; right: -4px; bottom: -4px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--card); }
+.badge .w svg { width: 10px; height: 10px; }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.badge svg.i { width: 18px; height: 18px; }
+svg.i.s { width: 14px; height: 14px; }
+.day { padding: 2px 14px; }
+.dayh { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.dayh .n { font-size: 26px; font-weight: 600; width: 34px; }
+.dayh .w { flex: 1; font-size: 12px; line-height: 1.3; color: var(--muted-fg); }
+.dayh .w b { display: block; color: var(--foreground); font-weight: 500; font-size: 13px; }
+.dayh .t { font-variant-numeric: tabular-nums; font-weight: 500; }
+.tx { display: flex; align-items: center; gap: 10px; min-height: 56px; }
+.tx .mid { flex: 1; min-width: 0; font-size: 14.5px; }
+.tx .mid small { display: flex; align-items: center; gap: 4px; color: var(--muted-fg); font-size: 12px; }
+.tx .amt { font-variant-numeric: tabular-nums; text-align: right; }
+.tx .amt small { display: block; font-size: 11.5px; color: var(--muted-fg); }
+.proj { opacity: .62; } .proj .badge { outline: 1.5px dashed var(--muted-fg); outline-offset: 2px; }
+.rep { color: var(--muted-fg); display: inline-flex; vertical-align: -2px; margin-left: 4px; }
+.sumc { padding: 10px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-variant-numeric: tabular-nums; }
+.sumc .k { font-size: 12px; color: var(--muted-fg); } .sumc .v { font-weight: 600; }
+.sumc .net { grid-column: 1 / -1; display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 6px; }
+.due { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--brand) 12%, var(--card)); border: 1px solid color-mix(in srgb, var(--brand) 35%, var(--card)); }
+.due .mid { flex: 1; font-size: 14px; } .due small { display: block; font-size: 12px; color: var(--muted-fg); }
+.due .ic { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--brand); color: var(--card); }
+/* sheet */
+.dim { position: absolute; inset: 0; background: rgb(0 0 0 / .3); z-index: 2; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 92%; z-index: 3; background: var(--background); border-radius: 18px 18px 0 0; display: flex; flex-direction: column; border-top: 1px solid var(--border); }
+.sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--border); margin: 6px auto 0; flex: none; }
+.shdr { height: 48px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 4px; flex: none; }
+.shdr .r { display: flex; justify-content: flex-end; }
+.shdr .ttl { font-weight: 600; font-size: 16px; }
+.sbody { flex: 1; overflow: auto; scrollbar-width: none; padding: 4px 14px 12px; display: flex; flex-direction: column; gap: 12px; }
+.sfoot { flex: none; padding: 10px 14px 14px; display: flex; gap: 8px; }
+.btn { flex: 1; height: 44px; border-radius: 12px; border: 0; font: inherit; font-weight: 600; background: var(--primary); color: var(--primary-fg); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn.o { flex: none; width: 44px; background: transparent; border: 1px solid var(--border); color: var(--foreground); }
+.btn.t { background: color-mix(in srgb, var(--brand) 12%, var(--card)); color: var(--brand); }
+.btn.sm { height: 34px; font-size: 13.5px; border-radius: 10px; flex: none; padding: 0 12px; }
+.btn.sm.gh { background: transparent; color: var(--muted-fg); border: 1px solid var(--border); }
+.seg { display: flex; background: var(--muted); border-radius: 10px; padding: 3px; }
+.seg span { flex: 1; text-align: center; padding: 5px; border-radius: 8px; font-size: 13.5px; color: var(--muted-fg); }
+.seg span.on { background: var(--card); color: var(--foreground); font-weight: 600; }
+.rows > div { display: flex; align-items: center; gap: 12px; padding: 0 14px; min-height: 52px; }
+.rows > div + div { border-top: 1px solid var(--border); }
+.rows .lbl { flex: 1; min-width: 0; font-size: 14.5px; }
+.rows .lbl small { display: block; font-size: 12px; color: var(--muted-fg); }
+.rows .val { color: var(--muted-fg); font-size: 14px; text-align: right; display: flex; align-items: center; gap: 4px; }
+.rows .val.on { color: var(--brand); font-weight: 600; }
+.amtrow .big { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.amtrow .code { font-size: 12px; color: var(--muted-fg); border: 1px solid var(--border); border-radius: 6px; padding: 1px 5px; }
+.sw { width: 40px; height: 24px; border-radius: 12px; background: var(--muted); position: relative; flex: none; border: 1px solid var(--border); }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--card); box-shadow: 0 1px 2px rgb(0 0 0 / .3); }
+.sw.on { background: var(--brand); border-color: var(--brand); } .sw.on::after { left: 18px; }
+.radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); flex: none; }
+.radio.on { border: 6px solid var(--brand); }
+.more { font-size: 13.5px; color: var(--muted-fg); display: flex; align-items: center; gap: 4px; padding: 0 4px; }
+.h { font-size: 13px; font-weight: 500; color: var(--muted-fg); margin: 2px 2px -4px; }
+.hint { font-size: 12.5px; color: var(--muted-fg); padding: 0 4px; line-height: 1.5; }
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stepper b { min-width: 34px; text-align: center; border: 1px solid var(--border); border-radius: 8px; padding: 3px 0; font-variant-numeric: tabular-nums; }
+.unit { display: flex; gap: 4px; }
+.unit span { font-size: 13px; padding: 4px 9px; border-radius: 999px; background: var(--muted); color: var(--muted-fg); }
+.unit span.on { background: var(--brand); color: var(--card); font-weight: 600; }
+.keypad { flex: none; background: var(--card); border-top: 1px solid var(--border); padding: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.keypad span { height: 40px; border-radius: 10px; background: var(--muted); display: grid; place-items: center; font-weight: 500; }
+.rule { display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+.rule + .rule { border-top: 1px solid var(--border); }
+.rule .mid { flex: 1; min-width: 0; font-size: 14.5px; }
+.rule .mid small { display: block; font-size: 12px; color: var(--muted-fg); line-height: 1.45; }
+.rule .mid small.warn { color: var(--destructive); }
+.rule .amt { font-variant-numeric: tabular-nums; text-align: right; font-weight: 500; }
+.rule .amt small { display: block; font-size: 11.5px; color: var(--muted-fg); font-weight: 400; }
+.rule.off { opacity: .6; }
+.fold { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted-fg); padding: 2px 4px; }
+.toast { position: absolute; top: 8px; left: 10px; right: 10px; z-index: 5; background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgb(0 0 0 / .18); padding: 10px 12px; display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.toast b { margin-left: auto; color: var(--brand); font-weight: 600; }
+.menu { position: absolute; top: 46px; right: 10px; width: 220px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgb(0 0 0 / .18); padding: 4px; z-index: 3; }
+.menu .it { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; font-size: 14px; }
+.menu .it .r { margin-left: auto; color: var(--muted-fg); font-size: 13px; display: flex; align-items: center; }
+.menu .it.new { background: color-mix(in srgb, var(--brand) 12%, var(--card)); }
+.empty { flex: 1; display: grid; place-items: center; text-align: center; padding: 24px; }
+.empty .ic { width: 64px; height: 64px; border-radius: 50%; background: var(--muted); display: grid; place-items: center; margin: 0 auto 12px; color: var(--muted-fg); }
+.empty h4 { margin: 0 0 4px; font-size: 16px; } .empty p { margin: 0 0 14px; color: var(--muted-fg); font-size: 13.5px; }
+.tag { font-size: 10.5px; font-weight: 600; border-radius: 6px; padding: 1px 6px; background: var(--muted); color: var(--muted-fg); white-space: nowrap; }
+.tag.b { background: color-mix(in srgb, var(--brand) 14%, var(--card)); color: var(--brand); }
+.qs { max-width: 1300px; margin: 0 auto; padding: 0 16px 40px; font-size: 14px; line-height: 1.6; }
+.qs h2 { font-size: 16px; margin: 20px 0 6px; }
+.qs li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>รายการซ้ำ (#12) · mock-up รอบ 1</h1>
+  <p>วันนี้ = อา. 8 พ.ย. 2026, โปรไฟล์ "ครอบครัว", THB. ภาพทั้งหมดเป็นข้อเสนอ (ข้อเสนอ ก ในคำถาม): เครื่องเขียนรายการที่ถึงกำหนดเองตอนเปิดแอป, กฎแต่ละอันเลือกได้ว่า "บันทึกให้อัตโนมัติ" หรือ "ถามก่อนบันทึก".
+  เส้นประ/จาง = รายการที่ยังไม่ได้บันทึก (คาดการณ์จากกฎ ไม่นับในยอด).</p>
+  <div class="toggle" role="group" aria-label="theme">
+    <button data-t="" aria-pressed="true">ตามระบบ</button>
+    <button data-t="light" aria-pressed="false">สว่าง</button>
+    <button data-t="dark" aria-pressed="false">มืด</button>
+  </div>
+</header>
+<div class="grid" id="grid"></div>
+<section class="qs">
+  <h2>สรุปภาพ</h2>
+  <ul>
+    <li><b>1–4</b> ตั้งรายการซ้ำจากฟอร์มธุรกรรม: แถว "ทำซ้ำ" ใต้ "เพิ่มเติม" → view ในชีตเดียวกัน → บันทึกครั้งเดียวได้ทั้งกฎและรายการงวดแรก (ถ้าวันเริ่ม ≤ วันนี้)</li>
+    <li><b>5–7</b> รายการกฎทั้งหมด (บัญชีผู้ใช้ › รายการซ้ำ และเมนู ⋮) + แก้กฎในชีต (หยุดชั่วคราว / ลบ ที่หัวชีต) + กฎที่กระเป๋าถูกเก็บถาวร</li>
+    <li><b>8–11</b> ถึงกำหนด / กำลังจะมา: toast หลังบันทึกอัตโนมัติ, การ์ด "ถึงกำหนด" รอยืนยัน, ชีตยืนยัน/ข้าม, แท็บ "อนาคต"</li>
+    <li><b>12</b> เปิดรายการที่สร้างจากกฎ: บรรทัด "จากรายการซ้ำ" ใต้ "เพิ่มเติม" ลิงก์ไปที่กฎ</li>
+  </ul>
+</section>
+<script>
+const I = {
+  repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  chevL: '<path d="m15 18-6-6 6-6"/>', chevR: '<path d="m9 18 6-6-6-6"/>', chevD: '<path d="m6 9 6 6 6-6"/>', chevU: '<path d="m18 15-6-6-6 6"/>',
+  wallet: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+  bank: '<path d="M3 21h18"/><path d="M5 21V10"/><path d="M19 21V10"/><path d="M9 21V10"/><path d="M15 21V10"/><path d="m2 10 10-6 10 6"/>',
+  piggy: '<path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/>',
+  home: '<path d="M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>',
+  bolt: '<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+  drop: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+  phone: '<rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/>',
+  tv: '<rect width="20" height="15" x="2" y="7" rx="2"/><path d="m17 2-5 5-5-5"/>',
+  money: '<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  dumbbell: '<path d="M14.4 14.4 9.6 9.6"/><path d="M18.7 21.5a2 2 0 1 1-2.8-2.8l-1.8 1.8a2 2 0 1 1-2.8-2.8l6.4-6.4a2 2 0 1 1 2.8 2.8l-1.8 1.8a2 2 0 1 1 2.8 2.8z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.4 12.8a2 2 0 1 1-2.8-2.8l1.8-1.8a2 2 0 1 1-2.8-2.8l2.8-2.8a2 2 0 1 1 2.8 2.8l1.8-1.8a2 2 0 1 1 2.8 2.8z"/>',
+  swap: '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+  note: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h8M8 17h5"/>',
+  cal: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  calEnd: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/>',
+  shapes: '<path d="M8.3 10a.7.7 0 0 1-.6-1.1l3.7-6a.7.7 0 0 1 1.2 0l3.7 6a.7.7 0 0 1-.6 1.1z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/>',
+  pause: '<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
+  trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+  copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>', plusSq: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/>',
+  dots: '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
+  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9Z"/><path d="m9 14 2 2 4-4"/>',
+  list: '<path d="M3 12h.01M3 18h.01M3 6h.01M8 12h13M8 18h13M8 6h13"/>', chart: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16h3v-5H7zM14 16h3V8h-3z"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>',
+  bell: '<path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/><path d="M3.3 15.3A1 1 0 0 0 4 17h16a1 1 0 0 0 .7-1.7C19.4 14 18 12.5 18 8A6 6 0 0 0 6 8c0 4.5-1.4 6-2.7 7.3"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>', alert: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>',
+  eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+}
+const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24">${I[n]}</svg>`
+const badge = (c, n, w) => `<div class="badge" style="background:${c}">${ic(n)}${w ? `<span class="w" style="background:${w[0]}">${ic(w[1])}</span>` : ''}</div>`
+const mbadge = (n) => `<div class="badge m">${ic(n)}</div>`
+const fmt = (v, sign = true) => (v < 0 ? '−' : sign ? '+' : '') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2 })
+const C = { food: '#c2410c', home: '#7c3aed', bill: '#0369a1', fun: '#be185d', pay: '#15803d', ins: '#4d7c0f', fit: '#b45309' }
+const W = { cash: ['#15803d', 'wallet'], bank: ['#1d4ed8', 'bank'], save: ['#be185d', 'piggy'] }
+
+const header = () => `<div class="hdr"><div class="l"><div class="ib">${ic('user')}</div></div>
+  <div class="pill">${badge('#1d4ed8', 'wallet').replace('class="badge"', 'class="badge" style="width:26px;height:26px;background:#1d4ed8"')} ทุกกระเป๋า ${ic('chevD', 's')}</div>
+  <div class="r"><div class="ib ok">${ic('cloud')}</div><div class="ib">${ic('dots')}</div></div></div>`
+const pageHdr = (t, right = '') => `<div class="hdr"><div class="l"><div class="ib">${ic('chevL')}</div></div><div class="ttl">${t}</div><div class="r">${right}</div></div>`
+const tabbar = (on = 0) => `<div class="tabbar">${[['list', 'ธุรกรรม'], ['wallet', 'กระเป๋า'], null, ['chart', 'รายงาน'], ['user', 'บัญชี']].map((t, i) =>
+  t ? `<div class="${i === on ? 'on' : ''}">${ic(t[0])}${t[1]}</div>` : `<div><div class="plus">${ic('plus')}</div></div>`).join('')}</div>`
+const chips = (list, on) => `<div class="chips">${list.map((c) => `<span class="chip ${c === on ? 'on' : ''}">${c}</span>`).join('')}</div>`
+const sheet = (left, title, right, body, foot, extra = '') => `<div class="dim"></div><div class="sheet"><div class="grab"></div>
+  <div class="shdr"><div class="ib">${ic(left)}</div><div class="ttl">${title}</div><div class="r">${right}</div></div>
+  <div class="sbody">${body}</div>${foot ? `<div class="sfoot">${foot}</div>` : ''}${extra}</div>`
+const tx = (b, name, sub, amt, opts = {}) => `<div class="tx ${opts.proj ? 'proj' : ''}">${b}<div class="mid">${name}${opts.rep ? `<span class="rep">${ic('repeat', 's')}</span>` : ''}
+  ${sub ? `<small>${sub}</small>` : ''}</div><div class="amt ${amt < 0 ? 'exp' : 'inc'}">${fmt(amt)}${opts.amtSub ? `<small>${opts.amtSub}</small>` : ''}</div></div>`
+const day = (n, w, my, total, rows) => `<div class="card day"><div class="dayh"><div class="n">${n}</div><div class="w"><b>${w}</b>${my}</div>
+  <div class="t ${total < 0 ? 'exp' : 'inc'}">${total === null ? '' : fmt(total)}</div></div>${rows.join('')}</div>`
+const formRows = (o) => `<div class="card rows">
+  <div>${ic('wallet')}<div class="lbl">${o.wallet ?? 'กสิกร'}</div><div class="val">${ic('chevR', 's')}</div></div>
+  <div class="amtrow"><span class="code">THB</span><div class="lbl"><small>จำนวนเงิน</small><span class="big">${o.amount}</span></div></div>
+  <div>${badge(o.catColor, o.catIcon)}<div class="lbl">${o.cat}</div><div class="val">${ic('chevR', 's')}</div></div>
+  <div>${ic('note')}<div class="lbl ${o.note ? '' : 'mut'}">${o.note || 'โน้ต'}</div><div class="val">${ic('chevR', 's')}</div></div>
+  <div>${ic('cal')}<div class="lbl" style="text-align:center">${o.dateLabel ? `<small>${o.dateLabel}</small>` : ''}${o.date}</div><div class="val">${ic('chevL', 's')}&nbsp;${ic('chevR', 's')}</div></div>
+</div>`
+const keypad = `<div class="keypad">${['C', '÷', '×', '⌫', '7', '8', '9', '−', '4', '5', '6', '+', '1', '2', '3', '=', '000', '0', '.', '✓'].map((k) => `<span>${k}</span>`).join('')}</div>`
+
+const frames = [
+  ['1 · ฟอร์มธุรกรรม: แถว "ทำซ้ำ" ใต้ "เพิ่มเติม" (Q5)', 'กด "เพิ่มเติม" แล้วเห็น 2 แถว: <b>ทำซ้ำ · ไม่ทำซ้ำ ›</b> และสวิตช์ "ไม่รวมในรายงาน" เดิม. ฟอร์มโอนเงินได้แถว "ทำซ้ำ" แบบเดียวกัน (ถ้า Q4 = โอนได้).',
+    () => header() + `<div class="scroll"></div>` + sheet('x', 'เพิ่มธุรกรรม', '', `<div class="seg"><span class="on">รายจ่าย</span><span>รายรับ</span></div>
+      ${formRows({ amount: '8,500.00', cat: 'ค่าเช่า', catColor: C.home, catIcon: 'home', note: 'ค่าเช่าคอนโด', date: 'อา. 1 พ.ย. 2026' })}
+      <div class="more">เพิ่มเติม ${ic('chevU', 's')}</div>
+      <div class="card rows"><div>${ic('repeat')}<div class="lbl">ทำซ้ำ</div><div class="val">ไม่ทำซ้ำ ${ic('chevR', 's')}</div></div>
+      <div>${ic('eye')}<div class="lbl">ไม่รวมในรายงาน</div><div class="sw"></div></div></div>`,
+      `<button class="btn">บันทึก</button><button class="btn o">${ic('plusSq')}</button>`)],
+  ['2 · view "ทำซ้ำ" (Q3)', 'ตัวเลือกสำเร็จรูปตาม<b>วันที่ในแถววันที่</b> (1 พ.ย. = อาทิตย์ / วันที่ 1) + "ทุก n …" สำหรับทุก 2 สัปดาห์, ทุก 3 เดือน. "สิ้นสุด": ไม่สิ้นสุด / ถึงวันที่ / ครบ n ครั้ง. วิธีบันทึกต่อกฎ (Q1). ‹ กลับไปฟอร์มพร้อมค่าที่เลือก.',
+    () => header() + `<div class="scroll"></div>` + sheet('chevL', 'ทำซ้ำ', '', `
+      <div class="card rows">${[['ไม่ทำซ้ำ'], ['ทุกวัน'], ['ทุกสัปดาห์', 'วันอาทิตย์'], ['ทุกเดือน', 'วันที่ 1', 1], ['ทุกปี', '1 พ.ย.']].map(([a, b, on]) =>
+        `<div><div class="lbl">${a}${b ? `<small>${b}</small>` : ''}</div><div class="radio ${on ? 'on' : ''}"></div></div>`).join('')}
+        <div style="flex-wrap:wrap;padding:10px 14px;gap:8px"><div class="lbl">กำหนดเอง: ทุก <span class="stepper" style="display:inline-flex;margin:0 4px"><b>2</b></span></div><div class="radio"></div><div class="unit" style="flex-basis:100%"><span>วัน</span><span class="on">สัปดาห์</span><span>เดือน</span><span>ปี</span></div></div></div>
+      <div class="h">สิ้นสุด</div>
+      <div class="card rows"><div><div class="lbl">ไม่สิ้นสุด</div><div class="radio on"></div></div>
+        <div><div class="lbl">ถึงวันที่<small>31 ธ.ค. 2027</small></div><div class="radio"></div></div>
+        <div><div class="lbl">ครบ <b>12</b> ครั้ง</div><div class="radio"></div></div></div>
+      <div class="h">เมื่อถึงกำหนด</div>
+      <div class="card rows"><div><div class="lbl">บันทึกให้อัตโนมัติ<small>เช่น ค่าเช่า เงินเดือน ที่จำนวนเท่าเดิม</small></div><div class="radio on"></div></div>
+        <div><div class="lbl">ถามก่อนบันทึก<small>เช่น ค่าไฟ ค่าน้ำ ที่จำนวนเปลี่ยนทุกเดือน</small></div><div class="radio"></div></div></div>`, '')],
+  ['3 · กลับมาที่ฟอร์ม', 'แถววันที่กลายเป็น "เริ่ม" และแถวทำซ้ำสรุปกฎ. บันทึก = เขียน<b>กฎ + รายการงวด 1 พ.ย.</b> ในการเขียนครั้งเดียว (งวดที่วันที่ ≤ วันนี้). ถ้าวันเริ่มเป็นอนาคต จะยังไม่มีธุรกรรม เห็นในแท็บ "อนาคต". ปุ่ม "บันทึกแล้วเพิ่มต่อ" ซ่อนเมื่อทำซ้ำ (เสนอ).',
+    () => header() + `<div class="scroll"></div>` + sheet('x', 'เพิ่มธุรกรรม', '', `<div class="seg"><span class="on">รายจ่าย</span><span>รายรับ</span></div>
+      ${formRows({ amount: '8,500.00', cat: 'ค่าเช่า', catColor: C.home, catIcon: 'home', note: 'ค่าเช่าคอนโด', date: 'อา. 1 พ.ย. 2026', dateLabel: 'เริ่ม' })}
+      <div class="more">เพิ่มเติม ${ic('chevU', 's')}</div>
+      <div class="card rows"><div>${ic('repeat')}<div class="lbl"><span style="color:var(--brand);font-weight:600">ทุกเดือน วันที่ 1</span><small>ไม่สิ้นสุด · บันทึกให้อัตโนมัติ</small></div><div class="val">${ic('chevR', 's')}</div></div>
+      <div>${ic('eye')}<div class="lbl">ไม่รวมในรายงาน</div><div class="sw"></div></div></div>
+      <div class="hint">ครั้งถัดไป 1 ธ.ค. 2026 · งวด 1 พ.ย. บันทึกตอนนี้</div>`,
+      `<button class="btn">บันทึก</button>`)],
+  ['4 · วันที่ 31 ในเดือนสั้น (Q3)', 'กฎ "ทุกเดือน วันที่ 31" ลงวันสุดท้ายของเดือนที่สั้นกว่า (30 พ.ย., 28/29 ก.พ.) แล้วกลับเป็น 31 ในเดือนถัดไป: คิดจากวันเริ่มเสมอ ไม่ใช่จากงวดก่อน. บรรทัดเตือนใต้แถวเมื่อวันเริ่มคือ 29–31.',
+    () => header() + `<div class="scroll"></div>` + sheet('chevL', 'ทำซ้ำ', '', `
+      <div class="card rows">${[['ไม่ทำซ้ำ'], ['ทุกวัน'], ['ทุกสัปดาห์', 'วันเสาร์'], ['ทุกเดือน', 'วันที่ 31', 1], ['ทุกปี', '31 ต.ค.']].map(([a, b, on]) =>
+        `<div><div class="lbl">${a}${b ? `<small>${b}</small>` : ''}</div><div class="radio ${on ? 'on' : ''}"></div></div>`).join('')}</div>
+      <div class="hint">เดือนที่ไม่มีวันที่ 31 จะบันทึกวันสุดท้ายของเดือนแทน: 30 พ.ย. 2026 · 31 ธ.ค. 2026 · 31 ม.ค. 2027 · 28 ก.พ. 2027</div>
+      <div class="h">สิ้นสุด</div>
+      <div class="card rows"><div><div class="lbl">ไม่สิ้นสุด</div><div class="radio"></div></div>
+        <div><div class="lbl">ถึงวันที่</div><div class="radio"></div></div>
+        <div><div class="lbl">ครบ <b>12</b> ครั้ง<small>ครั้งสุดท้าย 30 ก.ย. 2027</small></div><div class="radio on"></div></div></div>`, '')],
+  ['5 · บัญชีผู้ใช้ › รายการซ้ำ (Q5)', 'กฎของโปรไฟล์นี้: <b>ใช้อยู่</b> เรียงตามครั้งถัดไป, <b>หยุดไว้</b>, แล้ว "สิ้นสุดแล้ว (n)" พับไว้. แถว: หมวด + โน้ต, รอบ, ครั้งถัดไป, จำนวนเงิน. แตะ = แก้กฎ (ภาพ 6). ปุ่ม + มุมขวาเปิดฟอร์มธุรกรรมที่ตั้ง "ทุกเดือน" ไว้แล้ว. เปิดจากเมนู ⋮ ได้ด้วย (ภาพ 11).',
+    () => pageHdr('รายการซ้ำ', `<div class="ib">${ic('plus')}</div>`) + `<div class="scroll">
+      <div class="h">ใช้อยู่ (5)</div>
+      <div class="card">
+        <div class="rule">${badge(C.bill, 'drop', W.bank)}<div class="mid">ค่าน้ำ <span class="tag b">ถามก่อน</span><small>ทุกเดือน วันที่ 5 · ถึงกำหนด 5 พ.ย.</small></div><div class="amt exp">−180.00</div></div>
+        <div class="rule">${badge(C.pay, 'money', W.bank)}<div class="mid">เงินเดือน<small>ทุกเดือน วันที่ 25 · ถัดไป 25 พ.ย.</small></div><div class="amt inc">+35,000.00</div></div>
+        <div class="rule">${mbadge('swap')}<div class="mid">โอนเงิน กสิกร → ออมทรัพย์<small>ทุกเดือน วันที่ 26 · ถัดไป 26 พ.ย.</small></div><div class="amt">5,000.00</div></div>
+        <div class="rule">${badge(C.fun, 'tv', W.cash)}<div class="mid">บันเทิง · Netflix<small>ทุกเดือน วันที่ 31 · ถัดไป 30 พ.ย.</small></div><div class="amt exp">−419.00</div></div>
+        <div class="rule">${badge(C.home, 'home', W.bank)}<div class="mid">ค่าเช่า · ค่าเช่าคอนโด<small>ทุกเดือน วันที่ 1 · ถัดไป 1 ธ.ค.</small></div><div class="amt exp">−8,500.00</div></div>
+        <div class="rule">${badge(C.ins, 'shield', W.bank)}<div class="mid">ประกัน · ประกันชีวิต<small>ทุกปี 1 มี.ค. · 3 จาก 10 ครั้ง · ถัดไป 1 มี.ค. 2027</small></div><div class="amt exp">−12,000.00</div></div>
+      </div>
+      <div class="h">หยุดไว้ (1)</div>
+      <div class="card"><div class="rule off">${badge(C.fit, 'dumbbell', W.cash)}<div class="mid">สุขภาพ · ฟิตเนส<small>ทุกเดือน วันที่ 10 · หยุดไว้</small></div><div class="amt exp">−1,200.00</div></div></div>
+      <div class="fold">สิ้นสุดแล้ว (1) ${ic('chevD', 's')}</div>
+    </div>` + tabbar(4)],
+  ['6 · แก้กฎ (Q6)', 'ชีตเดียวกับฟอร์มธุรกรรม หัว "แก้ไขรายการซ้ำ", ปุ่มหัวชีต <b>หยุดชั่วคราว</b> และ <b>ลบ</b>. แก้แล้วมีผลกับ<b>งวดที่ยังไม่บันทึก</b>เท่านั้น ธุรกรรมที่บันทึกไปแล้วไม่เปลี่ยน. บรรทัดล่างบอกว่าบันทึกไปแล้วกี่ครั้ง.',
+    () => pageHdr('รายการซ้ำ') + `<div class="scroll"></div>` + sheet('x', 'แก้ไขรายการซ้ำ', `<div class="ib">${ic('pause')}</div><div class="ib red">${ic('trash')}</div>`, `<div class="seg"><span class="on">รายจ่าย</span><span>รายรับ</span></div>
+      ${formRows({ amount: '8,500.00', cat: 'ค่าเช่า', catColor: C.home, catIcon: 'home', note: 'ค่าเช่าคอนโด', date: 'อา. 1 พ.ย. 2026', dateLabel: 'เริ่ม' })}
+      <div class="card rows"><div>${ic('repeat')}<div class="lbl"><span style="color:var(--brand);font-weight:600">ทุกเดือน วันที่ 1</span><small>ไม่สิ้นสุด · บันทึกให้อัตโนมัติ</small></div><div class="val">${ic('chevR', 's')}</div></div>
+      <div>${ic('eye')}<div class="lbl">ไม่รวมในรายงาน</div><div class="sw"></div></div></div>
+      <div class="hint">ครั้งถัดไป 1 ธ.ค. 2026 · บันทึกแล้ว 1 ครั้ง (1 พ.ย. 2026). การแก้มีผลกับครั้งถัดไป ธุรกรรมที่บันทึกแล้วไม่เปลี่ยน</div>`,
+      `<button class="btn">บันทึก</button>`)],
+  ['7 · กฎที่กระเป๋า/หมวดถูกเก็บถาวร (Q7)', 'ข้อเสนอ: กฎ<b>หยุดเอง</b>ระหว่างที่กระเป๋าหรือหมวดถูกเก็บถาวร (งวดที่ผ่านไปไม่บันทึกย้อนหลัง) แถวบอกเหตุผลสีแดง; เปิดกลับเมื่อเลิกเก็บถาวร หรือเปลี่ยนกระเป๋า/หมวดในกฎ. ผสานหมวด → กฎย้ายตาม. ลบกระเป๋า/หมวด → กฎถูกลบด้วย (หน้ายืนยันนับให้).',
+    () => pageHdr('รายการซ้ำ', `<div class="ib">${ic('plus')}</div>`) + `<div class="scroll">
+      <div class="h">ใช้อยู่ (4)</div>
+      <div class="card">
+        <div class="rule">${badge(C.pay, 'money', W.bank)}<div class="mid">เงินเดือน<small>ทุกเดือน วันที่ 25 · ถัดไป 25 พ.ย.</small></div><div class="amt inc">+35,000.00</div></div>
+        <div class="rule">${badge(C.home, 'home', W.bank)}<div class="mid">ค่าเช่า · ค่าเช่าคอนโด<small>ทุกเดือน วันที่ 1 · ถัดไป 1 ธ.ค.</small></div><div class="amt exp">−8,500.00</div></div>
+      </div>
+      <div class="h">หยุดไว้ (2)</div>
+      <div class="card">
+        <div class="rule">${badge(C.fun, 'tv', ['#64748b', 'wallet'])}<div class="mid">บันเทิง · Netflix<small class="warn">${ic('alert', 's')} กระเป๋า "บัตรเครดิตเก่า" ถูกเก็บถาวร</small><small>ทุกเดือน วันที่ 31</small></div><div class="amt exp">−419.00</div></div>
+        <div class="rule off">${badge(C.fit, 'dumbbell', W.cash)}<div class="mid">สุขภาพ · ฟิตเนส<small>ทุกเดือน วันที่ 10 · หยุดไว้</small></div><div class="amt exp">−1,200.00</div></div>
+      </div>
+      <div class="fold">สิ้นสุดแล้ว (1) ${ic('chevD', 's')}</div>
+    </div>` + tabbar(4)],
+  ['8 · เปิดแอป: บันทึกอัตโนมัติแล้ว (Q1)', 'หลังปลดล็อก + sync รอบแรก (หรือทันทีถ้าออฟไลน์) เครื่องเขียนงวดที่ถึงกำหนดของกฎ "อัตโนมัติ" ลงวันที่ของงวดนั้น แล้วบอกด้วย toast บนสุด "ดู" = ไปหน้ารายการซ้ำ. แถวที่มาจากกฎมีไอคอน ↻ เล็กหลังชื่อหมวด.',
+    () => header() + `<div class="bal"><small>ยอดรวม</small><div>61,233.00</div></div>` + chips(['09/2026', 'เดือนที่แล้ว', 'เดือนนี้', 'อนาคต'], 'เดือนนี้') + `<div class="scroll">
+      <div class="card sumc"><div><div class="k">รายรับ</div><div class="v inc">+0.00</div></div><div><div class="k">รายจ่าย</div><div class="v exp">−9,215.00</div></div><div class="net"><span class="k">สุทธิ</span><span class="v">−9,215.00</span></div></div>
+      ${day('07', 'วันเสาร์', 'พฤศจิกายน 2026', -95, [tx(badge(C.food, 'shapes', W.cash), 'กาแฟ', '', -95)])}
+      ${day('01', 'วันอาทิตย์', 'พฤศจิกายน 2026', -9120, [tx(badge(C.home, 'home', W.bank), 'ค่าเช่า', 'ค่าเช่าคอนโด', -8500, { rep: 1 }), tx(badge(C.fun, 'tv', W.cash), 'บันเทิง', 'Netflix', -419, { rep: 1 }), tx(badge(C.food, 'shapes', W.cash), 'ร้านอาหาร', '', -201)])}
+    </div><div class="toast">${ic('repeat')} บันทึกรายการซ้ำ 2 รายการ <b>ดู</b></div>` + tabbar(0)],
+  ['9 · การ์ด "ถึงกำหนด" รอยืนยัน (Q1)', 'กฎแบบ "ถามก่อนบันทึก" ที่ถึงกำหนดแล้ว: การ์ดสีทองบนสุดของแท็บธุรกรรม (ทุกช่วงเวลา) จนกว่าจะบันทึกหรือข้าม. ไม่นับในยอดจนกว่าจะบันทึก.',
+    () => header() + `<div class="bal"><small>ยอดรวม</small><div>61,233.00</div></div>` + chips(['09/2026', 'เดือนที่แล้ว', 'เดือนนี้', 'อนาคต'], 'เดือนนี้') + `<div class="scroll">
+      <div class="due"><div class="ic">${ic('bell')}</div><div class="mid"><b>ถึงกำหนด 2 รายการ</b><small>ค่าน้ำ 5 พ.ย. · ค่าโทรศัพท์ 7 พ.ย.</small></div>${ic('chevR', 's')}</div>
+      <div class="card sumc"><div><div class="k">รายรับ</div><div class="v inc">+0.00</div></div><div><div class="k">รายจ่าย</div><div class="v exp">−9,215.00</div></div><div class="net"><span class="k">สุทธิ</span><span class="v">−9,215.00</span></div></div>
+      ${day('07', 'วันเสาร์', 'พฤศจิกายน 2026', -95, [tx(badge(C.food, 'shapes', W.cash), 'กาแฟ', '', -95)])}
+      ${day('01', 'วันอาทิตย์', 'พฤศจิกายน 2026', -9120, [tx(badge(C.home, 'home', W.bank), 'ค่าเช่า', 'ค่าเช่าคอนโด', -8500, { rep: 1 }), tx(badge(C.fun, 'tv', W.cash), 'บันเทิง', 'Netflix', -419, { rep: 1 })])}
+    </div>` + tabbar(0)],
+  ['10 · ชีต "ถึงกำหนด"', 'แต่ละงวด: <b>บันทึก</b> (ตามกฎ ลงวันที่ของงวด) หรือ <b>ข้าม</b> (ไม่บันทึกงวดนี้). แตะแถว = เปิดฟอร์มธุรกรรมที่กรอกไว้ให้แก้จำนวนก่อนบันทึก (ค่าไฟเดือนนี้ 1,236). บันทึก/ข้ามมี toast เลิกทำ.',
+    () => header() + `<div class="scroll"></div>` + sheet('x', 'ถึงกำหนด', '', `
+      <div class="card">
+        <div class="rule">${badge(C.bill, 'drop', W.bank)}<div class="mid">ค่าน้ำ<small>พฤ. 5 พ.ย. 2026 · กสิกร</small></div><div class="amt exp">−180.00</div></div>
+        <div style="display:flex;gap:8px;padding:0 14px 12px 60px"><button class="btn sm t">${ic('check', 's')} บันทึก</button><button class="btn sm gh">ข้าม</button></div>
+        <div class="rule" style="border-top:1px solid var(--border)">${badge(C.bill, 'phone', W.bank)}<div class="mid">ค่าโทรศัพท์<small>ส. 7 พ.ย. 2026 · กสิกร</small></div><div class="amt exp">−599.00</div></div>
+        <div style="display:flex;gap:8px;padding:0 14px 12px 60px"><button class="btn sm t">${ic('check', 's')} บันทึก</button><button class="btn sm gh">ข้าม</button></div>
+      </div>
+      <div class="hint">แตะรายการเพื่อแก้จำนวนเงินหรือวันที่ก่อนบันทึก</div>`, `<button class="btn">บันทึกทั้งหมด (2)</button>`)],
+  ['11 · แท็บ "อนาคต" + เมนู ⋮ (Q5, Q8)', 'อนาคต = ธุรกรรมที่บันทึกล่วงหน้า (ตามเดิม) + <b>งวดที่กำลังจะมาของกฎ</b> แบบจาง เส้นประ "ยังไม่บันทึก" ไม่นับในยอด. ข้อเสนอ: แสดงงวดในอีก 3 เดือนข้างหน้า. แตะงวดที่ยังไม่บันทึก = เปิดกฎ. เมนู ⋮ ได้แถว "รายการซ้ำ ›" ไปหน้ากฎ.',
+    () => header() + `<div class="bal"><small>ยอดรวม</small><div>61,233.00</div></div>` + chips(['เดือนที่แล้ว', 'เดือนนี้', 'อนาคต'], 'อนาคต') + `<div class="scroll">
+      ${day('01', 'วันศุกร์', 'มกราคม 2027', null, [tx(badge(C.home, 'home', W.bank), 'ค่าเช่า', `${ic('repeat', 's')} ยังไม่บันทึก`, -8500, { proj: 1 })])}
+      ${day('26', 'วันเสาร์', 'ธันวาคม 2026', null, [tx(mbadge('swap'), 'โอนเงิน', `${ic('repeat', 's')} กสิกร → ออมทรัพย์ · ยังไม่บันทึก`, -5000, { proj: 1 })])}
+      ${day('01', 'วันอังคาร', 'ธันวาคม 2026', -2400, [tx(badge(C.home, 'home', W.bank), 'ค่าเช่า', `${ic('repeat', 's')} ยังไม่บันทึก`, -8500, { proj: 1 }), tx(badge(C.food, 'shapes', W.cash), 'ของขวัญและบริจาค', 'งานแต่งเพื่อน (บันทึกล่วงหน้า)', -2400)])}
+    </div><div class="dim"></div><div class="menu"><div class="it">${ic('swap')} โอนเงิน</div><div class="it new">${ic('repeat')} รายการซ้ำ <span class="r">${ic('chevR', 's')}</span></div><div class="it">${ic('cal')} ดูตาม <span class="r">เดือน ${ic('chevR', 's')}</span></div></div>` + tabbar(0)],
+  ['12 · เปิดธุรกรรมที่มาจากกฎ (Q6)', 'เป็นธุรกรรมธรรมดา แก้/ลบได้ทุกอย่าง (ลบ = ข้ามงวดนี้ ไม่สร้างใหม่). ใต้ "เพิ่มเติม" (เปิดเองเมื่อเป็นรายการจากกฎ) มีแถว "จากรายการซ้ำ" ที่เปิดกฎ.',
+    () => header() + `<div class="scroll"></div>` + sheet('x', 'แก้ไขธุรกรรม', `<div class="ib">${ic('copy')}</div><div class="ib red">${ic('trash')}</div>`, `<div class="seg"><span class="on">รายจ่าย</span><span>รายรับ</span></div>
+      ${formRows({ amount: '8,500.00', cat: 'ค่าเช่า', catColor: C.home, catIcon: 'home', note: 'ค่าเช่าคอนโด', date: 'อา. 1 พ.ย. 2026' })}
+      <div class="more">เพิ่มเติม ${ic('chevU', 's')}</div>
+      <div class="card rows"><div>${ic('repeat')}<div class="lbl">จากรายการซ้ำ<small>ทุกเดือน วันที่ 1 · ถัดไป 1 ธ.ค.</small></div><div class="val">${ic('chevR', 's')}</div></div>
+      <div>${ic('eye')}<div class="lbl">ไม่รวมในรายงาน</div><div class="sw"></div></div></div>`,
+      `<button class="btn">บันทึก</button>`)],
+]
+document.getElementById('grid').innerHTML = frames.map(([t, d, f]) =>
+  `<figure><figcaption><b>${t}</b><br>${d}</figcaption><div class="phone">${f()}</div></figure>`).join('')
+for (const b of document.querySelectorAll('.toggle button')) b.onclick = () => {
+  document.documentElement.dataset.theme = b.dataset.t
+  if (!b.dataset.t) delete document.documentElement.dataset.theme
+  for (const o of document.querySelectorAll('.toggle button')) o.setAttribute('aria-pressed', o === b)
+}
+</script>
+</body>
+</html>
