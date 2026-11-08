@@ -29,6 +29,7 @@ const transfer = (id: string, changeSeq: number, extra: Partial<SyncRowWrite> = 
   amount: 100000,
   occurredOn: '2026-11-02',
   note: '',
+  recurringId: null,
   createdAt: 1000,
   updatedAt: 1000,
   deletedAt: null,

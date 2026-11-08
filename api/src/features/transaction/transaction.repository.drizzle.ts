@@ -128,6 +128,9 @@ const checkTransaction = async (
   return checkParents(executor, userId, row, stored)
 }
 
+/** An occurrence of a recurring rule (docs/features/recurring.md rule 9). */
+const isOccurrence = (row: SyncRowInput) => typeof row.recurringId === 'string'
+
 /** The transactions table's sync handler (docs/features/transaction.md rule 1). */
 export const transactionSyncHandler: SyncTableHandler = {
   table: 'transactions',
@@ -142,6 +145,9 @@ export const transactionSyncHandler: SyncTableHandler = {
       return rows.map(toTransaction)
     }),
   push: {
+    // Recurring rule 9: two devices record one occurrence under the same id; the second create
+    // keeps the server's row (maybe edited or skipped since).
+    keepsStored: isOccurrence,
     validate: validateTransaction,
     find: async (executor, id) =>
       run(
@@ -170,6 +176,7 @@ export const transactionSyncHandler: SyncTableHandler = {
             occurredOn: String(row.occurredOn),
             note: typeof row.note === 'string' ? row.note : '',
             excludeFromReport: row.excludeFromReport === true,
+            recurringId: typeof row.recurringId === 'string' ? row.recurringId : null,
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
             deletedAt: row.deletedAt,

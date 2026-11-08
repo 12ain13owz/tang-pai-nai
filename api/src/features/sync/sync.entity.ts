@@ -23,7 +23,7 @@ export interface SyncNotice {
 
 export type OpResult =
   | { opId: string; status: 'applied'; row: SyncRow | null; changeSeq: number | null }
-  | { opId: string; status: 'overridden'; row: SyncRow; changeSeq: number; notice: SyncNotice }
+  | { opId: string; status: 'overridden'; row: SyncRow; changeSeq: number; notice?: SyncNotice }
   | { opId: string; status: 'rejected'; row: SyncRow | null; code: SyncRejectCode; message: string }
 
 export interface HistoryEntry {

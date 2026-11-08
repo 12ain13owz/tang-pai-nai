@@ -30,6 +30,8 @@ export const transfers = sqliteTable(
     occurredOn: text().notNull(),
     /** `''` when empty. */
     note: text().notNull(),
+    /** The recurring rule this row is an occurrence of (no FK: the rule may be gone). */
+    recurringId: text(),
     ...syncColumns,
   },
   (table) => [

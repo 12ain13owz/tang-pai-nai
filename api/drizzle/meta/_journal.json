@@ -106,6 +106,13 @@
       "when": 1793690753438,
       "tag": "0014_category_merged_into",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1794148958392,
+      "tag": "0015_recurring",
+      "breakpoints": true
     }
   ]
 }

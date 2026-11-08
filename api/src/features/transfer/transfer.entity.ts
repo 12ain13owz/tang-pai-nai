@@ -11,6 +11,8 @@ export type Transfer = {
   occurredOn: string
   /** `''` when empty. */
   note: string
+  /** The recurring rule it is an occurrence of; null otherwise. */
+  recurringId: string | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null

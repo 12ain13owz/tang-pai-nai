@@ -3,6 +3,7 @@ import type { Executor } from '@/core/database'
 import { findMergeTarget } from '@/core/database/category-merge'
 import { categories } from '@/core/database/schema/category'
 import { profiles } from '@/core/database/schema/profile'
+import { recurringRules } from '@/core/database/schema/recurring'
 import { transactions } from '@/core/database/schema/transaction'
 import { wrapUnexpected } from '@/core/error'
 import type { SyncRow, SyncRowInput, SyncTableHandler } from '@/core/sync'
@@ -51,14 +52,20 @@ const checkParent = async (
   return null
 }
 
-/** Whether the category has live transactions (rule 4, #8). */
+/** Whether the category has live transactions (rule 4, #8) or recurring rules (#12). */
 const hasTransactions = async (executor: Executor, id: string) => {
   const rows = await executor
     .select({ id: transactions.id })
     .from(transactions)
     .where(and(eq(transactions.categoryId, id), isNull(transactions.deletedAt)))
     .limit(1)
-  return rows.length > 0
+  // Recurring rule 15: a live rule on it fixes its type too.
+  const rules = await executor
+    .select({ id: recurringRules.id })
+    .from(recurringRules)
+    .where(and(eq(recurringRules.categoryId, id), isNull(recurringRules.deletedAt)))
+    .limit(1)
+  return rows.length > 0 || rules.length > 0
 }
 
 /** Rule 1: the owner's live profile; whether `profileId` is one. */
@@ -175,6 +182,31 @@ const moveTransactions = async (
      WHERE transactions.id = moved.id`)
 }
 
+/** Recurring rule 13: live rules on `fromIds` follow the merge, each with its own `changeSeq`. */
+const moveRules = async (
+  executor: Executor,
+  userId: string,
+  fromIds: string[],
+  targetId: string,
+  updatedAt: number,
+  takeSeqs: (count: number) => Promise<number>
+) => {
+  const rules = await executor
+    .select({ id: recurringRules.id })
+    .from(recurringRules)
+    .where(and(inArray(recurringRules.categoryId, fromIds), isNull(recurringRules.deletedAt)))
+  if (rules.length === 0) {
+    return
+  }
+  const first = await takeSeqs(rules.length)
+  for (const [index, rule] of rules.entries()) {
+    await executor
+      .update(recurringRules)
+      .set({ categoryId: targetId, updatedAt, updatedBy: userId, changeSeq: first + index })
+      .where(eq(recurringRules.id, rule.id))
+  }
+}
+
 /**
  * Rule 15: a merged category's tombstone moves what still points at it to the category it was
  * merged into: its live children (another device's, or a move that was refused) are merged in
@@ -213,14 +245,9 @@ const followMerge = async (
         .where(eq(categories.id, id))
     }
   }
-  await moveTransactions(
-    executor,
-    userId,
-    [row.id, ...childIds],
-    target.id,
-    row.updatedAt,
-    takeSeqs
-  )
+  const fromIds = [row.id, ...childIds]
+  await moveTransactions(executor, userId, fromIds, target.id, row.updatedAt, takeSeqs)
+  await moveRules(executor, userId, fromIds, target.id, row.updatedAt, takeSeqs)
 }
 
 /**

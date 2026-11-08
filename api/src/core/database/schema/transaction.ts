@@ -34,6 +34,8 @@ export const transactions = sqliteTable(
     /** `''` when empty. */
     note: text().notNull(),
     excludeFromReport: integer({ mode: 'boolean' }).notNull(),
+    /** The recurring rule this row is an occurrence of (no FK: the rule may be gone). */
+    recurringId: text(),
     ...syncColumns,
   },
   (table) => [
