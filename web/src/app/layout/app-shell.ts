@@ -1,4 +1,4 @@
-import { afterNextRender, Component, computed, inject, Injector } from '@angular/core'
+import { afterNextRender, Component, computed, DestroyRef, inject, Injector } from '@angular/core'
 import { RouterOutlet } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
@@ -115,10 +115,15 @@ export class AppShell {
   constructor() {
     // Recurring rule 7: due occurrences are recorded whatever tab shows. Loaded after the first
     // render as its own chunk, so the shell's bundle doesn't carry it.
+    let destroyed = false
+    inject(DestroyRef).onDestroy(() => (destroyed = true))
     afterNextRender(() => {
-      void import('@/core/recurring').then(({ RecurringService }) =>
-        this.injector.get(RecurringService)
-      )
+      void import('@/core/recurring').then(({ RecurringService }) => {
+        // The chunk may arrive after the shell is gone (signed out, a spec's teardown).
+        if (!destroyed) {
+          this.injector.get(RecurringService)
+        }
+      })
     })
   }
 
