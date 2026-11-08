@@ -83,3 +83,9 @@ export const DEFAULT_CURRENCY = 'THB'
  */
 export const TRANSACTION_TABLE = 'transactions'
 export const TRANSFER_TABLE = 'transfers'
+
+/**
+ * The device table of recurring rules (docs/features/recurring.md), read by name: a wallet with
+ * live rules keeps its currency, and deleting the wallet takes its rules (rules 14–15).
+ */
+export const RECURRING_TABLE = 'recurring_rules'

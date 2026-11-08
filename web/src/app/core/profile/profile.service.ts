@@ -329,6 +329,11 @@ export class ProfileService {
     return this.childCount('transactions', id) + this.childCount('transfers', id)
   }
 
+  /** The profile's live recurring rules (Account › รายการซ้ำ, the delete confirm). */
+  ruleCount(id: string): number {
+    return this.childCount('recurring_rules', id)
+  }
+
   private childCount(table: (typeof PROFILE_CHILD_TABLES)[number], id: string): number {
     this.offlineService.changes()
     if (!this.offlineService.isOpen()) {

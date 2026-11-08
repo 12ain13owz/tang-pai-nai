@@ -1,4 +1,5 @@
 import { Component, computed, ElementRef, inject, input, signal, viewChild } from '@angular/core'
+import { Router } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
@@ -9,6 +10,7 @@ import {
   lucideChevronLeft,
   lucideChevronRight,
   lucideEllipsisVertical,
+  lucideRepeat,
   lucideWallet,
 } from '@ng-icons/lucide'
 import { LanguageService } from '@/core/i18n'
@@ -40,6 +42,7 @@ import { SyncStatus } from './sync-status'
       lucideChevronLeft,
       lucideChevronRight,
       lucideEllipsisVertical,
+      lucideRepeat,
       lucideWallet,
     }),
   ],
@@ -123,6 +126,24 @@ import { SyncStatus } from './sync-status'
               <span class="flex-1">{{ 'transfers.open' | transloco }}</span>
             </button>
           }
+          @if (view() === 'transactions') {
+            <!-- Recurring (recurring.md Q5): the rules page in Account. -->
+            <button
+              type="button"
+              role="menuitem"
+              class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+              (click)="recurring()"
+            >
+              <ng-icon name="lucideRepeat" size="20" aria-hidden="true" />
+              <span class="flex-1">{{ 'recurring.menu' | transloco }}</span>
+              <ng-icon
+                name="lucideChevronRight"
+                size="16"
+                class="text-muted-foreground"
+                aria-hidden="true"
+              />
+            </button>
+          }
           <button
             type="button"
             role="menuitem"
@@ -176,6 +197,7 @@ export class TransactionsHeader {
   private reportService = inject(ReportService)
   private languageService = inject(LanguageService)
   private transloco = inject(TranslocoService)
+  private router = inject(Router)
 
   /** Which tab it heads: the Transactions tab's menu, or the Reports tab's (report.md Q2). */
   view = input<'transactions' | 'reports'>('transactions')
@@ -224,6 +246,11 @@ export class TransactionsHeader {
   protected transfer(): void {
     this.closeMenu(false)
     this.transferService.open({ mode: 'create' })
+  }
+
+  protected recurring(): void {
+    this.closeMenu(false)
+    void this.router.navigateByUrl('/account/recurring')
   }
 
   protected closeMenu(refocus: boolean): void {

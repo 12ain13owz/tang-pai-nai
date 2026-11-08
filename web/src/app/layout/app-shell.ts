@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core'
+import { afterNextRender, Component, computed, inject, Injector } from '@angular/core'
 import { RouterOutlet } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
@@ -110,6 +110,17 @@ export class AppShell {
   protected transferService = inject(TransferService)
   protected switchSheetOpen = this.profileService.switchSheet
   private url = currentUrl()
+  private injector = inject(Injector)
+
+  constructor() {
+    // Recurring rule 7: due occurrences are recorded whatever tab shows. Loaded after the first
+    // render as its own chunk, so the shell's bundle doesn't carry it.
+    afterNextRender(() => {
+      void import('@/core/recurring').then(({ RecurringService }) =>
+        this.injector.get(RecurringService)
+      )
+    })
+  }
 
   /**
    * Profile rule 5: the data tabs need a profile (wait for a new device's first pull); wallet

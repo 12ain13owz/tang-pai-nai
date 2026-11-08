@@ -26,7 +26,8 @@ type ServerRow = SyncRow & { id: string; changeSeq: number }
 
 type OpResult =
   | { opId: string; status: 'applied'; row: ServerRow | null; changeSeq: number | null }
-  | { opId: string; status: 'overridden'; row: ServerRow; changeSeq: number; notice: SyncNotice }
+  // No notice when the server kept its row quietly (a second create of one recurring occurrence).
+  | { opId: string; status: 'overridden'; row: ServerRow; changeSeq: number; notice?: SyncNotice }
   | { opId: string; status: 'rejected'; row: ServerRow | null; code: string; message: string }
 
 interface PullData {
@@ -60,6 +61,8 @@ export class SyncService {
   private offlineService = inject(OfflineService)
 
   isSyncing = signal(false)
+  /** Rounds finished (or failed) since the app loaded: work that should follow a pull waits. */
+  rounds = signal(0)
   /** When the last round finished, kept on the device. */
   lastSyncedAt = computed(() =>
     this.read((db) => {
@@ -219,6 +222,7 @@ export class SyncService {
       }
     } finally {
       this.isSyncing.set(false)
+      this.rounds.update((count) => count + 1)
     }
   }
 
@@ -411,7 +415,9 @@ const applyResult = (db: LocalDatabase, sent: OutboxOp, result: OpResult): void 
       db.exec('UPDATE outbox SET base_seq = ? WHERE seq = ?', [result.changeSeq, newer.seq])
     }
     if (result.status === 'overridden') {
-      storeNotice(db, result.notice)
+      if (result.notice) {
+        storeNotice(db, result.notice)
+      }
     }
     return
   }
@@ -423,7 +429,9 @@ const applyResult = (db: LocalDatabase, sent: OutboxOp, result: OpResult): void 
     case 'overridden':
       deleteOp(db, sent.opId)
       putServerRow(db, sent.table, sent.rowId, result.row)
-      storeNotice(db, result.notice)
+      if (result.notice) {
+        storeNotice(db, result.notice)
+      }
       break
     case 'rejected':
       // Kept with the refused values for "fix" or "discard"; the row goes back to the server's.

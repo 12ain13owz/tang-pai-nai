@@ -12,6 +12,8 @@ import {
   lucideChevronRight,
   lucideCopy,
   lucideListPlus,
+  lucidePause,
+  lucidePlay,
   lucideTextAlignStart,
   lucideTrash2,
   lucideWallet,
@@ -20,7 +22,18 @@ import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
 import { LanguageService } from '@/core/i18n'
+import { SyncService } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
+import {
+  describeRepeat,
+  describeRest,
+  MONTHLY,
+  nextOnOrAfter,
+  RecurringService,
+  shortDate,
+  toRule as toRuleRow,
+} from '@/core/recurring'
+import type { RepeatValues, RuleValues } from '@/core/recurring'
 import {
   QUICK_AMOUNTS,
   QuickAmountsService,
@@ -52,9 +65,11 @@ import {
   toMajorText,
 } from '@/shared/utils'
 import type { CalcKey } from '@/shared/utils'
+import { RepeatRow } from './repeat-row'
+import { RepeatView } from './repeat-view'
 import type { TransferFormGroup } from './transfer-form.type'
 
-type View = 'form' | 'pick' | 'note' | 'confirmDiscard'
+type View = 'form' | 'pick' | 'note' | 'repeat' | 'confirmDiscard'
 
 /**
  * The transfer form (docs/features/transfer.md → Web screens; owner's choice Q4 in #9: a sheet
@@ -77,6 +92,8 @@ type View = 'form' | 'pick' | 'note' | 'confirmDiscard'
     TextareaField,
     IconBadge,
     SheetFrame,
+    RepeatRow,
+    RepeatView,
   ],
   providers: [
     provideIcons({
@@ -87,6 +104,8 @@ type View = 'form' | 'pick' | 'note' | 'confirmDiscard'
       lucideChevronRight,
       lucideCopy,
       lucideListPlus,
+      lucidePause,
+      lucidePlay,
       lucideTextAlignStart,
       lucideTrash2,
       lucideWallet,
@@ -108,7 +127,41 @@ type View = 'form' | 'pick' | 'note' | 'confirmDiscard'
                 [leadingLabel]="'sheet.close' | transloco"
                 (leading)="close()"
               >
-                @if (editingId() && transferService.byId(editingId()!)) {
+                @if (rule(); as current) {
+                  <!-- A recurring rule (recurring.md → Web screens): pause / resume, delete. -->
+                  <div sheetActions class="flex">
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      class="size-11"
+                      [disabled]="!transferService.canWrite()"
+                      [attr.aria-label]="
+                        (current.isPaused ? 'recurring.resume' : 'recurring.pause') | transloco
+                      "
+                      (click)="togglePause()"
+                    >
+                      <ng-icon
+                        [name]="current.isPaused ? 'lucidePlay' : 'lucidePause'"
+                        size="20"
+                        aria-hidden="true"
+                      />
+                    </button>
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      class="size-11 text-destructive"
+                      [disabled]="!transferService.canWrite()"
+                      [attr.aria-label]="'recurring.delete' | transloco"
+                      (click)="remove()"
+                    >
+                      <ng-icon name="lucideTrash2" size="20" aria-hidden="true" />
+                    </button>
+                  </div>
+                } @else if (editingId() && transferService.byId(editingId()!)) {
                   <div sheetActions class="flex">
                     @if (state()?.mode === 'edit') {
                       <button
@@ -276,7 +329,14 @@ type View = 'form' | 'pick' | 'note' | 'confirmDiscard'
                       <label
                         class="relative flex h-10 min-w-0 flex-1 items-center justify-center rounded-md text-base font-medium has-focus-visible:ring-2 has-focus-visible:ring-ring"
                       >
-                        <span class="truncate">{{ dayText() }}</span>
+                        <span class="flex min-w-0 flex-col items-center leading-tight">
+                          @if (startsRule()) {
+                            <span class="text-xs text-muted-foreground">{{
+                              'recurring.start' | transloco
+                            }}</span>
+                          }
+                          <span class="truncate">{{ dayText() }}</span>
+                        </span>
                         <input
                           type="date"
                           class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
@@ -300,6 +360,33 @@ type View = 'form' | 'pick' | 'note' | 'confirmDiscard'
                       </button>
                     </div>
                   </div>
+                  @if (repeatable() || fromRule()) {
+                    <!-- Recurring (recurring.md Q4): a transfer repeats like a transaction. -->
+                    <div
+                      class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
+                    >
+                      @if (repeatable()) {
+                        <app-repeat-row
+                          [label]="'recurring.repeat' | transloco"
+                          [title]="repeatTitle()"
+                          [sub]="repeatSub()"
+                          [active]="repeat() !== null"
+                          (pressed)="pick('repeat')"
+                        />
+                      }
+                      @if (fromRule(); as source) {
+                        <app-repeat-row
+                          [label]="'recurring.fromRule' | transloco"
+                          [title]="'recurring.fromRule' | transloco"
+                          [sub]="source.text"
+                          (pressed)="openRule(source.id)"
+                        />
+                      }
+                    </div>
+                    @if (repeatHint(); as hint) {
+                      <p class="-mt-2 px-1 text-sm text-muted-foreground">{{ hint }}</p>
+                    }
+                  }
                 </div>
                 <div
                   sheetFooter
@@ -316,7 +403,7 @@ type View = 'form' | 'pick' | 'note' | 'confirmDiscard'
                     >
                       {{ 'transactions.save' | transloco }}
                     </button>
-                    @if (state()?.mode === 'create') {
+                    @if (state()?.mode === 'create' && !repeat()) {
                       <button
                         hlmBtn
                         variant="outline"
@@ -422,6 +509,20 @@ type View = 'form' | 'pick' | 'note' | 'confirmDiscard'
               />
             </app-sheet-frame>
           }
+          @case ('repeat') {
+            <app-sheet-frame
+              [title]="'recurring.repeat' | transloco"
+              leadingIcon="back"
+              [leadingLabel]="'sheet.back' | transloco"
+              (leading)="view.set('form')"
+            >
+              <app-repeat-view
+                [startOn]="day()"
+                [value]="repeat()"
+                (valueChange)="setRepeat($event)"
+              />
+            </app-sheet-frame>
+          }
           @case ('confirmDiscard') {
             <app-sheet-frame
               [title]="'transactions.discardHeading' | transloco"
@@ -459,6 +560,10 @@ export class TransferSheet {
   protected walletService = inject(WalletService)
   private profileService = inject(ProfileService)
   private quickAmountsService = inject(QuickAmountsService)
+  private recurringService = inject(RecurringService)
+  private syncService = inject(SyncService)
+  /** "ทำซ้ำ" (docs/features/recurring.md, Q4): null = don't repeat. */
+  protected repeat = signal<RepeatValues | null>(null)
 
   protected readonly sides = ['from', 'to'] as const
   protected walletIcon = WALLET_DEFAULT_ICON
@@ -508,9 +613,87 @@ export class TransferSheet {
     const state = this.state()
     return state && state.mode !== 'create' ? state.id : null
   })
+  /** The recurring rule being edited (rule mode), if any. */
+  protected rule = computed(() => {
+    const state = this.state()
+    return state?.mode === 'rule' || state?.mode === 'fixRule'
+      ? this.recurringService.byId(state.id)
+      : null
+  })
+  private ruleMode = computed(() => {
+    const mode = this.state()?.mode
+    return mode === 'rule' || mode === 'fixRule'
+  })
+  protected repeatable = computed(() => {
+    const state = this.state()
+    return (state?.mode === 'create' && !state.occurrence) || this.ruleMode()
+  })
+  protected startsRule = computed(() => this.repeatable() && this.repeat() !== null)
+  /** A recorded occurrence: the rule it came from, while it's live. */
+  protected fromRule = computed(() => {
+    this.languageService.language()
+    const state = this.state()
+    const row = state?.mode === 'edit' ? this.transferService.byId(state.id) : null
+    const rule = row?.recurringId ? this.recurringService.byId(row.recurringId) : null
+    return rule
+      ? {
+          id: rule.id,
+          text: describeRepeat(rule, rule.startOn, this.t, this.languageService.locale()),
+        }
+      : null
+  })
+  protected repeatTitle = computed(() => {
+    this.languageService.language()
+    const repeat = this.repeat()
+    return repeat
+      ? describeRepeat(repeat, this.day(), this.t, this.languageService.locale())
+      : this.t('recurring.none')
+  })
+  protected repeatSub = computed(() => {
+    this.languageService.language()
+    const repeat = this.repeat()
+    return repeat ? describeRest(repeat, this.t, this.languageService.locale()) : ''
+  })
+  protected repeatHint = computed(() => {
+    this.languageService.language()
+    const repeat = this.repeat()
+    const locale = this.languageService.locale()
+    if (!repeat || !this.repeatable()) {
+      return null
+    }
+    const day = this.day()
+    const today = this.transactionService.today()
+    const rule = this.rule()
+    if (rule) {
+      return [
+        rule.nextOn
+          ? this.t('recurring.nextLine', { date: shortDate(rule.nextOn, locale) })
+          : this.t('recurring.ended'),
+        this.t('recurring.recordedLine', { count: this.recurringService.recordedCount(rule) }),
+        this.t('recurring.editNote'),
+      ].join(' · ')
+    }
+    if (day > today) {
+      return this.t('recurring.nextLine', { date: shortDate(day, locale) })
+    }
+    const next = nextOnOrAfter({ ...repeat, startOn: day }, addDays(today, 1))
+    return next
+      ? this.t('recurring.nextNow', {
+          date: shortDate(next, locale),
+          first: shortDate(day, locale, false),
+        })
+      : null
+  })
+  private t = (key: string, params?: Record<string, unknown>) =>
+    this.transloco.translate(key, params)
+
   /** The profile the transfer belongs to (rule 1: it never moves). */
   private profileId = computed(() => {
     const state = this.state()
+    const rule = this.rule()
+    if (rule) {
+      return rule.profileId
+    }
     const id = this.editingId()
     const row = id ? this.transferService.byId(id) : null
     if (row) {
@@ -537,6 +720,10 @@ export class TransferSheet {
         return 'transfers.editHeading'
       case 'fix':
         return 'transfers.fixHeading'
+      case 'rule':
+        return 'recurring.editHeading'
+      case 'fixRule':
+        return 'recurring.fixHeading'
       default:
         return 'transfers.createHeading'
     }
@@ -620,11 +807,32 @@ export class TransferSheet {
     this.keypad.set(false)
   }
 
-  protected pick(view: 'from' | 'to' | 'note'): void {
+  protected setRepeat(value: RepeatValues | null): void {
+    this.repeat.set(value)
+    this.form.markAsDirty()
+    this.dirty.set(true)
+  }
+
+  protected openRule(id: string): void {
+    if (!this.form.dirty) {
+      this.recurringService.open(id)
+    }
+  }
+
+  protected togglePause(): void {
+    const rule = this.rule()
+    if (!rule) {
+      return
+    }
+    this.recurringService.setPaused(rule.id, !rule.isPaused)
+    toast.success(this.t(rule.isPaused ? 'recurring.resumed' : 'recurring.paused2'))
+  }
+
+  protected pick(view: 'from' | 'to' | 'note' | 'repeat'): void {
     this.settleAmount()
     this.keypad.set(false)
-    if (view === 'note') {
-      this.view.set('note')
+    if (view === 'note' || view === 'repeat') {
+      this.view.set(view)
       return
     }
     this.pickSide.set(view)
@@ -727,14 +935,44 @@ export class TransferSheet {
       occurredOn: value.occurredOn,
       note: value.note,
     }
-    if (state.mode === 'fix') {
+    const repeat = this.repeat()
+    const ruleValues = (repeat: RepeatValues): RuleValues => ({
+      ...repeat,
+      kind: 'transfer',
+      walletId: values.fromWalletId,
+      categoryId: null,
+      toWalletId: values.toWalletId,
+      amount: values.amount,
+      note: values.note,
+      excludeFromReport: false,
+      startOn: values.occurredOn,
+    })
+    let done = state.mode === 'create' ? 'transfers.created' : 'transfers.saved'
+    if (state.mode === 'rule' || state.mode === 'fixRule') {
+      this.recurringService.update(
+        state.id,
+        ruleValues(repeat ?? MONTHLY),
+        state.mode === 'fixRule' ? state.opId : null
+      )
+      done = 'recurring.saved'
+    } else if (state.mode === 'fix') {
       this.transferService.save(state.id, values, state.opId, state.profileId)
+    } else if (state.mode === 'create' && state.occurrence) {
+      this.recurringService.confirm(state.occurrence.ruleId, state.occurrence.on, {
+        walletId: values.fromWalletId,
+        toWalletId: values.toWalletId,
+        amount: values.amount,
+        note: values.note,
+        occurredOn: values.occurredOn,
+      })
+      done = 'recurring.confirmed'
+    } else if (state.mode === 'create' && repeat) {
+      this.recurringService.create(ruleValues(repeat))
+      done = 'recurring.created'
     } else {
       this.transferService.save(this.editingId(), values)
     }
-    toast.success(
-      this.transloco.translate(state.mode === 'create' ? 'transfers.created' : 'transfers.saved')
-    )
+    toast.success(this.transloco.translate(done))
     if (addAnother && state.mode === 'create') {
       this.form.reset({ ...value, amount: '', note: '' })
       this.dirty.set(false)
@@ -748,6 +986,17 @@ export class TransferSheet {
   protected remove(): void {
     const id = this.editingId()
     if (!id) {
+      return
+    }
+    if (this.ruleMode()) {
+      this.recurringService.remove(id)
+      toast(this.transloco.translate('recurring.deleted'), {
+        action: {
+          label: this.transloco.translate('transactions.undo'),
+          onClick: () => this.recurringService.restore(id),
+        },
+      })
+      this.finish()
       return
     }
     this.transferService.remove(id)
@@ -818,9 +1067,49 @@ export class TransferSheet {
     }
   }
 
+  /** A rule in this sheet: its template in the form, its schedule in "ทำซ้ำ" (recurring.md). */
+  private startRule(state: Extract<TransferSheetState, { mode: 'rule' | 'fixRule' }>): void {
+    const stored = this.recurringService.byId(state.id)
+    const refused = state.mode === 'fixRule' ? this.syncService.rejectedOp(state.opId)?.row : null
+    const source = refused ? toRuleRow(refused) : stored
+    if (!source) {
+      this.state.set(null)
+      return
+    }
+    const minorUnit = this.walletService.minorUnit(
+      this.walletService.byId(source.walletId)?.currencyCode ?? ''
+    )
+    this.startCurrency.set(null)
+    this.form.reset({
+      fromWalletId: source.walletId,
+      toWalletId: source.toWalletId ?? '',
+      amount: source.amount > 0 ? toMajorText(source.amount, minorUnit).replace(/,/g, '') : '',
+      note: source.note,
+      occurredOn: source.startOn,
+    })
+    this.repeat.set({
+      frequency: source.frequency,
+      interval: source.interval,
+      endOn: source.endOn,
+      endCount: source.endCount,
+      confirm: source.confirm,
+    })
+    this.keypad.set(false)
+    if (refused) {
+      this.form.markAllAsTouched()
+      this.form.markAsDirty()
+      this.dirty.set(true)
+    }
+  }
+
   private start(state: TransferSheetState): void {
     this.view.set('form')
     this.dirty.set(false)
+    this.repeat.set(state.mode === 'create' && state.repeat ? MONTHLY : null)
+    if (state.mode === 'rule' || state.mode === 'fixRule') {
+      this.startRule(state)
+      return
+    }
     if (state.mode === 'create') {
       const copied = state.values ?? null
       const viewing = this.transactionService.viewWallet()
@@ -847,7 +1136,7 @@ export class TransferSheet {
               ).replace(/,/g, '')
             : '',
         note: copied?.note ?? '',
-        occurredOn: this.transactionService.today(),
+        occurredOn: state.occurrence?.on ?? this.transactionService.today(),
       })
       this.dropUnfitTo()
       this.keypad.set(true)

@@ -13,6 +13,8 @@ import {
   lucideCopy,
   lucideEyeOff,
   lucideListPlus,
+  lucidePause,
+  lucidePlay,
   lucideTextAlignStart,
   lucideTrash2,
 } from '@ng-icons/lucide'
@@ -22,7 +24,18 @@ import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
 import { CATEGORY_DEFAULT_ICON, CategoryService } from '@/core/category'
 import type { Category, CategoryNode, CategoryType } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
+import { SyncService } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
+import {
+  describeRepeat,
+  describeRest,
+  MONTHLY,
+  nextOnOrAfter,
+  RecurringService,
+  shortDate,
+  toRule as toRuleRow,
+} from '@/core/recurring'
+import type { RepeatValues, RuleValues } from '@/core/recurring'
 import {
   QUICK_AMOUNTS,
   QuickAmountsService,
@@ -56,9 +69,11 @@ import {
   toMajorText,
 } from '@/shared/utils'
 import type { CalcKey } from '@/shared/utils'
+import { RepeatRow } from './repeat-row'
+import { RepeatView } from './repeat-view'
 import type { TransactionFormGroup } from './transaction-form.type'
 
-type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
+type View = 'form' | 'wallet' | 'category' | 'note' | 'repeat' | 'confirmDiscard'
 
 const TYPES: readonly CategoryType[] = ['expense', 'income']
 
@@ -86,6 +101,8 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
     TextareaField,
     IconBadge,
     SheetFrame,
+    RepeatRow,
+    RepeatView,
   ],
   providers: [
     provideIcons({
@@ -97,6 +114,8 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
       lucideCopy,
       lucideEyeOff,
       lucideListPlus,
+      lucidePause,
+      lucidePlay,
       lucideTextAlignStart,
       lucideTrash2,
     }),
@@ -117,7 +136,41 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                 [leadingLabel]="'sheet.close' | transloco"
                 (leading)="close()"
               >
-                @if (editingId() && transactionService.byId(editingId()!)) {
+                @if (rule(); as current) {
+                  <!-- A recurring rule (recurring.md → Web screens): pause / resume, delete. -->
+                  <div sheetActions class="flex">
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      class="size-11"
+                      [disabled]="!transactionService.canWrite()"
+                      [attr.aria-label]="
+                        (current.isPaused ? 'recurring.resume' : 'recurring.pause') | transloco
+                      "
+                      (click)="togglePause()"
+                    >
+                      <ng-icon
+                        [name]="current.isPaused ? 'lucidePlay' : 'lucidePause'"
+                        size="20"
+                        aria-hidden="true"
+                      />
+                    </button>
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      class="size-11 text-destructive"
+                      [disabled]="!transactionService.canWrite()"
+                      [attr.aria-label]="'recurring.delete' | transloco"
+                      (click)="remove()"
+                    >
+                      <ng-icon name="lucideTrash2" size="20" aria-hidden="true" />
+                    </button>
+                  </div>
+                } @else if (editingId() && transactionService.byId(editingId()!)) {
                   <div sheetActions class="flex">
                     @if (state()?.mode === 'edit') {
                       <button
@@ -291,7 +344,14 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                       <label
                         class="relative flex h-10 min-w-0 flex-1 items-center justify-center rounded-md text-base font-medium has-focus-visible:ring-2 has-focus-visible:ring-ring"
                       >
-                        <span class="truncate">{{ dayText() }}</span>
+                        <span class="flex min-w-0 flex-col items-center leading-tight">
+                          @if (startsRule()) {
+                            <span class="text-xs text-muted-foreground">{{
+                              'recurring.start' | transloco
+                            }}</span>
+                          }
+                          <span class="truncate">{{ dayText() }}</span>
+                        </span>
                         <input
                           type="date"
                           class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
@@ -332,18 +392,40 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                   </button>
                   @if (more()) {
                     <div
-                      class="-mt-2 flex min-h-14 items-center gap-3 rounded-2xl border border-border bg-card px-4 py-2"
+                      class="-mt-2 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
                     >
-                      <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                        <ng-icon name="lucideEyeOff" size="22" aria-hidden="true" />
-                      </span>
-                      <app-switch-field
-                        class="min-w-0 flex-1"
-                        [control]="f.excludeFromReport"
-                        [label]="'transactions.excludeFromReport' | transloco"
-                        [hint]="'transactions.excludeHint' | transloco"
-                      />
+                      @if (repeatable()) {
+                        <app-repeat-row
+                          [label]="'recurring.repeat' | transloco"
+                          [title]="repeatTitle()"
+                          [sub]="repeatSub()"
+                          [active]="repeat() !== null"
+                          (pressed)="pick('repeat')"
+                        />
+                      }
+                      @if (fromRule(); as source) {
+                        <app-repeat-row
+                          [label]="'recurring.fromRule' | transloco"
+                          [title]="'recurring.fromRule' | transloco"
+                          [sub]="source.text"
+                          (pressed)="openRule(source.id)"
+                        />
+                      }
+                      <div class="flex min-h-14 items-center gap-3 px-4 py-2">
+                        <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
+                          <ng-icon name="lucideEyeOff" size="22" aria-hidden="true" />
+                        </span>
+                        <app-switch-field
+                          class="min-w-0 flex-1"
+                          [control]="f.excludeFromReport"
+                          [label]="'transactions.excludeFromReport' | transloco"
+                          [hint]="'transactions.excludeHint' | transloco"
+                        />
+                      </div>
                     </div>
+                    @if (repeatHint(); as hint) {
+                      <p class="-mt-2 px-1 text-sm text-muted-foreground">{{ hint }}</p>
+                    }
                   }
                 </div>
                 <div
@@ -361,7 +443,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                     >
                       {{ 'transactions.save' | transloco }}
                     </button>
-                    @if (state()?.mode === 'create') {
+                    @if (state()?.mode === 'create' && !repeat()) {
                       <!-- Save and add another (8.2): the sheet stays for the next receipt. -->
                       <button
                         hlmBtn
@@ -607,6 +689,20 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
               />
             </app-sheet-frame>
           }
+          @case ('repeat') {
+            <app-sheet-frame
+              [title]="'recurring.repeat' | transloco"
+              leadingIcon="back"
+              [leadingLabel]="'sheet.back' | transloco"
+              (leading)="view.set('form')"
+            >
+              <app-repeat-view
+                [startOn]="day()"
+                [value]="repeat()"
+                (valueChange)="setRepeat($event)"
+              />
+            </app-sheet-frame>
+          }
           @case ('confirmDiscard') {
             <app-sheet-frame
               [title]="'transactions.discardHeading' | transloco"
@@ -643,6 +739,8 @@ export class TransactionSheet {
   private walletService = inject(WalletService)
   private categoryService = inject(CategoryService)
   private profileService = inject(ProfileService)
+  private recurringService = inject(RecurringService)
+  private syncService = inject(SyncService)
 
   protected walletIcon = WALLET_DEFAULT_ICON
   protected treeColor = userColor
@@ -655,6 +753,8 @@ export class TransactionSheet {
   protected keypad = signal(false)
   /** The folded "เพิ่มเติม" options. */
   protected more = signal(false)
+  /** "ทำซ้ำ" (docs/features/recurring.md): null = don't repeat. */
+  protected repeat = signal<RepeatValues | null>(null)
   private quickAmountsService = inject(QuickAmountsService)
   /** The keypad's quick amounts (8.2), none when turned off in Account › การแสดงผล. */
   protected quickAmounts = computed(() => (this.quickAmountsService.enabled() ? QUICK_AMOUNTS : []))
@@ -700,9 +800,88 @@ export class TransactionSheet {
     const state = this.state()
     return state && state.mode !== 'create' ? state.id : null
   })
+  /** The recurring rule being edited (rule mode), if any. */
+  protected rule = computed(() => {
+    const state = this.state()
+    return state?.mode === 'rule' || state?.mode === 'fixRule'
+      ? this.recurringService.byId(state.id)
+      : null
+  })
+  private ruleMode = computed(() => {
+    const mode = this.state()?.mode
+    return mode === 'rule' || mode === 'fixRule'
+  })
+  /** "ทำซ้ำ" shows when adding (not a due occurrence) and on a rule. */
+  protected repeatable = computed(() => {
+    const state = this.state()
+    return (state?.mode === 'create' && !state.occurrence) || this.ruleMode()
+  })
+  /** The date row starts the rule ("เริ่ม"). */
+  protected startsRule = computed(() => this.repeatable() && this.repeat() !== null)
+  /** A recorded occurrence: the rule it came from, while it's live. */
+  protected fromRule = computed(() => {
+    this.languageService.language()
+    const state = this.state()
+    const row = state?.mode === 'edit' ? this.transactionService.byId(state.id) : null
+    const rule = row?.recurringId ? this.recurringService.byId(row.recurringId) : null
+    return rule ? { id: rule.id, text: this.describe(rule, rule.startOn) } : null
+  })
+  protected repeatTitle = computed(() => {
+    this.languageService.language()
+    const repeat = this.repeat()
+    return repeat
+      ? describeRepeat(repeat, this.day(), this.t, this.languageService.locale())
+      : this.transloco.translate('recurring.none')
+  })
+  protected repeatSub = computed(() => {
+    this.languageService.language()
+    const repeat = this.repeat()
+    return repeat ? describeRest(repeat, this.t, this.languageService.locale()) : ''
+  })
+  /** The line under the card: the next date, and on a rule what is recorded already. */
+  protected repeatHint = computed(() => {
+    this.languageService.language()
+    const repeat = this.repeat()
+    const locale = this.languageService.locale()
+    if (!repeat || !this.repeatable()) {
+      return null
+    }
+    const day = this.day()
+    const today = this.transactionService.today()
+    const schedule = { ...repeat, startOn: day }
+    const rule = this.rule()
+    if (rule) {
+      const next = rule.nextOn
+      const recorded = this.recurringService.recordedCount(rule)
+      return [
+        next
+          ? this.t('recurring.nextLine', { date: shortDate(next, locale) })
+          : this.t('recurring.ended'),
+        this.t('recurring.recordedLine', { count: recorded }),
+        this.t('recurring.editNote'),
+      ].join(' · ')
+    }
+    if (day > today) {
+      return this.t('recurring.nextLine', { date: shortDate(day, locale) })
+    }
+    const next = nextOnOrAfter(schedule, addDays(today, 1))
+    return next
+      ? this.t('recurring.nextNow', {
+          date: shortDate(next, locale),
+          first: shortDate(day, locale, false),
+        })
+      : null
+  })
+  private t = (key: string, params?: Record<string, unknown>) =>
+    this.transloco.translate(key, params)
+
   /** The profile the row belongs to (rule 1: it never moves). */
   private profileId = computed(() => {
     const state = this.state()
+    const rule = this.rule()
+    if (rule) {
+      return rule.profileId
+    }
     const id = this.editingId()
     const row = id ? this.transactionService.byId(id) : null
     if (row) {
@@ -737,6 +916,10 @@ export class TransactionSheet {
         return 'transactions.editHeading'
       case 'fix':
         return 'transactions.fixHeading'
+      case 'rule':
+        return 'recurring.editHeading'
+      case 'fixRule':
+        return 'recurring.fixHeading'
       default:
         return 'transactions.createHeading'
     }
@@ -860,8 +1043,33 @@ export class TransactionSheet {
     this.keypad.set(false)
   }
 
+  /** "ทำซ้ำ" changed in its view: the form now holds unsaved input. */
+  protected setRepeat(value: RepeatValues | null): void {
+    this.repeat.set(value)
+    this.form.markAsDirty()
+    this.dirty.set(true)
+  }
+
+  /** "จากรายการซ้ำ": the rule in this sheet. */
+  protected openRule(id: string): void {
+    if (this.form.dirty) {
+      return
+    }
+    this.recurringService.open(id)
+  }
+
+  /** Recurring rule 5: pause or resume, at once. */
+  protected togglePause(): void {
+    const rule = this.rule()
+    if (!rule) {
+      return
+    }
+    this.recurringService.setPaused(rule.id, !rule.isPaused)
+    toast.success(this.t(rule.isPaused ? 'recurring.resumed' : 'recurring.paused2'))
+  }
+
   /** Another row: the expression settles and the keypad closes, as in Money Lover. */
-  protected pick(view: 'wallet' | 'category' | 'note'): void {
+  protected pick(view: 'wallet' | 'category' | 'note' | 'repeat'): void {
     this.settleAmount()
     this.keypad.set(false)
     this.view.set(view)
@@ -964,19 +1172,43 @@ export class TransactionSheet {
       note: value.note,
       excludeFromReport: value.excludeFromReport,
     }
-    if (state.mode === 'fix') {
+    const repeat = this.repeat()
+    const ruleValues = (repeat: RepeatValues): RuleValues => ({
+      ...repeat,
+      kind: 'transaction',
+      walletId: values.walletId,
+      categoryId: values.categoryId,
+      toWalletId: null,
+      amount: values.amount,
+      note: values.note,
+      excludeFromReport: values.excludeFromReport,
+      startOn: values.occurredOn,
+    })
+    let done = state.mode === 'create' ? 'transactions.created' : 'transactions.saved'
+    if (state.mode === 'rule' || state.mode === 'fixRule') {
+      // A rule stays a rule: "ไม่ทำซ้ำ" isn't offered on one (delete it instead).
+      this.recurringService.update(
+        state.id,
+        ruleValues(repeat ?? MONTHLY),
+        state.mode === 'fixRule' ? state.opId : null
+      )
+      done = 'recurring.saved'
+    } else if (state.mode === 'fix') {
       this.transactionService.save(state.id, values, state.opId, state.profileId)
+    } else if (state.mode === 'create' && state.occurrence) {
+      // Recurring rule 10: this month's bill, recorded as the due occurrence.
+      this.recurringService.confirm(state.occurrence.ruleId, state.occurrence.on, values)
+      done = 'recurring.confirmed'
+    } else if (state.mode === 'create' && repeat) {
+      this.recurringService.create(ruleValues(repeat))
+      done = 'recurring.created'
     } else {
       this.transactionService.save(this.editingId(), values)
     }
     if (state.mode === 'create') {
       this.transactionService.rememberType(value.type as CategoryType)
     }
-    toast.success(
-      this.transloco.translate(
-        state.mode === 'create' ? 'transactions.created' : 'transactions.saved'
-      )
-    )
+    toast.success(this.transloco.translate(done))
     if (addAnother && state.mode === 'create') {
       this.form.reset({ ...value, amount: '', note: '' })
       this.dirty.set(false)
@@ -990,6 +1222,17 @@ export class TransactionSheet {
   protected remove(): void {
     const id = this.editingId()
     if (!id) {
+      return
+    }
+    if (this.ruleMode()) {
+      this.recurringService.remove(id)
+      toast(this.transloco.translate('recurring.deleted'), {
+        action: {
+          label: this.transloco.translate('transactions.undo'),
+          onClick: () => this.recurringService.restore(id),
+        },
+      })
+      this.finish()
       return
     }
     this.transactionService.remove(id)
@@ -1057,6 +1300,14 @@ export class TransactionSheet {
     this.view.set('form')
     this.more.set(state.mode !== 'create' && this.startValues(state)?.excludeFromReport === true)
     this.dirty.set(false)
+    this.repeat.set(state.mode === 'create' && state.repeat ? MONTHLY : null)
+    if (state.mode === 'rule' || state.mode === 'fixRule') {
+      this.startRule(state)
+      return
+    }
+    if (state.mode === 'edit' && this.transactionService.byId(state.id)?.recurringId) {
+      this.more.set(true)
+    }
     if (state.mode === 'create') {
       const viewing = this.transactionService.viewWallet()
       const copied = state.values ?? null
@@ -1083,11 +1334,15 @@ export class TransactionSheet {
             : '',
         categoryId: copiedCategory && !copiedCategory.isArchived ? copiedCategory.id : '',
         note: copied?.note ?? '',
-        occurredOn: state.occurredOn ?? this.transactionService.today(),
+        occurredOn: state.occurrence?.on ?? state.occurredOn ?? this.transactionService.today(),
         excludeFromReport: copied?.excludeFromReport ?? false,
       })
       this.dropUnfit()
       this.keypad.set(true)
+      // The rules page's +: "ทำซ้ำ" shows set, under an open "เพิ่มเติม".
+      if (state.repeat) {
+        this.more.set(true)
+      }
       return
     }
     if (state.mode === 'fix') {
@@ -1115,6 +1370,46 @@ export class TransactionSheet {
       : state.mode === 'edit'
         ? this.transactionService.byId(state.id)
         : null
+  }
+
+  /** A rule in this sheet: its template in the form, its schedule in "ทำซ้ำ" (recurring.md). */
+  private startRule(state: Extract<TransactionSheetState, { mode: 'rule' | 'fixRule' }>): void {
+    const stored = this.recurringService.byId(state.id)
+    const refused = state.mode === 'fixRule' ? this.syncService.rejectedOp(state.opId)?.row : null
+    const source = refused ? toRuleRow(refused) : stored
+    if (!source) {
+      this.state.set(null)
+      return
+    }
+    this.startWalletId.set(null)
+    this.form.reset(
+      this.toForm({
+        walletId: source.walletId,
+        categoryId: source.categoryId ?? '',
+        amount: source.amount,
+        occurredOn: source.startOn,
+        note: source.note,
+        excludeFromReport: source.excludeFromReport,
+      })
+    )
+    this.repeat.set({
+      frequency: source.frequency,
+      interval: source.interval,
+      endOn: source.endOn,
+      endCount: source.endCount,
+      confirm: source.confirm,
+    })
+    this.more.set(true)
+    this.keypad.set(false)
+    if (refused) {
+      this.form.markAllAsTouched()
+      this.form.markAsDirty()
+      this.dirty.set(true)
+    }
+  }
+
+  private describe(repeat: RepeatValues, startOn: string): string {
+    return describeRepeat(repeat, startOn, this.t, this.languageService.locale())
   }
 
   private toForm(values: TransactionValues) {

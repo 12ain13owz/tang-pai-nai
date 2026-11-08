@@ -1,10 +1,11 @@
 import { computed, inject, Service, signal } from '@angular/core'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
-import type { LocalDatabase } from '@/core/offline'
+import type { LocalDatabase, SqlValue } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
 import { cleanHidden, findWallet, toWallet } from './hidden-categories'
 import {
   DEFAULT_CURRENCY,
+  RECURRING_TABLE,
   TRANSACTION_TABLE,
   TRANSFER_TABLE,
   WALLET_LIMITS,
@@ -171,6 +172,24 @@ export class WalletService {
     )
   }
 
+  /** Live recurring rules with the wallet on either side (recurring rules 14–15). */
+  ruleCount(id: string | null): number {
+    if (id === null) {
+      return 0
+    }
+    return this.read(
+      (db) =>
+        Number(
+          db.selectValue(
+            `SELECT count(*) FROM ${RECURRING_TABLE}
+             WHERE (wallet_id = ? OR to_wallet_id = ?) AND deleted_at IS NULL`,
+            [id, id]
+          )
+        ),
+      0
+    )
+  }
+
   /** Digits after the decimal point; 2 for a code the device doesn't know. */
   minorUnit(code: string): number {
     return this.currencies().find((currency) => currency.code === code)?.minorUnit ?? 2
@@ -188,7 +207,8 @@ export class WalletService {
 
   /** Rule 4: false once the wallet has transactions. */
   canChangeCurrency(id: string | null): boolean {
-    return !this.hasTransactions(id)
+    // Recurring rule 15: a live rule on either side fixes it too.
+    return !this.hasTransactions(id) && this.ruleCount(id) === 0
   }
 
   open(state: WalletSheetState): void {
@@ -318,6 +338,8 @@ export class WalletService {
       const current = this.find(db, id)
       if (current) {
         queueWrite(db, WALLET_TABLE, 'delete', { ...current, updatedAt: now, deletedAt: now })
+        // Recurring rule 14: its rules go with it, in the same write.
+        tombstoneRules(db, `wallet_id = ? OR to_wallet_id = ?`, [id, id], now)
       }
     })
   }
@@ -386,5 +408,26 @@ export class WalletService {
   private read<T>(work: (db: LocalDatabase) => T, fallback: T): T {
     this.offlineService.changes()
     return this.offlineService.isOpen() ? work(this.offlineService.db()) : fallback
+  }
+}
+
+/** Tombstones the live recurring rules matching `where` (a wallet or category deleted). */
+export const tombstoneRules = (
+  db: LocalDatabase,
+  where: string,
+  params: SqlValue[],
+  now: number
+): void => {
+  const rows = db.selectObjects(
+    `SELECT * FROM ${RECURRING_TABLE} WHERE (${where}) AND deleted_at IS NULL`,
+    params
+  )
+  for (const row of rows) {
+    queueWrite(db, RECURRING_TABLE, 'delete', {
+      ...fromSql(RECURRING_TABLE, row),
+      id: String(row['id']),
+      updatedAt: now,
+      deletedAt: now,
+    })
   }
 }

@@ -37,6 +37,12 @@ export default [
       import('./pages/categories-page/categories-page').then((m) => m.CategoriesPage),
   },
   {
+    path: 'recurring',
+    title: 'title.recurring',
+    loadComponent: async () =>
+      import('./pages/recurring-page/recurring-page').then((m) => m.RecurringPage),
+  },
+  {
     path: 'appearance',
     title: 'title.appearance',
     loadComponent: async () =>

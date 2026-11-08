@@ -25,6 +25,8 @@ const FIX_ROUTES: Readonly<Record<string, string>> = {
   [WALLET_TABLE]: '/wallets',
   transactions: '/transactions',
   transfers: '/transactions',
+  // The rule's sheet opens from the rules page, which reads its kind (recurring.md).
+  recurring_rules: '/account/recurring',
 }
 
 /**
@@ -268,9 +270,10 @@ export class SyncSheet {
     if (typeof title === 'string') {
       return title
     }
-    // A transfer: its two wallets and amount (and note).
-    if (typeof row['fromWalletId'] === 'string' && typeof row['toWalletId'] === 'string') {
-      const from = this.walletService.byId(row['fromWalletId'])
+    // A transfer (or a transfer recurring rule): its two wallets and amount (and note).
+    const fromId = row['kind'] === 'transfer' ? row['walletId'] : row['fromWalletId']
+    if (typeof fromId === 'string' && typeof row['toWalletId'] === 'string') {
+      const from = this.walletService.byId(fromId)
       const to = this.walletService.byId(row['toWalletId'])
       const minorUnit = this.walletService.minorUnit(from?.currencyCode ?? '')
       const parts = [

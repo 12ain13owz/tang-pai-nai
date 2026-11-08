@@ -13,6 +13,8 @@ export interface Transaction {
   /** `''` when empty. */
   note: string
   excludeFromReport: boolean
+  /** The recurring rule it is an occurrence of (docs/features/recurring.md); null otherwise. */
+  recurringId: string | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null
@@ -41,6 +43,8 @@ export interface Transfer {
   amount: number
   occurredOn: string
   note: string
+  /** The recurring rule it is an occurrence of; null otherwise. */
+  recurringId: string | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null
@@ -76,9 +80,18 @@ export interface TransferValues {
 
 /** Which transfer sheet is open. */
 export type TransferSheetState =
-  | { mode: 'create'; fromWalletId?: string; values?: TransferValues }
+  | {
+      mode: 'create'
+      fromWalletId?: string
+      values?: TransferValues
+      repeat?: boolean
+      occurrence?: { ruleId: string; on: string }
+    }
   | { mode: 'edit'; id: string }
   | { mode: 'fix'; opId: string; id: string; profileId: string; values: TransferValues }
+  /** A transfer recurring rule (docs/features/recurring.md → Web screens). */
+  | { mode: 'rule'; id: string }
+  | { mode: 'fixRule'; opId: string; id: string }
 
 /** What the transaction form edits. */
 export interface TransactionValues {
@@ -126,9 +139,17 @@ export type TransactionSheetState =
       /** "Copy" (8.2): the values to start from; the date still starts on today. */
       values?: TransactionValues
       type?: CategoryType
+      /** Start with "ทำซ้ำ" set to every month (the rules page's +, recurring.md). */
+      repeat?: boolean
+      /** A due occurrence of an ask-first rule, recorded by this save (recurring rule 10). */
+      occurrence?: { ruleId: string; on: string }
     }
   | { mode: 'edit'; id: string }
   | { mode: 'fix'; opId: string; id: string; profileId: string; values: TransactionValues }
+  /** A transaction recurring rule (docs/features/recurring.md → Web screens). */
+  | { mode: 'rule'; id: string }
+  /** "Fix" of a rejected recurring rule op, with the refused values. */
+  | { mode: 'fixRule'; opId: string; id: string }
 
 export const TRANSACTION_TABLE = 'transactions'
 export const TRANSFER_TABLE = 'transfers'

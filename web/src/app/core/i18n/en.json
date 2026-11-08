@@ -29,7 +29,8 @@
     "profiles": "Profiles",
     "categories": "Categories",
     "appearance": "Appearance",
-    "device": "This device"
+    "device": "This device",
+    "recurring": "Recurring"
   },
   "status": {
     "online": "Online",
@@ -397,7 +398,9 @@
       "settings": "Settings"
     },
     "quickAmounts": "Quick amount buttons",
-    "quickAmountsHint": "A row of 20 · 50 · 100 · 500 · 1,000 above the keypad when adding a transaction; each tap adds"
+    "quickAmountsHint": "A row of 20 · 50 · 100 · 500 · 1,000 above the keypad when adding a transaction; each tap adds",
+    "recurring": "Recurring",
+    "recurringHint": "{{count}} in {{name}}"
   },
   "auth": {
     "signInHeading": "Sign in",
@@ -640,7 +643,8 @@
     "serverDownWrite": "Can’t reach the server. This device isn’t set up for offline use, so saving waits until the server is back.",
     "withTransactions": "{{count}} transactions",
     "tabletransactions": "Transaction",
-    "tabletransfers": "Transfer"
+    "tabletransfers": "Transfer",
+    "tablerecurring_rules": "Recurring"
   },
   "colors": {
     "label": "Colour {{number}}"
@@ -694,7 +698,9 @@
     "deleteCategories": "{{count}} categories",
     "deleteTransaction": "1 transaction",
     "deleteTransactions": "{{count}} transactions",
-    "deleteTextWith": "Its {{items}} go with it. This can’t be undone."
+    "deleteTextWith": "Its {{items}} go with it. This can’t be undone.",
+    "deleteRule": "1 recurring rule",
+    "deleteRules": "{{count}} recurring rules"
   },
   "icons": {
     "lucideUser": "Person",
@@ -858,5 +864,106 @@
     "saved": "Changes saved",
     "copy": "Copy as a new transfer",
     "needsOnline": "This device isn't set up for offline use. Go online to save a transfer."
+  },
+  "recurring": {
+    "title": "Recurring",
+    "menu": "Recurring",
+    "repeat": "Repeat",
+    "none": "Don't repeat",
+    "fromRule": "From a recurring rule",
+    "start": "Starts",
+    "editHeading": "Edit recurring",
+    "fixHeading": "Fix a recurring rule that didn't save",
+    "unit": {
+      "day": "days",
+      "week": "weeks",
+      "month": "months",
+      "year": "years"
+    },
+    "preset": {
+      "day": "Every day",
+      "week": "Every week",
+      "month": "Every month",
+      "year": "Every year"
+    },
+    "every": {
+      "day": "Every day",
+      "week": "Every week on {{weekday}}",
+      "month": "Monthly on day {{day}}",
+      "year": "Yearly on {{date}}"
+    },
+    "everyN": {
+      "day": "Every {{n}} days",
+      "week": "Every {{n}} weeks on {{weekday}}",
+      "month": "Every {{n}} months on day {{day}}",
+      "year": "Every {{n}} years on {{date}}"
+    },
+    "custom": "Custom: every",
+    "customLabel": "How many {{unit}}",
+    "less": "Fewer",
+    "more": "More",
+    "end": "Ends",
+    "endNever": "Never",
+    "endOn": "On a date",
+    "endCount": "After {{n}} times",
+    "endOnText": "Until {{date}}",
+    "endCountText": "{{n}} times",
+    "endCountLabel": "Number of times",
+    "lastOne": "Last one {{date}}",
+    "progress": "{{done}} of {{n}} times",
+    "when": "When it's due",
+    "auto": "Record it by itself",
+    "autoHint": "e.g. rent or salary, the same amount each time",
+    "ask": "Ask me first",
+    "askHint": "e.g. electricity or water, the amount changes each month",
+    "askTag": "Ask first",
+    "shortMonth": "Months without day {{day}} use their last day: {{dates}}",
+    "nextLine": "Next {{date}}",
+    "nextNow": "Next {{date}} · the {{first}} one is recorded now",
+    "recordedLine": "Recorded {{count}} times",
+    "editNote": "Changes apply from the next one; recorded transactions stay as they are",
+    "next": "Next {{date}}",
+    "dueOn": "Due {{date}}",
+    "ended": "Ended",
+    "paused": "Paused",
+    "stoppedWallet": "Wallet \"{{name}}\" is archived",
+    "stoppedCategory": "Category \"{{name}}\" is archived",
+    "groupActive": "Active ({{count}})",
+    "groupPaused": "Paused ({{count}})",
+    "groupEnded": "Ended ({{count}})",
+    "add": "Add recurring",
+    "emptyHeading": "No recurring yet",
+    "emptyText": "Set \"Repeat\" under \"More\" in the transaction form, or in the transfer form",
+    "limit": "A profile holds at most 100 recurring rules",
+    "transferTitle": "Transfer {{from}} → {{to}}",
+    "pause": "Pause",
+    "resume": "Resume",
+    "paused2": "Recurring paused",
+    "resumed": "Recurring resumed",
+    "delete": "Delete recurring",
+    "deleted": "Recurring deleted; recorded transactions stay",
+    "created": "Recurring saved",
+    "saved": "Changes saved",
+    "recorded": "Recorded {{count}} recurring",
+    "view": "View",
+    "due": "{{count}} due",
+    "dueHeading": "Due",
+    "dueHint": "Tap one to change the amount or the date before recording it",
+    "confirm": "Record",
+    "skip": "Skip",
+    "confirmAll": "Record all ({{count}})",
+    "confirmed": "Recorded",
+    "skipped": "Skipped this one",
+    "allConfirmed": "Recorded {{count}}",
+    "notRecorded": "Not recorded yet",
+    "upcoming": "Recurring, not recorded yet",
+    "deleteLine": "{{count}} recurring rules using this {{what}} are deleted too",
+    "whatWallet": "wallet",
+    "whatCategory": "category",
+    "hint": {
+      "week": "On {{weekday}}",
+      "month": "On day {{day}}",
+      "year": "On {{date}}"
+    }
   }
 }

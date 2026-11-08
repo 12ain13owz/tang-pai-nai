@@ -6,19 +6,36 @@ import {
   effect,
   inject,
   linkedSignal,
+  signal,
   viewChild,
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideArrowLeftRight, lucideCloud, lucideReceiptText } from '@ng-icons/lucide'
+import {
+  lucideArrowLeftRight,
+  lucideBell,
+  lucideChevronRight,
+  lucideCloud,
+  lucideReceiptText,
+  lucideRepeat,
+} from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { CATEGORY_DEFAULT_ICON } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
-import { periodLabel, signedAmount, TransactionService, TransferService } from '@/core/transaction'
+import { RecurringService, shortDate } from '@/core/recurring'
+import type { Occurrence } from '@/core/recurring'
+import {
+  FUTURE,
+  periodLabel,
+  signedAmount,
+  TransactionService,
+  TransferService,
+} from '@/core/transaction'
 import type { EntryItem, PeriodTab } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
+import { DueSheet } from '@/features/transactions/components/due-sheet'
 import { EmptyState } from '@/shared/components/empty-state'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
@@ -46,6 +63,15 @@ interface DayGroup {
     wallet: { icon: string; color: string; name: string } | null
     pending: boolean
   }[]
+  /** Recurring occurrences still to come (recurring rule 17): shown, never counted. */
+  upcoming: {
+    occurrence: Occurrence
+    title: string
+    sub: string
+    amount: string
+    positive: boolean
+    wallet: { icon: string; color: string; name: string } | null
+  }[]
 }
 
 /**
@@ -56,8 +82,17 @@ interface DayGroup {
  */
 @Component({
   selector: 'app-transactions-page',
-  imports: [TranslocoPipe, NgIcon, HlmButton, EmptyState, IconBadge, PeriodStrip, Swipe],
-  providers: [provideIcons({ lucideArrowLeftRight, lucideCloud, lucideReceiptText })],
+  imports: [TranslocoPipe, NgIcon, HlmButton, EmptyState, IconBadge, PeriodStrip, Swipe, DueSheet],
+  providers: [
+    provideIcons({
+      lucideArrowLeftRight,
+      lucideBell,
+      lucideChevronRight,
+      lucideCloud,
+      lucideReceiptText,
+      lucideRepeat,
+    }),
+  ],
   host: { class: 'flex flex-col' },
   template: `
     <div class="flex flex-col items-center px-4 pt-1 pb-2 text-center">
@@ -83,6 +118,33 @@ interface DayGroup {
       (chosen)="choose($event)"
     />
     <div class="flex flex-col gap-3 px-4 pt-1 pb-4" appSwipe (swiped)="move($event)">
+      @if (due(); as due) {
+        <!-- Ask-first recurring rules that are due (recurring rule 10), in every period. -->
+        <button
+          type="button"
+          class="flex min-h-14 items-center gap-3 rounded-xl border border-brand/30 bg-brand/10 px-3 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          aria-haspopup="dialog"
+          (click)="dueOpen.set(true)"
+        >
+          <span
+            class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-background"
+          >
+            <ng-icon name="lucideBell" size="18" aria-hidden="true" />
+          </span>
+          <span class="flex min-w-0 flex-1 flex-col">
+            <span class="text-base font-semibold">
+              {{ 'recurring.due' | transloco: { count: due.count } }}
+            </span>
+            <span class="truncate text-sm text-muted-foreground">{{ due.text }}</span>
+          </span>
+          <ng-icon
+            name="lucideChevronRight"
+            size="18"
+            class="text-muted-foreground"
+            aria-hidden="true"
+          />
+        </button>
+      }
       @for (line of summary(); track line.currencyCode) {
         <section
           class="grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl border border-border bg-card px-4 py-3"
@@ -170,17 +232,38 @@ interface DayGroup {
                   </span>
                   <span class="flex min-w-0 flex-1 flex-col">
                     @if (row.item.kind === 'transfer') {
-                      <span class="truncate text-base font-semibold">{{
-                        'transfers.title' | transloco
-                      }}</span>
+                      <span class="flex min-w-0 items-center gap-1">
+                        <span class="truncate text-base font-semibold">{{
+                          'transfers.title' | transloco
+                        }}</span>
+                        @if (row.item.recurringId) {
+                          <ng-icon
+                            name="lucideRepeat"
+                            size="13"
+                            class="shrink-0 text-muted-foreground"
+                            [attr.aria-label]="'recurring.fromRule' | transloco"
+                          />
+                        }
+                      </span>
                       <span class="truncate text-sm text-muted-foreground">{{
                         (row.item.side === 'out' ? 'transfers.toWallet' : 'transfers.fromWallet')
                           | transloco: { name: row.item.otherWalletName }
                       }}</span>
                     } @else {
-                      <span class="truncate text-base font-semibold">{{
-                        row.item.categoryName
-                      }}</span>
+                      <span class="flex min-w-0 items-center gap-1">
+                        <span class="truncate text-base font-semibold">{{
+                          row.item.categoryName
+                        }}</span>
+                        @if (row.item.recurringId) {
+                          <!-- An occurrence of a recurring rule (recurring rule 11). -->
+                          <ng-icon
+                            name="lucideRepeat"
+                            size="13"
+                            class="shrink-0 text-muted-foreground"
+                            [attr.aria-label]="'recurring.fromRule' | transloco"
+                          />
+                        }
+                      </span>
                     }
                     @if (row.wallet; as wallet) {
                       <span class="sr-only">{{ wallet.name }}</span>
@@ -196,6 +279,57 @@ interface DayGroup {
                         {{ 'transactions.pending' | transloco }}
                       </span>
                     }
+                  </span>
+                  <span
+                    class="shrink-0 text-right text-base tabular-nums"
+                    [class.text-income]="row.positive"
+                    [class.text-expense]="!row.positive"
+                  >
+                    {{ row.amount }}
+                  </span>
+                </button>
+              </li>
+            }
+            @for (row of group.upcoming; track row.occurrence.id) {
+              <li>
+                <!-- Not recorded yet (recurring rule 17): faded, a dashed badge, opens its rule. -->
+                <button
+                  type="button"
+                  class="flex min-h-15 w-full items-center gap-3 px-4 py-2.5 text-left opacity-65 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                  (click)="recurringService.open(row.occurrence.item.rule.id)"
+                >
+                  <span
+                    class="relative shrink-0 rounded-full outline-[1.5px] outline-offset-2 outline-muted-foreground outline-dashed"
+                  >
+                    @if (row.occurrence.item.rule.kind === 'transfer') {
+                      <span
+                        class="flex size-10 items-center justify-center rounded-full bg-muted text-foreground"
+                      >
+                        <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
+                      </span>
+                    } @else {
+                      <app-icon-badge
+                        [icon]="row.occurrence.item.icon"
+                        [color]="row.occurrence.item.color"
+                        [fallback]="categoryIcon"
+                      />
+                    }
+                    @if (row.wallet; as wallet) {
+                      <app-icon-badge
+                        class="absolute -right-1 -bottom-1 rounded-full ring-2 ring-card"
+                        [icon]="wallet.icon"
+                        [color]="wallet.color"
+                        [fallback]="walletIcon"
+                        [size]="20"
+                      />
+                    }
+                  </span>
+                  <span class="flex min-w-0 flex-1 flex-col">
+                    <span class="truncate text-base font-semibold">{{ row.title }}</span>
+                    <span class="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+                      <ng-icon name="lucideRepeat" size="13" class="shrink-0" aria-hidden="true" />
+                      <span class="truncate">{{ row.sub }}</span>
+                    </span>
                   </span>
                   <span
                     class="shrink-0 text-right text-base tabular-nums"
@@ -230,11 +364,32 @@ interface DayGroup {
         <div #more class="h-px" aria-hidden="true"></div>
       }
     </div>
+    @defer (when dueOpen()) {
+      <app-due-sheet [(open)]="dueOpen" />
+    }
   `,
 })
 export class TransactionsPage {
   protected transactionService = inject(TransactionService)
   private transferService = inject(TransferService)
+  protected recurringService = inject(RecurringService)
+  protected dueOpen = signal(false)
+  /** The "ถึงกำหนด" card: how many are due and which (recurring rule 10). */
+  protected due = computed(() => {
+    this.languageService.language()
+    const due = this.recurringService.due()
+    if (due.length === 0) {
+      return null
+    }
+    const locale = this.languageService.locale()
+    const text = due
+      .slice(0, 3)
+      .map(
+        (occurrence) => `${this.ruleTitle(occurrence)} ${shortDate(occurrence.on, locale, false)}`
+      )
+      .join(' · ')
+    return { count: due.length, text }
+  })
   private walletService = inject(WalletService)
   private languageService = inject(LanguageService)
   private transloco = inject(TranslocoService)
@@ -317,24 +472,28 @@ export class TransactionsPage {
     const weekday = new Intl.DateTimeFormat(locale, { weekday: 'long' })
     const monthYear = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' })
     const groups: DayGroup[] = []
+    const newGroup = (day: string): DayGroup => {
+      const date = fromDay(day)
+      return {
+        day,
+        number: day.slice(8, 10),
+        title:
+          day === today
+            ? this.transloco.translate('transactions.today')
+            : day === addDays(today, -1)
+              ? this.transloco.translate('transactions.yesterday')
+              : weekday.format(date),
+        subtitle: monthYear.format(date),
+        total: '',
+        totalSign: 0,
+        items: [],
+        upcoming: [],
+      }
+    }
     for (const item of items) {
       let group = groups.at(-1)
       if (group?.day !== item.occurredOn) {
-        const date = fromDay(item.occurredOn)
-        group = {
-          day: item.occurredOn,
-          number: item.occurredOn.slice(8, 10),
-          title:
-            item.occurredOn === today
-              ? this.transloco.translate('transactions.today')
-              : item.occurredOn === addDays(today, -1)
-                ? this.transloco.translate('transactions.yesterday')
-                : weekday.format(date),
-          subtitle: monthYear.format(date),
-          total: '',
-          totalSign: 0,
-          items: [],
-        }
+        group = newGroup(item.occurredOn)
         groups.push(group)
       }
       const wallet = showWallet ? wallets.get(item.walletId) : undefined
@@ -370,8 +529,51 @@ export class TransactionsPage {
       const sums = daySums.get(group.day) ?? new Map<string, number>()
       group.total = [...sums.entries()].map(([code, sum]) => money(sum, code)).join(' · ')
     }
-    return groups
+    // Recurring rule 17: "อนาคต" shows what the rules will record, beside the stored rows.
+    if (this.transactionService.tab() !== FUTURE) {
+      return groups
+    }
+    const walletIds = this.transactionService.viewWalletIds()
+    const upcoming = this.recurringService.upcoming(this.transactionService.range(), walletIds)
+    const byDay = new Map(groups.map((group) => [group.day, group]))
+    for (const occurrence of upcoming) {
+      const { item } = occurrence
+      let group = byDay.get(occurrence.on)
+      if (!group) {
+        group = newGroup(occurrence.on)
+        byDay.set(occurrence.on, group)
+        groups.push(group)
+      }
+      const transfer = item.rule.kind === 'transfer'
+      // A transfer's side in view: the money leaving, unless only the wallet it goes to shows.
+      const incoming = transfer && !walletIds.includes(item.rule.walletId)
+      const sign = transfer ? (incoming ? 1 : -1) : item.sign
+      const minorUnit = this.walletService.minorUnit(item.currencyCode)
+      const shownWallet = incoming ? item.rule.toWalletId : item.rule.walletId
+      const wallet = showWallet && shownWallet ? wallets.get(shownWallet) : undefined
+      group.upcoming.push({
+        occurrence,
+        title: transfer ? this.transloco.translate('transfers.title') : item.title,
+        sub: [
+          transfer ? `${item.walletName} → ${item.toWalletName}` : item.rule.note,
+          this.transloco.translate('recurring.notRecorded'),
+        ]
+          .filter((part) => part)
+          .join(' · '),
+        amount: mixed
+          ? formatMoney(sign * item.rule.amount, item.currencyCode, minorUnit, locale)
+          : formatAmount(sign * item.rule.amount, minorUnit, locale, true),
+        positive: sign > 0,
+        wallet: wallet ? { icon: wallet.icon, color: wallet.color, name: wallet.name } : null,
+      })
+    }
+    return groups.sort((a, b) => b.day.localeCompare(a.day))
   })
+
+  private ruleTitle(occurrence: Occurrence): string {
+    const { item } = occurrence
+    return item.rule.kind === 'transfer' ? this.transloco.translate('transfers.title') : item.title
+  }
 
   constructor() {
     // Draw the next page once the end of the list comes near.
