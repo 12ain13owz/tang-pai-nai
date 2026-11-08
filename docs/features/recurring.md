@@ -1,7 +1,6 @@
 # Recurring transactions
 
-> Status: **Spec, draft round 1** (#12): every rule below marked _(proposal)_ waits on the
-> owner's answer in Open questions. Mock-up: [mockups/recurring.html](mockups/recurring.html).
+> Status: **Spec, agreed** (#12): the owner took every proposal of round 1 (Open questions). Mock-up: [mockups/recurring.html](mockups/recurring.html).
 > Builds on [transaction.md](transaction.md), [transfer.md](transfer.md) and
 > [offline-sync.md](offline-sync.md).
 
@@ -27,7 +26,7 @@ any other. Occurrences still to come show as "not recorded yet" so the month ahe
 
 ## Data model
 
-`api/src/core/database/schema/recurring.ts` _(proposal, Q9)_
+`api/src/core/database/schema/recurring.ts`
 
 - **recurring_rules** (synced, like `transactions`): `id` (UUIDv7 from the device), `userId`,
   `profileId` (FK profiles, cascade), `kind` (`transaction` | `transfer`),
@@ -51,7 +50,7 @@ any other. Occurrences still to come show as "not recorded yet" so the month ahe
   `PROFILE_CHILD_TABLES`) with (`profile_id`), (`wallet_id`), (`category_id`),
   (`to_wallet_id`), and `recurring_id` columns on `transactions` / `transfers` (an
   `ALTER TABLE` step with a `NULL` default).
-- **An occurrence's id is deterministic** _(proposal, Q2)_: a UUID (version 8) made from a
+- **An occurrence's id is deterministic** (Q2): a UUID (version 8) made from a
   SHA-256 of `ruleId + ':' + date`. Two devices that record the same occurrence produce the
   **same row**, never two.
 
@@ -67,12 +66,12 @@ and one list, one sheet and one sweep serve both.
    profile is the owner's live profile and never changes; `walletId` (and `toWalletId`) are the
    owner's live wallets of that profile, `toWalletId` ≠ `walletId` with the same currency; a
    transaction rule's `categoryId` is the owner's live category of that profile; at most
-   **100** live rules per profile _(proposal)_.
+   **100** live rules per profile.
 2. **Fields** follow the occurrence they make: amount as transaction rule 3, note rule 6,
    `startOn` as rule 4 (2000-01-01 to a year after today), `endOn` ≥ `startOn`, `interval`
    1–99, `endCount` 1–999. Validation: `kind` decides which of `categoryId` / `toWalletId` is
    set.
-3. **The schedule** _(proposal, Q3)_: occurrence _k_ (0, 1, 2, …) is `startOn` + _k_ ×
+3. **The schedule** (Q3): occurrence _k_ (0, 1, 2, …) is `startOn` + _k_ ×
    `interval` units. Always counted from `startOn`, never from the previous occurrence, so:
    - **month / year on the 29th–31st**: a month without that day uses its **last day**
      (31 → 30 Nov, 28 or 29 Feb), and the next month goes back to the 31st; 29 Feb yearly is
@@ -81,7 +80,7 @@ and one list, one sheet and one sweep serve both.
    - **End**: none, the last occurrence on or before `endOn`, or after `endCount` occurrences
      (counted from `startOn`, recorded or skipped alike). The rule then **ends** (`nextOn` =
      `null`) and moves to "สิ้นสุดแล้ว".
-4. **Editing a rule** _(proposal, Q6)_ changes only occurrences **not recorded yet**: recorded
+4. **Editing a rule** (Q6) changes only occurrences **not recorded yet**: recorded
    ones are ordinary rows and stay as they are. A changed schedule (start, frequency, interval)
    sets `nextOn` to the new schedule's first date **on or after today**; nothing is recorded
    backwards. Changing `startOn` into the past therefore records nothing before today.
@@ -90,7 +89,7 @@ and one list, one sheet and one sweep serve both.
 6. **Delete** is a tombstone with undo in the toast. Recorded occurrences stay (their
    `recurringId` points at the tombstone; the "จากรายการซ้ำ" line hides).
 
-**Recording occurrences** _(proposal, Q1–Q2)_
+**Recording occurrences** (Q1–Q2)
 
 7. **The device records them** (Q1, choice ก): whenever the app is unlocked or the shell opens
    (after the first sync round, or at once while offline / the server doesn't answer), when the
@@ -134,7 +133,7 @@ and one list, one sheet and one sweep serve both.
     "บันทึกรายการซ้ำ n รายการ" with "ดู" (the rules page). Rows from a rule carry a small ↻ after
     the category name.
 
-**Wallets and categories** _(proposal, Q7)_
+**Wallets and categories** (Q7)
 
 12. **Archived** wallet (either side) or category: the rule **stops by itself** while it is
     archived (no occurrence is recorded; `nextOn` moves on, nothing is caught up), shown under
@@ -156,7 +155,7 @@ and one list, one sheet and one sweep serve both.
 **Upcoming**
 
 17. Occurrences not recorded yet are **projected** on the fly, never stored: the Transactions
-    tab's **"อนาคต"** shows those of the next **3 months** _(proposal, Q8)_ beside the stored
+    tab's **"อนาคต"** shows those of the next **3 months** (Q8) beside the stored
     future rows, faded with a dashed badge and "ยังไม่บันทึก". They count in **no** total, sum,
     balance or report (only recorded rows are money). Tapping one opens its rule.
 
@@ -182,7 +181,7 @@ Mock-up: [mockups/recurring.html](mockups/recurring.html) (frame numbers below).
   weekday) / ทุกเดือน (its day) / ทุกปี (its day and month) / กำหนดเอง ทุก n วัน·สัปดาห์·เดือน·ปี;
   "สิ้นสุด": ไม่สิ้นสุด / ถึงวันที่ / ครบ n ครั้ง; "เมื่อถึงกำหนด": บันทึกให้อัตโนมัติ / ถามก่อนบันทึก.
   Back on the form the date row reads "เริ่ม", the row shows the rule, and a line says the next
-  date. Only when adding; "save and add another" hides while "ทำซ้ำ" is set _(proposal)_. The
+  date. Only when adding; "save and add another" hides while "ทำซ้ำ" is set. The
   29th–31st get a line on short months (4).
 - **Transfer form**: the same row and view, if transfers repeat (Q4).
 - **Rules page** (5, 7) Account › ข้อมูลของฉัน › **"รายการซ้ำ"**, also from the ⋮ menu (11):
@@ -200,7 +199,7 @@ Mock-up: [mockups/recurring.html](mockups/recurring.html) (frame numbers below).
 - **Sync sheet**: a refused rule reads "รายการซ้ำ: ค่าเช่า · 8,500.00 · ทุกเดือน"; "แก้" opens
   the rule sheet (`FIX_ROUTES`).
 
-Glossary _(proposal)_: รายการซ้ำ / Recurring, ทำซ้ำ / Repeat, ถึงกำหนด / Due, ข้าม / Skip,
+Glossary: รายการซ้ำ / Recurring, ทำซ้ำ / Repeat, ถึงกำหนด / Due, ข้าม / Skip,
 หยุดชั่วคราว / Pause.
 
 ## Interactions
@@ -214,25 +213,29 @@ Glossary _(proposal)_: รายการซ้ำ / Recurring, ทำซ้ำ 
 
 ## Open questions
 
-Round 1, to settle with the owner (proposal first):
+**Settled at the start of #12** (owner: "ตามเสนอ", every proposal of round 1 of the mock-up):
 
-- **Q1 How a due occurrence appears.** ก _(proposal)_: the device records it when the app
+- **Q1 How a due occurrence appears.** ก (chosen): the device records it when the app
   opens (rule 7), and each rule chooses **"บันทึกให้อัตโนมัติ"** (default) or **"ถามก่อน
   บันทึก"** (a due card to confirm or skip, for bills whose amount changes; Money Lover has
   both: recurring transactions and bills). ข: always ask (Money Lover's bills only). ค: always
   automatic. A server job (after #17) is not an option: it can't reach an offline device and
   doesn't exist before deploy.
-- **Q2 Two devices.** _(proposal)_ deterministic occurrence ids + the server keeping its row for
+- **Q2 Two devices.** deterministic occurrence ids + the server keeping its row for
   a second create, silently (rule 9); the rule's `nextOn` only moves forward.
-- **Q3 Schedule.** _(proposal)_ day / week / month / year with "every n"; the 31st → the
+- **Q3 Schedule.** day / week / month / year with "every n"; the 31st → the
   month's last day; end by date or count; no "several weekdays" (Out of scope).
-- **Q4 Transfers.** _(proposal)_ yes, the same rule table (`kind`), from the transfer form.
-- **Q5 Where.** _(proposal)_ the form row under เพิ่มเติม, Account › รายการซ้ำ + the ⋮ menu
+- **Q4 Transfers.** yes, the same rule table (`kind`), from the transfer form.
+- **Q5 Where.** the form row under เพิ่มเติม, Account › รายการซ้ำ + the ⋮ menu
   row, the due card on the Transactions tab, projected rows in "อนาคต".
-- **Q6 Editing.** _(proposal)_ a rule edit changes what isn't recorded yet; a recorded
+- **Q6 Editing.** a rule edit changes what isn't recorded yet; a recorded
   occurrence is edited or deleted like any row (delete = skip); a due one can be edited before
   it is recorded (rule 10); no edit of a single future occurrence ahead of time.
-- **Q7 Archived / merged / deleted.** _(proposal)_ archived → stops by itself (no catch-up);
+- **Q7 Archived / merged / deleted.** archived → stops by itself (no catch-up);
   merged → follows; deleted → its rules go too; currency and type locked by live rules.
-- **Q8 Upcoming horizon.** _(proposal)_ 3 months in "อนาคต"; not in "เดือนนี้" (its days after
+- **Q8 Upcoming horizon.** 3 months in "อนาคต"; not in "เดือนนี้" (its days after
   today) and never in totals.
+- **Extras** (also proposed and taken): the toast after a pass, "save and add another"
+  hidden while "ทำซ้ำ" is set, at most 100 live rules per profile. **Not** taken in round 1
+  (offered as options): a projected-total line on the "อนาคต" summary card, and "make this
+  repeat" on an existing transaction (a copy with "ทำซ้ำ" does the same).
