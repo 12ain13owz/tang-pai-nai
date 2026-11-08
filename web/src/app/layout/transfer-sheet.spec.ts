@@ -234,7 +234,7 @@ describe('TransferSheet', () => {
     await open({ mode: 'edit', id: 'r1' })
     expect(text()).toContain(th.transfers.editHeading)
     expect(body().querySelector('[role="group"]')).toBeNull()
-    expect(text()).toContain('1000')
+    expect(text()).toContain('1,000')
     await click(th.transfers.delete)
     expect(getRow(db, 'transfers', 'r1')?.['deletedAt']).not.toBeNull()
     expect(toastState.toasts().at(0)?.title).toBe(th.transfers.deleted)

@@ -1,4 +1,4 @@
-import { addQuickAmount, evaluate, hasOperator, pressKey } from './calc'
+import { addQuickAmount, evaluate, groupExpression, hasOperator, pressKey } from './calc'
 import type { CalcKey } from './calc'
 
 const type = (keys: CalcKey[], minorUnit = 2) =>
@@ -46,6 +46,17 @@ describe('evaluate', () => {
     expect(evaluate('', 2)).toEqual({ ok: true, minor: 0 })
     expect(evaluate('7÷0', 2)).toEqual({ ok: false, error: 'divide' })
     expect(evaluate('9999999999999999×9999', 2)).toEqual({ ok: false, error: 'format' })
+  })
+})
+
+describe('groupExpression', () => {
+  it('groups each whole number in thousands, leaving the decimals as typed', () => {
+    expect(groupExpression('8500', 'th-TH-u-ca-gregory')).toBe('8,500')
+    expect(groupExpression('8500+1200.5', 'en-GB')).toBe('8,500+1,200.5')
+    expect(groupExpression('1234567.12345×3', 'en-GB')).toBe('1,234,567.12345×3')
+    expect(groupExpression('-120÷1000', 'en-GB')).toBe('-120÷1,000')
+    expect(groupExpression('0.0005', 'en-GB')).toBe('0.0005')
+    expect(groupExpression('', 'en-GB')).toBe('')
   })
 })
 

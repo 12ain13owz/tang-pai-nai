@@ -116,8 +116,10 @@ Known, for later:
 - The initial bundle is 716.8 kB after #12 (warning at 750 kB); keep new screens lazy and their
   services out of the shell (#12 loads `RecurringService` with a dynamic `import()` after the
   shell's first render).
-- Amounts typed on the keypad show without grouping (`8500`); grouping while typing (display
-  only) is the owner's next small change after #12, its own PR.
+- **Done after #12** (owner's ask, its own PR): the keypad's amount row shows each number
+  grouped in thousands while typing (`8,500+1,000`, decimals as typed); the form still holds
+  `8500` (`groupExpression` in `shared/utils/calc.ts`). A long expression is cut at its end
+  (`8,500+1,000+1,2…`) as before, the result line under it in full. Initial bundle 717.1 kB.
 - Headless Chromium breaks some Thai lines inside a word ("บัน/ทึก"); the app's older notices do
   the same, so it's the test browser's line breaking, not our markup.
 

@@ -195,7 +195,9 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
   - then **one card of rows told apart by icons, no labels above them** (screen-reader labels
     stay): wallet (opens a picker view; starts on the wallet the tab shows, else the last one
     used here, else the first open one; editing offers only the row's currency), amount
-    (`app-calc-amount-field`: the currency code, the expression large and its result), category
+    (`app-calc-amount-field`: the currency code, the expression large with each number grouped
+    in thousands for display, `8,500+1,000`, while the form holds `8500+1000` (after #12), and
+    its result), category
     (opens the picker view: the chosen wallet's open, non-hidden categories of the type,
     children in their parent's tinted panel; a type with none left says so and opens the
     wallet's "หมวดหมู่ที่ใช้" over the form, category rule 13; switching type or wallet drops a
