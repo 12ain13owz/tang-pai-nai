@@ -1,8 +1,12 @@
 # Debt / loan
 
-> Status: **Spec, agreed** (#13; the owner took every proposal of round 1: "ตามเสนอ", Open
-> questions Q1–Q12). Mock-up: [mockups/debt.html](mockups/debt.html) (frame numbers below).
-> Builds on [transaction.md](transaction.md), [transfer.md](transfer.md),
+> Status: **Built** (#13; Open questions: what the owner settled). API: `api/src/features/debt/`
+> (two sync handlers), `api/src/core/database/debt-link.ts` (a row's `debtId`, read by the
+> transaction and recurring handlers too). Web: `core/debt` (`DebtService`),
+> `core/wallet/debt-tables.ts` (the tables and their SQL, read by name by wallets, categories,
+> transactions, recurring rules and reports), `features/debts` (the pages under
+> `/wallets/debts` and their sheets). Mock-up: [mockups/debt.html](mockups/debt.html) (frame
+> numbers below). Builds on [transaction.md](transaction.md), [transfer.md](transfer.md),
 > [recurring.md](recurring.md) and [offline-sync.md](offline-sync.md).
 
 ## Purpose
@@ -26,7 +30,8 @@ it is repaid, chosen per debt (Q1).
 
 ## Data model
 
-Proposal (Q2): two tables of their own plus one column on `transactions`.
+`api/src/core/database/schema/debt.ts`. Two tables of their own (Q2) plus a column on
+`transactions` and on `recurring_rules`.
 
 - **debts** (synced): `id` (UUIDv7 from the device), `userId`, `profileId` (FK profiles,
   cascade), `direction` (`borrowed` | `lent`), `person` (1–50 characters: who or where, "แม่",
@@ -45,20 +50,19 @@ Proposal (Q2): two tables of their own plus one column on `transactions`.
   `recurringId` (a repayment recorded by a rule, Q7), plus the sync columns.
 - **transactions.debtId** (nullable text, no FK, like `recurringId`): a counted transaction that
   belongs to a debt: an instalment of a `repaid` debt, interest, or a forgiven remainder (Q4–Q6).
-- **recurring_rules.debtId** (nullable) and a new rule `kind` `debt` (Q7).
+- **recurring_rules.debtId** (nullable text, no FK: SQLite can't add one with a cascade to a table
+  that exists, and the device deletes a debt's rules with it) and a new rule `kind` `debt` (Q7).
 - Server indexes: the sync pair, (`profileId`), (`walletId`), (`debtId`), (`categoryId`).
   Device: (`profile_id`), (`debt_id`), (`wallet_id`) on `debt_entries`; (`debt_id`) on
   `transactions` (a partial index `WHERE debt_id IS NOT NULL`).
 
 **What is left** of a debt = Σ `principal` − Σ `repayment` − Σ amount of its linked transactions
-that **settle** it. Which linked transactions settle (no extra column; the category's type and
-the debt's direction and `countAs` decide, all of them locked once used):
-
-| Debt                | Linked expense                       | Linked income                    |
-| ------------------- | ------------------------------------ | -------------------------------- |
-| borrowed, `spent`   | interest (doesn't settle)            | forgiven by the lender (settles) |
-| borrowed, `repaid`  | an instalment (settles)              | not used (forgiven: rule 4)      |
-| lent (always spent) | written off, not paid back (settles) | interest received (doesn't)      |
+that **settle** it. Only an **instalment of a `repaid` debt** (a linked expense) settles it
+(decided while building: see rule 4). The other linked transactions are counted money that
+leaves what is left alone: **interest** (a borrowed debt's expense, a lent debt's income) and a
+**forgiven rest**'s transaction (a lent debt's expense, a borrowed `spent` debt's income), whose
+repayment entry settles the debt. No extra column: the category's type and the debt's direction
+and `countAs` tell them apart, all locked once used.
 
 ## Business rules
 
@@ -85,10 +89,14 @@ the debt's direction and `countAs` decide, all of them locked once used):
 4. **Closed** = nothing left (Q6): a debt whose left amount is 0 shows under "ปิดแล้ว", dated
    by its last row. More `principal` reopens it by itself; less than 0 reads "จ่ายเกิน" and stays
    open. "ปิดหนี้" with something left writes either the last repayment (the rest, into a
-   wallet) or a **forgiven remainder**: a counted transaction dated today, an expense for a lent
-   debt (the money left the wallet uncounted, so it counts now, once), an income for a borrowed
-   `spent` debt (forgiven by the lender). A `repaid` debt forgiven writes an uncounted
-   `repayment` with no wallet (its purchase was never counted).
+   wallet) or a **forgiven rest**: **two rows in one wallet** (decided while building, owner
+   confirmed), both noted "ยกหนี้": a `repayment` entry of the rest (uncounted, it settles the
+   debt) and a counted transaction of the same amount in the chosen category, an expense for a
+   lent debt (the money left the wallet uncounted, so it counts now, once), an income for a
+   borrowed `spent` debt (forgiven by the lender). The wallet doesn't move; a single counted row
+   would have taken the money out of the wallet a second time. The wallet is the one the debt
+   used last. A `repaid` debt forgiven writes an uncounted `repayment` with no wallet (its
+   purchase was never counted).
 5. **Delete** (Q11) asks first (no undo: wallet balances change on every device): the debt and
    its entries become tombstones in one write; its linked transactions **stay** as ordinary rows
    (`debtId` points at the tombstone, the link hides); its rules go (recurring rule 14).
@@ -122,21 +130,32 @@ the debt's direction and `countAs` decide, all of them locked once used):
 
 **Instalments** (Q7)
 
-13. The debt form may set **"ผ่อนเป็นงวด"**: n instalments × amount, a schedule and a wallet. It
-    writes a **recurring rule** (`endCount` = n) in the same write as the debt: a `repaid`
+13. The debt form may set **"ผ่อนเป็นงวด"** (when adding only): n instalments × amount (the
+    total split evenly to start), **every month** from the first one (built monthly only; the
+    owner confirmed), a wallet, and "บันทึกให้อัตโนมัติ" / "ถามก่อนบันทึก". It writes a
+    **recurring rule** (`endCount` = n) right after the debt: a `repaid`
     debt's rule is `kind` `transaction` with `debtId` (each occurrence an expense in its
     category), a `spent` debt's is the new `kind` `debt` (each occurrence a `repayment` entry
     with a deterministic id, recurring rule 9). Due / ask-first / skip / upcoming work as in #12.
-14. A rule whose debt is closed or deleted stops (recurring rule 12's "stopped", reason "หนี้ปิด
-    แล้ว"); it records again if the debt reopens.
+14. A rule whose debt is closed stops (recurring rule 12's "stopped", reason "หนี้ … ปิดแล้ว",
+    nothing caught up); it records again if the debt reopens. A deleted debt's rules are
+    tombstoned with it (rule 5), and a device that pulls a debt tombstone tombstones its rules.
+    A `debt` rule is edited on its debt's page (amount, wallet, note; pause and delete): its
+    schedule doesn't change there (delete it and set a new plan); an instalment rule of a
+    `repaid` debt opens in the transaction form's rule mode like any rule (#12).
 
 ## Volume
 
 Debts are tens per profile and entries a few a month, so the debts page reads the profile's
-debts with one aggregate (`GROUP BY debt_id` over a `UNION ALL` of entries and linked
-transactions through their `debt_id` indexes). Balances stay one aggregate (one more `UNION ALL`
-branch); the Transactions tab merges the period's entries like transfer sides (`entries`, one
-pass, 100 rows drawn at a time). To be measured with 20,000 rows when built.
+debts with one query (sub-selects through the `debt_id` indexes of entries and linked
+transactions). Balances stay one aggregate (one more `UNION ALL` branch), and the Transactions
+tab merges the period's entries like transfer sides (`entries`, one pass, 100 rows drawn at a
+time).
+
+**Checked in #13** with 20,000 transactions over 3 years plus 46 debts and 614 entries
+(Playwright, `npm run build`): the debts page 0.08 s, a debt's page 0.07 s, the Wallets tab (its
+"หนี้สิน" card) 0.06 s, a repayment saved and shown 0.6 s; the Transactions tab: a month 0.10 s,
+"ทั้งหมด" 0.51–0.60 s (0.47 s in #10).
 
 ## Endpoints
 
@@ -146,8 +165,8 @@ linked transactions and rule → the rule's occurrences.
 
 ## Web screens
 
-Mock-up frames in brackets. Proposal for where (Q9): the Wallets tab's card, the ⋮ menu and
-Account › ข้อมูลของฉัน.
+Mock-up frames in brackets. Where (Q9): the Wallets tab's card, the ⋮ menu and Account ›
+ข้อมูลของฉัน.
 
 - **Wallets tab** (1): under the open wallets a titled card **"หนี้สิน"**: "ยืมมา · ต้องคืน n
   รายการ" (left amount, expense colour) and "ให้ยืม · รอรับคืน n รายการ" (income colour, "เลย
@@ -201,6 +220,13 @@ Forgive, ผ่อน / Instalment, กำหนดคืน / Due.
 - **Profile**: `PROFILE_CHILD_TABLES` (rule 10).
 
 ## Open questions
+
+**Decided while building** (owner: "ยืนยัน", from the Playwright screenshots): a forgiven rest
+is two rows in one wallet (rule 4); "ผ่อนเป็นงวด" is monthly only; a `debt` rule's schedule
+isn't edited on the debt's page (rule 14); a category used by a debt says the usual "มีธุรกรรม
+แล้ว" when its delete is refused. Also while building: the person field suggests the names used
+before; the repayment sheet's "ทั้งหมด x" is a tinted button under the card (the keypad's chips
+add, so it isn't one of them); a debt's sheet titles are imperative ("คืนเงิน" / "Repay").
 
 **Settled at the start of #13** (owner: "ตามเสนอ", every proposal of round 1 of the mock-up;
 the options offered beside them were not taken):

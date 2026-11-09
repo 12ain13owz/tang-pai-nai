@@ -17,7 +17,8 @@ a few taps from the centre ➕.
 ## Out of scope
 
 - Transfers between wallets ([transfer.md](transfer.md), #9: their own table, shown in this
-  list), debt / loan (#13; Money Lover's third
+  list), debt / loan ([debt.md](debt.md), #13: its own pages; a counted row of a debt, such
+  as an instalment or interest, is an ordinary transaction with `debtId`; Money Lover's third
   tab "หนี้สิน/เงินกู้" is not in the form).
 - Recurring rules ([recurring.md](recurring.md), #12: a rule records its occurrences as
   ordinary transactions with `recurringId`), events / trips (#14), attachments and receipt photos, the AI / chat

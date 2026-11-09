@@ -15,7 +15,7 @@ AI can understand a feature without reading its code. These docs are the shared 
 | Transfer       | [transfer.md](transfer.md)         | Built (#9)         |
 | Report         | [report.md](report.md)             | Built (#10)        |
 | Recurring      | [recurring.md](recurring.md)       | Built (#12)        |
-| Debt / loan    | [debt.md](debt.md)                 | Spec (#13)         |
+| Debt / loan    | [debt.md](debt.md)                 | Built (#13)        |
 | Offline & sync | [offline-sync.md](offline-sync.md) | Built (4a.1, 4a.2) |
 
 Order of work and project-wide decisions live in [`../../ROADMAP.md`](../../ROADMAP.md), not here.

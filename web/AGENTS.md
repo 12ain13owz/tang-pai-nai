@@ -84,7 +84,8 @@ layout    ->  core, shared
   (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`), `OfflineService`
   and `SyncService` (`core/offline`), `ProfileService` (`core/profile`), `WalletService`
   (`core/wallet`), `CategoryService` (`core/category`), `TransactionService` (`core/transaction`),
-  `ReportService` (`core/report`, kept out of the shell so it stays in the lazy chunks).
+  `ReportService` (`core/report`, kept out of the shell so it stays in the lazy chunks),
+  `DebtService` (`core/debt`, likewise: only the Wallets tab and the debts pages inject it).
 - The header shows ‹ on a page inside the Account tab (`parentOf` in `layout/profile-routes`):
   the Account tab is grouped rows that each open a page (owner's choice A1 in #7). A report page
   goes one level up (`/reports/category/<id>/<sub>` → `/reports/category/<id>` → `/reports`). A
@@ -145,7 +146,9 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
   `delete` (the row with `deletedAt` set: a tombstone locally, `{ id, updatedAt }` on the wire).
   Keep the row's `changeSeq` in the object you pass (spread the current row), it becomes the
   op's `baseSeq`. Ids are `uuidv7()`. Screens list rows `WHERE deleted_at IS NULL`.
-- **A synced table on the device** = a schema step in `MIGRATIONS` (snake_case columns,
+- **A synced table on the device** = a schema step in `MIGRATIONS` (step 12 after #13; a spec that
+  rebuilds an older snapshot undoes the newer steps first, `UNDO_STEP_12` in
+  `local-database.spec.ts`) (snake_case columns,
   `change_seq INTEGER` nullable) + an entry in `SYNC_TABLES` (`sync-tables.ts`: key, camelCase
   columns, booleans, `json` columns, `readOnly` for master data). `putRow` / `getRow` / `fromSql`
   map between them. A **JSON column** (an array, e.g. `wallets.hiddenCategoryIds`) is stored as
@@ -385,6 +388,12 @@ fixOpId?)` (a new schedule starts from today; a refused create comes back), `set
 - `schedule.ts` (pure: `occurrenceOn`, `indexOnOrAfter`, `isPastEnd`, `nextOnOrAfter`,
   `occurrencesBetween`, `lastOccurrence`; always counted from `startOn` with `addMonths`'
   clamp), `describe.ts` (texts for a schedule, given a translate function and a locale).
+- A third kind, `debt` (#13, debt rule 13), records a debt's repayments as `debt_entries`
+  (`tableOf`), and a transaction rule may carry `debtId` (a repaid debt's instalments; `update`
+  keeps the rule's `debtId` when the form doesn't send one). A closed debt stops its rules
+  (`stoppedBy` kind `debt`); `ruleTitle(item, t, full?)` (`describe.ts`) names a rule of any kind
+  for the rules page, the due sheet and the upcoming rows. `open()` of a `debt` rule goes to its
+  debt's page (`?rule=`).
 - `core/wallet` / `core/category` read the table by name (`RECURRING_TABLE`, `tombstoneRules` in
   `core/wallet`): deleting a wallet or category tombstones its rules in the same write, a rule
   fixes a wallet's currency (`canChangeCurrency`) and a category's type (`ruleCount`), and
@@ -395,6 +404,39 @@ fixOpId?)` (a new schedule starts from today; a refused create comes back), `set
   (`@defer`red by the page) and the page's due card and upcoming rows (`group.upcoming`).
 - Specs: `recurring.service.spec.ts` on a test database (the pass runs on `TestBed.tick()`);
   the sheets and pages put `recurring_rules` rows with `putRow`.
+
+### Debts (`core/debt`, #13)
+
+Spec: [debt.md](../docs/features/debt.md).
+
+- `DebtService`: `items()` (the current profile's live debts as `DebtItem`s: `total`, `paid`,
+  `left`, `interest`, `instalments`, `lastOn`, `closed`, `forgiven`, `overdue`, all computed in
+  one query, never stored), `openItems()`, `item(id)`, `byId()`, `entryById()`,
+  `history(debtId)` (entries and linked transactions, newest first), `rules(debtId)`,
+  `people()`, `create(values, plan?)` (the debt and its principal in one write; a plan is a
+  recurring rule made right after), `update()`, `fix()`, `remove()` (entries and rules go, linked
+  transactions stay), `saveEntry(id, debtId, values, interest?)` (interest = a linked counted
+  transaction in the same write), `removeEntry()` / `restoreEntry()`, `close(...)` (the rest into a wallet, or forgiven: a repayment entry + a counted transaction in one
+  wallet), `interestCategory()`, the sheets' signals `sheet` / `entrySheet` / `closeSheet`,
+  `openFix(opId)`.
+- The services it builds on read its tables **by name** from `core/wallet/debt-tables.ts`
+  (`DEBT_TABLE`, `DEBT_ENTRY_TABLE`, `DEBT_ENTRY_SIGN_SQL` (an entry's sign in its wallet),
+  `DEBT_SETTLES_SQL`, `DEBT_FORGIVES_SQL`, `DEBT_LEFT_SQL`): wallet balances and
+  `hasTransactions`, a category's `hasTransactions` (a live debt uses it) and `moveTransactions`
+  (a merge moves debts), `TransactionService.debtEntries` / `entries` (`DebtEntryItem`, kind `debt`) / `summary` (`debt`) and its sweep of orphaned debts and entries, report balances,
+  `RecurringService` (a closed debt stops its rules). None of them imports `core/debt`.
+- Transactions carry `debtId` (`TransactionValues.debtId` is optional: absent keeps the row's);
+  the transaction sheet shows a "หนี้" row that opens the debt.
+- UI: `features/debts` (`/wallets/debts`, mounted in `app.routes.ts` before `wallets`): the list
+  and debt pages render `components/debt-sheets` (each sheet `@defer`red on its signal); the
+  sheets share `wallet-pick`, `category-pick` and `date-row`. A debt entry row on the
+  Transactions tab navigates to `/wallets/debts/<id>?entry=<entryId>`. Validators of a sheet's
+  form run while the form is built, so they read the control's parent, never fields declared
+  after the form.
+- Specs: `core/debt/debt-testing.ts` (`setUpDebts(today, routes)`: a test database, real
+  services, `debt` / `entry` / `transaction` helpers), `debt.service.spec.ts`,
+  `features/debts/debts.spec.ts` (`RouterTestingHarness`). A component that reaches `DebtService`
+  through a stubbed `SyncService` needs `rounds` in the stub (it injects `RecurringService`).
 
 ### Inside a feature
 

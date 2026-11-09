@@ -86,8 +86,8 @@ merging.
 | 10  | Reports                    | —   | ✅  | on the device: H1 summary with balances, trend, by category with drill-down pages; Transactions header shared. [spec](docs/features/report.md)                           |
 | 11  | Budget                     | ⏸   | ⏸   | moved to the backlog after #10 (owner: not used in Money Lover; reports cover it); see Backlog                                                                           |
 | 12  | Recurring transactions     | ✅  | ✅  | rules recorded on the device when due (or asked first), deterministic ids, "อนาคต" shows what comes. [spec](docs/features/recurring.md)                                  |
-| 13  | **Debt / loan** ← next     | ⬜  | ⬜  | "lent to / borrowed from" with repayments; money counted once (owner, after #10; see Backlog)                                                                            |
-| 14  | Event / trip               | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                                                                       |
+| 13  | Debt / loan                | ✅  | ✅  | borrowed / lent, entries outside income / expense, counted once per debt, instalments as rules, "หนี้สิน" card. [spec](docs/features/debt.md)                            |
+| 14  | **Event / trip** ← next    | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                                                                       |
 | 15  | Search, filter, CSV export | ⬜  | ⬜  | + bulk edit: move many transactions (e.g. one wallet's) to another category (owner, 7.3)                                                                                 |
 | 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                                                                   |
 | 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
@@ -100,28 +100,79 @@ decision "Local-first").
 
 ---
 
-## Next: Debt / loan (#13)
+## Next: Event / trip (#14)
 
-Not started: write `docs/features/debt.md` first, with a mock-up (owner's way since #10). The
-order stays **#13 → #14 → #15 → #16**, then #17 when the owner asks. The owner's direction is in
-the Backlog ("Debt / loan (#13)"): borrowed money isn't income, and **money is counted as an
-expense once**, when spent or when repaid (probably a choice per debt). Points to put to the
-owner with a proposal (none decided): a debt as its own table or as a kind of wallet; lent vs
-borrowed; repayments as transfers, transactions or their own rows; interest; how a debt shows
-in the Wallets tab, the totals and the reports; instalments as a recurring rule (#12 can record
-them).
+Not started: write `docs/features/event.md` first, with a mock-up (owner's way since #10). The
+order stays **#14 → #15 → #16**, then #17 when the owner asks. #14 tags transactions to a trip
+or event and shows its total (useful when travelling); points to put to the owner with a
+proposal: a tag table or a column on transactions, one event per row or several, whether
+transfers and debt entries can carry one, where the event's total and list live, an active
+event that new rows take by default.
 
 Known, for later:
 
-- The initial bundle is 716.8 kB after #12 (warning at 750 kB); keep new screens lazy and their
-  services out of the shell (#12 loads `RecurringService` with a dynamic `import()` after the
-  shell's first render).
-- **Done after #12** (owner's ask, its own PR): the keypad's amount row shows each number
-  grouped in thousands while typing (`8,500+1,000`, decimals as typed); the form still holds
-  `8500` (`groupExpression` in `shared/utils/calc.ts`). A long expression is cut at its end
-  (`8,500+1,000+1,2…`) as before, the result line under it in full. Initial bundle 717.1 kB.
+- The initial bundle is **723.7 kB** after #13 (warning at 750 kB): step 12's SQL and the debt
+  rows in `TransactionService` grew `main`. Keep new screens lazy and their services out of the
+  shell (#12 loads `RecurringService` with a dynamic `import()` after the shell's first render;
+  `DebtService` is injected only by the Wallets tab and the debts pages).
 - Headless Chromium breaks some Thai lines inside a word ("บัน/ทึก"); the app's older notices do
   the same, so it's the test browser's line breaking, not our markup.
+
+## Done: Debt / loan (#13)
+
+- **Decided at the start of #13** (owner: "ตามเสนอ", round 1 of the mock-up
+  `docs/features/mockups/debt.html`; debt.md → Open questions): counted once, **a choice per
+  debt** when it is created ("ตอนใช้เงิน" or, borrowed only, "ตอนผ่อนคืน"), never changed (Q1);
+  **own tables** `debts` + `debt_entries`, not a kind of wallet (Q2); borrowed / lent, the person
+  a free name (Q3); uncounted money as entries shown like transfer sides, counted money
+  (instalments of a repaid debt, interest, a forgiven rest) as ordinary transactions with
+  `debtId` (Q4); interest an amount in the repayment sheet (Q5); closed computed, "ปิดหนี้" with
+  the rest or forgiven (Q6); instalments as a #12 rule (Q7); ยอดรวม unchanged, a "หนี้สิน" card
+  on the Wallets tab, a "หนี้" line on the summary card, reports' balances only (Q8); the Wallets
+  tab card, the ⋮ menu and Account rows, pages under `/wallets/debts` (Q9); locks, merge and
+  sweeps (Q10); delete asks first, entries and rules go, counted rows stay (Q11); 100 open
+  debts per profile, due dates with overdue in red (Q12).
+- **Decided while building** (owner: "ยืนยัน", from the screenshots): a forgiven rest is **two
+  rows in one wallet** (an uncounted repayment that settles + the counted transaction), since a
+  single counted row would take the money out of the wallet twice, so only a repaid debt's
+  instalments settle a debt among linked transactions; "ผ่อนเป็นงวด" monthly only; a `debt`
+  rule's schedule isn't edited on the debt's page; a category used by a debt refuses delete with
+  the usual "มีธุรกรรมแล้ว" line.
+- **API**: migration `0016_debts` (`debts`, `debt_entries`, `transactions.debt_id`,
+  `recurring_rules.debt_id`); `features/debt` (two handlers: fixed direction / countAs /
+  currency, an expense category for repaid, 100 open per profile, an entry's wallet in the debt's
+  currency and none only on a repaid debt; `resolve`: a merged category, an entry of a deleted
+  debt goes with it; `keepsStored` for recorded repayments); `core/database/debt-link.ts`
+  (`checkDebtLink`, read by transactions, rules and entries); a transaction's link to a gone debt
+  is cleared, not refused; recurring `kind` `debt` and `debtId`; an entry fixes a wallet's
+  currency, a debt its category's type, a category merge moves debts; OpenAPI `SyncDebtRow`,
+  `SyncDebtEntryRow`, `debtId`.
+- **Web**: local schema step 12; `core/debt` (`DebtService`: items with total / paid / left /
+  interest / closed / forgiven / overdue in one query, history, create with a plan, edit, fix,
+  delete, entries with interest, close, people); `core/wallet/debt-tables.ts` (table names and
+  the entry-sign / settles / left SQL); balances, `hasTransactions`, the Transactions tab's rows
+  (`DebtEntryItem`, `kind: 'debt'`), `MoneySummary.debt`, reports' balances and chip; sweeps of
+  orphaned debts and entries; recurring `kind` `debt`, a closed debt stops its rule;
+  `features/debts` (list and debt pages, debt / entry / close sheets, wallet and category
+  pickers, a date row); the Wallets tab card, the ⋮ menu and Account rows; the transaction form's
+  "หนี้" row and `debtId` kept on edit and copy; the sync sheet's fix routes and names.
+- **Found and fixed while building**: the debt and entry sheets' validators read fields made
+  after the form (they run while it is built), so the entry sheet threw and never opened (a page
+  spec opens it now); the first close design moved the wallet twice for a forgiven rest (a spec
+  fails without the fix).
+- **Checked**: an HTTP script on `/sync/push` + `/pull` (26 checks: shapes, fixed fields,
+  categories, currencies, merge, a late entry of a deleted debt, a cleared link, debt rules, a
+  duplicate recorded repayment). Playwright at 375×812 in th/en × light/dark on `npm run build`
+  with the mock-up's family: balances (cash 8,820 / bank 71,210, owed 54,000), KTC's three
+  instalments recorded at open, a repayment, a repayment with interest, a lent debt created and
+  forgiven (the wallet unmoved, the expense counted once), an instalment debt with a 4-month
+  plan; `setOffline` (synced 0.26 s after) and the API really stopped ("เซิร์ฟเวอร์ไม่ตอบ · รอ
+  1", synced by itself 16.3 s after it came back); two devices of one user: A deletes a debt
+  while B offline gets money back on it (B's entry goes with the debt, both wallets agree at
+  10,820), and both rename one debt (the later wins, B is told); 20,000 rows (debt.md → Volume).
+  Tests: API 585, web 571. Initial bundle 723.7 kB.
+- **Known**: a repaid debt's repayment sheet offers no interest (its instalments carry it); a
+  forgiven rest shows as two rows (noted "ยกหนี้") in the Transactions tab.
 
 ## Done: Recurring transactions (#12)
 
@@ -1135,13 +1186,9 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   member asks for it: per category or total per period, progress and an over-budget warning;
   the spending is `ReportService.byCategory` / `categoryTotal` (report.md → Volume), and it
   would sit in the Reports tab (the tab bar has no free slot). Needs a synced table.
-- **Debt / loan (#13, next), owner's direction after #10**: borrowed money isn't income though the
-  cash really goes up. The rule for the spec: **money is counted as an expense once**, either
-  when it is spent (the purchase is an expense; repaying the principal isn't, only interest
-  is) or when it is repaid (an instalment plan: each instalment is an expense, the purchase
-  isn't recorded as one); probably a choice per debt. Today a debt can already be kept with a
-  wallet and transfers (a card wallet paid by transfer, a "ให้ยืม" wallet left out of the total)
-  or "ไม่รวมในรายงาน".
+- **Debt / loan**: built in #13 (debt.md). Left for later if asked: interest from a rate,
+  reminders before a due date (#17), weekly / yearly instalment plans, editing a repayment
+  rule's schedule, a "หลังหักหนี้" line under ยอดรวม, a share text of a debt's history.
 - **FX / multi-currency reports**: convert to THB with daily rates. Out of scope until a non-THB
   currency is actually used.
 - **Import from Money Lover** (CSV export → our transactions). Decide after #8.
