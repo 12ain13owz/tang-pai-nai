@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="th" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Export mock-up (#15)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+  --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+  --primary: oklch(0.82 0.15 82); --primary-fg: oklch(0.2 0.03 70);
+  --destructive: oklch(0.704 0.191 22.216); --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+  --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--foreground);
+  font-family: "Noto Sans Thai", system-ui, sans-serif; font-size: 15px; }
+header.page { max-width: 1400px; margin: 0 auto; padding: 24px 16px 8px; }
+header.page h1 { font-size: 20px; margin: 0 0 4px; }
+header.page p { margin: 0; color: var(--muted-fg); font-size: 14px; line-height: 1.5; }
+.grid { max-width: 1400px; margin: 0 auto; padding: 16px; display: flex; flex-wrap: wrap; gap: 24px; }
+figure { margin: 0; width: 320px; max-width: 100%; }
+figcaption { font-size: 13px; color: var(--muted-fg); margin-bottom: 6px; min-height: 110px; line-height: 1.45; }
+figcaption b { color: var(--foreground); }
+.phone { height: 690px; border: 1px solid var(--border); border-radius: 24px; overflow: hidden;
+  background: var(--background); display: flex; flex-direction: column; position: relative; }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+svg.i.s { width: 14px; height: 14px; }
+.badge svg.i { width: 18px; height: 18px; }
+.ib { width: 40px; height: 40px; display: grid; place-items: center; color: var(--foreground); flex: none; }
+.ib.on { color: var(--brand); }
+/* search header */
+.shd { display: flex; align-items: center; gap: 2px; padding: 6px 4px; border-bottom: 1px solid var(--border); flex: none; }
+.box { flex: 1; display: flex; align-items: center; gap: 6px; height: 38px; border-radius: 10px; background: var(--muted); padding: 0 10px; color: var(--muted-fg); font-size: 14.5px; min-width: 0; }
+.box b { color: var(--foreground); font-weight: 400; flex: 1; }
+.selhd { display: flex; align-items: center; gap: 2px; padding: 6px 4px; height: 51px; border-bottom: 1px solid var(--border); flex: none; background: color-mix(in srgb, var(--brand) 10%, var(--background)); }
+.selhd .ttl { flex: 1; font-weight: 600; font-size: 16px; }
+.selhd .all { font-size: 13.5px; color: var(--brand); font-weight: 600; padding: 0 10px; }
+/* filter chips */
+.fchips { display: flex; gap: 6px; padding: 8px 12px; overflow: hidden; flex: none; border-bottom: 1px solid var(--border); }
+.fc { white-space: nowrap; font-size: 13px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted-fg); display: inline-flex; align-items: center; gap: 4px; }
+.fc.on { border-color: color-mix(in srgb, var(--brand) 60%, transparent); background: color-mix(in srgb, var(--brand) 14%, var(--card)); color: var(--brand); font-weight: 600; }
+.scroll { flex: 1; overflow: auto; scrollbar-width: none; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; }
+.inc { color: var(--income); } .exp { color: var(--expense); } .mut { color: var(--muted-fg); }
+.sumc { padding: 10px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-variant-numeric: tabular-nums; }
+.sumc .k { font-size: 12px; color: var(--muted-fg); } .sumc .v { font-weight: 600; }
+.sumc .top { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted-fg); }
+.sumc .net { grid-column: 1 / -1; display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 6px; }
+.badge { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: #fff; flex: none; position: relative; }
+.badge .w { position: absolute; right: -4px; bottom: -4px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--card); }
+.badge .w svg { width: 10px; height: 10px; }
+.day { padding: 2px 14px; }
+.dayh { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.dayh .n { font-size: 26px; font-weight: 600; width: 34px; }
+.dayh .w { flex: 1; font-size: 12px; line-height: 1.3; color: var(--muted-fg); }
+.dayh .w b { display: block; color: var(--foreground); font-weight: 500; font-size: 13px; }
+.dayh .t { font-variant-numeric: tabular-nums; font-weight: 500; }
+.tx { display: flex; align-items: center; gap: 10px; min-height: 56px; }
+.tx .mid { flex: 1; min-width: 0; font-size: 14.5px; }
+.tx .mid small { display: flex; align-items: center; gap: 4px; color: var(--muted-fg); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tx .amt { font-variant-numeric: tabular-nums; text-align: right; }
+mark { background: color-mix(in srgb, var(--brand) 35%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+.tag { font-size: 11px; color: var(--brand); border: 1px solid color-mix(in srgb, var(--brand) 45%, transparent); border-radius: 6px; padding: 0 5px; }
+.ck { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--muted-fg); flex: none; display: grid; place-items: center; }
+.ck.on { background: var(--brand); border-color: var(--brand); color: var(--primary-fg); }
+.ck.off { opacity: .3; }
+.tx.sel { background: color-mix(in srgb, var(--brand) 8%, transparent); margin: 0 -14px; padding: 0 14px; }
+.tx.dis { opacity: .45; }
+.more { text-align: center; font-size: 12.5px; color: var(--muted-fg); padding: 4px 0 8px; }
+/* action bar */
+.abar { flex: none; border-top: 1px solid var(--border); background: var(--card); display: grid; grid-template-columns: repeat(3, 1fr); padding: 6px 4px 10px; }
+.abar div { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; padding: 6px 0; }
+.abar .red { color: var(--destructive); }
+/* sheets */
+.dim { position: absolute; inset: 0; background: rgb(0 0 0 / .45); z-index: 2; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; background: var(--background); border-radius: 18px 18px 0 0; display: flex; flex-direction: column; border-top: 1px solid var(--border); }
+.sheet.tall { height: 92%; }
+.sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--border); margin: 6px auto 0; flex: none; }
+.shdr { height: 48px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 4px; flex: none; }
+.shdr .r { display: flex; justify-content: flex-end; }
+.shdr .r span { font-size: 13.5px; color: var(--brand); font-weight: 600; padding: 0 10px; }
+.shdr .ttl { font-weight: 600; font-size: 16px; }
+.sbody { flex: 1; overflow: auto; scrollbar-width: none; padding: 4px 14px 12px; display: flex; flex-direction: column; gap: 12px; }
+.sfoot { flex: none; padding: 10px 14px 14px; display: flex; gap: 8px; }
+.btn { flex: 1; height: 44px; border-radius: 12px; border: 0; font: inherit; font-weight: 600; background: var(--primary); color: var(--primary-fg); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn.gh { background: transparent; border: 1px solid var(--border); color: var(--foreground); flex: none; padding: 0 16px; }
+.h { font-size: 13px; font-weight: 500; color: var(--muted-fg); margin: 2px 2px -6px; }
+.seg { display: flex; background: var(--muted); border-radius: 10px; padding: 3px; }
+.seg span { flex: 1; text-align: center; padding: 5px; border-radius: 8px; font-size: 13px; color: var(--muted-fg); }
+.seg span.on { background: var(--card); color: var(--foreground); font-weight: 600; }
+.rows > div { display: flex; align-items: center; gap: 12px; padding: 0 14px; min-height: 50px; }
+.rows > div + div { border-top: 1px solid var(--border); }
+.rows .lbl { flex: 1; min-width: 0; font-size: 14.5px; }
+.rows .lbl small { display: block; font-size: 12px; color: var(--muted-fg); line-height: 1.4; }
+.rows .val { color: var(--muted-fg); font-size: 14px; text-align: right; display: flex; align-items: center; gap: 4px; }
+.rows .val.on { color: var(--brand); font-weight: 600; }
+.mm { display: flex; gap: 8px; }
+.mm div { flex: 1; height: 44px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); display: flex; align-items: center; padding: 0 12px; font-size: 14px; color: var(--muted-fg); justify-content: space-between; }
+.mm div b { color: var(--foreground); font-weight: 500; font-variant-numeric: tabular-nums; }
+.sw { width: 40px; height: 24px; border-radius: 12px; background: var(--muted); position: relative; flex: none; border: 1px solid var(--border); }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--card); box-shadow: 0 1px 2px rgb(0 0 0 / .3); }
+.sw.on { background: var(--brand); border-color: var(--brand); } .sw.on::after { left: 18px; }
+.flow { display: flex; align-items: center; gap: 10px; padding: 14px; }
+.flow .side { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-size: 14px; }
+.flow .side small { font-size: 12px; color: var(--muted-fg); }
+.hint { font-size: 12.5px; color: var(--muted-fg); padding: 0 4px; line-height: 1.5; }
+.toast { position: absolute; left: 12px; right: 12px; top: 60px; z-index: 4; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 20px rgb(0 0 0 / .4); }
+.toast b { flex: 1; font-weight: 500; }
+.toast span { color: var(--brand); font-weight: 600; }
+.notes { max-width: 1400px; margin: 0 auto; padding: 0 16px 40px; color: var(--muted-fg); font-size: 13.5px; line-height: 1.6; }
+.notes li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+  <symbol id="dl" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="checks" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="food" viewBox="0 0 24 24"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 0-3 3-3 6s1 4 3 4v8"/></symbol>
+  <symbol id="coffee" viewBox="0 0 24 24"><path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zM17 9h1a3 3 0 0 1 0 6h-1M8 2v3M12 2v3"/></symbol>
+  <symbol id="car" viewBox="0 0 24 24"><path d="M5 17h14v-5l-2-5H7l-2 5zM5 17v2M19 17v2M5 12h14"/><circle cx="8" cy="14.5" r=".5"/><circle cx="16" cy="14.5" r=".5"/></symbol>
+  <symbol id="cart" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M2 3h3l2.5 12h11L21 7H6"/></symbol>
+  <symbol id="wallet" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13v4M3 7v10a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2zM16 14h.01"/></symbol>
+  <symbol id="card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></symbol>
+  <symbol id="swap" viewBox="0 0 24 24"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></symbol>
+  <symbol id="cloud" viewBox="0 0 24 24"><path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.8A6 6 0 0 0 4 12a4 4 0 0 0 1 7.9z"/></symbol>
+  <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M16 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6.3"/></symbol>
+  <symbol id="shapes" viewBox="0 0 24 24"><path d="m8 3 4 7H4z"/><rect x="13" y="13" width="8" height="8" rx="1"/><circle cx="7" cy="17" r="4"/></symbol>
+  <symbol id="repeat" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/></symbol>
+  <symbol id="hand" viewBox="0 0 24 24"><circle cx="16" cy="7" r="4"/><path d="M2 15h4l4 2h5a2 2 0 0 0 0-4h-3M6 21v-8"/></symbol>
+  <symbol id="plane" viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5a2 2 0 0 0-3-3L13 8 4.8 6.2l-2 2 6.5 3.4L6 15H3l-1 1 4 2 2 4 1-1v-3l3.4-3.3 3.4 6.5z"/></symbol>
+  <symbol id="sheet" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8M12 11v8"/></symbol>
+  <symbol id="cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="archive" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/></symbol>
+  <symbol id="merge" viewBox="0 0 24 24"><path d="m8 6 4-4 4 4M12 2v10.3a4 4 0 0 1-1.2 2.9L4 22M20 22l-5-5"/></symbol>
+  <symbol id="move" viewBox="0 0 24 24"><path d="M2 9V5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1M2 13h10M9 10l3 3-3 3"/></symbol>
+  <symbol id="home" viewBox="0 0 24 24"><path d="M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="pie" viewBox="0 0 24 24"><path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="shirt" viewBox="0 0 24 24"><path d="M4 6 8 3h8l4 3-2 4-2-1v12H8V9l-2 1z"/></symbol>
+</svg>
+<style>
+.hdr { height: 52px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 6px; border-bottom: 1px solid var(--border); flex: none; }
+.hdr .r { display: flex; justify-content: flex-end; } .hdr .ttl { font-weight: 600; font-size: 16px; }
+.tabbar { height: 56px; flex: none; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; text-align: center; font-size: 10.5px; color: var(--muted-fg); }
+.tabbar .on { color: var(--brand); font-weight: 600; }
+.tabbar .p { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: var(--primary-fg); display: grid; place-items: center; margin: 0 auto; }
+.tabbar div > svg { display: block; margin: 0 auto 2px; }
+.gh2 { font-size: 13px; font-weight: 500; color: var(--muted-fg); margin: 4px 2px -6px; }
+.rows .ico { width: 34px; height: 34px; border-radius: 10px; background: var(--muted); display: grid; place-items: center; flex: none; }
+.rows .new { box-shadow: inset 3px 0 0 var(--brand); background: color-mix(in srgb, var(--brand) 7%, transparent); }
+.opt { display: flex; align-items: center; gap: 10px; padding: 0 14px; min-height: 48px; font-size: 14.5px; }
+.opt + .opt { border-top: 1px solid var(--border); }
+.opt .lbl { flex: 1; } .opt small { display: block; font-size: 12px; color: var(--muted-fg); }
+.radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--muted-fg); flex: none; }
+.radio.on { border: 6px solid var(--brand); }
+.sub { margin: 0 14px 10px 44px; display: flex; flex-direction: column; gap: 8px; }
+.pick { display: flex; align-items: center; justify-content: space-between; height: 42px; border-radius: 10px; border: 1px solid var(--border); padding: 0 12px; font-size: 14px; background: var(--background); }
+.pick span { color: var(--muted-fg); font-size: 12px; }
+.pick b { font-weight: 500; }
+.sel { display: flex; flex-wrap: wrap; gap: 6px; }
+.sel span { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--brand) 14%, var(--card)); color: var(--brand); }
+.cat { display: flex; align-items: center; gap: 10px; padding: 0 12px; min-height: 48px; font-size: 14.5px; }
+.cat + .cat { border-top: 1px solid var(--border); }
+.cat .nm { flex: 1; } .cat.child { padding-left: 34px; } .cat .badge { width: 30px; height: 30px; } .cat .badge svg.i { width: 15px; height: 15px; }
+.cat small { color: var(--muted-fg); font-size: 12px; }
+.ck.part { background: color-mix(in srgb, var(--brand) 45%, transparent); border-color: var(--brand); }
+.fld { display: flex; align-items: center; gap: 12px; padding: 0 14px; min-height: 50px; font-size: 14.5px; }
+.fld + .fld { border-top: 1px solid var(--border); }
+.fld .lbl { flex: 1; } .fld .val { color: var(--muted-fg); font-size: 14px; display: flex; align-items: center; gap: 4px; }
+.info { border-radius: 12px; background: var(--muted); padding: 10px 14px; font-size: 13.5px; line-height: 1.5; }
+.info a { color: var(--brand); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; display: block; margin-top: 2px; }
+.ib.dis { opacity: .35; }
+</style>
+
+<header class="page">
+  <h1>ส่งออก CSV และย้ายรายการไปหมวดอื่น (#15)</h1>
+  <p>Mock-up ธีม Midnight Gold (dark) จอ 375 px · ตัดหน้าค้นหาและตัวกรองออกแล้ว (เจ้าของสั่ง) · ส่งออกอยู่ที่ บัญชี › ข้อมูลของฉัน · ย้ายรายการอยู่ในหน้าแก้หมวด</p>
+</header>
+
+<div class="grid">
+
+<!-- 1. Account -->
+<figure>
+  <figcaption><b>1 · แท็บบัญชี</b> เพิ่มแถวใหม่ <b>ส่งออก CSV</b> ไว้ท้ายกลุ่ม "ข้อมูลของฉัน" ใต้แถวอีเวนต์ คำใต้ชื่อบอกโปรไฟล์ที่จะส่งออก แตะแล้วเปิด <code>/account/export</code> (lazy)</figcaption>
+  <div class="phone">
+    <div class="hdr"><span></span><span class="ttl">บัญชี</span><span></span></div>
+    <div class="scroll">
+      <div class="card rows"><div><div class="badge" style="background:#475569"><svg class="i"><use href="#user"/></svg></div><span class="lbl">touchfn@gmail.com<small>ลงชื่อเข้าใช้ด้วยอีเมล</small></span></div></div>
+      <div class="gh2">ข้อมูลของฉัน</div>
+      <div class="card rows">
+        <div><span class="ico"><svg class="i"><use href="#users"/></svg></span><span class="lbl">โปรไฟล์<small>ใช้อยู่: ครอบครัว · ทั้งหมด 2</small></span><svg class="i s mut"><use href="#chev"/></svg></div>
+        <div><span class="ico"><svg class="i"><use href="#shapes"/></svg></span><span class="lbl">หมวดหมู่<small>ของโปรไฟล์ ครอบครัว</small></span><svg class="i s mut"><use href="#chev"/></svg></div>
+        <div><span class="ico"><svg class="i"><use href="#repeat"/></svg></span><span class="lbl">รายการซ้ำ<small>4 รายการใน ครอบครัว</small></span><svg class="i s mut"><use href="#chev"/></svg></div>
+        <div><span class="ico"><svg class="i"><use href="#hand"/></svg></span><span class="lbl">หนี้สิน<small>2 รายการใน ครอบครัว</small></span><svg class="i s mut"><use href="#chev"/></svg></div>
+        <div><span class="ico"><svg class="i"><use href="#plane"/></svg></span><span class="lbl">อีเวนต์<small>3 อีเวนต์ใน ครอบครัว</small></span><svg class="i s mut"><use href="#chev"/></svg></div>
+        <div class="new"><span class="ico"><svg class="i"><use href="#sheet"/></svg></span><span class="lbl">ส่งออก CSV<small>ธุรกรรมของ ครอบครัว</small></span><svg class="i s mut"><use href="#chev"/></svg></div>
+      </div>
+      <div class="gh2">บัญชีและความปลอดภัย</div>
+      <div class="card rows"><div><span class="ico"><svg class="i"><use href="#eye"/></svg></span><span class="lbl">ความปลอดภัย<small>รหัสผ่าน, เบอร์มือถือ, Google, PIN และอุปกรณ์</small></span><svg class="i s mut"><use href="#chev"/></svg></div></div>
+    </div>
+    <div class="tabbar"><div><svg class="i"><use href="#home"/></svg>ธุรกรรม</div><div><svg class="i"><use href="#wallet"/></svg>กระเป๋า</div><div><span class="p"><svg class="i"><use href="#plus"/></svg></span></div><div><svg class="i"><use href="#pie"/></svg>รายงาน</div><div class="on"><svg class="i"><use href="#user"/></svg>บัญชี</div></div>
+  </div>
+</figure>
+
+<!-- 2. Export defaults -->
+<figure>
+  <figcaption><b>2 · หน้าส่งออก (ค่าเริ่มต้น)</b> เลือกได้ 3 เรื่อง แต่ละเรื่องมี "ทั้งหมด" เป็นค่าเริ่มต้น ปุ่มล่างนับจำนวนรายการสด ๆ กดแล้วส่งออกทันที บนมือถือเปิด share sheet ถ้าแชร์ไฟล์ไม่ได้ก็ดาวน์โหลด แล้วขึ้น toast ทำงาน offline ได้ ถ้าไม่มีรายการ ปุ่มจะกดไม่ได้และบอกว่าไม่มีรายการ</figcaption>
+  <div class="phone">
+    <div class="hdr"><span class="ib"><svg class="i"><use href="#back"/></svg></span><span class="ttl">ส่งออก CSV</span><span></span></div>
+    <div class="scroll">
+      <div class="hint">ธุรกรรมของโปรไฟล์ <b style="color:var(--foreground)">ครอบครัว</b> เป็นไฟล์ CSV ที่เปิดใน Excel หรือ Google Sheets ได้</div>
+      <div class="gh2">ช่วงวันที่</div>
+      <div class="card"><div class="opt"><span class="radio on"></span><span class="lbl">ทั้งหมด<small>03/01/2024 – 08/11/2026</small></span></div><div class="opt"><span class="radio"></span><span class="lbl">กำหนดเอง</span></div></div>
+      <div class="gh2">กระเป๋า</div>
+      <div class="card"><div class="opt"><span class="radio on"></span><span class="lbl">ทุกกระเป๋า<small>5 ใบ รวมที่เก็บถาวรแล้ว</small></span></div><div class="opt"><span class="radio"></span><span class="lbl">เลือกบางกระเป๋า</span></div></div>
+      <div class="gh2">หมวดหมู่</div>
+      <div class="card"><div class="opt"><span class="radio on"></span><span class="lbl">ทุกหมวด</span></div><div class="opt"><span class="radio"></span><span class="lbl">เลือกบางหมวด</span></div></div>
+      <div class="card rows"><div><svg class="i"><use href="#swap"/></svg><span class="lbl">รวมการโอนเงิน<small>แถวโอนออก / โอนเข้าของกระเป๋าที่เลือก</small></span><span class="sw on"></span></div></div>
+    </div>
+    <div class="sfoot"><button class="btn"><svg class="i"><use href="#dl"/></svg>ส่งออก 20,418 รายการ</button></div>
+  </div>
+</figure>
+
+<!-- 3. Export custom -->
+<figure>
+  <figcaption><b>3 · กำหนดเอง</b> "กำหนดเอง" เปิด sheet เลือกสองวันที่ตัวเดิม แล้วแสดงช่วงใต้ตัวเลือก "เลือกบางกระเป๋า" / "เลือกบางหมวด" แสดงชิปของที่เลือกไว้กับปุ่ม "แก้ไข" เมื่อเลือกบางหมวด สวิตช์การโอนจะปิดเองและกดไม่ได้ เพราะการโอนไม่มีหมวด</figcaption>
+  <div class="phone">
+    <div class="hdr"><span class="ib"><svg class="i"><use href="#back"/></svg></span><span class="ttl">ส่งออก CSV</span><span></span></div>
+    <div class="scroll">
+      <div class="gh2">ช่วงวันที่</div>
+      <div class="card"><div class="opt"><span class="radio"></span><span class="lbl">ทั้งหมด</span></div><div class="opt"><span class="radio on"></span><span class="lbl">กำหนดเอง</span></div>
+        <div class="sub"><div class="pick"><b>01/01/2026 – 31/10/2026</b><svg class="i s mut"><use href="#cal"/></svg></div></div></div>
+      <div class="gh2">กระเป๋า</div>
+      <div class="card"><div class="opt"><span class="radio on"></span><span class="lbl">ทุกกระเป๋า</span></div><div class="opt"><span class="radio"></span><span class="lbl">เลือกบางกระเป๋า</span></div></div>
+      <div class="gh2">หมวดหมู่</div>
+      <div class="card"><div class="opt"><span class="radio"></span><span class="lbl">ทุกหมวด</span></div><div class="opt"><span class="radio on"></span><span class="lbl">เลือกบางหมวด</span></div>
+        <div class="sub"><div class="sel"><span>อาหาร (+3 ย่อย)</span><span>กาแฟ</span><span>เดินทาง</span></div><div class="pick"><b>3 หมวด · รายจ่าย</b><span>แก้ไข ›</span></div></div></div>
+      <div class="card rows"><div style="opacity:.45"><svg class="i"><use href="#swap"/></svg><span class="lbl">รวมการโอนเงิน<small>เลือกบางหมวดแล้ว การโอนไม่มีหมวด</small></span><span class="sw"></span></div></div>
+    </div>
+    <div class="sfoot"><button class="btn"><svg class="i"><use href="#dl"/></svg>ส่งออก 2,184 รายการ</button></div>
+  </div>
+</figure>
+
+<!-- 4. Category picker -->
+<figure>
+  <figcaption><b>4 · เลือกหมวด</b> sheet ที่มีแท็บรายจ่ายและรายรับ (เลือกได้ทั้งสองแท็บ) ติ๊กหมวดแม่แล้วหมวดลูกติ๊กตาม ติ๊กเฉพาะลูกบางตัวแล้วแม่จะแสดงแบบติ๊กครึ่ง มีหมวดที่เก็บถาวรแล้วด้วย (ข้อมูลเก่ายังอยู่) ส่วนหมวดที่ผสานไปแล้วไม่แสดง แต่ละหมวดบอกจำนวนรายการ ปุ่ม "เสร็จ" กดไม่ได้ถ้ายังไม่ได้เลือกอะไร ส่วนเลือกกระเป๋าใช้ sheet แบบเดียวกัน</figcaption>
+  <div class="phone">
+    <div class="hdr"><span class="ib"><svg class="i"><use href="#back"/></svg></span><span class="ttl">ส่งออก CSV</span><span></span></div>
+    <div class="scroll"></div>
+    <div class="dim"></div>
+    <div class="sheet tall">
+      <div class="grab"></div>
+      <div class="shdr"><span class="ib"><svg class="i"><use href="#x"/></svg></span><span class="ttl">เลือกหมวด</span><span class="r"><span>ล้าง</span></span></div>
+      <div class="sbody">
+        <div class="seg"><span class="on">รายจ่าย · 3</span><span>รายรับ</span></div>
+        <div class="card">
+          <div class="cat"><span class="ck on"><svg class="i s"><use href="#check"/></svg></span><div class="badge" style="background:#c2410c"><svg class="i"><use href="#food"/></svg></div><span class="nm">อาหาร</span><small>1,240</small></div>
+          <div class="cat child"><span class="ck on"><svg class="i s"><use href="#check"/></svg></span><span class="nm">อาหารเช้า</span><small>402</small></div>
+          <div class="cat child"><span class="ck on"><svg class="i s"><use href="#check"/></svg></span><span class="nm">เครื่องดื่ม</span><small>318</small></div>
+          <div class="cat child"><span class="ck on"><svg class="i s"><use href="#check"/></svg></span><span class="nm">ร้านอาหาร</span><small>205</small></div>
+          <div class="cat"><span class="ck on"><svg class="i s"><use href="#check"/></svg></span><div class="badge" style="background:#8a5a2b"><svg class="i"><use href="#coffee"/></svg></div><span class="nm">กาแฟ</span><small>612</small></div>
+          <div class="cat"><span class="ck part"></span><div class="badge" style="background:#2563eb"><svg class="i"><use href="#car"/></svg></div><span class="nm">เดินทาง</span><small>420</small></div>
+          <div class="cat child"><span class="ck on"><svg class="i s"><use href="#check"/></svg></span><span class="nm">น้ำมัน</span><small>332</small></div>
+          <div class="cat child"><span class="ck"></span><span class="nm">ทางด่วน</span><small>88</small></div>
+          <div class="cat"><span class="ck"></span><div class="badge" style="background:#0d9488"><svg class="i"><use href="#cart"/></svg></div><span class="nm">ของใช้</span><small>930</small></div>
+          <div class="cat" style="opacity:.6"><span class="ck"></span><div class="badge" style="background:#475569"><svg class="i"><use href="#shirt"/></svg></div><span class="nm">เสื้อผ้า <small>· เก็บถาวร</small></span><small>54</small></div>
+        </div>
+      </div>
+      <div class="sfoot"><button class="btn">เสร็จ</button></div>
+    </div>
+  </div>
+</figure>
+
+<!-- 5. Category sheet: move entry -->
+<figure>
+  <figcaption><b>5 · หน้าแก้หมวด: ทางเข้าย้ายรายการ</b> ที่ header ของ sheet แก้หมวด (เดิมมีเก็บถาวร ผสาน ลบ) เพิ่มไอคอน <b>ย้ายรายการ</b> ถ้าหมวดนั้นไม่มีรายการ ไอคอนจะกดไม่ได้ ในกล่องที่บอกว่าลบไม่ได้เพราะมีรายการ ก็เพิ่มลิงก์ "ย้ายรายการไปหมวดอื่น" ต่อจากลิงก์ผสาน</figcaption>
+  <div class="phone">
+    <div class="hdr"><span></span><span class="ttl">หมวดหมู่</span><span></span></div>
+    <div class="scroll"></div>
+    <div class="dim"></div>
+    <div class="sheet tall">
+      <div class="grab"></div>
+      <div class="shdr" style="grid-template-columns:auto 1fr auto"><span class="ib"><svg class="i"><use href="#x"/></svg></span><span class="ttl" style="text-align:center">แก้ไขหมวดหมู่</span>
+        <span class="r"><span class="ib" style="color:var(--brand)"><svg class="i"><use href="#move"/></svg></span><span class="ib"><svg class="i"><use href="#archive"/></svg></span><span class="ib"><svg class="i"><use href="#merge"/></svg></span><span class="ib dis"><svg class="i"><use href="#trash"/></svg></span></span></div>
+      <div class="sbody">
+        <div class="seg"><span class="on">รายจ่าย</span><span>รายรับ</span></div>
+        <div class="card">
+          <div class="fld"><div class="badge" style="background:#8a5a2b"><svg class="i"><use href="#coffee"/></svg></div><span class="lbl">กาแฟ</span></div>
+          <div class="fld"><svg class="i"><use href="#folder"/></svg><span class="lbl">หมวดหมู่หลัก</span><span class="val">ไม่มี<svg class="i s"><use href="#chev"/></svg></span></div>
+        </div>
+        <div class="info">ลบไม่ได้ เพราะมีธุรกรรม 612 รายการ
+          <a>ผสานเข้าหมวดหมู่อื่น</a><a>ย้ายรายการไปหมวดอื่น</a></div>
+      </div>
+      <div class="sfoot"><button class="btn">บันทึก</button></div>
+    </div>
+  </div>
+</figure>
+
+<!-- 6. Move view -->
+<figure>
+  <figcaption><b>6 · ย้ายรายการ</b> view ในหน้าแก้หมวดเดียวกัน (กด ‹ กลับ) เลือก <b>จากกระเป๋า</b> (ทุกกระเป๋า หรือใบเดียว พร้อมจำนวนรายการ) และ <b>ไปหมวด</b> (picker เดิม: ประเภทเดียวกัน เฉพาะหมวดที่เปิดอยู่ ไม่รวมตัวเอง) ถ้าเลือกกระเป๋าใบเดียว จะมีสวิตช์ <b>ซ่อน "กาแฟ" ในกระเป๋านี้</b> (ค่าเริ่มต้นปิด) ย้ายเฉพาะรายการของหมวดนี้ ไม่รวมหมวดลูก รายการซ้ำและหนี้ไม่เปลี่ยน</figcaption>
+  <div class="phone">
+    <div class="hdr"><span></span><span class="ttl">หมวดหมู่</span><span></span></div>
+    <div class="scroll"></div>
+    <div class="dim"></div>
+    <div class="sheet tall">
+      <div class="grab"></div>
+      <div class="shdr"><span class="ib"><svg class="i"><use href="#back"/></svg></span><span class="ttl">ย้ายรายการ</span><span></span></div>
+      <div class="sbody">
+        <div class="gh2">จากกระเป๋า</div>
+        <div class="card">
+          <div class="opt"><span class="radio"></span><span class="lbl">ทุกกระเป๋า</span><small>612</small></div>
+          <div class="opt"><span class="radio on"></span><span class="lbl">เงินสด</span><small>148</small></div>
+          <div class="opt"><span class="radio"></span><span class="lbl">บัตรเครดิต</span><small>431</small></div>
+          <div class="opt"><span class="radio"></span><span class="lbl">ธนาคาร</span><small>33</small></div>
+        </div>
+        <div class="gh2">ไปหมวด</div>
+        <div class="card rows"><div><div class="badge" style="background:#c2410c"><svg class="i"><use href="#food"/></svg></div><span class="lbl">อาหาร › เครื่องดื่ม<small>รายจ่าย</small></span><svg class="i s mut"><use href="#chev"/></svg></div></div>
+        <div class="card rows"><div><svg class="i"><use href="#eye"/></svg><span class="lbl">ซ่อน "กาแฟ" ในกระเป๋านี้<small>ไม่แสดงตอนเพิ่มรายการในกระเป๋า เงินสด อีกต่อไป</small></span><span class="sw"></span></div></div>
+      </div>
+      <div class="sfoot"><button class="btn">ย้าย 148 รายการ</button></div>
+    </div>
+  </div>
+</figure>
+
+<!-- 7. Confirm -->
+<figure>
+  <figcaption><b>7 · ยืนยันแล้วจบ</b> กด "ย้าย n รายการ" แล้วขึ้น dialog ยืนยันสั้น ๆ (แบบเดียวกับยืนยันผสาน) ย้ายแล้วปิด sheet ขึ้น toast ที่มีปุ่ม <b>เลิกทำ</b> (คืนหมวดเดิมให้ทุกแถว และคืนสถานะซ่อนเดิม) ทำได้ตอน offline ถ้าอีกเครื่องแก้แถวเดียวกันทีหลัง การแก้ที่ทีหลังจะชนะเฉพาะแถวนั้น</figcaption>
+  <div class="phone">
+    <div class="hdr"><span></span><span class="ttl">หมวดหมู่</span><span></span></div>
+    <div class="scroll"></div>
+    <div class="dim"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="sbody" style="padding-top:16px">
+        <div class="card flow">
+          <div class="side"><div class="badge" style="background:#8a5a2b"><svg class="i"><use href="#coffee"/></svg></div>กาแฟ<small>เงินสด</small></div>
+          <svg class="i mut"><use href="#arrow"/></svg>
+          <div class="side"><div class="badge" style="background:#c2410c"><svg class="i"><use href="#food"/></svg></div>อาหาร › เครื่องดื่ม<small>รายจ่าย</small></div>
+        </div>
+        <div style="font-weight:600;text-align:center">ย้าย 148 รายการ ใช่ไหม</div>
+        <div class="hint" style="text-align:center">และซ่อน "กาแฟ" ในกระเป๋า เงินสด · เลิกทำได้จาก toast</div>
+      </div>
+      <div class="sfoot"><button class="btn gh">ยกเลิก</button><button class="btn">ย้าย</button></div>
+    </div>
+  </div>
+</figure>
+
+<!-- 8. CSV sample -->
+<figure>
+  <figcaption><b>8 · ไฟล์ที่ได้</b> ชื่อไฟล์ <code>tangpainai-&lt;โปรไฟล์&gt;-&lt;วันที่&gt;.csv</code> เป็น UTF-8 มี BOM หัวคอลัมน์ตามภาษา UI เรียงวันที่เก่าไปใหม่ การโอนเป็นแถวโอนออกหรือโอนเข้าของกระเป๋าที่เลือก ช่องที่มี , หรือ " จะครอบด้วย " (RFC 4180)</figcaption>
+  <div class="phone">
+    <div class="hdr"><span class="ib"><svg class="i"><use href="#back"/></svg></span><span class="ttl">ส่งออก CSV</span><span></span></div>
+    <div class="toast"><svg class="i inc"><use href="#check"/></svg><b>ส่งออก 20,418 รายการแล้ว</b></div>
+    <div class="scroll" style="padding-top:70px">
+      <div class="card" style="padding:12px;font-family:ui-monospace,monospace;font-size:11px;line-height:1.6;white-space:pre;overflow:hidden;color:var(--muted-fg)">tangpainai-ครอบครัว-2026-11-09.csv
+──────────────────────────
+วันที่,ประเภท,หมวดหลัก,หมวด,
+ กระเป๋า,จำนวนเงิน,สกุลเงิน,
+ หมายเหตุ,อีเวนต์,ไม่รวมในรายงาน
+2024-01-03,รายรับ,,เงินเดือน,
+ ธนาคาร,45000.00,THB,,,
+2024-01-03,รายจ่าย,อาหาร,
+ อาหารเช้า,เงินสด,-65.00,THB,
+ "ข้าวมันไก่, ไข่ต้ม",,
+2024-01-04,โอนออก,,,ธนาคาร,
+ -5000.00,THB,เติมเงินสด,,
+2024-01-04,โอนเข้า,,,เงินสด,
+ 5000.00,THB,เติมเงินสด,,
+…</div>
+      <div class="hint">(ในไฟล์จริงหนึ่งรายการคือหนึ่งบรรทัด ที่ตัดบรรทัดไว้เพื่อให้อ่านในจอนี้ได้) จำนวนเงินไม่มีจุลภาคคั่นหลักพัน เพื่อให้ Excel อ่านเป็นตัวเลข ช่อง "ไม่รวมในรายงาน" เป็น "ใช่" หรือว่าง</div>
+    </div>
+  </div>
+</figure>
+
+</div>
+
+<ul class="notes">
+  <li>ไม่มีการเปลี่ยน API: การส่งออกอ่านฐานข้อมูลในเครื่อง ส่วนการย้ายรายการเป็น upsert รายแถว (บวกการแก้ <code>hiddenCategoryIds</code> ของกระเป๋าถ้าเลือกซ่อน) ใน local write เดียวผ่าน outbox</li>
+  <li>เครื่องที่ไม่ได้ตั้งเป็น trusted: ส่งออกได้ตามปกติ (อ่านอย่างเดียว) ส่วนการย้ายต้อง online และต่อ server ได้ เหมือนการแก้อื่น ๆ</li>
+  <li>ตัดออก (เจ้าของสั่ง): หน้าค้นหา ตัวกรองในแท็บธุรกรรมและรายงาน ตัวกรองอีเวนต์ (event.md Q10) และโหมดติ๊กทีละแถว</li>
+</ul>
+</body>
+</html>
