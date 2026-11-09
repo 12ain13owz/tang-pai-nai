@@ -1,0 +1,11 @@
+type: object
+required: [id, name, icon, color, currencyCode, balance]
+properties:
+  id: { type: string, format: uuid }
+  name: { type: string }
+  icon: { type: string }
+  color: { type: string }
+  currencyCode: { type: string, example: THB }
+  balance:
+    type: integer
+    description: Minor units; initial balance + transactions ± transfers ± debt entries

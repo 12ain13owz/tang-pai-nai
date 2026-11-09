@@ -19,6 +19,8 @@ tags:
     description: Master list of currencies (docs/features/currency.md)
   - name: Sync
     description: Offline sync, push then pull (docs/features/offline-sync.md)
+  - name: Sharing
+    description: Family sharing, invitations and read-only shared wallets (docs/features/sharing.md)
   - name: Todo
     description: Reference CRUD feature (in-memory, resets on restart)
 
@@ -69,6 +71,28 @@ paths:
     $ref: './paths/sync/pull.yaml'
   /sync/push:
     $ref: './paths/sync/push.yaml'
+  /sharing/profiles/{profileId}:
+    $ref: './paths/sharing/profile.yaml'
+  /sharing/profiles/{profileId}/invites:
+    $ref: './paths/sharing/invites.yaml'
+  /sharing/profiles/{profileId}/members/{userId}:
+    $ref: './paths/sharing/member.yaml'
+  /sharing/invites/{id}:
+    $ref: './paths/sharing/invite.yaml'
+  /sharing/invites/{id}/resend:
+    $ref: './paths/sharing/invite-resend.yaml'
+  /sharing/invites/{id}/accept:
+    $ref: './paths/sharing/invite-accept.yaml'
+  /sharing/invites/{id}/decline:
+    $ref: './paths/sharing/invite-decline.yaml'
+  /sharing/with-me:
+    $ref: './paths/sharing/with-me.yaml'
+  /sharing/with-me/{profileId}:
+    $ref: './paths/sharing/leave.yaml'
+  /sharing/wallets/{walletId}:
+    $ref: './paths/sharing/wallet.yaml'
+  /sharing/wallets/{walletId}/entries:
+    $ref: './paths/sharing/wallet-entries.yaml'
   /todos:
     $ref: './paths/todo/todos.yaml'
   /todos/{id}:

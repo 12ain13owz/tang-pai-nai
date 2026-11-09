@@ -1,0 +1,32 @@
+type: object
+required: [message, timestamp, data]
+properties:
+  message: { type: string, example: Fetched sharing successfully }
+  timestamp: { type: string, format: date-time }
+  data:
+    type: object
+    required: [members, invites, unsharedWalletIds]
+    properties:
+      members:
+        type: array
+        items:
+          type: object
+          required: [userId, displayName, email, role, walletIds, addedAt]
+          properties:
+            userId: { type: string, format: uuid }
+            displayName: { type: string }
+            email: { type: string, format: email }
+            role: { $ref: './sharing-role.schema.yaml' }
+            walletIds:
+              type: array
+              description: The member's open wallets of this profile
+              items: { type: string, format: uuid }
+            addedAt: { type: integer, description: Epoch ms }
+      invites:
+        type: array
+        description: Pending invites that haven't expired
+        items: { $ref: './sharing-invite.schema.yaml' }
+      unsharedWalletIds:
+        type: array
+        description: Open wallets of the profile shared with nobody
+        items: { type: string, format: uuid }

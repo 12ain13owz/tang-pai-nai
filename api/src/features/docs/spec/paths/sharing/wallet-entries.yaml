@@ -1,0 +1,43 @@
+get:
+  tags:
+    - Sharing
+  summary: 'Entries of a shared wallet'
+  description: >-
+    Transactions, transfer sides and debt entries from `from` to `to` (inclusive; no `to` means no end), signed for the wallet, without the other wallet or the debt.
+  operationId: sharingWalletEntries
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: walletId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    - name: from
+      in: query
+      required: true
+      schema: { type: string, format: date }
+    - name: to
+      in: query
+      required: false
+      schema: { type: string, format: date }
+  responses:
+    '200':
+      description: 'The entries'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/sharing-entries-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '404':
+      description: 'Not the caller’s to see (404 hides whether it exists)'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '422':
+      description: 'Invalid dates'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

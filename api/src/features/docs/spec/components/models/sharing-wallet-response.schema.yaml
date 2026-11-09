@@ -1,0 +1,35 @@
+type: object
+required: [message, timestamp, data]
+properties:
+  message: { type: string, example: Fetched wallet successfully }
+  timestamp: { type: string, format: date-time }
+  data:
+    type: object
+    required: [wallet, role, owner, categories]
+    properties:
+      wallet:
+        allOf:
+          - $ref: './sharing-wallet-view.schema.yaml'
+          - type: object
+            properties:
+              firstOn: { type: [string, 'null'], format: date, description: The oldest entry's day }
+      role: { $ref: './sharing-role.schema.yaml' }
+      owner:
+        type: object
+        properties:
+          displayName: { type: string }
+          email: { type: string, format: email }
+      categories:
+        type: array
+        description: The owner's live categories of the wallet's profile
+        items:
+          type: object
+          properties:
+            id: { type: string }
+            type: { type: string, enum: [income, expense] }
+            parentId: { type: [string, 'null'] }
+            name: { type: string }
+            icon: { type: string }
+            color: { type: string }
+            isArchived: { type: boolean }
+            sortOrder: { type: integer }

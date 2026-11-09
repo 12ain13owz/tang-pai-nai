@@ -1,0 +1,7 @@
+type: object
+required: [message, timestamp, data]
+properties:
+  message: { type: string, example: Created invite successfully }
+  timestamp: { type: string, format: date-time }
+  data:
+    $ref: './sharing-invite.schema.yaml'
