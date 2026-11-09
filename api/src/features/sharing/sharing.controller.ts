@@ -11,12 +11,7 @@ import type {
   RowsQuery,
 } from './sharing.schema'
 import type { SharingService } from './sharing.service'
-import type {
-  OwnerSharing,
-  SharedProfileRows,
-  SharedWithMe,
-  SharingInvite,
-} from './sharing.type'
+import type { OwnerSharing, SharedProfileRows, SharedWithMe, SharingInvite } from './sharing.type'
 import type { NextFunction, Request, Response } from 'express'
 
 /** `req.auth`, set by `authenticate` in front of every sharing route. */
