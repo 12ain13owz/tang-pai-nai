@@ -53,9 +53,11 @@ event's dates new rows take it by themselves.
    stored for "the active event", so two devices can't disagree about it.
 6. **Close / reopen** (Q2): `isClosed`; a closed event leaves the picker and the default, its
    rows and totals stay. "เปิดอีกครั้ง" reopens it (rule 1's limit applies).
-7. **Delete** (Q9) asks first ("ธุรกรรม n รายการจะยังอยู่ แค่ไม่ผูกกับอีเวนต์"): the event's
-   tombstone and its live transactions with `eventId` cleared, in one local write. The rows are
-   otherwise untouched.
+7. **Delete** (Q9) asks first ("ธุรกรรม n รายการจะยังอยู่ แค่ไม่ผูกกับอีเวนต์นี้แล้ว") and writes
+   **only the event's tombstone**: its rows keep `eventId`, which no screen reads once the event
+   is gone (tags, totals, the form's row), and the server clears it when such a row is pushed
+   again (rule 3). Untagging the rows in the same write was tried first and dropped: another
+   device's offline edit of one of them then lost the whole row to the delete (later edit wins).
 8. **Profile delete** tombstones its events (`PROFILE_CHILD_TABLES`); a pulled profile tombstone
    sweeps them like wallets. Two devices editing one event: the later edit wins (offline-sync
    rule 12).

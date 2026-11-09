@@ -31,7 +31,8 @@
     "appearance": "Appearance",
     "device": "This device",
     "recurring": "Recurring",
-    "debts": "Debts & loans"
+    "debts": "Debts & loans",
+    "events": "Events / trips"
   },
   "status": {
     "online": "Online",
@@ -403,7 +404,8 @@
     "quickAmountsHint": "A row of 20 · 50 · 100 · 500 · 1,000 above the keypad when adding a transaction; each tap adds",
     "recurring": "Recurring",
     "recurringHint": "{{count}} in {{name}}",
-    "debtsHint": "{{count}} in {{name}}"
+    "debtsHint": "{{count}} in {{name}}",
+    "eventsHint": "{{count}} in {{name}}"
   },
   "auth": {
     "signInHeading": "Sign in",
@@ -649,6 +651,7 @@
     "tabletransfers": "Transfer",
     "tablerecurring_rules": "Recurring",
     "tabledebts": "Debt",
+    "tableevents": "Events",
     "tabledebt_entries": "Debt row",
     "withDebts": "{{count}} debts"
   },
@@ -708,7 +711,9 @@
     "deleteRule": "1 recurring rule",
     "deleteRules": "{{count}} recurring rules",
     "deleteDebt": "1 debt",
-    "deleteDebts": "{{count}} debts"
+    "deleteDebts": "{{count}} debts",
+    "deleteEvent": "1 event",
+    "deleteEvents": "{{count}} events"
   },
   "icons": {
     "lucideUser": "Person",
@@ -1179,5 +1184,67 @@
         "repayment": "Receive back"
       }
     }
+  },
+  "events": {
+    "menu": "Events / trips",
+    "field": "Event",
+    "none": "None",
+    "unlink": "Remove from the event",
+    "pick": "Choose an event",
+    "since": "From {{date}}",
+    "noneOpen": "No open events yet. Add one in ⋮ › Events / trips",
+    "emptyHeading": "No events yet",
+    "emptyText": "Create a trip or an event, tag transactions to it and see what it cost in total",
+    "openGroup": "Open ({{count}})",
+    "closedGroup": "Finished ({{count}})",
+    "current": "Now",
+    "limit": "You can have up to 50 open events. Finish or delete an old one first",
+    "add": "Add event",
+    "rows": "{{count}} transactions",
+    "wallets": "{{count}} wallets",
+    "closedTag": "Finished",
+    "edit": "Edit event",
+    "spent": "Spent",
+    "income": "In",
+    "net": "Net",
+    "reopen": "Reopen",
+    "close": "Finish trip",
+    "addRow": "Add to this event",
+    "byCategory": "By category",
+    "rowsHeading": "Transactions",
+    "noRowsHeading": "No transactions yet",
+    "noRowsText": "Tap \"Add to this event\" or choose this event in the transaction form",
+    "showMore": "Show more ({{count}} left)",
+    "goneHeading": "Event not found",
+    "goneText": "It may have been deleted on another device",
+    "closed": "Trip finished",
+    "reopened": "Event reopened",
+    "needsOnline": "This device isn't set up for offline use. Connect to the internet to edit events",
+    "name": "Event name",
+    "nameRequired": "Enter the event's name",
+    "changeIcon": "Change icon and colour",
+    "iconHeading": "Icon and colour",
+    "icon": "Icon",
+    "color": "Colour",
+    "start": "Starts",
+    "end": "Ends",
+    "clearEnd": "No end date",
+    "noEnd": "Not set",
+    "endBeforeStart": "The end can't be before the start",
+    "defaultHint": "Between its start and end, new transactions dated in that range are tagged to it (you can remove it in the form)",
+    "save": "Save",
+    "createHeading": "Add event",
+    "editHeading": "Edit event",
+    "fixHeading": "Fix event",
+    "created": "Event added",
+    "saved": "Event saved",
+    "deleted": "Event deleted",
+    "deleteHeading": "Delete event",
+    "deleteQuestion": "Delete \"{{name}}\"?",
+    "delete": "Delete event",
+    "deleteText": "Its {{count}} transactions stay, just no longer tagged to this event",
+    "rowsOne": "1 transaction",
+    "walletsOne": "1 wallet",
+    "deleteTextOne": "Its 1 transaction stays, just no longer tagged to this event"
   }
 }

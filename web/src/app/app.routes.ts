@@ -16,6 +16,11 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'transactions' },
       {
+        // Events / trips live under the Transactions tab (event.md Q6).
+        path: 'transactions/events',
+        loadChildren: async () => import('@/features/events').then((m) => m.eventsRoutes),
+      },
+      {
         path: 'transactions',
         loadChildren: async () =>
           import('@/features/transactions').then((m) => m.transactionsRoutes),

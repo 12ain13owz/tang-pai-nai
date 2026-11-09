@@ -17,6 +17,8 @@ export interface Transaction {
   recurringId: string | null
   /** The debt it belongs to (docs/features/debt.md rule 3); null otherwise. */
   debtId: string | null
+  /** The event / trip it is tagged to (docs/features/event.md rule 3); null otherwise. */
+  eventId: string | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null
@@ -33,6 +35,8 @@ export interface TransactionItem extends Transaction {
   categoryColor: string
   walletName: string
   currencyCode: string
+  /** The live event it is tagged to, for the row's tag (event → Web screens); null otherwise. */
+  eventName: string | null
 }
 
 /** A transfer as the device stores it (docs/features/transfer.md → Data model). */
@@ -129,6 +133,8 @@ export interface TransactionValues {
   excludeFromReport: boolean
   /** The debt it belongs to (debt rule 3); absent keeps what the row has. */
   debtId?: string | null
+  /** The event it is tagged to (event rule 3); absent keeps what the row has. */
+  eventId?: string | null
 }
 
 /** Days from `from` to `to`, both included; null is open on that side. */
@@ -140,6 +146,8 @@ export interface ListFilter {
   report?: 'counted' | 'excluded'
   /** Only rows of wallets in this currency. */
   currencyCode?: string
+  /** Only rows tagged to this event (an event's page, event.md). */
+  eventId?: string
 }
 
 export interface DayRange {
@@ -173,6 +181,8 @@ export type TransactionSheetState =
       repeat?: boolean
       /** A due occurrence of an ask-first rule, recorded by this save (recurring rule 10). */
       occurrence?: { ruleId: string; on: string }
+      /** "เพิ่มรายการ" on an event's page: starts tagged to it, as if chosen (event rule 5). */
+      eventId?: string
     }
   | { mode: 'edit'; id: string }
   | { mode: 'fix'; opId: string; id: string; profileId: string; values: TransactionValues }
@@ -182,6 +192,19 @@ export type TransactionSheetState =
   | { mode: 'fixRule'; opId: string; id: string }
 
 export const TRANSACTION_TABLE = 'transactions'
+/** The events table, read by name here (the form's picker and default); `core/event` owns it. */
+export const EVENT_TABLE = 'events'
+
+/** An event as the transaction form offers it (event.md → Web screens). */
+export interface EventOption {
+  id: string
+  name: string
+  icon: string
+  color: string
+  startOn: string
+  endOn: string | null
+  isClosed: boolean
+}
 export const TRANSFER_TABLE = 'transfers'
 
 export const TRANSACTION_LIMITS = {

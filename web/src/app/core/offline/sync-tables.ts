@@ -93,6 +93,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
       'excludeFromReport',
       'recurringId',
       'debtId',
+      'eventId',
       'createdAt',
       'updatedAt',
       'deletedAt',
@@ -185,6 +186,25 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
       'changeSeq',
       'updatedBy',
     ],
+  },
+  events: {
+    key: 'id',
+    columns: [
+      'id',
+      'profileId',
+      'name',
+      'icon',
+      'color',
+      'startOn',
+      'endOn',
+      'isClosed',
+      'createdAt',
+      'updatedAt',
+      'deletedAt',
+      'changeSeq',
+      'updatedBy',
+    ],
+    booleans: ['isClosed'],
   },
 }
 

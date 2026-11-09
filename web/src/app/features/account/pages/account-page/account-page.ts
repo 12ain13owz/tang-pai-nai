@@ -7,6 +7,7 @@ import {
   lucideLogOut,
   lucidePalette,
   lucideHandCoins,
+  lucidePlane,
   lucideRepeat,
   lucideShapes,
   lucideShieldCheck,
@@ -39,6 +40,7 @@ interface AccountItem {
       lucideLogOut,
       lucidePalette,
       lucideHandCoins,
+      lucidePlane,
       lucideRepeat,
       lucideShapes,
       lucideShieldCheck,
@@ -218,6 +220,17 @@ export class AccountPage {
               ? t('account.debtsHint', {
                   name: profile.name,
                   count: this.profileService.debtCount(profile.id),
+                })
+              : t('account.profilesNone'),
+          },
+          {
+            link: '/transactions/events',
+            icon: 'lucidePlane',
+            label: 'events.menu',
+            hint: profile
+              ? t('account.eventsHint', {
+                  name: profile.name,
+                  count: this.profileService.eventCount(profile.id),
                 })
               : t('account.profilesNone'),
           },

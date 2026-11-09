@@ -11,6 +11,7 @@ import {
   lucideChevronRight,
   lucideEllipsisVertical,
   lucideHandCoins,
+  lucidePlane,
   lucideRepeat,
   lucideWallet,
 } from '@ng-icons/lucide'
@@ -44,6 +45,7 @@ import { SyncStatus } from './sync-status'
       lucideChevronRight,
       lucideEllipsisVertical,
       lucideHandCoins,
+      lucidePlane,
       lucideRepeat,
       lucideWallet,
     }),
@@ -138,6 +140,24 @@ import { SyncStatus } from './sync-status'
             >
               <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
               <span class="flex-1">{{ 'debts.menu' | transloco }}</span>
+              <ng-icon
+                name="lucideChevronRight"
+                size="16"
+                class="text-muted-foreground"
+                aria-hidden="true"
+              />
+            </button>
+          }
+          @if (view() === 'transactions') {
+            <!-- Events (event.md Q6): the events page under the Transactions tab. -->
+            <button
+              type="button"
+              role="menuitem"
+              class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+              (click)="events()"
+            >
+              <ng-icon name="lucidePlane" size="20" aria-hidden="true" />
+              <span class="flex-1">{{ 'events.menu' | transloco }}</span>
               <ng-icon
                 name="lucideChevronRight"
                 size="16"
@@ -271,6 +291,11 @@ export class TransactionsHeader {
   protected debts(): void {
     this.closeMenu(false)
     void this.router.navigateByUrl('/wallets/debts')
+  }
+
+  protected events(): void {
+    this.closeMenu(false)
+    void this.router.navigateByUrl('/transactions/events')
   }
 
   protected recurring(): void {

@@ -19,6 +19,7 @@ import {
   lucideChevronRight,
   lucideCloud,
   lucideHandCoins,
+  lucidePlane,
   lucideReceiptText,
   lucideRepeat,
 } from '@ng-icons/lucide'
@@ -91,6 +92,7 @@ interface DayGroup {
       lucideChevronRight,
       lucideCloud,
       lucideHandCoins,
+      lucidePlane,
       lucideReceiptText,
       lucideRepeat,
     }),
@@ -304,6 +306,21 @@ interface DayGroup {
                             class="shrink-0 text-muted-foreground"
                             [attr.aria-label]="'debts.linked' | transloco"
                           />
+                        }
+                        @if (row.item.eventName; as eventName) {
+                          <!-- The event / trip it is tagged to (event → Web screens 4). -->
+                          <span
+                            class="flex min-w-0 shrink items-center gap-0.5 rounded-md bg-brand/10 px-1.5 text-xs font-semibold text-brand"
+                          >
+                            <ng-icon
+                              name="lucidePlane"
+                              size="11"
+                              class="shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span class="sr-only">{{ 'events.field' | transloco }}</span>
+                            <span class="truncate">{{ eventName }}</span>
+                          </span>
                         }
                       </span>
                     }

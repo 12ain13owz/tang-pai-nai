@@ -223,6 +223,7 @@ export class ProfileSheet {
       ],
       ['deleteRule', 'deleteRules', id ? this.profileService.ruleCount(id) : 0],
       ['deleteDebt', 'deleteDebts', id ? this.profileService.debtCount(id) : 0],
+      ['deleteEvent', 'deleteEvents', id ? this.profileService.eventCount(id) : 0],
     ]
     const items = counts
       .filter(([, , count]) => count > 0)

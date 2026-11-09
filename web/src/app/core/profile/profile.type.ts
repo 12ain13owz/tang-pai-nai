@@ -48,6 +48,8 @@ export const PROFILE_CHILD_TABLES = [
   // A debt before what points at it (its entries, linked transactions and rules: outbox order).
   'debts',
   'debt_entries',
+  // An event before the transactions tagged to it.
+  'events',
   'transactions',
   'transfers',
   'recurring_rules',
