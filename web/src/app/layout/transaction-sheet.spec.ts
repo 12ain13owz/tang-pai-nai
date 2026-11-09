@@ -549,4 +549,109 @@ describe('TransactionSheet', () => {
       expect(transactions.sheet()).toEqual({ mode: 'rule', id: 'r1' })
     })
   })
+
+  describe('event / trip (docs/features/event.md)', () => {
+    const event = (id: string, extra: object = {}) => {
+      putRow(db, 'events', {
+        ...base,
+        id,
+        profileId: 'p1',
+        name: id,
+        icon: 'lucidePlane',
+        color: '#0e7490',
+        startOn: '2026-11-07',
+        endOn: '2026-11-12',
+        isClosed: false,
+        ...extra,
+      })
+      changes.update((n) => n + 1)
+    }
+    const eventRow = () => button('อีเวนต์ ', true)?.getAttribute('aria-label')
+    const setDay = async (day: string) => {
+      const input = body().querySelector<HTMLInputElement>('input[type="date"]')
+      input!.value = day
+      input!.dispatchEvent(new Event('input'))
+      await settle()
+    }
+
+    beforeEach(() => {
+      transactions.today.set('2026-11-09')
+      event('Trip', { name: 'เชียงใหม่' })
+      event('Wedding', { name: 'งานแต่ง', startOn: '2026-10-01', endOn: null })
+      event('Old', { name: 'เขาใหญ่', startOn: '2026-08-14', endOn: '2026-08-16', isClosed: true })
+    })
+
+    it('takes the open event of the date while adding, until one is chosen (rule 5)', async () => {
+      await open({ mode: 'create' })
+      expect(eventRow()).toBe('อีเวนต์ เชียงใหม่')
+      await setDay('2026-10-15')
+      expect(eventRow()).toBe('อีเวนต์ งานแต่ง')
+      await setDay('2026-09-01')
+      expect(eventRow()).toBe(`อีเวนต์ ${th.events.none}`)
+      await setDay('2026-11-09')
+      await click(th.events.unlink)
+      await setDay('2026-11-10')
+      expect(eventRow()).toBe(`อีเวนต์ ${th.events.none}`)
+      await click('อีเวนต์ ', true)
+      expect(text()).not.toContain('เขาใหญ่')
+      ;[...body().querySelectorAll('button')]
+        .find((b) => b.textContent.includes('7–12 พ.ย. 2026'))
+        ?.click()
+      await settle()
+      expect(eventRow()).toBe('อีเวนต์ เชียงใหม่')
+    })
+
+    it('saves the event with the row, and none on a repeating add (rule 9)', async () => {
+      await open({ mode: 'create' })
+      await keys('5', '0')
+      await click('หมวดหมู่ ', true)
+      await click('Food')
+      await submit()
+      const [op] = listOps(db, 'pending')
+      expect(getRow(db, 'transactions', op.rowId)).toMatchObject({ eventId: 'Trip' })
+    })
+
+    it('keeps the row’s event on edit, a finished one too, and drops a deleted one (rules 3, 7)', async () => {
+      putRow(db, 'transactions', {
+        ...base,
+        id: 't1',
+        profileId: 'p1',
+        walletId: 'Cash',
+        categoryId: 'Food',
+        amount: 100,
+        occurredOn: '2026-08-15',
+        note: '',
+        excludeFromReport: false,
+        eventId: 'Old',
+      })
+      changes.update((n) => n + 1)
+      await open({ mode: 'edit', id: 't1' })
+      expect(eventRow()).toBe('อีเวนต์ เขาใหญ่')
+      transactions.sheet.set(null)
+      await settle()
+      event('Old', { deletedAt: 9 })
+      await open({ mode: 'edit', id: 't1' })
+      expect(eventRow()).toBe(`อีเวนต์ ${th.events.none}`)
+    })
+
+    it('starts tagged from an event page, and a copy keeps the event', async () => {
+      await open({ mode: 'create', eventId: 'Wedding' })
+      expect(eventRow()).toBe('อีเวนต์ งานแต่ง')
+      transactions.sheet.set(null)
+      await settle()
+      await open({
+        mode: 'create',
+        values: {
+          walletId: 'Cash',
+          categoryId: 'Food',
+          amount: 100,
+          occurredOn: '2026-11-09',
+          note: '',
+          excludeFromReport: false,
+          eventId: 'Wedding',
+        },
+      })
+      expect(eventRow()).toBe('อีเวนต์ งานแต่ง')
+    })
+  })
 })

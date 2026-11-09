@@ -5,6 +5,10 @@ const UNDO_STEP_12 = `DROP TABLE debts; DROP TABLE debt_entries;
   DROP INDEX transactions_debt; ALTER TABLE transactions DROP COLUMN debt_id;
   DROP INDEX recurring_rules_debt; ALTER TABLE recurring_rules DROP COLUMN debt_id`
 
+/** Back to before schema step 13 (#14): an older snapshot has no events. */
+const UNDO_STEP_13 = `DROP TABLE events;
+  DROP INDEX transactions_event; ALTER TABLE transactions DROP COLUMN event_id`
+
 describe('LocalDatabase', () => {
   it('creates every table of the current schema', async () => {
     const db = await openTestDatabase()
@@ -22,18 +26,20 @@ describe('LocalDatabase', () => {
         'recurring_rules',
         'debts',
         'debt_entries',
+        'events',
         'transactions',
         'transfers',
         'wallets',
       ])
     )
     expect(tables).not.toContain('sync_probes')
-    expect(db.selectValue('PRAGMA user_version')).toBe(12)
+    expect(db.selectValue('PRAGMA user_version')).toBe(13)
     db.close()
   })
 
   it('brings a 4a.1 snapshot (schema step 1) up to date and keeps its data', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_13)
     old.exec(UNDO_STEP_12)
     old.exec('DROP TABLE recurring_rules')
     old.exec('DROP TABLE transfers')
@@ -46,7 +52,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(12)
+    expect(db.selectValue('PRAGMA user_version')).toBe(13)
     expect(db.selectValue(`SELECT value FROM sync_meta WHERE key = 'deviceId'`)).toBe('d1')
     expect(db.selectValue('SELECT count(*) FROM outbox')).toBe(0)
     expect(db.selectValue('SELECT count(*) FROM profiles')).toBe(0)
@@ -58,6 +64,7 @@ describe('LocalDatabase', () => {
 
   it('drops the dev-only sync_probes with its ops and notices (step 5), keeping the rest', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_13)
     old.exec(UNDO_STEP_12)
     old.exec('DROP TABLE recurring_rules')
     old.exec('DROP TABLE transfers')
@@ -83,6 +90,7 @@ describe('LocalDatabase', () => {
 
   it('adds categories (step 6) to a 6.2 snapshot', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_13)
     old.exec(UNDO_STEP_12)
     old.exec('DROP TABLE recurring_rules')
     old.exec('DROP TABLE transfers')
@@ -95,7 +103,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(12)
+    expect(db.selectValue('PRAGMA user_version')).toBe(13)
     expect(db.selectValue('SELECT count(*) FROM categories')).toBe(0)
     expect(db.selectValue(`SELECT value FROM sync_meta WHERE key = 'deviceId'`)).toBe('d1')
     db.close()
@@ -103,6 +111,7 @@ describe('LocalDatabase', () => {
 
   it('adds wallets.hidden_category_ids (step 7) to a 7.1 snapshot, [] for its wallets', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_13)
     old.exec(UNDO_STEP_12)
     old.exec('DROP TABLE recurring_rules')
     old.exec('DROP TABLE transfers')
@@ -117,13 +126,14 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(12)
+    expect(db.selectValue('PRAGMA user_version')).toBe(13)
     expect(db.selectValue('SELECT hidden_category_ids FROM wallets')).toBe('[]')
     db.close()
   })
 
   it('adds transactions (step 8) with its indexes to a 7.2 snapshot', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_13)
     old.exec(UNDO_STEP_12)
     old.exec('DROP TABLE recurring_rules')
     old.exec('DROP TABLE transfers')
@@ -135,7 +145,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(12)
+    expect(db.selectValue('PRAGMA user_version')).toBe(13)
     expect(db.selectValue('SELECT count(*) FROM transactions')).toBe(0)
     expect(
       db
@@ -147,6 +157,7 @@ describe('LocalDatabase', () => {
     ).toEqual([
       'transactions_category',
       'transactions_debt',
+      'transactions_event',
       'transactions_profile_day',
       'transactions_wallet',
     ])
@@ -155,6 +166,7 @@ describe('LocalDatabase', () => {
 
   it('adds categories.merged_into_id (step 10) to a #9 snapshot, null for its categories', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_13)
     old.exec(UNDO_STEP_12)
     old.exec(`DROP TABLE recurring_rules;
       ALTER TABLE transactions DROP COLUMN recurring_id;
@@ -168,13 +180,14 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(12)
+    expect(db.selectValue('PRAGMA user_version')).toBe(13)
     expect(db.selectValue('SELECT merged_into_id FROM categories')).toBeNull()
     db.close()
   })
 
   it('adds recurring_rules and recurring_id (step 11) to a 7.3 snapshot, null for its rows', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_13)
     old.exec(UNDO_STEP_12)
     old.exec(`DROP TABLE recurring_rules;
       ALTER TABLE transactions DROP COLUMN recurring_id;
@@ -187,7 +200,7 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(12)
+    expect(db.selectValue('PRAGMA user_version')).toBe(13)
     expect(db.selectValue('SELECT recurring_id FROM transactions')).toBeNull()
     expect(db.selectValue('SELECT count(*) FROM recurring_rules')).toBe(0)
     db.close()
@@ -195,6 +208,7 @@ describe('LocalDatabase', () => {
 
   it('adds debts, debt_entries and debt_id (step 12) to a #12 snapshot, null for its rows', async () => {
     const old = await openTestDatabase()
+    old.exec(UNDO_STEP_13)
     old.exec(UNDO_STEP_12)
     old.exec(`INSERT INTO transactions (id, profile_id, wallet_id, category_id, amount, occurred_on,
         note, exclude_from_report, created_at, updated_at)
@@ -204,10 +218,27 @@ describe('LocalDatabase', () => {
     old.close()
 
     const db = await openTestDatabase(snapshot)
-    expect(db.selectValue('PRAGMA user_version')).toBe(12)
+    expect(db.selectValue('PRAGMA user_version')).toBe(13)
     expect(db.selectValue('SELECT debt_id FROM transactions')).toBeNull()
     expect(db.selectValue('SELECT count(*) FROM debts')).toBe(0)
     expect(db.selectValue('SELECT count(*) FROM debt_entries')).toBe(0)
+    db.close()
+  })
+
+  it('adds events and event_id (step 13) to a #13 snapshot, null for its rows', async () => {
+    const old = await openTestDatabase()
+    old.exec(UNDO_STEP_13)
+    old.exec(`INSERT INTO transactions (id, profile_id, wallet_id, category_id, amount, occurred_on,
+        note, exclude_from_report, created_at, updated_at)
+        VALUES ('t1', 'p1', 'w1', 'c1', 100, '2026-11-01', '', 0, 1, 1);
+      PRAGMA user_version = 12`)
+    const snapshot = old.export()
+    old.close()
+
+    const db = await openTestDatabase(snapshot)
+    expect(db.selectValue('PRAGMA user_version')).toBe(13)
+    expect(db.selectValue('SELECT event_id FROM transactions')).toBeNull()
+    expect(db.selectValue('SELECT count(*) FROM events')).toBe(0)
     db.close()
   })
 

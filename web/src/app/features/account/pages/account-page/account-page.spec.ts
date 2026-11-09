@@ -55,6 +55,7 @@ describe('AccountPage', () => {
             profiles: signal([{}, {}]),
             ruleCount: () => 2,
             debtCount: () => 3,
+            eventCount: () => 4,
           },
         },
         {
@@ -98,6 +99,7 @@ describe('AccountPage', () => {
       '/account/categories',
       '/account/recurring',
       '/wallets/debts',
+      '/transactions/events',
       '/account/security',
       '/account/appearance',
       '/account/device',
@@ -106,6 +108,8 @@ describe('AccountPage', () => {
     expect(text).toContain('ของโปรไฟล์ ส่วนตัว')
     // Recurring (#12): how many rules the profile holds.
     expect(text).toContain('2 รายการใน ส่วนตัว')
+    // Events (#14): how many the profile holds.
+    expect(text).toContain('4 อีเวนต์ใน ส่วนตัว')
     expect(text).toContain('ไทย · ตามระบบ · Midnight Gold')
     expect(text).toContain('เปิดในเบราว์เซอร์ · ไม่รองรับการเก็บถาวร')
   })
