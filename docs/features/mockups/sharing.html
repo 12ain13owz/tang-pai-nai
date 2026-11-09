@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="th" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Family sharing mock-up (#16.1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --background: oklch(0.975 0.007 265); --foreground: oklch(0.2 0.03 265);
+  --card: oklch(1 0 0); --muted: oklch(0.94 0.014 265); --muted-fg: oklch(0.48 0.03 265);
+  --primary: oklch(0.8 0.15 80); --primary-fg: oklch(0.2 0.03 70);
+  --destructive: oklch(0.55 0.22 27); --border: oklch(0.91 0.014 265); --brand: oklch(0.53 0.12 75);
+  --income: oklch(0.52 0.14 155); --expense: oklch(0.55 0.2 25);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+    --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+    --primary: oklch(0.82 0.15 82); --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+    --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+  }
+}
+:root[data-theme="dark"] {
+  --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+  --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+  --primary: oklch(0.82 0.15 82); --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+  --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--foreground);
+  font-family: "Noto Sans Thai", system-ui, sans-serif; font-size: 15px; }
+header.page { max-width: 1300px; margin: 0 auto; padding: 24px 16px 8px; }
+header.page h1 { font-size: 20px; margin: 0 0 4px; }
+header.page p { margin: 0; color: var(--muted-fg); font-size: 14px; line-height: 1.5; }
+.toggle { margin-top: 10px; display: inline-flex; gap: 4px; background: var(--muted); border-radius: 10px; padding: 3px; }
+.toggle button { border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--card); font-weight: 600; }
+.grid { max-width: 1300px; margin: 0 auto; padding: 16px; display: flex; flex-wrap: wrap; gap: 24px; }
+figure { margin: 0; width: 320px; max-width: 100%; }
+figcaption { font-size: 13px; color: var(--muted-fg); margin-bottom: 6px; min-height: 92px; line-height: 1.45; }
+figcaption b { color: var(--foreground); }
+.phone { height: 690px; border: 1px solid var(--border); border-radius: 24px; overflow: hidden;
+  background: var(--background); display: flex; flex-direction: column; position: relative; }
+.hdr { height: 52px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 6px;
+  border-bottom: 1px solid var(--border); flex: none; }
+.hdr .l { display: flex; align-items: center; gap: 2px; }
+.hdr .r { display: flex; justify-content: flex-end; }
+.hdr .ttl { font-weight: 600; font-size: 16px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; background: var(--muted); border-radius: 999px; padding: 4px 10px 4px 4px; font-size: 14px; font-weight: 500; }
+.ib { width: 40px; height: 40px; display: grid; place-items: center; color: var(--foreground); }
+.ib.ok { color: var(--income); } .ib.red { color: var(--destructive); }
+.bal { text-align: center; padding: 8px 0 2px; flex: none; }
+.bal small { font-size: 12px; color: var(--muted-fg); } .bal div { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.chips { display: flex; gap: 6px; padding: 6px 12px; overflow: hidden; flex: none; border-bottom: 1px solid var(--border); justify-content: flex-end; }
+.chip { white-space: nowrap; font-size: 13px; padding: 5px 10px; color: var(--muted-fg); }
+.chip.on { color: var(--brand); font-weight: 600; box-shadow: inset 0 -2px 0 var(--brand); }
+.scroll { flex: 1; overflow: auto; scrollbar-width: none; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.tabbar { height: 56px; flex: none; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; text-align: center; font-size: 10.5px; color: var(--muted-fg); background: var(--background); }
+.tabbar .on { color: var(--brand); font-weight: 600; }
+.tabbar .plus { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: var(--primary-fg); display: grid; place-items: center; margin: 0 auto; }
+.tabbar div > svg { display: block; margin: 0 auto 2px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; }
+.inc { color: var(--income); } .exp { color: var(--expense); } .mut { color: var(--muted-fg); }
+.badge { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: #fff; flex: none; position: relative; }
+.badge.m { background: var(--muted); color: var(--muted-fg); }
+.badge .w { position: absolute; right: -4px; bottom: -4px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--card); }
+.badge .w svg { width: 10px; height: 10px; }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.badge svg.i { width: 18px; height: 18px; }
+svg.i.s { width: 14px; height: 14px; }
+.day { padding: 2px 14px; }
+.dayh { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.dayh .n { font-size: 26px; font-weight: 600; width: 34px; }
+.dayh .w { flex: 1; font-size: 12px; line-height: 1.3; color: var(--muted-fg); }
+.dayh .w b { display: block; color: var(--foreground); font-weight: 500; font-size: 13px; }
+.dayh .t { font-variant-numeric: tabular-nums; font-weight: 500; }
+.tx { display: flex; align-items: center; gap: 10px; min-height: 56px; }
+.tx .mid { flex: 1; min-width: 0; font-size: 14.5px; }
+.tx .mid small { display: flex; align-items: center; gap: 4px; color: var(--muted-fg); font-size: 12px; }
+.tx .amt { font-variant-numeric: tabular-nums; text-align: right; }
+.tx .amt small { display: block; font-size: 11.5px; color: var(--muted-fg); }
+.proj { opacity: .62; } .proj .badge { outline: 1.5px dashed var(--muted-fg); outline-offset: 2px; }
+.rep { color: var(--muted-fg); display: inline-flex; vertical-align: -2px; margin-left: 4px; }
+.sumc { padding: 10px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-variant-numeric: tabular-nums; }
+.sumc .k { font-size: 12px; color: var(--muted-fg); } .sumc .v { font-weight: 600; }
+.sumc .net { grid-column: 1 / -1; display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 6px; }
+.due { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--brand) 12%, var(--card)); border: 1px solid color-mix(in srgb, var(--brand) 35%, var(--card)); }
+.due .mid { flex: 1; font-size: 14px; } .due small { display: block; font-size: 12px; color: var(--muted-fg); }
+.due .ic { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--brand); color: var(--card); }
+/* sheet */
+.dim { position: absolute; inset: 0; background: rgb(0 0 0 / .3); z-index: 2; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 92%; z-index: 3; background: var(--background); border-radius: 18px 18px 0 0; display: flex; flex-direction: column; border-top: 1px solid var(--border); }
+.sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--border); margin: 6px auto 0; flex: none; }
+.shdr { height: 48px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 4px; flex: none; }
+.shdr .r { display: flex; justify-content: flex-end; }
+.shdr .ttl { font-weight: 600; font-size: 16px; }
+.sbody { flex: 1; overflow: auto; scrollbar-width: none; padding: 4px 14px 12px; display: flex; flex-direction: column; gap: 12px; }
+.sfoot { flex: none; padding: 10px 14px 14px; display: flex; gap: 8px; }
+.btn { flex: 1; height: 44px; border-radius: 12px; border: 0; font: inherit; font-weight: 600; background: var(--primary); color: var(--primary-fg); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn.o { flex: none; width: 44px; background: transparent; border: 1px solid var(--border); color: var(--foreground); }
+.btn.t { background: color-mix(in srgb, var(--brand) 12%, var(--card)); color: var(--brand); }
+.btn.sm { height: 34px; font-size: 13.5px; border-radius: 10px; flex: none; padding: 0 12px; }
+.btn.sm.gh { background: transparent; color: var(--muted-fg); border: 1px solid var(--border); }
+.seg { display: flex; background: var(--muted); border-radius: 10px; padding: 3px; }
+.seg span { flex: 1; text-align: center; padding: 5px; border-radius: 8px; font-size: 13.5px; color: var(--muted-fg); }
+.seg span.on { background: var(--card); color: var(--foreground); font-weight: 600; }
+.rows > div { display: flex; align-items: center; gap: 12px; padding: 0 14px; min-height: 52px; }
+.rows > div + div { border-top: 1px solid var(--border); }
+.rows .lbl { flex: 1; min-width: 0; font-size: 14.5px; }
+.rows .lbl small { display: block; font-size: 12px; color: var(--muted-fg); }
+.rows .val { color: var(--muted-fg); font-size: 14px; text-align: right; display: flex; align-items: center; gap: 4px; }
+.rows .val.on { color: var(--brand); font-weight: 600; }
+.amtrow .big { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.amtrow .code { font-size: 12px; color: var(--muted-fg); border: 1px solid var(--border); border-radius: 6px; padding: 1px 5px; }
+.sw { width: 40px; height: 24px; border-radius: 12px; background: var(--muted); position: relative; flex: none; border: 1px solid var(--border); }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--card); box-shadow: 0 1px 2px rgb(0 0 0 / .3); }
+.sw.on { background: var(--brand); border-color: var(--brand); } .sw.on::after { left: 18px; }
+.radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); flex: none; }
+.radio.on { border: 6px solid var(--brand); }
+.more { font-size: 13.5px; color: var(--muted-fg); display: flex; align-items: center; gap: 4px; padding: 0 4px; }
+.h { font-size: 13px; font-weight: 500; color: var(--muted-fg); margin: 2px 2px -4px; }
+.hint { font-size: 12.5px; color: var(--muted-fg); padding: 0 4px; line-height: 1.5; }
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stepper b { min-width: 34px; text-align: center; border: 1px solid var(--border); border-radius: 8px; padding: 3px 0; font-variant-numeric: tabular-nums; }
+.unit { display: flex; gap: 4px; }
+.unit span { font-size: 13px; padding: 4px 9px; border-radius: 999px; background: var(--muted); color: var(--muted-fg); }
+.unit span.on { background: var(--brand); color: var(--card); font-weight: 600; }
+.keypad { flex: none; background: var(--card); border-top: 1px solid var(--border); padding: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.keypad span { height: 40px; border-radius: 10px; background: var(--muted); display: grid; place-items: center; font-weight: 500; }
+.rule { display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+.rule + .rule { border-top: 1px solid var(--border); }
+.rule .mid { flex: 1; min-width: 0; font-size: 14.5px; }
+.rule .mid small { display: block; font-size: 12px; color: var(--muted-fg); line-height: 1.45; }
+.rule .mid small.warn { color: var(--destructive); }
+.rule .amt { font-variant-numeric: tabular-nums; text-align: right; font-weight: 500; }
+.rule .amt small { display: block; font-size: 11.5px; color: var(--muted-fg); font-weight: 400; }
+.rule.off { opacity: .6; }
+.fold { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted-fg); padding: 2px 4px; }
+.toast { position: absolute; top: 8px; left: 10px; right: 10px; z-index: 5; background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgb(0 0 0 / .18); padding: 10px 12px; display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.toast b { margin-left: auto; color: var(--brand); font-weight: 600; }
+.menu { position: absolute; top: 46px; right: 10px; width: 220px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgb(0 0 0 / .18); padding: 4px; z-index: 3; }
+.menu .it { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; font-size: 14px; }
+.menu .it .r { margin-left: auto; color: var(--muted-fg); font-size: 13px; display: flex; align-items: center; }
+.menu .it.new { background: color-mix(in srgb, var(--brand) 12%, var(--card)); }
+.empty { flex: 1; display: grid; place-items: center; text-align: center; padding: 24px; }
+.empty .ic { width: 64px; height: 64px; border-radius: 50%; background: var(--muted); display: grid; place-items: center; margin: 0 auto 12px; color: var(--muted-fg); }
+.empty h4 { margin: 0 0 4px; font-size: 16px; } .empty p { margin: 0 0 14px; color: var(--muted-fg); font-size: 13.5px; }
+.tag { font-size: 10.5px; font-weight: 600; border-radius: 6px; padding: 1px 6px; background: var(--muted); color: var(--muted-fg); white-space: nowrap; }
+.tag.b { background: color-mix(in srgb, var(--brand) 14%, var(--card)); color: var(--brand); }
+.qs { max-width: 1300px; margin: 0 auto; padding: 0 16px 40px; font-size: 14px; line-height: 1.6; }
+.qs h2 { font-size: 16px; margin: 20px 0 6px; }
+.qs li { margin-bottom: 4px; }
+.prog { height: 6px; border-radius: 3px; background: var(--muted); overflow: hidden; margin-top: 6px; }
+.prog i { display: block; height: 100%; background: var(--brand); border-radius: 3px; }
+.prog.inc i { background: var(--income); }
+.hero { padding: 14px; text-align: center; }
+.hero small { display: block; font-size: 12.5px; color: var(--muted-fg); }
+.hero .big { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 2px 0; }
+.hero .facts { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; font-size: 12.5px; color: var(--muted-fg); }
+.acts { display: flex; gap: 8px; }
+.acts .btn { height: 42px; }
+.btn.ol { background: transparent; border: 1px solid var(--border); color: var(--foreground); }
+.ent { display: flex; align-items: center; gap: 10px; padding: 9px 14px; }
+.ent + .ent { border-top: 1px solid var(--border); }
+.ent .mid { flex: 1; min-width: 0; font-size: 14px; }
+.ent .mid small { display: block; font-size: 12px; color: var(--muted-fg); }
+.ent .amt { font-variant-numeric: tabular-nums; text-align: right; }
+.ent .amt small { display: block; font-size: 11px; color: var(--muted-fg); }
+.warn { color: var(--destructive); }
+.opt { outline: 1.5px dashed var(--brand); outline-offset: 3px; border-radius: 10px; }
+.done { opacity: .62; }
+input.nm { border: 0; background: transparent; font: inherit; color: inherit; width: 100%; padding: 0; }
+.qchip { display: flex; gap: 6px; padding: 8px 8px 0; background: var(--card); flex: none; border-top: 1px solid var(--border); }
+.qchip span { font-size: 12.5px; padding: 4px 10px; border-radius: 999px; background: var(--muted); }
+.qchip span.b { background: color-mix(in srgb, var(--brand) 14%, var(--card)); color: var(--brand); font-weight: 600; }
+.sumc .xtra { grid-column: 1 / -1; display: flex; justify-content: space-between; font-size: 13px; }
+</style>
+<style>
+.inv { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; border-color: color-mix(in srgb, var(--brand) 45%, var(--card)); background: color-mix(in srgb, var(--brand) 9%, var(--card)); }
+.inv .top { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45; }
+.inv .top small { display: block; color: var(--muted-fg); font-size: 12px; }
+.inv .acts { justify-content: flex-end; }
+.av { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 14px; flex: none; background: var(--muted); color: var(--foreground); }
+.dot { position: relative; } .dot::after { content: ""; position: absolute; top: 0; right: calc(50% - 16px); width: 8px; height: 8px; border-radius: 50%; background: var(--destructive); }
+.field { border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; background: var(--card); }
+.field small { display: block; font-size: 12px; color: var(--muted-fg); } .field .v { font-size: 15px; }
+.field.err { border-color: var(--destructive); } .ferr { font-size: 12.5px; color: var(--destructive); padding: 0 4px; margin-top: -6px; }
+.ro { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; font-size: 13px; background: var(--muted); color: var(--muted-fg); }
+.off { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; font-size: 13px; color: var(--foreground); background: color-mix(in srgb, var(--destructive) 14%, var(--card)); border: 1px solid color-mix(in srgb, var(--destructive) 35%, var(--card)); }
+.mail { background: #fff; color: #1f2937; border-radius: 14px; padding: 18px; font-size: 14px; line-height: 1.6; }
+.mail h3 { margin: 0 0 8px; font-size: 17px; } .mail .b { display: inline-block; background: #f5b82e; color: #3b2a05; font-weight: 600; padding: 8px 16px; border-radius: 10px; margin: 10px 0; }
+.mail small { color: #6b7280; font-size: 12px; display: block; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>แชร์กระเป๋า (#16.1) · mock-up รอบ 1</h1>
+  <p>วันนี้ = จ. 9 พ.ย. 2026. <b>เจ้าของ</b> = "พ่อ" (somchai@…) แชร์กระเป๋า "ค่าบ้าน" ให้ <b>สมาชิก</b> = "แม่" (malee@…).
+  16.1 = เชิญ / รับเชิญ / จัดการสมาชิก / ดูกระเป๋าที่แชร์<b>แบบอ่านอย่างเดียว</b> (editor ยังเพิ่มรายการไม่ได้ ทำใน 16.2).
+  ข้อมูลกระเป๋าที่แชร์อ่านผ่าน REST ตอนออนไลน์ เก็บในหน่วยความจำเท่านั้น (rule 15). กรอบเส้นประสีทอง = ทางเลือกที่ยังไม่เสนอเป็นค่าเริ่มต้น.</p>
+</header>
+<div class="grid" id="grid"></div>
+<section class="qs">
+  <h2>สรุปภาพ</h2>
+  <ul>
+    <li><b>1–3</b> เจ้าของ: sheet แก้กระเป๋ามีแถว "สมาชิก" → หน้าสมาชิก (รายชื่อ, คำเชิญที่รอ, ปุ่มเชิญ) → ฟอร์มเชิญ (อีเมล + สิทธิ์)</li>
+    <li><b>4</b> เจ้าของแตะสมาชิก: เปลี่ยนสิทธิ์ / เอาออก (มีผลทันที, ต้องออนไลน์)</li>
+    <li><b>5</b> อีเมลเชิญ: มีแค่ชื่อผู้เชิญ + ชื่อกระเป๋า ลิงก์เปิดหน้าเข้าสู่ระบบโดยกรอกอีเมลไว้ให้</li>
+    <li><b>6</b> สมาชิก: การ์ดคำเชิญบนแท็บกระเป๋า + จุดแดงที่ไอคอนแท็บ; ส่วน "แชร์กับฉัน" ใต้กระเป๋าของตัวเอง ไม่นับในยอดรวม</li>
+    <li><b>7</b> สมาชิก: หน้ากระเป๋าที่แชร์ (อ่านอย่างเดียว) ยอด + รายการตามเดือน, โอนแสดงแค่ "โอนเข้า/โอนออก"; เมนู ⋮ มี "ออกจากกระเป๋านี้"</li>
+    <li><b>8</b> หน้าเดียวกันตอนออฟไลน์: แสดงข้อมูลที่โหลดไว้ (ในหน่วยความจำ) + แถบเตือน; ถ้ายังไม่เคยโหลดตั้งแต่เปิดแอป แสดง "ต้องออนไลน์"</li>
+  </ul>
+</section>
+<script>
+const I = {
+  repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  chevL: '<path d="m15 18-6-6 6-6"/>', chevR: '<path d="m9 18 6-6-6-6"/>', chevD: '<path d="m6 9 6 6 6-6"/>', chevU: '<path d="m18 15-6-6-6 6"/>',
+  wallet: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+  bank: '<path d="M3 21h18"/><path d="M5 21V10"/><path d="M19 21V10"/><path d="M9 21V10"/><path d="M15 21V10"/><path d="m2 10 10-6 10 6"/>',
+  piggy: '<path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/>',
+  home: '<path d="M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>',
+  bolt: '<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+  drop: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+  phone: '<rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/>',
+  tv: '<rect width="20" height="15" x="2" y="7" rx="2"/><path d="m17 2-5 5-5-5"/>',
+  money: '<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  dumbbell: '<path d="M14.4 14.4 9.6 9.6"/><path d="M18.7 21.5a2 2 0 1 1-2.8-2.8l-1.8 1.8a2 2 0 1 1-2.8-2.8l6.4-6.4a2 2 0 1 1 2.8 2.8l-1.8 1.8a2 2 0 1 1 2.8 2.8z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.4 12.8a2 2 0 1 1-2.8-2.8l1.8-1.8a2 2 0 1 1-2.8-2.8l2.8-2.8a2 2 0 1 1 2.8 2.8l1.8-1.8a2 2 0 1 1 2.8 2.8z"/>',
+  swap: '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+  note: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h8M8 17h5"/>',
+  cal: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  calEnd: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/>',
+  shapes: '<path d="M8.3 10a.7.7 0 0 1-.6-1.1l3.7-6a.7.7 0 0 1 1.2 0l3.7 6a.7.7 0 0 1-.6 1.1z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/>',
+  pause: '<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
+  trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+  copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>', plusSq: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/>',
+  dots: '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
+  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9Z"/><path d="m9 14 2 2 4-4"/>',
+  list: '<path d="M3 12h.01M3 18h.01M3 6h.01M8 12h13M8 18h13M8 6h13"/>', chart: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16h3v-5H7zM14 16h3V8h-3z"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>',
+  bell: '<path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/><path d="M3.3 15.3A1 1 0 0 0 4 17h16a1 1 0 0 0 .7-1.7C19.4 14 18 12.5 18 8A6 6 0 0 0 6 8c0 4.5-1.4 6-2.7 7.3"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>', alert: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>',
+  eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+  hand: '<path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17"/><path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 16 6 6"/><circle cx="16" cy="9" r="2.9"/><circle cx="6" cy="5" r="3"/>',
+  bag: '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+  pencil: '<path d="M21.2 6.8a1 1 0 0 0-4-4L3.8 16.2a2 2 0 0 0-.5.8l-1.3 4.4a.5.5 0 0 0 .6.6l4.4-1.3a2 2 0 0 0 .8-.5z"/>',
+  percent: '<path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  card: '<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>',
+  lock: '<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+}
+const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24">${I[n]}</svg>`
+const badge = (c, n, w) => `<div class="badge" style="background:${c}">${ic(n)}${w ? `<span class="w" style="background:${w[0]}">${ic(w[1])}</span>` : ''}</div>`
+const mbadge = (n, w) => `<div class="badge m">${ic(n)}${w ? `<span class="w" style="background:${w[0]}">${ic(w[1])}</span>` : ''}</div>`
+const fmt = (v, sign = true) => (v < 0 ? '−' : sign && v > 0 ? '+' : '') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2 })
+const C = { food: '#c2410c', shop: '#be185d', bill: '#0369a1', other: '#475569', pay: '#15803d' }
+const W = { cash: ['#15803d', 'wallet'], bank: ['#1d4ed8', 'bank'], save: ['#be185d', 'piggy'], card: ['#7c3aed', 'card'] }
+
+const header = () => `<div class="hdr"><div class="l"><div class="ib">${ic('user')}</div></div>
+  <div class="pill"><div class="badge" style="width:26px;height:26px;background:#1d4ed8">${ic('wallet')}</div> ทุกกระเป๋า ${ic('chevD', 's')}</div>
+  <div class="r"><div class="ib ok">${ic('cloud')}</div><div class="ib">${ic('dots')}</div></div></div>`
+const pageHdr = (t, right = '', back = true) => `<div class="hdr"><div class="l">${back ? `<div class="ib">${ic('chevL')}</div>` : ''}</div><div class="ttl">${t}</div><div class="r">${right}<div class="ib ok">${ic('cloud')}</div></div></div>`
+const tabbar = (on = 0) => `<div class="tabbar">${[['list', 'ธุรกรรม'], ['wallet', 'กระเป๋า'], null, ['chart', 'รายงาน'], ['user', 'บัญชี']].map((t, i) =>
+  t ? `<div class="${i === on ? 'on' : ''}">${ic(t[0])}${t[1]}</div>` : `<div><div class="plus">${ic('plus')}</div></div>`).join('')}</div>`
+const chips = (list, on) => `<div class="chips">${list.map((c) => `<span class="chip ${c === on ? 'on' : ''}">${c}</span>`).join('')}</div>`
+const sheet = (left, title, right, body, foot, extra = '') => `<div class="dim"></div><div class="sheet"><div class="grab"></div>
+  <div class="shdr"><div class="ib">${ic(left)}</div><div class="ttl">${title}</div><div class="r">${right}</div></div>
+  <div class="sbody">${body}</div>${foot ? `<div class="sfoot">${foot}</div>` : ''}${extra}</div>`
+const tx = (b, name, sub, amt, opts = {}) => `<div class="tx">${b}<div class="mid">${name}${opts.link ? `<span class="rep">${ic('hand', 's')}</span>` : ''}
+  ${sub ? `<small>${sub}</small>` : ''}</div><div class="amt ${amt < 0 ? 'exp' : 'inc'}">${fmt(amt)}${opts.amtSub ? `<small>${opts.amtSub}</small>` : ''}</div></div>`
+const day = (n, w, my, total, rows) => `<div class="card day"><div class="dayh"><div class="n">${n}</div><div class="w"><b>${w}</b>${my}</div>
+  <div class="t ${total < 0 ? 'exp' : 'inc'}">${total === null ? '' : fmt(total)}</div></div>${rows.join('')}</div>`
+const keypad = (chipsHtml = '') => `${chipsHtml}<div class="keypad">${['C', '÷', '×', '⌫', '7', '8', '9', '−', '4', '5', '6', '+', '1', '2', '3', '=', '000', '0', '.', '✓'].map((k) => `<span>${k}</span>`).join('')}</div>`
+const debtRow = (b, name, sub, left, of, amt, side, opts = {}) => `<div class="rule ${opts.done ? 'done' : ''}">${b}<div class="mid">${name}${opts.tag ? ` <span class="tag ${opts.tagB ? 'b' : ''}">${opts.tag}</span>` : ''}
+  <small>${sub}</small>${of ? `<div class="prog ${side === 'inc' ? 'inc' : ''}"><i style="width:${Math.round((1 - left / of) * 100)}%"></i></div>` : ''}</div>
+  <div class="amt ${opts.done ? '' : side}">${fmt(amt, false)}<small class="${opts.late ? 'warn' : ''}">${opts.when ?? ''}</small></div></div>`
+const ent = (b, name, sub, amt, opts = {}) => `<div class="ent">${b}<div class="mid">${name}${opts.tag ? ` <span class="tag ${opts.tagB ? 'b' : ''}">${opts.tag}</span>` : ''}<small>${sub}</small></div>
+  <div class="amt ${amt < 0 ? 'exp' : amt > 0 ? 'inc' : ''}">${fmt(amt)}${opts.amtSub ? `<small>${opts.amtSub}</small>` : ''}</div></div>`
+const ME = mbadge('hand')
+Object.assign(I, {
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  send: '<path d="M14.5 21.7a.5.5 0 0 0 .9 0l6.5-19a.5.5 0 0 0-.6-.6l-19 6.5a.5.5 0 0 0 0 .9l7.9 3.2a2 2 0 0 1 1.1 1.1z"/><path d="m21.9 2.1-10.9 10.9"/>',
+  out: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+  wifiOff: '<path d="M12 20h.01"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M5 12.9a10 10 0 0 1 5.2-2.7"/><path d="M19 12.9a10 10 0 0 0-2.1-1.6"/><path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="M22 8.8a15 15 0 0 0-11.3-3.6"/><path d="m2 2 20 20"/>',
+  food: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+  cart: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 2h3l2.7 12.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/>',
+  refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+})
+const tabbarN = (on) => tabbar(on).replace('<div class="on">', '<div class="on dot">')
+const av = (t, c) => `<div class="av" ${c ? `style="background:${c};color:#fff"` : ''}>${t}</div>`
+const role = (r) => `<span class="tag ${r === 'เจ้าของ' ? 'b' : ''}">${r}</span>`
+const person = (a, name, sub, right) => `<div class="rule">${a}<div class="mid">${name}<small>${sub}</small></div>${right}</div>`
+const wrow = (b, name, sub, amt, extra = '') => `<div class="rule">${b}<div class="mid">${name}${extra}${sub ? `<small>${sub}</small>` : ''}</div><div class="amt ${amt < 0 ? 'exp' : ''}">${fmt(amt, false)}</div>${ic('chevR', 's')}</div>`
+const sharedTx = (offline) => () => `${pageHdr('ค่าบ้าน', `<div class="ib">${ic('dots')}</div>`).replace(`<div class="ib ok">${ic('cloud')}</div>`, offline ? `<div class="ib red">${ic('wifiOff')}</div>` : '')}
+  <div class="bal"><small>ยอดคงเหลือ · THB</small><div>12,450.00</div>
+   <small style="display:flex;justify-content:center;gap:6px;align-items:center">${ic('users', 's')} ของ พ่อ ${role('ผู้แก้ไข')}</small></div>
+  ${chips(['ก.ย.', 'ต.ค.', 'เดือนนี้', 'อนาคต'], 'เดือนนี้')}
+  <div class="scroll">
+   ${offline ? `<div class="off">${ic('wifiOff', 's')} ออฟไลน์ · แสดงข้อมูลที่โหลดไว้เมื่อ 14:32 อาจไม่เป็นปัจจุบัน</div>` : `<div class="ro">${ic('eye', 's')} ดูได้อย่างเดียวในตอนนี้ การเพิ่มรายการจะมาในรอบถัดไป</div>`}
+   <div class="card sumc"><div><div class="k">รายรับ</div><div class="v inc">+15,000.00</div></div><div><div class="k">รายจ่าย</div><div class="v exp">−6,230.00</div></div>
+    <div class="xtra"><span class="mut">โอน</span><span>−2,000.00</span></div><div class="net"><span>คงเหลือสุทธิ</span><span>+6,770.00</span></div></div>
+   ${day(9, 'วันจันทร์', 'พฤศจิกายน 2026', -1420, [tx(badge(C.food, 'food'), 'อาหาร', 'กับข้าวเย็น', -420), tx(badge(C.shop, 'cart'), 'ของใช้ในบ้าน', 'Big C', -1000)])}
+   ${day(5, 'วันพฤหัสบดี', 'พฤศจิกายน 2026', -2000, [tx(mbadge('swap'), 'โอนออก', '', -2000)])}
+   ${day(1, 'วันอาทิตย์', 'พฤศจิกายน 2026', 10190, [tx(badge(C.pay, 'money'), 'เงินเดือน', 'โอนเข้าบัญชีบ้าน', 15000), tx(badge(C.bill, 'bolt'), 'ค่าไฟ', '', -1810), tx(badge(C.bill, 'drop'), 'ค่าน้ำ', '', -3000)])}
+  </div>${tabbar(1)}
+  ${offline ? '' : `<div class="menu"><div class="it">${ic('refresh')} โหลดใหม่</div><div class="it" style="color:var(--destructive)">${ic('out')} ออกจากกระเป๋านี้</div></div>`}`
+
+const frames = [
+  ['1 · เจ้าของ: sheet แก้ไขกระเป๋า', 'แถวใหม่ <b>สมาชิก</b> ใต้ "หมวดหมู่ที่ใช้" แสดงจำนวนคน (+ คำเชิญที่รอ). แตะแล้วเปิด view ในตัว sheet เดิม. ตอนออฟไลน์แถวนี้ยังแตะได้ แต่หน้าในจะบอกว่าต้องออนไลน์.',
+    () => `${header()}<div class="scroll"></div>${tabbar(1)}${sheet('x', 'แก้ไขกระเป๋าเงิน', `<div class="ib">${ic('dots')}</div>`,
+      `<div class="field"><small>ชื่อกระเป๋าเงิน</small><div class="v" style="display:flex;gap:10px;align-items:center">${badge('#1d4ed8', 'home')} ค่าบ้าน</div></div>
+       <div class="card rows"><div><span class="lbl">ยอดเงินเริ่มต้น</span><span class="val">0.00 THB</span></div>
+        <div><span class="lbl">ไม่รวมในยอดรวม</span><span class="sw"></span></div>
+        <div><span class="lbl">หมวดหมู่ที่ใช้</span><span class="val">ทั้งหมด ${ic('chevR', 's')}</span></div>
+        <div style="background:color-mix(in srgb, var(--brand) 8%, var(--card))"><span class="lbl">${''}สมาชิก<small>พ่อ (คุณ), แม่ · รอตอบ 1</small></span><span class="val on">${ic('users', 's')} 2 ${ic('chevR', 's')}</span></div></div>`,
+      `<button class="btn">บันทึก</button>`)}`],
+  ['2 · เจ้าของ: สมาชิก', 'เจ้าของอยู่บนสุด (เอาออกไม่ได้). สมาชิกแสดงชื่อ + อีเมล + สิทธิ์. <b>รอตอบรับ</b>: ส่งอีกครั้ง (เว้น 10 นาที) / ยกเลิก, หมดอายุใน 14 วัน. สูงสุด 10 คนรวมคำเชิญที่รอ.',
+    () => `${header()}<div class="scroll"></div>${tabbar(1)}${sheet('chevL', 'สมาชิก', '',
+      `<div class="card">${person(av('พ', '#b45309'), 'พ่อ (คุณ)', 'somchai@example.com', role('เจ้าของ'))}
+        ${person(av('ม', '#be185d'), 'แม่', 'malee@example.com', `${role('ผู้แก้ไข')}${ic('chevR', 's')}`)}
+        ${person(av('ต', '#0369a1'), 'ต้น', 'ton@example.com', `${role('ผู้ดู')}${ic('chevR', 's')}`)}</div>
+       <div class="h">รอตอบรับ (1)</div>
+       <div class="card">${person(`<div class="av">${ic('mail', 's')}</div>`, 'nid@example.com', 'ผู้ดู · ส่งเมื่อ 8 พ.ย. · หมดอายุ 22 พ.ย.', `<div class="ib">${ic('dots')}</div>`)}</div>
+       <div class="hint">ผู้แก้ไข: ดูได้ทุกรายการ (เพิ่ม/แก้รายการได้ในรอบถัดไป) · ผู้ดู: ดูอย่างเดียว. สมาชิกเห็นแค่กระเป๋านี้ ไม่เห็นกระเป๋าอื่นหรือรายงานของคุณ</div>`,
+      `<button class="btn">${ic('plus')} เชิญสมาชิก</button>`)}
+      <div class="menu" style="top:420px"><div class="it">${ic('send')} ส่งอีกครั้ง</div><div class="it" style="color:var(--destructive)">${ic('x')} ยกเลิกคำเชิญ</div></div>`],
+  ['3 · เจ้าของ: เชิญสมาชิก', 'กรอกอีเมล + เลือกสิทธิ์ (ค่าเริ่มต้น <b>ผู้แก้ไข</b>). ส่งแล้วกลับไปหน้าสมาชิก + toast "ส่งคำเชิญแล้ว". ข้อผิดพลาด: เป็นสมาชิกแล้ว / เชิญตัวเอง / ครบ 10 คน / เชิญวันนี้ครบ 10 ครั้ง / ออฟไลน์.',
+    () => `${header()}<div class="scroll"></div>${tabbar(1)}${sheet('chevL', 'เชิญสมาชิก', '',
+      `<div class="field"><small>อีเมล</small><div class="v">nid@example.com</div></div>
+       <div class="h">สิทธิ์</div>
+       <div class="card rows"><div><span class="radio on"></span><span class="lbl">ผู้แก้ไข<small>ดูรายการทั้งหมด และ (รอบถัดไป) เพิ่มรายการได้แม้ออฟไลน์ แก้/ลบได้ตอนออนไลน์</small></span></div>
+        <div><span class="radio"></span><span class="lbl">ผู้ดู<small>ดูยอดและรายการอย่างเดียว ต้องออนไลน์</small></span></div></div>
+       <div class="hint">เราจะส่งอีเมลที่มีแค่ชื่อคุณกับชื่อกระเป๋า "ค่าบ้าน" ผู้รับต้องเข้าสู่ระบบด้วยอีเมลนี้ แล้วกด "รับ" ในแอป คำเชิญหมดอายุใน 14 วัน</div>`,
+      `<button class="btn">${ic('send')} ส่งคำเชิญ</button>`)}`],
+  ['4 · เจ้าของ: แตะสมาชิก', 'เปลี่ยนสิทธิ์ (บันทึกทันทีเมื่อเลือก) หรือ <b>เอาออกจากกระเป๋า</b> (ยืนยันก่อน). มีผลกับคำขอถัดไปของสมาชิก (rule 16). รายการที่สมาชิกเคยเพิ่ม (16.2) ยังอยู่ในกระเป๋า.',
+    () => `${header()}<div class="scroll"></div>${tabbar(1)}${sheet('chevL', 'แม่', '',
+      `<div class="card">${person(av('ม', '#be185d'), 'แม่', 'malee@example.com · เข้าร่วม 9 พ.ย.', '')}</div>
+       <div class="h">สิทธิ์</div>
+       <div class="card rows"><div><span class="radio on"></span><span class="lbl">ผู้แก้ไข</span></div><div><span class="radio"></span><span class="lbl">ผู้ดู</span></div></div>
+       <div class="empty" style="flex:none;padding:12px 4px 0;margin-top:auto"><h4>เอา "แม่" ออกจากกระเป๋า "ค่าบ้าน"?</h4><p>แม่จะไม่เห็นกระเป๋านี้อีก เชิญกลับได้ภายหลัง</p></div>`,
+      `<button class="btn" style="background:var(--destructive);color:#fff">${ic('out')} เอาออกจากกระเป๋า</button>`)}`],
+  ['5 · อีเมลเชิญ', 'ภาษาตามที่ผู้เชิญใช้อยู่. <b>ไม่มีข้อความอิสระ</b> (กัน phishing). ลิงก์ = <code>/auth/sign-in?email=…</code> แค่กรอกอีเมลให้ ไม่ได้ให้สิทธิ์อะไร (ส่งต่อไปก็ไม่มีผล). นับใน EMAIL_DAILY_LIMIT.',
+    () => `<div class="scroll" style="background:#e5e7eb;justify-content:center"><div class="mail">
+      <small>ถึง: nid@example.com</small><small>เรื่อง: พ่อ เชิญคุณดูกระเป๋า "ค่าบ้าน" ใน ตังค์ไปไหน</small><hr style="border:0;border-top:1px solid #e5e7eb">
+      <h3>คุณได้รับคำเชิญ</h3>พ่อ เชิญคุณเป็น <b>ผู้ดู</b> ของกระเป๋า <b>ค่าบ้าน</b><br>
+      <span class="b">เปิด ตังค์ไปไหน</span><br>
+      เข้าสู่ระบบด้วยอีเมลนี้ (nid@example.com) แล้วกด "รับ" ที่แท็บกระเป๋า ถ้ายังไม่มีบัญชี ระบบจะสร้างให้
+      <small style="margin-top:10px">คำเชิญหมดอายุ 22 พ.ย. 2026 ถ้าไม่รู้จักผู้เชิญ ไม่ต้องทำอะไร</small></div></div>`],
+  ['6 · สมาชิก: แท็บกระเป๋า', '<b>การ์ดคำเชิญ</b> บนสุด (รับ / ปฏิเสธ) + จุดแดงที่แท็บ. ส่วน <b>แชร์กับฉัน</b> ใต้กระเป๋าของตัวเอง: ชื่อเจ้าของ + สิทธิ์ + ยอด. <b>ยอดรวมไม่นับ</b>กระเป๋าที่แชร์. กระเป๋าของฉันที่แชร์ให้คนอื่นมีไอคอน 👥.',
+    () => `${header()}<div class="scroll">
+      <div class="card inv"><div class="top">${av('พ', '#b45309')}<div>พ่อ เชิญคุณเป็น<b>ผู้ดู</b>ของกระเป๋า <b>"ออมทองลูก"</b><small>somchai@example.com · หมดอายุ 22 พ.ย.</small></div></div>
+        <div class="acts"><button class="btn sm gh">ปฏิเสธ</button><button class="btn sm">รับคำเชิญ</button></div></div>
+      <div class="card hero" style="padding:10px"><small>ยอดรวม (เฉพาะกระเป๋าของฉัน)</small><div class="big" style="font-size:24px">18,320.00</div></div>
+      <div class="h">กระเป๋าที่ใช้อยู่ (2)</div>
+      <div class="card">${wrow(badge(...W.cash), 'เงินสด', '', 3320)}${wrow(badge(...W.save), 'ออมของแม่', '', 15000, ` <span class="mut" style="vertical-align:-2px">${ic('users', 's')}</span>`)}</div>
+      <div class="h">แชร์กับฉัน (1)</div>
+      <div class="card">${wrow(badge('#1d4ed8', 'home'), 'ค่าบ้าน', `ของ พ่อ · ผู้แก้ไข`, 12450)}</div>
+      <div class="h">หนี้สิน</div><div class="card" style="height:40px"></div>
+    </div>${tabbarN(1, true)}`],
+  ['7 · สมาชิก: กระเป๋าที่แชร์', 'หน้า lazy <code>/wallets/shared/:id</code>: ยอด, แท็บช่วงเวลา, การ์ดสรุป, รายการตามวันด้วย<b>หมวดของเจ้าของ</b>. โอน = "โอนออก/โอนเข้า" ไม่บอกกระเป๋าอีกฝั่ง; ไม่แสดงหนี้/อีเวนต์. ไม่มี ➕ / แก้ / ลบ. ⋮ = โหลดใหม่ / ออกจากกระเป๋านี้.',
+    sharedTx(false)],
+  ['8 · สมาชิก: ออฟไลน์', 'ไอคอนสถานะเป็นออฟไลน์ + แถบเตือน แสดงข้อมูลที่โหลดไว้ในหน่วยความจำ (ไม่ลงฐานข้อมูลเครื่อง, rule 15). ช่วงเวลาที่ยังไม่เคยโหลด / เปิดแอปใหม่ตอนออฟไลน์ → "ต่ออินเทอร์เน็ตเพื่อดูกระเป๋าที่แชร์". ส่วน "แชร์กับฉัน" ในแท็บกระเป๋าก็ใช้กติกาเดียวกัน.',
+    sharedTx(true)],
+]
+document.getElementById('grid').innerHTML = frames.map(([t, d, f]) =>
+  `<figure><figcaption><b>${t}</b><br>${d}</figcaption><div class="phone">${f()}</div></figure>`).join('')
+</script>
+</body>
+</html>
