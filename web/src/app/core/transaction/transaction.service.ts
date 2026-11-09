@@ -73,6 +73,11 @@ export class TransactionService {
 
   /** The open transaction sheet (layout/transaction-sheet), if any. */
   sheet = signal<TransactionSheetState | null>(null)
+  /**
+   * Names behind `addedBy` (sharing rule 15), read online by `core/sharing` (the owner's members,
+   * a shared profile's people); memory only.
+   */
+  people = signal<ReadonlyMap<string, string>>(new Map())
 
   // The Transactions tab's view (transaction.md → Web screens), shared by the header (wallet
   // switcher, ⋮ "ดูตาม") and the page. The wallet and the unit are remembered per profile.
@@ -534,6 +539,15 @@ export class TransactionService {
     })
   }
 
+  /** Adds names behind `addedBy` (sharing rule 15). */
+  addPeople(people: readonly { id: string; displayName: string }[]): void {
+    const next = new Map(this.people())
+    for (const person of people) {
+      next.set(person.id, person.displayName)
+    }
+    this.people.set(next)
+  }
+
   /** Chooses the wallet the tab shows (null: "ทุกกระเป๋า"); remembered for the profile. */
   selectWallet(id: string | null): void {
     this.viewWalletId.set(id)
@@ -771,6 +785,7 @@ const toTransaction = (row: Record<string, unknown>): Transaction => ({
   recurringId: typeof row['recurringId'] === 'string' ? row['recurringId'] : null,
   debtId: typeof row['debtId'] === 'string' ? row['debtId'] : null,
   eventId: typeof row['eventId'] === 'string' ? row['eventId'] : null,
+  addedBy: typeof row['addedBy'] === 'string' ? row['addedBy'] : null,
   createdAt: Number(row['createdAt']),
   updatedAt: Number(row['updatedAt']),
   deletedAt: typeof row['deletedAt'] === 'number' ? row['deletedAt'] : null,

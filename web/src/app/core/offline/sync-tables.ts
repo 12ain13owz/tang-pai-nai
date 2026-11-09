@@ -94,6 +94,7 @@ export const SYNC_TABLES: Readonly<Record<string, SyncTable>> = {
       'recurringId',
       'debtId',
       'eventId',
+      'addedBy',
       'createdAt',
       'updatedAt',
       'deletedAt',
