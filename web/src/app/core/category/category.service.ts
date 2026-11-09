@@ -12,6 +12,7 @@ import type { LocalDatabase } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
 import {
   cleanHidden,
+  DEBT_TABLE,
   RECURRING_TABLE,
   toWallet,
   tombstoneRules,
@@ -357,7 +358,10 @@ export class CategoryService {
     return null
   }
 
-  /** Rules 4 and 6: whether the category has live transactions (type fixed, archive only). */
+  /**
+   * Rules 4 and 6: whether the category has live transactions, or a live debt's instalments go
+   * to it (debt rule 9): type fixed, archive only.
+   */
   hasTransactions(id: string | null): boolean {
     if (id === null) {
       return false
@@ -365,8 +369,9 @@ export class CategoryService {
     return this.read(
       (db) =>
         db.selectValue(
-          `SELECT EXISTS (SELECT 1 FROM ${TRANSACTION_TABLE} WHERE category_id = ? AND deleted_at IS NULL)`,
-          [id]
+          `SELECT EXISTS (SELECT 1 FROM ${TRANSACTION_TABLE} WHERE category_id = ? AND deleted_at IS NULL)
+             OR EXISTS (SELECT 1 FROM ${DEBT_TABLE} WHERE category_id = ? AND deleted_at IS NULL)`,
+          [id, id]
         ) === 1,
       false
     )

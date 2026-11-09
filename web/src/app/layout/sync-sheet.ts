@@ -27,6 +27,9 @@ const FIX_ROUTES: Readonly<Record<string, string>> = {
   transfers: '/transactions',
   // The rule's sheet opens from the rules page, which reads its kind (recurring.md).
   recurring_rules: '/account/recurring',
+  // The debts page opens a debt's or an entry's sheet with the refused values (debt.md).
+  debts: '/wallets/debts',
+  debt_entries: '/wallets/debts',
 }
 
 /**
@@ -240,6 +243,9 @@ export class SyncSheet {
               count: count('transactions') + count('transfers'),
             })
           : null,
+        count('debts') > 0
+          ? this.transloco.translate('sync.withDebts', { count: count('debts') })
+          : null,
       ].filter((part) => part !== null)
       return {
         op,
@@ -266,9 +272,29 @@ export class SyncSheet {
   }
 
   protected summary(row: SyncRow): string {
-    const title = row['title'] ?? row['name']
+    const title = row['title'] ?? row['name'] ?? row['person']
     if (typeof title === 'string') {
       return title
+    }
+    // A debt entry: what it is and its amount (debt → Web screens).
+    if (
+      typeof row['debtId'] === 'string' &&
+      typeof row['kind'] === 'string' &&
+      !row['categoryId']
+    ) {
+      const wallet =
+        typeof row['walletId'] === 'string' ? this.walletService.byId(row['walletId']) : null
+      const minorUnit = this.walletService.minorUnit(wallet?.currencyCode ?? '')
+      const parts = [
+        this.transloco.translate(
+          row['kind'] === 'principal' ? 'debts.principalShort' : 'debts.repaymentShort'
+        ),
+        typeof row['amount'] === 'number'
+          ? formatAmount(row['amount'], minorUnit, this.languageService.locale())
+          : '',
+        typeof row['note'] === 'string' ? row['note'] : '',
+      ]
+      return parts.filter((part) => part).join(' · ')
     }
     // A transfer (or a transfer recurring rule): its two wallets and amount (and note).
     const fromId = row['kind'] === 'transfer' ? row['walletId'] : row['fromWalletId']

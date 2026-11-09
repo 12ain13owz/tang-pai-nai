@@ -1,6 +1,6 @@
 import { findPending, fromSql, moveOpLast, putRow, queueWrite } from '@/core/offline'
 import type { LocalDatabase, SyncRow } from '@/core/offline'
-import { RECURRING_TABLE, TRANSACTION_TABLE } from '@/core/wallet'
+import { DEBT_TABLE, RECURRING_TABLE, TRANSACTION_TABLE } from '@/core/wallet'
 import { CATEGORY_TABLE } from './category.type'
 
 /** How many merges in a row are followed (a target merged again later), as on the server. */
@@ -73,7 +73,8 @@ export const moveTransactions = (
   now: number
 ): number => {
   let moved = 0
-  for (const table of [TRANSACTION_TABLE, RECURRING_TABLE]) {
+  // Debt rule 9: a repaid debt's instalments category follows the merge too.
+  for (const table of [TRANSACTION_TABLE, RECURRING_TABLE, DEBT_TABLE]) {
     const rows = db.selectObjects(
       `SELECT * FROM ${table} WHERE category_id = ? AND deleted_at IS NULL`,
       [fromId]
@@ -108,7 +109,8 @@ const mergeLeftovers = (db: LocalDatabase): MergeLeftovers => {
     .selectObjects(
       `SELECT DISTINCT t.category_id AS id
        FROM (SELECT category_id, deleted_at FROM ${TRANSACTION_TABLE}
-             UNION ALL SELECT category_id, deleted_at FROM ${RECURRING_TABLE}) t
+             UNION ALL SELECT category_id, deleted_at FROM ${RECURRING_TABLE}
+             UNION ALL SELECT category_id, deleted_at FROM ${DEBT_TABLE}) t
        JOIN ${CATEGORY_TABLE} c ON c.id = t.category_id
        WHERE t.deleted_at IS NULL AND c.deleted_at IS NOT NULL AND c.merged_into_id IS NOT NULL`
     )

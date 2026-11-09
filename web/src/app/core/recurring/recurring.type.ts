@@ -1,5 +1,8 @@
-/** `transaction` (income / expense, by the category's type) or `transfer`. */
-export type RecurringKind = 'transaction' | 'transfer'
+/**
+ * `transaction` (income / expense, by the category's type), `transfer`, or `debt` (a debt's
+ * repayment, not income or expense: docs/features/debt.md rule 13).
+ */
+export type RecurringKind = 'transaction' | 'transfer' | 'debt'
 
 /** The unit of a schedule (docs/features/recurring.md rule 3). */
 export type RecurringFrequency = 'day' | 'week' | 'month' | 'year'
@@ -34,6 +37,8 @@ export interface RecurringRule extends RecurringSchedule {
   walletId: string
   categoryId: string | null
   toWalletId: string | null
+  /** A `debt` rule's debt, or a transaction rule's (its instalments); else null. */
+  debtId: string | null
   /** Minor units, always > 0. */
   amount: number
   note: string
@@ -54,6 +59,8 @@ export interface RuleValues extends RepeatValues {
   walletId: string
   categoryId: string | null
   toWalletId: string | null
+  /** Debt rule 13; absent keeps what the rule has. */
+  debtId?: string | null
   amount: number
   note: string
   excludeFromReport: boolean
@@ -67,10 +74,12 @@ export type RuleState = 'active' | 'paused' | 'stopped' | 'ended'
 export interface RuleItem {
   rule: RecurringRule
   state: RuleState
-  /** For `stopped`: which archived thing stops it (rule 12). */
-  stoppedBy: { kind: 'wallet' | 'category'; name: string } | null
-  /** Income +, expense and transfer −. */
+  /** For `stopped`: which archived thing (or closed debt, debt rule 14) stops it (rule 12). */
+  stoppedBy: { kind: 'wallet' | 'category' | 'debt'; name: string } | null
+  /** Income + (a lent debt's repayment too), expense and transfer −. */
   sign: 1 | -1
+  /** A `debt` rule's direction (its title: "คืนเงิน · แม่"); null for any other kind. */
+  debtDirection: 'borrowed' | 'lent' | null
   title: string
   icon: string
   color: string

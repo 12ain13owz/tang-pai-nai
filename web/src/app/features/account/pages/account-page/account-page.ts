@@ -6,6 +6,7 @@ import {
   lucideChevronRight,
   lucideLogOut,
   lucidePalette,
+  lucideHandCoins,
   lucideRepeat,
   lucideShapes,
   lucideShieldCheck,
@@ -37,6 +38,7 @@ interface AccountItem {
       lucideChevronRight,
       lucideLogOut,
       lucidePalette,
+      lucideHandCoins,
       lucideRepeat,
       lucideShapes,
       lucideShieldCheck,
@@ -205,6 +207,17 @@ export class AccountPage {
               ? t('account.recurringHint', {
                   name: profile.name,
                   count: this.profileService.ruleCount(profile.id),
+                })
+              : t('account.profilesNone'),
+          },
+          {
+            link: '/wallets/debts',
+            icon: 'lucideHandCoins',
+            label: 'debts.menu',
+            hint: profile
+              ? t('account.debtsHint', {
+                  name: profile.name,
+                  count: this.profileService.debtCount(profile.id),
                 })
               : t('account.profilesNone'),
           },

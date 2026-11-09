@@ -13,7 +13,14 @@ import {
   TransferService,
 } from '@/core/transaction'
 import type { DayRange } from '@/core/transaction'
-import { RECURRING_TABLE, WALLET_TABLE, WalletService } from '@/core/wallet'
+import {
+  DEBT_ENTRY_TABLE,
+  DEBT_LEFT_SQL,
+  DEBT_TABLE,
+  RECURRING_TABLE,
+  WALLET_TABLE,
+  WalletService,
+} from '@/core/wallet'
 import { addDays, addMonths } from '@/shared/utils'
 import { occurrenceId } from './occurrence-id'
 import { RECURRING_LIMITS } from './recurring.type'
@@ -154,7 +161,7 @@ export class RecurringService {
     const today = this.transactionService.today()
     this.offlineService.write((db) => {
       const rule: RecurringRule = {
-        ...toTemplate(values),
+        ...toTemplate(values, null),
         id,
         profileId,
         nextOn: nextOnOrAfter(values, values.startOn),
@@ -186,7 +193,7 @@ export class RecurringService {
     const today = this.transactionService.today()
     this.offlineService.write((db) => {
       const current = this.find(db, id)
-      const template = toTemplate(values)
+      const template = toTemplate(values, current?.debtId ?? null)
       const from = today > template.startOn ? today : template.startOn
       let rule: RecurringRule
       if (!current || current.deletedAt !== null) {
@@ -347,7 +354,10 @@ export class RecurringService {
   /** Opens the rule in its form: the transaction or the transfer sheet in rule mode. */
   open(id: string): void {
     const rule = this.byId(id)
-    if (rule?.kind === 'transfer') {
+    if (rule?.kind === 'debt') {
+      // A repayment rule is edited on its debt's page (debt rule 13).
+      void this.router.navigate(['/wallets/debts', rule.debtId], { queryParams: { rule: id } })
+    } else if (rule?.kind === 'transfer') {
       this.transferService.open({ mode: 'rule', id })
     } else if (rule) {
       this.transactionService.open({ mode: 'rule', id })
@@ -478,12 +488,20 @@ export class RecurringService {
             fromWalletId: values?.walletId ?? rule.walletId,
             toWalletId: values?.toWalletId ?? rule.toWalletId,
           }
-        : {
-            ...common,
-            walletId: values?.walletId ?? rule.walletId,
-            categoryId: values?.categoryId ?? rule.categoryId,
-            excludeFromReport: values?.excludeFromReport ?? rule.excludeFromReport,
-          }
+        : rule.kind === 'debt'
+          ? {
+              ...common,
+              debtId: rule.debtId,
+              kind: 'repayment',
+              walletId: values?.walletId ?? rule.walletId,
+            }
+          : {
+              ...common,
+              walletId: values?.walletId ?? rule.walletId,
+              categoryId: values?.categoryId ?? rule.categoryId,
+              excludeFromReport: values?.excludeFromReport ?? rule.excludeFromReport,
+              debtId: rule.debtId,
+            }
     queueWrite(db, table, skipped ? 'delete' : 'upsert', row)
     return true
   }
@@ -511,7 +529,19 @@ export class RecurringService {
   private stoppedBy(
     db: LocalDatabase,
     rule: RecurringRule
-  ): { kind: 'wallet' | 'category'; name: string } | null {
+  ): { kind: 'wallet' | 'category' | 'debt'; name: string } | null {
+    // Debt rule 14: a closed debt's instalments stop by themselves.
+    if (rule.debtId) {
+      const debt = db
+        .selectObjects(
+          `SELECT d.person, ${DEBT_LEFT_SQL} AS debt_left FROM ${DEBT_TABLE} d WHERE d.id = ?`,
+          [rule.debtId]
+        )
+        .at(0)
+      if (debt && Number(debt['debt_left']) <= 0) {
+        return { kind: 'debt', name: String(debt['person']) }
+      }
+    }
     const ids = [rule.walletId, rule.toWalletId].filter((id): id is string => id !== null)
     for (const id of ids) {
       const wallet = db
@@ -534,7 +564,7 @@ export class RecurringService {
     return null
   }
 
-  /** Rule 14: live rules whose wallet (either side) or category is a tombstone here. */
+  /** Rule 14 (debt rule 5): live rules whose wallet, category or debt is a tombstone here. */
   private orphans(db: LocalDatabase): RecurringRule[] {
     return db
       .selectObjects(
@@ -542,8 +572,10 @@ export class RecurringService {
          LEFT JOIN ${WALLET_TABLE} w ON w.id = r.wallet_id
          LEFT JOIN ${WALLET_TABLE} t ON t.id = r.to_wallet_id
          LEFT JOIN ${CATEGORY_TABLE} c ON c.id = r.category_id
+         LEFT JOIN ${DEBT_TABLE} d ON d.id = r.debt_id
          WHERE r.deleted_at IS NULL
-           AND (w.deleted_at IS NOT NULL OR t.deleted_at IS NOT NULL OR c.deleted_at IS NOT NULL)`
+           AND (w.deleted_at IS NOT NULL OR t.deleted_at IS NOT NULL OR c.deleted_at IS NOT NULL
+             OR d.deleted_at IS NOT NULL)`
       )
       .map((row) => toRule(fromSql(RECURRING_TABLE, row)))
   }
@@ -556,6 +588,7 @@ export class RecurringService {
     const state: RuleState =
       rule.nextOn === null ? 'ended' : rule.isPaused ? 'paused' : stoppedBy ? 'stopped' : 'active'
     const transfer = rule.kind === 'transfer'
+    const debt = rule.kind === 'debt' ? this.debtOf(rule.debtId) : null
     let dueOn: string | null = null
     if (state === 'active' && rule.confirm && rule.nextOn !== null && rule.nextOn <= today) {
       dueOn = rule.nextOn
@@ -564,8 +597,15 @@ export class RecurringService {
       rule,
       state,
       stoppedBy,
-      sign: !transfer && category?.type === 'income' ? 1 : -1,
-      title: transfer ? '' : (category?.name ?? ''),
+      sign: debt
+        ? debt.direction === 'lent'
+          ? 1
+          : -1
+        : !transfer && category?.type === 'income'
+          ? 1
+          : -1,
+      debtDirection: debt ? (debt.direction === 'lent' ? 'lent' : 'borrowed') : null,
+      title: debt ? debt.person : transfer ? '' : (category?.name ?? ''),
       icon: transfer ? '' : (category?.icon ?? ''),
       color: transfer ? '' : (category?.color ?? ''),
       walletIcon: wallet?.icon ?? '',
@@ -575,6 +615,19 @@ export class RecurringService {
       currencyCode: wallet?.currencyCode ?? '',
       dueOn,
     }
+  }
+
+  /** A debt rule's debt as the rules page shows it (its person, its direction). */
+  private debtOf(id: string | null): { person: string; direction: string } | null {
+    if (!id) {
+      return null
+    }
+    return this.read((db) => {
+      const row = db
+        .selectObjects(`SELECT person, direction FROM ${DEBT_TABLE} WHERE id = ?`, [id])
+        .at(0)
+      return row ? { person: String(row['person']), direction: String(row['direction']) } : null
+    }, null)
   }
 
   private exists(kind: RecurringKind, id: string): boolean {
@@ -603,19 +656,21 @@ export type OccurrenceValues = Partial<
   >
 > & { occurredOn?: string }
 
-const tableOf = (kind: RecurringKind) => (kind === 'transfer' ? TRANSFER_TABLE : TRANSACTION_TABLE)
+const tableOf = (kind: RecurringKind) =>
+  kind === 'transfer' ? TRANSFER_TABLE : kind === 'debt' ? DEBT_ENTRY_TABLE : TRANSACTION_TABLE
 
-/** The stored fields a form decides (no state). */
-const toTemplate = (values: RuleValues) => {
-  const transfer = values.kind === 'transfer'
+/** The stored fields a form decides (no state); `debtId` keeps the rule's when not given. */
+const toTemplate = (values: RuleValues, debtId: string | null) => {
+  const transaction = values.kind === 'transaction'
   return {
     kind: values.kind,
     walletId: values.walletId,
-    categoryId: transfer ? null : values.categoryId,
-    toWalletId: transfer ? values.toWalletId : null,
+    categoryId: transaction ? values.categoryId : null,
+    toWalletId: values.kind === 'transfer' ? values.toWalletId : null,
+    debtId: values.kind === 'transfer' ? null : (values.debtId ?? debtId),
     amount: values.amount,
     note: values.note.trim(),
-    excludeFromReport: transfer ? false : values.excludeFromReport,
+    excludeFromReport: transaction ? values.excludeFromReport : false,
     startOn: values.startOn,
     frequency: values.frequency,
     interval: values.interval,
@@ -630,10 +685,11 @@ const text = (value: unknown): string | null => (typeof value === 'string' ? val
 export const toRule = (row: Record<string, unknown>): RecurringRule => ({
   id: String(row['id']),
   profileId: String(row['profileId']),
-  kind: row['kind'] === 'transfer' ? 'transfer' : 'transaction',
+  kind: row['kind'] === 'transfer' || row['kind'] === 'debt' ? row['kind'] : 'transaction',
   walletId: String(row['walletId']),
   categoryId: text(row['categoryId']),
   toWalletId: text(row['toWalletId']),
+  debtId: text(row['debtId']),
   amount: Number(row['amount']),
   note: text(row['note']) ?? '',
   excludeFromReport: row['excludeFromReport'] === true,

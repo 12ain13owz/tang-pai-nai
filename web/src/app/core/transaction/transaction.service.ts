@@ -5,7 +5,13 @@ import type { CategoryType } from '@/core/category'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
 import type { LocalDatabase, SqlValue } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
-import { WALLET_TABLE, WalletService } from '@/core/wallet'
+import {
+  DEBT_ENTRY_SIGN_SQL,
+  DEBT_ENTRY_TABLE,
+  DEBT_TABLE,
+  WALLET_TABLE,
+  WalletService,
+} from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
 import { addDays, toDay } from '@/shared/utils'
 import { PERIOD_UNITS, periodRange, periodTabs } from './period'
@@ -13,6 +19,7 @@ import { TRANSACTION_PREF_PREFIX, TRANSACTION_TABLE, TRANSFER_TABLE } from './tr
 import type { PeriodTab, PeriodUnit } from './period'
 import type {
   DayRange,
+  DebtEntryItem,
   EntryItem,
   ListFilter,
   MoneySummary,
@@ -49,8 +56,8 @@ export class TransactionService {
           (db) =>
             db
               .selectObjects(
-                `SELECT row_id FROM outbox WHERE tbl IN (?, ?) AND status = 'pending'`,
-                [TRANSACTION_TABLE, TRANSFER_TABLE]
+                `SELECT row_id FROM outbox WHERE tbl IN (?, ?, ?) AND status = 'pending'`,
+                [TRANSACTION_TABLE, TRANSFER_TABLE, DEBT_ENTRY_TABLE]
               )
               .map((row) => String(row['row_id'])),
           []
@@ -106,8 +113,11 @@ export class TransactionService {
            WHERE profile_id = ? AND deleted_at IS NULL
            UNION ALL
            SELECT min(occurred_on) FROM ${TRANSFER_TABLE} WHERE profile_id = ? AND deleted_at IS NULL
+           UNION ALL
+           SELECT min(occurred_on) FROM ${DEBT_ENTRY_TABLE}
+           WHERE profile_id = ? AND deleted_at IS NULL AND wallet_id IS NOT NULL
          )`,
-        [profileId, profileId]
+        [profileId, profileId, profileId]
       )
       return typeof value === 'string' ? value : null
     }, null)
@@ -140,7 +150,7 @@ export class TransactionService {
       }
       untracked(() => {
         const db = this.offlineService.db()
-        if (hasMergeLeftovers(db) || this.orphans(db).length > 0) {
+        if (hasMergeLeftovers(db) || this.orphans(db).length > 0 || hasDebtOrphans(db)) {
           const now = Date.now()
           this.offlineService.write((tx) => {
             // A merged category's rows follow it instead (category rule 15).
@@ -152,6 +162,8 @@ export class TransactionService {
                 deletedAt: now,
               })
             }
+            // Debt rule 10: the same for debts and their entries.
+            tombstoneDebtOrphans(tx, now)
           })
         }
       })
@@ -203,25 +215,72 @@ export class TransactionService {
    */
   entries(range: DayRange, walletIds: readonly string[] | null = null): EntryItem[] {
     const transactions = this.list(range, walletIds)
-    const sides = this.transferSides(range, walletIds)
+    const sides = mergeEntries(
+      this.transferSides(range, walletIds),
+      this.debtEntries(range, walletIds)
+    )
     if (sides.length === 0) {
       return transactions
     }
-    const merged: EntryItem[] = []
-    let i = 0
-    let j = 0
-    while (i < transactions.length || j < sides.length) {
-      const a = transactions.at(i)
-      const b = sides.at(j)
-      if (a && (!b || compareEntries(a, b) <= 0)) {
-        merged.push(a)
-        i++
-      } else if (b) {
-        merged.push(b)
-        j++
-      }
+    return mergeEntries(transactions, sides)
+  }
+
+  /**
+   * The current profile's live debt entries with a wallet in `range` whose wallet is in
+   * `walletIds` (all when null), in rule 13's order (debt → Web screens).
+   */
+  debtEntries(range: DayRange, walletIds: readonly string[] | null = null): DebtEntryItem[] {
+    const profileId = this.profileService.current()?.id
+    if (!profileId || walletIds?.length === 0) {
+      return []
     }
-    return merged
+    const parts = ['e.profile_id = ?', 'e.deleted_at IS NULL', 'e.wallet_id IS NOT NULL']
+    const params: SqlValue[] = [profileId]
+    if (range.from) {
+      parts.push('e.occurred_on >= ?')
+      params.push(range.from)
+    }
+    if (range.to) {
+      parts.push('e.occurred_on <= ?')
+      params.push(range.to)
+    }
+    if (walletIds) {
+      parts.push(`e.wallet_id IN (${walletIds.map(() => '?').join(', ')})`)
+      params.push(...walletIds)
+    }
+    return this.read(
+      (db) =>
+        db
+          .selectObjects(
+            `SELECT e.*, d.direction AS d_direction, d.person AS d_person,
+               ${DEBT_ENTRY_SIGN_SQL} AS signed, w.name AS w_name, w.currency_code AS w_currency
+             FROM ${DEBT_ENTRY_TABLE} e
+             JOIN ${DEBT_TABLE} d ON d.id = e.debt_id
+             LEFT JOIN ${WALLET_TABLE} w ON w.id = e.wallet_id
+             WHERE ${parts.join(' AND ')}
+             ORDER BY e.occurred_on DESC, e.created_at DESC, e.id DESC`,
+            params
+          )
+          .map((row) => ({
+            kind: 'debt' as const,
+            id: String(row['id']),
+            debtId: String(row['debt_id']),
+            entryKind:
+              row['kind'] === 'principal' ? ('principal' as const) : ('repayment' as const),
+            direction: row['d_direction'] === 'lent' ? ('lent' as const) : ('borrowed' as const),
+            person: String(row['d_person'] ?? ''),
+            walletId: String(row['wallet_id']),
+            walletName: String(row['w_name'] ?? ''),
+            currencyCode: String(row['w_currency'] ?? ''),
+            signed: Number(row['signed']),
+            amount: Number(row['amount']),
+            occurredOn: String(row['occurred_on']),
+            note: typeof row['note'] === 'string' ? row['note'] : '',
+            recurringId: typeof row['recurring_id'] === 'string' ? row['recurring_id'] : null,
+            createdAt: Number(row['created_at']),
+          })),
+      []
+    )
   }
 
   /**
@@ -291,7 +350,11 @@ export class TransactionService {
     if (!where) {
       return []
     }
-    const sums = new Map<string, { income: number; expense: number; transfer: number }>()
+    const sums = new Map<
+      string,
+      { income: number; expense: number; transfer: number; debt: number }
+    >()
+    const empty = () => ({ income: 0, expense: 0, transfer: 0, debt: 0 })
     const rows = this.read(
       (db) =>
         db.selectObjects(
@@ -307,27 +370,48 @@ export class TransactionService {
     )
     for (const row of rows) {
       const code = String(row['currency'])
-      const sum = sums.get(code) ?? { income: 0, expense: 0, transfer: 0 }
+      const sum = sums.get(code) ?? empty()
       sum[row['type'] === 'income' ? 'income' : 'expense'] += Number(row['total'])
       sums.set(code, sum)
     }
     // Transfer rule 5: never income or expense; their net in view explains the balance.
     for (const item of this.transferSides(range, walletIds)) {
-      const sum = sums.get(item.currencyCode) ?? { income: 0, expense: 0, transfer: 0 }
+      const sum = sums.get(item.currencyCode) ?? empty()
       sum.transfer += walletIds ? (item.side === 'in' ? item.amount : -item.amount) : 0
+      sums.set(item.currencyCode, sum)
+    }
+    // Debt rule 7: never income or expense either; their net in view is the "หนี้" line.
+    for (const item of this.debtEntries(range, walletIds)) {
+      const sum = sums.get(item.currencyCode) ?? empty()
+      sum.debt += item.signed
       sums.set(item.currencyCode, sum)
     }
     const order = this.walletService.currencies().map((currency) => currency.code)
     return [...sums.entries()]
       .sort(([a], [b]) => order.indexOf(a) - order.indexOf(b) || a.localeCompare(b))
-      .map(([currencyCode, { income, expense, transfer }]) => ({
+      .map(([currencyCode, { income, expense, transfer, debt }]) => ({
         currencyCode,
         minorUnit: this.walletService.minorUnit(currencyCode),
         income,
         expense,
         net: income - expense,
         transfer,
+        debt,
       }))
+  }
+
+  /** The person of a live debt (the form's "หนี้" row, debt rule 3), or null. */
+  debtPerson(id: string | null): string | null {
+    if (!id) {
+      return null
+    }
+    return this.read((db) => {
+      const value = db.selectValue(
+        `SELECT person FROM ${DEBT_TABLE} WHERE id = ? AND deleted_at IS NULL`,
+        [id]
+      )
+      return typeof value === 'string' ? value : null
+    }, null)
   }
 
   /** A live transaction of any profile on this device. */
@@ -362,6 +446,7 @@ export class TransactionService {
         occurredOn: values.occurredOn,
         note: values.note.trim(),
         excludeFromReport: values.excludeFromReport,
+        debtId: values.debtId === undefined ? (current?.debtId ?? null) : values.debtId,
         createdAt: current?.createdAt ?? now,
         updatedAt: now,
         deletedAt: null,
@@ -495,6 +580,7 @@ export class TransactionService {
         occurredOn: text('occurredOn'),
         note: text('note'),
         excludeFromReport: row['excludeFromReport'] === true,
+        debtId: text('debtId') || null,
       },
     })
   }
@@ -625,6 +711,7 @@ const toTransaction = (row: Record<string, unknown>): Transaction => ({
   note: typeof row['note'] === 'string' ? row['note'] : '',
   excludeFromReport: row['excludeFromReport'] === true,
   recurringId: typeof row['recurringId'] === 'string' ? row['recurringId'] : null,
+  debtId: typeof row['debtId'] === 'string' ? row['debtId'] : null,
   createdAt: Number(row['createdAt']),
   updatedAt: Number(row['updatedAt']),
   deletedAt: typeof row['deletedAt'] === 'number' ? row['deletedAt'] : null,
@@ -656,3 +743,59 @@ const compareEntries = (a: EntryItem, b: EntryItem): number =>
   b.createdAt - a.createdAt ||
   b.id.localeCompare(a.id) ||
   (a.kind === 'transfer' && a.side === 'out' ? -1 : 0)
+
+/** Two lists in rule 13's order merged into one (one pass). */
+const mergeEntries = (a: readonly EntryItem[], b: readonly EntryItem[]): EntryItem[] => {
+  if (b.length === 0) {
+    return [...a]
+  }
+  const merged: EntryItem[] = []
+  let i = 0
+  let j = 0
+  while (i < a.length || j < b.length) {
+    const x = a.at(i)
+    const y = b.at(j)
+    if (x && (!y || compareEntries(x, y) <= 0)) {
+      merged.push(x)
+      i++
+    } else if (y) {
+      merged.push(y)
+      j++
+    }
+  }
+  return merged
+}
+
+/** Debt rule 10: live debts and entries left pointing at a tombstone here. */
+const DEBT_ORPHANS = {
+  // A repaid debt whose category is a tombstone (a merged one followed it already), or whose
+  // profile went (the profile sweep covers that).
+  debts: `SELECT d.* FROM ${DEBT_TABLE} d JOIN categories c ON c.id = d.category_id
+          WHERE d.deleted_at IS NULL AND c.deleted_at IS NOT NULL`,
+  // An entry whose debt or wallet is a tombstone.
+  entries: `SELECT e.* FROM ${DEBT_ENTRY_TABLE} e
+            LEFT JOIN ${DEBT_TABLE} d ON d.id = e.debt_id
+            LEFT JOIN ${WALLET_TABLE} w ON w.id = e.wallet_id
+            WHERE e.deleted_at IS NULL AND (d.deleted_at IS NOT NULL OR w.deleted_at IS NOT NULL)`,
+} as const
+
+const hasDebtOrphans = (db: LocalDatabase): boolean =>
+  db.selectObjects(`${DEBT_ORPHANS.debts} LIMIT 1`).length > 0 ||
+  db.selectObjects(`${DEBT_ORPHANS.entries} LIMIT 1`).length > 0
+
+/** Tombstones what `hasDebtOrphans` finds: the debts first, then every entry they leave. */
+const tombstoneDebtOrphans = (db: LocalDatabase, now: number): void => {
+  for (const [table, query] of [
+    [DEBT_TABLE, DEBT_ORPHANS.debts],
+    [DEBT_ENTRY_TABLE, DEBT_ORPHANS.entries],
+  ] as const) {
+    for (const row of db.selectObjects(query)) {
+      queueWrite(db, table, 'delete', {
+        ...fromSql(table, row),
+        id: String(row['id']),
+        updatedAt: now,
+        deletedAt: now,
+      })
+    }
+  }
+}

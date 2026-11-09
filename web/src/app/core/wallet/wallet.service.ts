@@ -2,6 +2,7 @@ import { computed, inject, Service, signal } from '@angular/core'
 import { deleteOp, fromSql, OfflineService, queueWrite, SyncService, uuidv7 } from '@/core/offline'
 import type { LocalDatabase, SqlValue } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
+import { DEBT_ENTRY_SIGN_SQL, DEBT_ENTRY_TABLE, DEBT_TABLE } from './debt-tables'
 import { cleanHidden, findWallet, toWallet } from './hidden-categories'
 import {
   DEFAULT_CURRENCY,
@@ -116,7 +117,7 @@ export class WalletService {
   /**
    * Σ income − Σ expense of every live transaction per wallet of the current profile
    * (transaction rule 12), in one aggregate query, − transfers out + transfers in (transfer
-   * rule 6). `excludeFromReport` rows count here.
+   * rule 6), ± debt entries (debt rule 7). `excludeFromReport` rows count here.
    */
   private sums = computed(() => {
     const profileId = this.profileService.current()?.id
@@ -138,9 +139,13 @@ export class WalletService {
              UNION ALL
              SELECT to_wallet_id, amount FROM ${TRANSFER_TABLE}
              WHERE profile_id = ? AND deleted_at IS NULL
+             UNION ALL
+             SELECT e.wallet_id, ${DEBT_ENTRY_SIGN_SQL}
+             FROM ${DEBT_ENTRY_TABLE} e JOIN ${DEBT_TABLE} d ON d.id = e.debt_id
+             WHERE e.profile_id = ? AND e.deleted_at IS NULL AND e.wallet_id IS NOT NULL
            ) t
            GROUP BY t.wallet_id`,
-          [profileId, profileId, profileId]
+          [profileId, profileId, profileId, profileId]
         ),
       []
     )
@@ -150,12 +155,12 @@ export class WalletService {
     return sums
   })
 
-  /** Computed, never stored: `initialBalance` + the wallet's transactions ± transfers. */
+  /** Computed, never stored: `initialBalance` + the wallet's transactions ± transfers ± debts. */
   balance(wallet: Wallet): number {
     return wallet.initialBalance + (this.sums().get(wallet.id) ?? 0)
   }
 
-  /** Whether the wallet has live transactions or transfers (rules 4 and 6, transfer rule 8). */
+  /** Whether the wallet has live transactions, transfers or debt entries (rules 4, 6; debt rule 9). */
   hasTransactions(id: string | null): boolean {
     if (id === null) {
       return false
@@ -165,8 +170,9 @@ export class WalletService {
         db.selectValue(
           `SELECT EXISTS (SELECT 1 FROM ${TRANSACTION_TABLE} WHERE wallet_id = ? AND deleted_at IS NULL)
              OR EXISTS (SELECT 1 FROM ${TRANSFER_TABLE} WHERE from_wallet_id = ? AND deleted_at IS NULL)
-             OR EXISTS (SELECT 1 FROM ${TRANSFER_TABLE} WHERE to_wallet_id = ? AND deleted_at IS NULL)`,
-          [id, id, id]
+             OR EXISTS (SELECT 1 FROM ${TRANSFER_TABLE} WHERE to_wallet_id = ? AND deleted_at IS NULL)
+             OR EXISTS (SELECT 1 FROM ${DEBT_ENTRY_TABLE} WHERE wallet_id = ? AND deleted_at IS NULL)`,
+          [id, id, id, id]
         ) === 1,
       false
     )

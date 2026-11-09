@@ -222,6 +222,7 @@ export class ProfileSheet {
         id ? this.profileService.transactionCount(id) : 0,
       ],
       ['deleteRule', 'deleteRules', id ? this.profileService.ruleCount(id) : 0],
+      ['deleteDebt', 'deleteDebts', id ? this.profileService.debtCount(id) : 0],
     ]
     const items = counts
       .filter(([, , count]) => count > 0)

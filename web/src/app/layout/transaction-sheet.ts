@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, signal, untracked } from '@angular
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import type { ValidatorFn } from '@angular/forms'
+import { Router } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
@@ -12,6 +13,7 @@ import {
   lucideChevronRight,
   lucideCopy,
   lucideEyeOff,
+  lucideHandCoins,
   lucideListPlus,
   lucidePause,
   lucidePlay,
@@ -113,6 +115,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
       lucideChevronRight,
       lucideCopy,
       lucideEyeOff,
+      lucideHandCoins,
       lucideListPlus,
       lucidePause,
       lucidePlay,
@@ -410,6 +413,30 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                           [sub]="source.text"
                           (pressed)="openRule(source.id)"
                         />
+                      }
+                      @if (debtLink(); as debt) {
+                        <!-- Counted money of a debt (debt rule 3): opens the debt's page. -->
+                        <button
+                          type="button"
+                          class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                          (click)="openDebt(debt.id)"
+                        >
+                          <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
+                            <ng-icon name="lucideHandCoins" size="22" aria-hidden="true" />
+                          </span>
+                          <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-xs text-muted-foreground">{{
+                              'debts.linked' | transloco
+                            }}</span>
+                            <span class="truncate text-base">{{ debt.person }}</span>
+                          </span>
+                          <ng-icon
+                            name="lucideChevronRight"
+                            size="20"
+                            class="text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                        </button>
                       }
                       <div class="flex min-h-14 items-center gap-3 px-4 py-2">
                         <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
@@ -753,6 +780,14 @@ export class TransactionSheet {
   protected keypad = signal(false)
   /** The folded "เพิ่มเติม" options. */
   protected more = signal(false)
+  private router = inject(Router)
+  /** The debt this row belongs to (debt rule 3: an instalment, interest), kept by an edit. */
+  protected debtId = signal<string | null>(null)
+  protected debtLink = computed(() => {
+    const id = this.debtId()
+    const person = this.transactionService.debtPerson(id)
+    return id && person !== null ? { id, person } : null
+  })
   /** "ทำซ้ำ" (docs/features/recurring.md): null = don't repeat. */
   protected repeat = signal<RepeatValues | null>(null)
   private quickAmountsService = inject(QuickAmountsService)
@@ -1138,8 +1173,18 @@ export class TransactionSheet {
         occurredOn: this.transactionService.today(),
         note: value.note,
         excludeFromReport: value.excludeFromReport,
+        debtId: this.debtId(),
       },
     })
+  }
+
+  /** The "หนี้" row: the debt's page, once nothing here is left unsaved. */
+  protected openDebt(id: string): void {
+    if (this.form.dirty) {
+      return
+    }
+    this.finish()
+    void this.router.navigate(['/wallets/debts', id])
   }
 
   /** A hardware keyboard types into the open keypad too. */
@@ -1171,6 +1216,7 @@ export class TransactionSheet {
       occurredOn: value.occurredOn,
       note: value.note,
       excludeFromReport: value.excludeFromReport,
+      debtId: this.debtId(),
     }
     const repeat = this.repeat()
     const ruleValues = (repeat: RepeatValues): RuleValues => ({
@@ -1182,6 +1228,7 @@ export class TransactionSheet {
       amount: values.amount,
       note: values.note,
       excludeFromReport: values.excludeFromReport,
+      debtId: values.debtId,
       startOn: values.occurredOn,
     })
     let done = state.mode === 'create' ? 'transactions.created' : 'transactions.saved'
@@ -1297,6 +1344,7 @@ export class TransactionSheet {
   }
 
   private start(state: TransactionSheetState): void {
+    this.debtId.set(this.startDebtId(state))
     this.view.set('form')
     this.more.set(state.mode !== 'create' && this.startValues(state)?.excludeFromReport === true)
     this.dirty.set(false)
@@ -1340,7 +1388,7 @@ export class TransactionSheet {
       this.dropUnfit()
       this.keypad.set(true)
       // The rules page's +: "ทำซ้ำ" shows set, under an open "เพิ่มเติม".
-      if (state.repeat) {
+      if (state.repeat || this.debtId()) {
         this.more.set(true)
       }
       return
@@ -1361,7 +1409,24 @@ export class TransactionSheet {
     }
     this.startWalletId.set(row.walletId)
     this.form.reset(this.toForm(row))
+    if (row.debtId) {
+      this.more.set(true)
+    }
     this.keypad.set(false)
+  }
+
+  /** The debt a sheet starts linked to (debt rule 3). */
+  private startDebtId(state: TransactionSheetState): string | null {
+    switch (state.mode) {
+      case 'create':
+        return state.values?.debtId ?? null
+      case 'edit':
+        return this.transactionService.byId(state.id)?.debtId ?? null
+      case 'fix':
+        return state.values.debtId ?? this.transactionService.byId(state.id)?.debtId ?? null
+      default:
+        return this.recurringService.byId(state.id)?.debtId ?? null
+    }
   }
 
   private startValues(state: TransactionSheetState): TransactionValues | null {

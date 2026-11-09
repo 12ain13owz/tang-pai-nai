@@ -18,13 +18,14 @@ import {
   lucideBell,
   lucideChevronRight,
   lucideCloud,
+  lucideHandCoins,
   lucideReceiptText,
   lucideRepeat,
 } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { CATEGORY_DEFAULT_ICON } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
-import { RecurringService, shortDate } from '@/core/recurring'
+import { RecurringService, ruleTitle, shortDate } from '@/core/recurring'
 import type { Occurrence } from '@/core/recurring'
 import {
   FUTURE,
@@ -89,6 +90,7 @@ interface DayGroup {
       lucideBell,
       lucideChevronRight,
       lucideCloud,
+      lucideHandCoins,
       lucideReceiptText,
       lucideRepeat,
     }),
@@ -175,6 +177,13 @@ interface DayGroup {
               <span class="font-semibold tabular-nums">{{ line.transfer }}</span>
             </div>
           }
+          @if (line.debt) {
+            <!-- Debt entries in − out of the wallets in view (debt rule 7). -->
+            <div class="col-span-2 -mt-1 flex justify-between text-sm">
+              <span class="text-muted-foreground">{{ 'debts.summaryLine' | transloco }}</span>
+              <span class="font-semibold tabular-nums">{{ line.debt }}</span>
+            </div>
+          }
         </section>
       }
       @for (group of days(); track group.day) {
@@ -211,6 +220,12 @@ interface DayGroup {
                         class="flex size-10 items-center justify-center rounded-full bg-muted text-foreground"
                       >
                         <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
+                      </span>
+                    } @else if (row.item.kind === 'debt') {
+                      <span
+                        class="flex size-10 items-center justify-center rounded-full bg-muted text-foreground"
+                      >
+                        <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
                       </span>
                     } @else {
                       <app-icon-badge
@@ -249,6 +264,24 @@ interface DayGroup {
                         (row.item.side === 'out' ? 'transfers.toWallet' : 'transfers.fromWallet')
                           | transloco: { name: row.item.otherWalletName }
                       }}</span>
+                    } @else if (row.item.kind === 'debt') {
+                      <!-- Money of a debt, not income or expense (debt → Web screens). -->
+                      <span class="flex min-w-0 items-center gap-1">
+                        <span class="truncate text-base font-semibold">{{
+                          'debts.entry.' + row.item.direction + '.' + row.item.entryKind | transloco
+                        }}</span>
+                        @if (row.item.recurringId) {
+                          <ng-icon
+                            name="lucideRepeat"
+                            size="13"
+                            class="shrink-0 text-muted-foreground"
+                            [attr.aria-label]="'recurring.fromRule' | transloco"
+                          />
+                        }
+                      </span>
+                      <span class="truncate text-sm text-muted-foreground">{{
+                        row.item.person
+                      }}</span>
                     } @else {
                       <span class="flex min-w-0 items-center gap-1">
                         <span class="truncate text-base font-semibold">{{
@@ -261,6 +294,15 @@ interface DayGroup {
                             size="13"
                             class="shrink-0 text-muted-foreground"
                             [attr.aria-label]="'recurring.fromRule' | transloco"
+                          />
+                        }
+                        @if (row.item.debtId) {
+                          <!-- Counted money of a debt: an instalment, interest (debt rule 3). -->
+                          <ng-icon
+                            name="lucideHandCoins"
+                            size="13"
+                            class="shrink-0 text-muted-foreground"
+                            [attr.aria-label]="'debts.linked' | transloco"
                           />
                         }
                       </span>
@@ -301,11 +343,19 @@ interface DayGroup {
                   <span
                     class="relative shrink-0 rounded-full outline-[1.5px] outline-offset-2 outline-muted-foreground outline-dashed"
                   >
-                    @if (row.occurrence.item.rule.kind === 'transfer') {
+                    @if (row.occurrence.item.rule.kind !== 'transaction') {
                       <span
                         class="flex size-10 items-center justify-center rounded-full bg-muted text-foreground"
                       >
-                        <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
+                        <ng-icon
+                          [name]="
+                            row.occurrence.item.rule.kind === 'debt'
+                              ? 'lucideHandCoins'
+                              : 'lucideArrowLeftRight'
+                          "
+                          size="20"
+                          aria-hidden="true"
+                        />
                       </span>
                     } @else {
                       <app-icon-badge
@@ -448,6 +498,7 @@ export class TransactionsPage {
       expense: formatAmount(-line.expense, line.minorUnit, locale, true),
       net: formatAmount(line.net, line.minorUnit, locale, true),
       transfer: line.transfer ? formatAmount(line.transfer, line.minorUnit, locale, true) : null,
+      debt: line.debt ? formatAmount(line.debt, line.minorUnit, locale, true) : null,
     }))
   })
 
@@ -514,8 +565,8 @@ export class TransactionsPage {
       if (item.occurredOn < last) {
         break
       }
-      // Transfer rule 5: a day's net is income − expense only.
-      if (item.kind === 'transfer') {
+      // Transfer rule 5, debt rule 7: a day's net is income − expense only.
+      if (item.kind !== 'transaction') {
         continue
       }
       const sums = daySums.get(item.occurredOn) ?? new Map<string, number>()
@@ -553,7 +604,7 @@ export class TransactionsPage {
       const wallet = showWallet && shownWallet ? wallets.get(shownWallet) : undefined
       group.upcoming.push({
         occurrence,
-        title: transfer ? this.transloco.translate('transfers.title') : item.title,
+        title: ruleTitle(item, this.t),
         sub: [
           transfer ? `${item.walletName} → ${item.toWalletName}` : item.rule.note,
           this.transloco.translate('recurring.notRecorded'),
@@ -571,9 +622,11 @@ export class TransactionsPage {
   })
 
   private ruleTitle(occurrence: Occurrence): string {
-    const { item } = occurrence
-    return item.rule.kind === 'transfer' ? this.transloco.translate('transfers.title') : item.title
+    return ruleTitle(occurrence.item, this.t)
   }
+
+  private t = (key: string, params?: Record<string, unknown>) =>
+    this.transloco.translate(key, params)
 
   constructor() {
     // Draw the next page once the end of the list comes near.
@@ -611,6 +664,11 @@ export class TransactionsPage {
   protected openRow(item: EntryItem): void {
     if (item.kind === 'transfer') {
       this.transferService.open({ mode: 'edit', id: item.id })
+    } else if (item.kind === 'debt') {
+      // A debt entry opens on its debt's page (debt → Web screens).
+      void this.router.navigate(['/wallets/debts', item.debtId], {
+        queryParams: { entry: item.id },
+      })
     } else {
       this.transactionService.open({ mode: 'edit', id: item.id })
     }
@@ -646,10 +704,17 @@ export class TransactionsPage {
   }
 }
 
-/** The row's signed amount: a transaction by its category's type, a transfer by its side. */
-const entrySign = (item: EntryItem): number =>
-  item.kind === 'transfer'
-    ? item.side === 'in'
-      ? item.amount
-      : -item.amount
-    : signedAmount(item.amount, item.type)
+/**
+ * The row's signed amount: a transaction by its category's type, a transfer by its side, a debt
+ * entry by the money in its wallet.
+ */
+const entrySign = (item: EntryItem): number => {
+  switch (item.kind) {
+    case 'transfer':
+      return item.side === 'in' ? item.amount : -item.amount
+    case 'debt':
+      return item.signed
+    default:
+      return signedAmount(item.amount, item.type)
+  }
+}

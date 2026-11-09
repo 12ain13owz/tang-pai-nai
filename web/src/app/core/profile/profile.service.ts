@@ -329,6 +329,11 @@ export class ProfileService {
     return this.childCount('transactions', id) + this.childCount('transfers', id)
   }
 
+  /** The profile's live debts (Account › หนี้ / เงินกู้, the delete confirm, debt rule 10). */
+  debtCount(id: string): number {
+    return this.childCount('debts', id)
+  }
+
   /** The profile's live recurring rules (Account › รายการซ้ำ, the delete confirm). */
   ruleCount(id: string): number {
     return this.childCount('recurring_rules', id)

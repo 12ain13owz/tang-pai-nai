@@ -14,7 +14,13 @@ import {
   TRANSFER_TABLE,
 } from '@/core/transaction'
 import type { DayRange, PeriodTab } from '@/core/transaction'
-import { WALLET_TABLE, WalletService } from '@/core/wallet'
+import {
+  DEBT_ENTRY_SIGN_SQL,
+  DEBT_ENTRY_TABLE,
+  DEBT_TABLE,
+  WALLET_TABLE,
+  WalletService,
+} from '@/core/wallet'
 import { addDays, fromDay } from '@/shared/utils'
 import { REPORT_PREF_PREFIX, REPORT_UNITS, TREND_LENGTH } from './report.type'
 import type { CategoryShare, ReportSummary, ReportUnit, TrendPoint } from './report.type'
@@ -83,7 +89,12 @@ export class ReportService {
    */
   hasData = computed(() =>
     this.summaries().some(
-      (line) => line.income > 0 || line.expense > 0 || line.excludedCount > 0 || line.transfer !== 0
+      (line) =>
+        line.income > 0 ||
+        line.expense > 0 ||
+        line.excludedCount > 0 ||
+        line.transfer !== 0 ||
+        line.debt !== 0
     )
   )
   currencies = computed(() => this.summaries().map((line) => line.currencyCode))
@@ -271,6 +282,7 @@ export class ReportService {
           expense: 0,
           net: 0,
           transfer: 0,
+          debt: 0,
         })
       }
     }
@@ -296,6 +308,7 @@ export class ReportService {
           expense: line.expense,
           net: line.net,
           transfer: line.transfer,
+          debt: line.debt,
           excludedCount: left.count,
           excluded: left.sum,
           start: start.get(line.currencyCode) ?? 0,
@@ -344,10 +357,20 @@ export class ReportService {
              SELECT to_wallet_id, amount FROM ${TRANSFER_TABLE}
              WHERE profile_id = ? AND deleted_at IS NULL AND occurred_on <= ?
                AND to_wallet_id IN (${inWallets})
+             UNION ALL
+             SELECT e.wallet_id, ${DEBT_ENTRY_SIGN_SQL}
+             FROM ${DEBT_ENTRY_TABLE} e JOIN ${DEBT_TABLE} d ON d.id = e.debt_id
+             WHERE e.profile_id = ? AND e.deleted_at IS NULL AND e.occurred_on <= ?
+               AND e.wallet_id IN (${inWallets})
            ) x
            JOIN ${WALLET_TABLE} w ON w.id = x.wallet_id
            GROUP BY w.currency_code`,
-          [profileId, day, ...walletIds, profileId, day, ...walletIds, profileId, day, ...walletIds]
+          [
+            ...[profileId, day, ...walletIds],
+            ...[profileId, day, ...walletIds],
+            ...[profileId, day, ...walletIds],
+            ...[profileId, day, ...walletIds],
+          ]
         ),
       []
     )
