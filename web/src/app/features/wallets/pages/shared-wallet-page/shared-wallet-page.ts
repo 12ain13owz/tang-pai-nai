@@ -126,29 +126,47 @@ interface Row {
             </p>
           }
           @if (page(); as current) {
+            <!-- The Transactions tab's summary card (transactions-page): same columns and lines. -->
             <section
-              class="grid grid-cols-2 gap-x-3 gap-y-1.5 rounded-2xl border border-border bg-card px-4 py-3 tabular-nums"
+              class="grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl border border-border bg-card px-4 py-3"
+              [attr.aria-label]="'transactions.summary' | transloco"
             >
-              <span class="flex flex-col">
+              <div class="flex flex-col">
                 <span class="text-xs text-muted-foreground">{{
-                  'sharing.income' | transloco
+                  'categories.income' | transloco
                 }}</span>
-                <span class="font-semibold text-income">{{ summary().income }}</span>
-              </span>
-              <span class="flex flex-col">
+                <span
+                  class="text-base font-semibold tabular-nums"
+                  [class.text-income]="summary().hasIncome"
+                  >{{ summary().income }}</span
+                >
+              </div>
+              <div class="flex flex-col items-end">
                 <span class="text-xs text-muted-foreground">{{
-                  'sharing.expense' | transloco
+                  'categories.expense' | transloco
                 }}</span>
-                <span class="font-semibold text-expense">{{ summary().expense }}</span>
-              </span>
-              <span class="col-span-2 flex justify-between text-sm">
-                <span class="text-muted-foreground">{{ 'sharing.other' | transloco }}</span>
-                <span>{{ summary().other }}</span>
-              </span>
-              <span class="col-span-2 flex justify-between border-t border-border pt-1.5">
-                <span>{{ 'sharing.net' | transloco }}</span>
-                <span class="font-semibold">{{ summary().net }}</span>
-              </span>
+                <span class="text-base font-semibold text-expense tabular-nums">{{
+                  summary().expense
+                }}</span>
+              </div>
+              <div class="col-span-2 flex justify-between border-t border-border pt-2 text-sm">
+                <span class="text-muted-foreground">{{ 'transactions.net' | transloco }}</span>
+                <span class="font-semibold tabular-nums">{{ summary().net }}</span>
+              </div>
+              @if (summary().transfer; as transfer) {
+                <div class="col-span-2 -mt-1 flex justify-between text-sm">
+                  <span class="text-muted-foreground">{{
+                    'transfers.summaryLine' | transloco
+                  }}</span>
+                  <span class="font-semibold tabular-nums">{{ transfer }}</span>
+                </div>
+              }
+              @if (summary().debt; as debt) {
+                <div class="col-span-2 -mt-1 flex justify-between text-sm">
+                  <span class="text-muted-foreground">{{ 'debts.summaryLine' | transloco }}</span>
+                  <span class="font-semibold tabular-nums">{{ debt }}</span>
+                </div>
+              }
             </section>
             @if (days().length === 0) {
               <app-empty-state [heading]="'sharing.noRows' | transloco">
@@ -296,23 +314,30 @@ export class SharedWalletPage {
   })
 
   /** The period's income and expense (rows left out of reports aside), the rest and the net. */
+  /**
+   * As on the Transactions tab (transaction rule 11): income and expense leave out
+   * `excludeFromReport` rows, net = income − expense; transfers and debt entries are their own
+   * lines, shown when they don't cancel out.
+   */
   protected summary = computed(() => {
-    const totals = { income: 0, expense: 0, other: 0 }
+    const totals = { income: 0, expense: 0, transfer: 0, debt: 0 }
     for (const entry of this.page()?.entries ?? []) {
       if (entry.kind !== 'transaction') {
-        totals.other += entry.amount
+        totals[entry.kind] += entry.amount
       } else if (!entry.excludeFromReport) {
-        totals[entry.amount >= 0 ? 'income' : 'expense'] += entry.amount
+        totals[entry.amount >= 0 ? 'income' : 'expense'] += Math.abs(entry.amount)
       }
     }
-    const net = (this.page()?.entries ?? []).reduce((sum, entry) => sum + entry.amount, 0)
     const locale = this.languageService.locale()
     const unit = this.minorUnit()
+    const money = (minor: number) => formatAmount(minor, unit, locale, true)
     return {
-      income: formatAmount(totals.income, unit, locale, true),
-      expense: formatAmount(totals.expense, unit, locale, true),
-      other: formatAmount(totals.other, unit, locale, true),
-      net: formatAmount(net, unit, locale, true),
+      hasIncome: totals.income > 0,
+      income: money(totals.income),
+      expense: money(-totals.expense),
+      net: money(totals.income - totals.expense),
+      transfer: totals.transfer ? money(totals.transfer) : null,
+      debt: totals.debt ? money(totals.debt) : null,
     }
   })
 

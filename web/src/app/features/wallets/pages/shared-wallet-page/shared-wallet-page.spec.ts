@@ -111,6 +111,10 @@ describe('SharedWalletPage', () => {
     expect(text()).toContain('อาหาร')
     expect(text()).toContain('กับข้าว')
     expect(text()).toContain(th.sharing.transferOut)
+    // The Transactions tab's card: net = income − expense, transfers on their own line.
+    expect(text()).toContain('+14,580.00')
+    expect(text()).toContain(th.transfers.summaryLine)
+    expect(text()).not.toContain(th.debts.summaryLine)
   })
 
   it('keeps what it read when the network goes, and says so (rule 15)', async () => {
