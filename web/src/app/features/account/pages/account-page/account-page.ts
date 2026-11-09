@@ -4,6 +4,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
   lucideChevronRight,
+  lucideFileSpreadsheet,
   lucideLogOut,
   lucidePalette,
   lucideHandCoins,
@@ -37,6 +38,7 @@ interface AccountItem {
   providers: [
     provideIcons({
       lucideChevronRight,
+      lucideFileSpreadsheet,
       lucideLogOut,
       lucidePalette,
       lucideHandCoins,
@@ -232,6 +234,14 @@ export class AccountPage {
                   name: profile.name,
                   count: this.profileService.eventCount(profile.id),
                 })
+              : t('account.profilesNone'),
+          },
+          {
+            link: '/account/export',
+            icon: 'lucideFileSpreadsheet',
+            label: 'account.export',
+            hint: profile
+              ? t('account.exportHint', { name: profile.name })
               : t('account.profilesNone'),
           },
         ],

@@ -100,6 +100,7 @@ describe('AccountPage', () => {
       '/account/recurring',
       '/wallets/debts',
       '/transactions/events',
+      '/account/export',
       '/account/security',
       '/account/appearance',
       '/account/device',

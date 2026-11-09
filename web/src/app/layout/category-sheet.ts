@@ -9,6 +9,7 @@ import {
   lucideArchiveRestore,
   lucideCheck,
   lucideChevronRight,
+  lucideFolderInput,
   lucideMerge,
   lucideTrash2,
   lucideTriangleAlert,
@@ -48,6 +49,7 @@ import {
 import type { UserIcon } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
 import type { SelectOption } from '@/shared/types'
+import { CategoryMove } from './category-move'
 import type { CategoryFormGroup } from './category-form.type'
 
 type View =
@@ -56,6 +58,7 @@ type View =
   | 'parent'
   | 'wallets'
   | 'merge'
+  | 'move'
   | 'confirmMerge'
   | 'confirmDelete'
   | 'confirmDiscard'
@@ -90,6 +93,7 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
     HlmButton,
     HlmDrawerImports,
     SheetFrame,
+    CategoryMove,
   ],
   providers: [
     provideIcons({
@@ -97,6 +101,7 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
       lucideArchiveRestore,
       lucideCheck,
       lucideChevronRight,
+      lucideFolderInput,
       lucideMerge,
       lucideTrash2,
       lucideTriangleAlert,
@@ -115,11 +120,23 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
               <app-sheet-frame
                 [title]="heading() | transloco"
                 [leadingLabel]="'sheet.close' | transloco"
-                [threeActions]="editing() !== null"
+                [actions]="editing() !== null ? 4 : 2"
                 (leading)="close()"
               >
                 @if (editing(); as category) {
                   <div sheetActions class="flex">
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      class="size-11"
+                      [disabled]="!categoryService.canWrite() || !used()"
+                      [attr.aria-label]="'categories.moveAction' | transloco"
+                      (click)="view.set('move')"
+                    >
+                      <ng-icon name="lucideFolderInput" size="20" aria-hidden="true" />
+                    </button>
                     <button
                       hlmBtn
                       variant="ghost"
@@ -255,10 +272,19 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
                       @if (mergeTargets().length > 0 && categoryService.canWrite()) {
                         <button
                           type="button"
-                          class="min-h-11 font-semibold text-brand underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                          class="block min-h-11 font-semibold text-brand underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                           (click)="view.set('merge')"
                         >
                           {{ 'categories.mergeLink' | transloco }}
+                        </button>
+                      }
+                      @if (categoryService.canWrite()) {
+                        <button
+                          type="button"
+                          class="block min-h-11 font-semibold text-brand underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                          (click)="view.set('move')"
+                        >
+                          {{ 'categories.moveLink' | transloco }}
                         </button>
                       }
                     </p>
@@ -378,6 +404,15 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
                 </ul>
               </div>
             </app-sheet-frame>
+          }
+          @case ('move') {
+            @if (editing(); as category) {
+              <app-category-move
+                [category]="category"
+                (back)="view.set('form')"
+                (moved)="finish()"
+              />
+            }
           }
           @case ('merge') {
             <app-sheet-frame

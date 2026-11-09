@@ -285,7 +285,7 @@ a clashing child merges into the same-named child, and one whose move is refused
 another offline device made) is merged into the target by the server; merged ids leave the
 wallets' lists and the target keeps its own hidden state; a confirm view, no undo. Moving one
 wallet's transactions to another category (and hiding the old one there) is not a merge: it
-is #15's bulk edit.
+is #15's move ([export.md](export.md) rules 7–10).
 
 Settled at the start of 7.2 (owner): rule 13's details (a parent's id only, archived ids kept,
 a type may be hidden entirely, the row in create and edit), and the profile delete confirm

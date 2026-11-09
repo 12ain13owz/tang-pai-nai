@@ -352,8 +352,8 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   place. Inside, `app-sheet-frame`: a header bar with **close (X) on the left** (or **‹ back** in
   a sheet's later view), the **title centred**, and the sheet's other actions as 44px **icon
   buttons on the right** (e.g. archive, delete in red, manage), each with an `aria-label`
-  (a sheet with three, like the category form's archive / merge / delete, sets `threeActions`
-  so the title centres in the space left); the
+  (a sheet with more than two sets `actions`, e.g. `4` for the category form's move /
+  archive / merge / delete, so the title centres in the space left); the
   body scrolls; **one main button is pinned at the bottom** (no "ปิด" button: X closes). A view
   with nothing to confirm (the icon picker) has no bottom button. Load a sheet that isn't needed
   at start with `@defer` (see `layout/sync-sheet`).

@@ -283,13 +283,19 @@ fixOpId?, profileId?, hiddenIn?)` (a row that changes siblings goes last among t
 - **Outbox order matters** when a row points at another: a category put under a parent queued
   after it calls `moveOpLast()` (`core/offline/outbox.ts`) so the parent is pushed first, and
   unarchiving a parent moves its children's ops after its own.
-- `layout/category-sheet` (views `form` / `icons` / `parent` / `wallets` / `merge` /
-  `confirmMerge` / `confirmDelete` / `confirmDiscard`; three header icons in edit mode, so it
-  passes `threeActions` to `app-sheet-frame`; `app-segmented-field` for the type, disabled
+- `layout/category-sheet` (views `form` / `icons` / `parent` / `wallets` / `move` / `merge` /
+  `confirmMerge` / `confirmDelete` / `confirmDiscard`; four header icons in edit mode (move,
+  archive, merge, delete), so it passes `[actions]="4"` to `app-sheet-frame`; `app-segmented-field` for the type, disabled
   while it follows a parent or the row has children) is `@defer`red by the shell; `features/account/pages/categories-page`
   is Account › หมวดหมู่ with a two-level order mode (an inner `cdkDropList` per parent).
   `layout/wallet-sheet` has a `categories` view (tabs + `app-toggle-list-field`) for the
   wallet's `hiddenCategoryIds`.
+- **Move transactions** (#15, [export.md](../docs/features/export.md) rules 7–10): the `move`
+  view is `layout/category-move` (from wallet, to category, hide, confirm) on
+  `layout/category-move-rows.ts` (`moveSources`, `moveCategoryRows`, `undoCategoryMove`: row
+  upserts with only `categoryId` changed in one write, the wallet's hidden list, undo from the
+  toast). They sit beside the sheet, not in `core/category`: a module exported from a barrel
+  the shell imports lands in the initial bundle even when only a lazy screen uses it.
 
 ### Transactions (`core/transaction`, #8)
 
@@ -466,6 +472,18 @@ Spec: [event.md](../docs/features/event.md).
 - Specs: `core/event/event-testing.ts` (`setUpEvents`: `setUpDebts` plus an `event` helper),
   `event.service.spec.ts`, `features/events/events.spec.ts`, the transaction sheet's
   `event / trip` block.
+
+### Export (`features/account/pages/export-page`, #15)
+
+Spec: [export.md](../docs/features/export.md). Account › ส่งออก CSV, read only, offline.
+
+- `export-data.ts` reads the tables by name (`exportCount`, `exportRows`, `exportCsv`,
+  `walletChoices`, `categoryChoices`, `dataSpan`); `csv.ts` (`csvField`, `csvText` for the
+  formula guard, `toCsv` with the BOM and CRLF, `exportFileName`, ASCII only); the page and its
+  pick sheet (`export-pick-sheet.ts`, ticks per tab and tree). The page shares the file on a
+  touch device (`navigator.share` with files) and downloads it elsewhere.
+- Specs: `csv.spec.ts`, `export-data.spec.ts` and `export-page.spec.ts` on `setUpDebts()`
+  (the page stubs `URL.createObjectURL` and the link's `click`).
 
 ### Inside a feature
 

@@ -13,7 +13,7 @@ transactions as the Transactions tab and never stores a total (ROADMAP → Money
 
 ## Out of scope
 
-- Budgets (in the backlog since #10), events / trips (#14), search, filters and CSV export (#15).
+- Budgets (in the backlog since #10), events / trips (#14), CSV export (#15, [export.md](export.md); search and filters were dropped).
 - Converting between currencies (ROADMAP → Backlog "FX / multi-currency reports"): every figure
   is in one currency at a time.
 - Shared wallets seen as a member (#16): the report covers the signed-in user's own wallets.

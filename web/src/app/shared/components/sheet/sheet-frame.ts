@@ -21,9 +21,11 @@ import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
     <div
       class="grid min-h-13 items-center"
       [class]="
-        threeActions()
-          ? 'grid-cols-[2.75rem_minmax(0,1fr)_8.25rem]'
-          : 'grid-cols-[5.5rem_minmax(0,1fr)_5.5rem]'
+        actions() === 4
+          ? 'grid-cols-[2.75rem_minmax(0,1fr)_11rem]'
+          : actions() === 3
+            ? 'grid-cols-[2.75rem_minmax(0,1fr)_8.25rem]'
+            : 'grid-cols-[5.5rem_minmax(0,1fr)_5.5rem]'
       "
     >
       <div class="justify-self-start">
@@ -60,9 +62,10 @@ export class SheetFrame {
   leadingIcon = input<'close' | 'back'>('close')
   leadingLabel = input.required<string>()
   /**
-   * Three header icons (the category form's archive, merge and delete): the right side takes
-   * their width and the title centres in what is left, instead of running under them.
+   * How many header icons sit on the right (up to two by default; the category form has four:
+   * move, archive, merge, delete): the right side takes their width and the title centres in
+   * what is left, instead of running under them.
    */
-  threeActions = input(false)
+  actions = input<2 | 3 | 4>(2)
   leading = output()
 }

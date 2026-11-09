@@ -32,7 +32,8 @@
     "device": "This device",
     "recurring": "Recurring",
     "debts": "Debts & loans",
-    "events": "Events / trips"
+    "events": "Events / trips",
+    "export": "Export CSV"
   },
   "status": {
     "online": "Online",
@@ -281,7 +282,26 @@
     "mergeMerged": "{{count}} sub-categories merge into “{{name}}” too",
     "mergeWarning": "“{{name}}” will be deleted. This can’t be undone. Other devices see it after they sync.",
     "mergeConfirm": "Merge",
-    "merged": "Merged “{{from}}” into “{{to}}”"
+    "merged": "Merged “{{from}}” into “{{to}}”",
+    "moveAction": "Move transactions to another category",
+    "moveLink": "Move transactions to another category",
+    "moveHeading": "Move transactions",
+    "moveFrom": "From wallet",
+    "moveAllWallets": "All wallets",
+    "moveTo": "To category",
+    "moveChoose": "Choose a category",
+    "moveHide": "Hide \"{{name}}\" in this wallet",
+    "moveHideHint": "No longer offered when adding in {{wallet}}",
+    "moveButton": "Move {{count}} transactions",
+    "moveQuestion": "Move {{count}} transactions from \"{{from}}\" to \"{{to}}\"?",
+    "moveHideNote": "and hide \"{{name}}\" in {{wallet}}",
+    "moveUndoNote": "You can undo it from the message shown after the move.",
+    "moveCancel": "Cancel",
+    "moveConfirm": "Move",
+    "moved": "Moved {{count}} transactions",
+    "moveButtonOne": "Move 1 transaction",
+    "moveQuestionOne": "Move 1 transaction from \"{{from}}\" to \"{{to}}\"?",
+    "movedOne": "Moved 1 transaction"
   },
   "reports": {
     "emptyHeading": "No transactions in this period",
@@ -405,7 +425,9 @@
     "recurring": "Recurring",
     "recurringHint": "{{count}} in {{name}}",
     "debtsHint": "{{count}} in {{name}}",
-    "eventsHint": "{{count}} in {{name}}"
+    "eventsHint": "{{count}} in {{name}}",
+    "export": "Export CSV",
+    "exportHint": "Transactions of {{name}}"
   },
   "auth": {
     "signInHeading": "Sign in",
@@ -1246,5 +1268,57 @@
     "rowsOne": "1 transaction",
     "walletsOne": "1 wallet",
     "deleteTextOne": "Its 1 transaction stays, just no longer tagged to this event"
+  },
+  "export": {
+    "intro": "The transactions of profile {{name}} as a CSV file for Excel or Google Sheets.",
+    "dates": "Dates",
+    "allDates": "All",
+    "customDates": "Custom range",
+    "wallets": "Wallets",
+    "allWallets": "All wallets",
+    "allWalletsHint": "{{count}} wallets, archived ones included",
+    "allWalletsHintOne": "1 wallet",
+    "someWallets": "Some wallets",
+    "walletCount": "{{count}} wallets",
+    "walletCountOne": "1 wallet",
+    "categories": "Categories",
+    "allCategories": "All categories",
+    "someCategories": "Some categories",
+    "categoryCount": "{{count}} categories",
+    "categoryCountOne": "1 category",
+    "withChildren": "{{name}} (+{{count}} sub)",
+    "edit": "Edit",
+    "others": "Include transfers and debts",
+    "othersHint": "Transfer out / in rows and borrow / repay entries of the chosen wallets",
+    "othersOff": "Some categories chosen: transfers and debts have no category",
+    "button": "Export {{count}} rows",
+    "none": "Nothing to export",
+    "exported": "Exported {{count}} rows",
+    "pickWallets": "Choose wallets",
+    "pickCategories": "Choose categories",
+    "clear": "Clear",
+    "done": "Done",
+    "archived": "archived",
+    "yes": "Yes",
+    "kind": {
+      "income": "Income",
+      "expense": "Expense",
+      "out": "Transfer out",
+      "in": "Transfer in"
+    },
+    "column": {
+      "date": "Date",
+      "type": "Type",
+      "parent": "Parent category",
+      "category": "Category",
+      "wallet": "Wallet",
+      "amount": "Amount",
+      "currency": "Currency",
+      "note": "Note",
+      "event": "Event",
+      "excluded": "Excluded from reports"
+    },
+    "buttonOne": "Export 1 row",
+    "exportedOne": "Exported 1 row"
   }
 }

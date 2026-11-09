@@ -413,6 +413,111 @@ describe('CategorySheet', () => {
     })
   })
 
+  describe('move transactions (export.md rules 7–10)', () => {
+    const transaction = (id: string, categoryId: string, walletId: string) => {
+      putRow(db, 'transactions', {
+        id,
+        profileId: 'p1',
+        walletId,
+        categoryId,
+        amount: 1000,
+        occurredOn: '2026-11-02',
+        note: '',
+        excludeFromReport: false,
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+        changeSeq: 5,
+        updatedBy: 'u1',
+      })
+      changes.update((n) => n + 1)
+    }
+    const categoryOf = (id: string) =>
+      db.selectValue('SELECT category_id FROM transactions WHERE id = ?', [id])
+    const hiddenIn = (id: string): unknown =>
+      JSON.parse(
+        String(db.selectValue('SELECT hidden_category_ids FROM wallets WHERE id = ?', [id]))
+      )
+    /** A radio of the move view, by the wallet name its row shows. */
+    const walletRadio = (name: string) =>
+      [...body().querySelectorAll('label')]
+        .find((l) => l.textContent.trim().startsWith(name))
+        ?.querySelector('input') as HTMLInputElement
+
+    beforeEach(async () => {
+      wallet('Cash')
+      wallet('Bank', { sortOrder: 1 })
+      category('Coffee')
+      category('Food', { sortOrder: 1 })
+      category('Drinks', { parentId: 'Food' })
+      transaction('t1', 'Coffee', 'Cash')
+      transaction('t2', 'Coffee', 'Cash')
+      transaction('t3', 'Coffee', 'Bank')
+      await settle()
+    })
+
+    it("moves one wallet's rows to a sub-category, hides the old one there, and undoes it", async () => {
+      categories.open({ mode: 'edit', id: 'Coffee' })
+      await settle()
+      await click(th.categories.moveAction)
+      expect(text()).toContain(th.categories.moveFrom)
+      expect(walletRadio(th.categories.moveAllWallets).checked).toBe(true)
+      expect(body().querySelector('button[role="switch"]')).toBeNull()
+      walletRadio('Cash').click()
+      await settle()
+      await click(th.categories.moveChoose)
+      expect(row('Coffee')).toBeUndefined()
+      row('Drinks')?.click()
+      await settle()
+      expect(text()).toContain('Food › Drinks')
+      ;(body().querySelector('button[role="switch"]') as HTMLButtonElement).click()
+      await settle()
+      await click('ย้าย 2 รายการ')
+      expect(text()).toContain('ย้าย 2 รายการจาก "Coffee" ไป "Food › Drinks" ใช่ไหม')
+      expect(text()).toContain('และซ่อน "Coffee" ในกระเป๋า Cash')
+      await click(th.categories.moveConfirm)
+      expect(categories.sheet()).toBeNull()
+      expect(toastTitles()).toEqual(['ย้าย 2 รายการแล้ว'])
+      expect([categoryOf('t1'), categoryOf('t2'), categoryOf('t3')]).toEqual([
+        'Drinks',
+        'Drinks',
+        'Coffee',
+      ])
+      expect(hiddenIn('Cash')).toEqual(['Coffee'])
+      expect(hiddenIn('Bank')).toEqual([])
+      const ops = listOps(db, 'pending', 10)
+      expect(ops.map((op) => `${op.table}:${op.rowId}`).sort()).toEqual([
+        'transactions:t1',
+        'transactions:t2',
+        'wallets:Cash',
+      ])
+      expect(ops.find((op) => op.rowId === 't1')?.baseSeq).toBe(5)
+
+      toastState.toasts()[0].action?.onClick(new MouseEvent('click'))
+      await settle()
+      expect([categoryOf('t1'), categoryOf('t2')]).toEqual(['Coffee', 'Coffee'])
+      expect(hiddenIn('Cash')).toEqual([])
+    })
+
+    it('moves every wallet with no hide, and offers nothing for a category without rows', async () => {
+      categories.open({ mode: 'edit', id: 'Coffee' })
+      await settle()
+      await click(th.categories.moveAction)
+      await click(th.categories.moveChoose)
+      row('Food')?.click()
+      await settle()
+      await click('ย้าย 3 รายการ')
+      await click(th.categories.moveConfirm)
+      expect([categoryOf('t1'), categoryOf('t3')]).toEqual(['Food', 'Food'])
+      expect(hiddenIn('Cash')).toEqual([])
+
+      categories.open({ mode: 'edit', id: 'Drinks' })
+      await settle()
+      expect(button(th.categories.moveAction)?.disabled).toBe(true)
+      expect(text()).not.toContain(th.categories.moveLink)
+    })
+  })
+
   it('asks before throwing away unsaved input, and can go back to it', async () => {
     categories.open({ mode: 'create', type: 'expense', parentId: null })
     await settle()

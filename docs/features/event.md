@@ -17,7 +17,7 @@ event's dates new rows take it by themselves.
 
 - Several events on one row, or tags (Q1): one row, at most one event.
 - Transfers and debt entries (Q4): they move money, they don't spend it.
-- An event filter in reports or the Transactions tab (Q10): #15 (search, filter).
+- An event filter in reports or the Transactions tab (Q10): dropped at the start of #15 (owner: the event page already lists its rows; export.md → Out of scope).
 - A budget per event, sharing an event (#16), an event's own currency (totals are per currency).
 
 ## Data model

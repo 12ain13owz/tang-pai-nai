@@ -43,8 +43,11 @@ export const toMajorText = (minor: number, minorUnit: number): string => {
   return fraction === '' || /^0+$/.test(fraction) ? grouped : `${grouped}.${fraction}`
 }
 
-/** A signed minor amount as an exact decimal string for `Intl.NumberFormat`: `-5` (2) → `-0.05`. */
-const toDecimalString = (minor: number, minorUnit: number): string => {
+/**
+ * A signed minor amount as an exact decimal string (for `Intl.NumberFormat` and CSV, no
+ * grouping): `-5` (2) → `-0.05`.
+ */
+export const toDecimalString = (minor: number, minorUnit: number): string => {
   const digits = String(Math.abs(Math.trunc(minor))).padStart(minorUnit + 1, '0')
   const sign = minor < 0 ? '-' : ''
   return minorUnit === 0
