@@ -1,6 +1,7 @@
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import type { ComponentFixture } from '@angular/core/testing'
+import { provideRouter } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
@@ -34,6 +35,8 @@ describe('WalletsPage', () => {
   const sync = {
     canSync: signal(false),
     isSyncing: signal(false),
+    // The debts card reaches RecurringService (through DebtService), which waits for a round.
+    rounds: signal(0),
     lastSyncedAt: signal<number | null>(1),
     rejectedOp: (opId: string) => findOp(db, opId),
   }
@@ -109,6 +112,7 @@ describe('WalletsPage', () => {
         }),
       ],
       providers: [
+        provideRouter([]),
         { provide: OfflineService, useValue: offline },
         { provide: SyncService, useValue: sync },
         {

@@ -93,8 +93,9 @@ describe('TransactionsHeader', () => {
   it('opens a two-level menu: โอนเงิน and ดูตาม with the current unit (owner’s choice B)', async () => {
     menuButton()?.click()
     await settle()
-    expect(items()).toHaveLength(3)
+    expect(items()).toHaveLength(4)
     expect(item(th.transfers.open)).toBeDefined()
+    expect(item(th.debts.menu)).toBeDefined()
     expect(item(th.recurring.menu)).toBeDefined()
     expect(item(th.transactions.viewBy)?.textContent).toContain(th.transactions.unit.month)
   })
@@ -107,7 +108,7 @@ describe('TransactionsHeader', () => {
     expect(items().slice(1)).toEqual(Object.values(th.transactions.unit))
     item(th.transactions.viewBy)?.click() // the ‹ back item reads "ดูตาม" too
     await settle()
-    expect(items()).toHaveLength(3)
+    expect(items()).toHaveLength(4)
   })
 
   it('chooses a unit and closes, or opens the custom range sheet', async () => {

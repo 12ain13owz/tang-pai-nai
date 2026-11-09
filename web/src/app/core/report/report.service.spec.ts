@@ -173,6 +173,7 @@ describe('ReportService', () => {
         net: 48550,
         // To the savings wallet, left out of "ทุกกระเป๋า"; cash → card cancels out.
         transfer: -500,
+        debt: 0,
         excludedCount: 1,
         excluded: -200,
         // 10,000 initial − 400 on 30 Sep.

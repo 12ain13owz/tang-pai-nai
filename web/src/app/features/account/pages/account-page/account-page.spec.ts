@@ -54,6 +54,7 @@ describe('AccountPage', () => {
             current: signal({ id: 'p1', name: 'ส่วนตัว' }),
             profiles: signal([{}, {}]),
             ruleCount: () => 2,
+            debtCount: () => 3,
           },
         },
         {
@@ -96,6 +97,7 @@ describe('AccountPage', () => {
       '/account/profiles',
       '/account/categories',
       '/account/recurring',
+      '/wallets/debts',
       '/account/security',
       '/account/appearance',
       '/account/device',
