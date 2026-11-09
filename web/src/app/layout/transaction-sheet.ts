@@ -16,9 +16,11 @@ import {
   lucideHandCoins,
   lucideListPlus,
   lucidePause,
+  lucidePlane,
   lucidePlay,
   lucideTextAlignStart,
   lucideTrash2,
+  lucideX,
 } from '@ng-icons/lucide'
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
@@ -44,7 +46,7 @@ import {
   TRANSACTION_LIMITS,
   TransactionService,
 } from '@/core/transaction'
-import type { TransactionSheetState, TransactionValues } from '@/core/transaction'
+import type { EventOption, TransactionSheetState, TransactionValues } from '@/core/transaction'
 import { isHiddenIn, WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
 import {
@@ -75,7 +77,7 @@ import { RepeatRow } from './repeat-row'
 import { RepeatView } from './repeat-view'
 import type { TransactionFormGroup } from './transaction-form.type'
 
-type View = 'form' | 'wallet' | 'category' | 'note' | 'repeat' | 'confirmDiscard'
+type View = 'form' | 'wallet' | 'category' | 'note' | 'repeat' | 'event' | 'confirmDiscard'
 
 const TYPES: readonly CategoryType[] = ['expense', 'income']
 
@@ -118,9 +120,11 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
       lucideHandCoins,
       lucideListPlus,
       lucidePause,
+      lucidePlane,
       lucidePlay,
       lucideTextAlignStart,
       lucideTrash2,
+      lucideX,
     }),
   ],
   template: `
@@ -377,6 +381,57 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                         <ng-icon name="lucideChevronRight" size="20" aria-hidden="true" />
                       </button>
                     </div>
+                    @if (showEvent()) {
+                      <!-- The event / trip (event rule 5): set by the date when adding. -->
+                      <div class="flex min-h-14 items-center gap-1 pr-2">
+                        <button
+                          type="button"
+                          class="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 pl-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                          [attr.aria-label]="
+                            ('events.field' | transloco) +
+                            ' ' +
+                            (event()?.name ?? ('events.none' | transloco))
+                          "
+                          (click)="pick('event')"
+                        >
+                          <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
+                            <ng-icon name="lucidePlane" size="22" aria-hidden="true" />
+                          </span>
+                          <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-xs text-muted-foreground">{{
+                              'events.field' | transloco
+                            }}</span>
+                            <span
+                              class="truncate text-base"
+                              [class.text-muted-foreground]="!event()"
+                              [class.font-medium]="event()"
+                              [class.text-brand]="event()"
+                              >{{ event()?.name ?? ('events.none' | transloco) }}</span
+                            >
+                          </span>
+                        </button>
+                        @if (event()) {
+                          <button
+                            hlmBtn
+                            variant="ghost"
+                            size="icon"
+                            type="button"
+                            class="size-11 shrink-0"
+                            [attr.aria-label]="'events.unlink' | transloco"
+                            (click)="chooseEvent(null)"
+                          >
+                            <ng-icon name="lucideX" size="18" aria-hidden="true" />
+                          </button>
+                        } @else {
+                          <ng-icon
+                            name="lucideChevronRight"
+                            size="20"
+                            class="mr-2 text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                        }
+                      </div>
+                    }
                   </div>
                   <!-- Less used options, folded (owner's choice in #8): opens by itself when set. -->
                   <button
@@ -698,6 +753,72 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
               }
             </app-sheet-frame>
           }
+          @case ('event') {
+            <app-sheet-frame
+              [title]="'events.pick' | transloco"
+              leadingIcon="back"
+              [leadingLabel]="'sheet.back' | transloco"
+              (leading)="view.set('form')"
+            >
+              <ul class="divide-y divide-border rounded-xl border border-border bg-card">
+                <li>
+                  <button
+                    type="button"
+                    class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                    [attr.aria-current]="eventId() === null ? 'true' : null"
+                    (click)="chooseEvent(null)"
+                  >
+                    <span
+                      class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+                    >
+                      <ng-icon name="lucideX" size="20" aria-hidden="true" />
+                    </span>
+                    <span class="min-w-0 flex-1 truncate text-base">{{
+                      'events.none' | transloco
+                    }}</span>
+                    @if (eventId() === null) {
+                      <ng-icon name="lucideCheck" size="20" class="text-brand" aria-hidden="true" />
+                    }
+                  </button>
+                </li>
+                @for (item of eventChoices(); track item.id) {
+                  <li>
+                    <button
+                      type="button"
+                      class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                      [attr.aria-current]="item.id === eventId() ? 'true' : null"
+                      (click)="chooseEvent(item.id)"
+                    >
+                      <app-icon-badge
+                        [icon]="item.icon"
+                        [color]="item.color"
+                        [fallback]="eventIcon"
+                      />
+                      <span class="flex min-w-0 flex-1 flex-col">
+                        <span class="truncate text-base">{{ item.name }}</span>
+                        <span class="truncate text-sm text-muted-foreground">{{
+                          eventDates(item)
+                        }}</span>
+                      </span>
+                      @if (item.id === eventId()) {
+                        <ng-icon
+                          name="lucideCheck"
+                          size="20"
+                          class="text-brand"
+                          aria-hidden="true"
+                        />
+                      }
+                    </button>
+                  </li>
+                }
+              </ul>
+              @if (eventChoices().length === 0) {
+                <p class="mt-3 text-sm text-muted-foreground">
+                  {{ 'events.noneOpen' | transloco }}
+                </p>
+              }
+            </app-sheet-frame>
+          }
           @case ('note') {
             <app-sheet-frame
               [title]="'transactions.note' | transloco"
@@ -788,6 +909,26 @@ export class TransactionSheet {
     const person = this.transactionService.debtPerson(id)
     return id && person !== null ? { id, person } : null
   })
+  /** The event / trip it is tagged to (event rule 3); an edit keeps it. */
+  protected eventId = signal<string | null>(null)
+  /** Chosen by hand (or kept from the row): the date no longer picks it (event rule 5). */
+  private eventChosen = signal(false)
+  protected eventIcon = 'lucidePlane' as UserIcon
+  /** The open events the picker offers, and the row's own (closed) one. */
+  protected eventChoices = computed<EventOption[]>(() =>
+    this.transactionService.eventOptions(this.profileId(), this.eventId())
+  )
+  protected event = computed(() => {
+    const id = this.eventId()
+    return id ? (this.eventChoices().find((item) => item.id === id) ?? null) : null
+  })
+  /** Rules carry no event (event rule 9), nor does "ทำซ้ำ". */
+  protected showEvent = computed(
+    () =>
+      !this.ruleMode() &&
+      this.repeat() === null &&
+      (this.eventChoices().length > 0 || this.eventId() !== null)
+  )
   /** "ทำซ้ำ" (docs/features/recurring.md): null = don't repeat. */
   protected repeat = signal<RepeatValues | null>(null)
   private quickAmountsService = inject(QuickAmountsService)
@@ -1057,6 +1198,16 @@ export class TransactionSheet {
         this.open.set(state !== null)
       })
     })
+    // Event rule 5: while adding, the date picks the event until one is chosen by hand.
+    effect(() => {
+      const state = this.state()
+      const day = this.day()
+      const profileId = this.profileId()
+      if (state?.mode !== 'create' || this.eventChosen()) {
+        return
+      }
+      this.eventId.set(untracked(() => this.transactionService.defaultEventId(profileId, day)))
+    })
   }
 
   /**
@@ -1104,7 +1255,7 @@ export class TransactionSheet {
   }
 
   /** Another row: the expression settles and the keypad closes, as in Money Lover. */
-  protected pick(view: 'wallet' | 'category' | 'note' | 'repeat'): void {
+  protected pick(view: 'wallet' | 'category' | 'note' | 'repeat' | 'event'): void {
     this.settleAmount()
     this.keypad.set(false)
     this.view.set(view)
@@ -1174,8 +1325,29 @@ export class TransactionSheet {
         note: value.note,
         excludeFromReport: value.excludeFromReport,
         debtId: this.debtId(),
+        eventId: this.eventId(),
       },
     })
+  }
+
+  /** The event picker's choice (or ×): kept from now on, whatever the date (event rule 5). */
+  protected chooseEvent(id: string | null): void {
+    this.eventId.set(id)
+    this.eventChosen.set(true)
+    this.form.markAsDirty()
+    this.dirty.set(true)
+    this.view.set('form')
+  }
+
+  protected eventDates(item: EventOption): string {
+    const locale = this.languageService.locale()
+    return item.endOn
+      ? new Intl.DateTimeFormat(locale, {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        }).formatRange(fromDay(item.startOn), fromDay(item.endOn))
+      : this.t('events.since', { date: shortDate(item.startOn, locale) })
   }
 
   /** The "หนี้" row: the debt's page, once nothing here is left unsaved. */
@@ -1217,6 +1389,8 @@ export class TransactionSheet {
       note: value.note,
       excludeFromReport: value.excludeFromReport,
       debtId: this.debtId(),
+      // A rule carries no event (event rule 9), so neither does what "ทำซ้ำ" records.
+      eventId: this.repeat() && state.mode === 'create' ? null : this.eventId(),
     }
     const repeat = this.repeat()
     const ruleValues = (repeat: RepeatValues): RuleValues => ({
@@ -1345,6 +1519,9 @@ export class TransactionSheet {
 
   private start(state: TransactionSheetState): void {
     this.debtId.set(this.startDebtId(state))
+    const startEvent = this.startEventId(state)
+    this.eventId.set(startEvent ?? null)
+    this.eventChosen.set(startEvent !== undefined)
     this.view.set('form')
     this.more.set(state.mode !== 'create' && this.startValues(state)?.excludeFromReport === true)
     this.dirty.set(false)
@@ -1413,6 +1590,25 @@ export class TransactionSheet {
       this.more.set(true)
     }
     this.keypad.set(false)
+  }
+
+  /**
+   * The event a sheet starts with (event rule 5): the row's or the copied one's, the event page's
+   * "เพิ่มรายการ"; undefined = a plain add, which the date decides.
+   */
+  private startEventId(state: TransactionSheetState): string | null | undefined {
+    switch (state.mode) {
+      case 'create':
+        return (
+          state.eventId ?? (this.transactionService.liveEventId(state.values?.eventId) || undefined)
+        )
+      case 'edit':
+        return this.transactionService.liveEventId(this.transactionService.byId(state.id)?.eventId)
+      case 'fix':
+        return this.transactionService.liveEventId(state.values.eventId)
+      default:
+        return null
+    }
   }
 
   /** The debt a sheet starts linked to (debt rule 3). */

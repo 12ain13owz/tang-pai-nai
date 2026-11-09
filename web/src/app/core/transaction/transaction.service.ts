@@ -15,12 +15,18 @@ import {
 import type { Wallet } from '@/core/wallet'
 import { addDays, toDay } from '@/shared/utils'
 import { PERIOD_UNITS, periodRange, periodTabs } from './period'
-import { TRANSACTION_PREF_PREFIX, TRANSACTION_TABLE, TRANSFER_TABLE } from './transaction.type'
+import {
+  EVENT_TABLE,
+  TRANSACTION_PREF_PREFIX,
+  TRANSACTION_TABLE,
+  TRANSFER_TABLE,
+} from './transaction.type'
 import type { PeriodTab, PeriodUnit } from './period'
 import type {
   DayRange,
   DebtEntryItem,
   EntryItem,
+  EventOption,
   ListFilter,
   MoneySummary,
   Transaction,
@@ -188,10 +194,11 @@ export class TransactionService {
         db
           .selectObjects(
             `SELECT t.*, c.type AS c_type, c.name AS c_name, c.icon AS c_icon, c.color AS c_color,
-               w.name AS w_name, w.currency_code AS w_currency
+               w.name AS w_name, w.currency_code AS w_currency, ev.name AS ev_name
              FROM ${TRANSACTION_TABLE} t
              LEFT JOIN ${CATEGORY_TABLE} c ON c.id = t.category_id
              LEFT JOIN ${WALLET_TABLE} w ON w.id = t.wallet_id
+             LEFT JOIN ${EVENT_TABLE} ev ON ev.id = t.event_id AND ev.deleted_at IS NULL
              WHERE ${where.sql} ${ORDER}`,
             where.params
           )
@@ -204,6 +211,7 @@ export class TransactionService {
             categoryColor: String(row['c_color'] ?? ''),
             walletName: String(row['w_name'] ?? ''),
             currencyCode: String(row['w_currency'] ?? ''),
+            eventName: typeof row['ev_name'] === 'string' ? row['ev_name'] : null,
           })),
       []
     )
@@ -414,6 +422,50 @@ export class TransactionService {
     }, null)
   }
 
+  /**
+   * The profile's live events the form offers (event rule 3): open ones by `startOn` desc, then
+   * the latest created; plus `keepId` when the row already has it (a closed one stays on edit).
+   */
+  eventOptions(profileId: string, keepId: string | null = null): EventOption[] {
+    return this.read(
+      (db) =>
+        db
+          .selectObjects(
+            `SELECT * FROM ${EVENT_TABLE}
+              WHERE profile_id = ? AND deleted_at IS NULL AND (is_closed = 0 OR id = ?)
+              ORDER BY is_closed, start_on DESC, created_at DESC, id DESC`,
+            [profileId, keepId ?? '']
+          )
+          .map((row) => toEventOption(fromSql(EVENT_TABLE, row))),
+      []
+    )
+  }
+
+  /** `id` when it names a live event, else null (a deleted event's rows keep its id, rule 7). */
+  liveEventId(id: string | null | undefined): string | null {
+    if (!id) {
+      return null
+    }
+    return this.read(
+      (db) =>
+        db.selectValue(`SELECT 1 FROM ${EVENT_TABLE} WHERE id = ? AND deleted_at IS NULL`, [id]) ===
+        1
+          ? id
+          : null,
+      null
+    )
+  }
+
+  /** Event rule 5: the open event whose dates hold `day` (the latest start), or null. */
+  defaultEventId(profileId: string, day: string): string | null {
+    return (
+      this.eventOptions(profileId).find(
+        (event) =>
+          !event.isClosed && event.startOn <= day && (event.endOn === null || day <= event.endOn)
+      )?.id ?? null
+    )
+  }
+
   /** A live transaction of any profile on this device. */
   byId(id: string): Transaction | null {
     return this.read((db) => {
@@ -447,6 +499,7 @@ export class TransactionService {
         note: values.note.trim(),
         excludeFromReport: values.excludeFromReport,
         debtId: values.debtId === undefined ? (current?.debtId ?? null) : values.debtId,
+        eventId: values.eventId === undefined ? (current?.eventId ?? null) : values.eventId,
         createdAt: current?.createdAt ?? now,
         updatedAt: now,
         deletedAt: null,
@@ -581,6 +634,7 @@ export class TransactionService {
         note: text('note'),
         excludeFromReport: row['excludeFromReport'] === true,
         debtId: text('debtId') || null,
+        eventId: text('eventId') || null,
       },
     })
   }
@@ -615,6 +669,10 @@ export class TransactionService {
     }
     if (filter.report) {
       parts.push(`t.exclude_from_report = ${filter.report === 'excluded' ? 1 : 0}`)
+    }
+    if (filter.eventId) {
+      parts.push('t.event_id = ?')
+      params.push(filter.eventId)
     }
     if (filter.currencyCode) {
       parts.push(`t.wallet_id IN (SELECT id FROM ${WALLET_TABLE} WHERE currency_code = ?)`)
@@ -712,10 +770,21 @@ const toTransaction = (row: Record<string, unknown>): Transaction => ({
   excludeFromReport: row['excludeFromReport'] === true,
   recurringId: typeof row['recurringId'] === 'string' ? row['recurringId'] : null,
   debtId: typeof row['debtId'] === 'string' ? row['debtId'] : null,
+  eventId: typeof row['eventId'] === 'string' ? row['eventId'] : null,
   createdAt: Number(row['createdAt']),
   updatedAt: Number(row['updatedAt']),
   deletedAt: typeof row['deletedAt'] === 'number' ? row['deletedAt'] : null,
   changeSeq: typeof row['changeSeq'] === 'number' ? row['changeSeq'] : null,
+})
+
+const toEventOption = (row: Record<string, unknown>): EventOption => ({
+  id: String(row['id']),
+  name: typeof row['name'] === 'string' ? row['name'] : '',
+  icon: typeof row['icon'] === 'string' ? row['icon'] : '',
+  color: typeof row['color'] === 'string' ? row['color'] : '',
+  startOn: typeof row['startOn'] === 'string' ? row['startOn'] : '',
+  endOn: typeof row['endOn'] === 'string' ? row['endOn'] : null,
+  isClosed: row['isClosed'] === true,
 })
 
 /** The sign of an amount from its category's type (rule 11): income +, expense −. */

@@ -334,6 +334,11 @@ export class ProfileService {
     return this.childCount('debts', id)
   }
 
+  /** The profile's live events (Account › อีเวนต์ / ทริป, the delete confirm, event rule 8). */
+  eventCount(id: string): number {
+    return this.childCount('events', id)
+  }
+
   /** The profile's live recurring rules (Account › รายการซ้ำ, the delete confirm). */
   ruleCount(id: string): number {
     return this.childCount('recurring_rules', id)

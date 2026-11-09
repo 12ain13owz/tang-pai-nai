@@ -337,6 +337,16 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
     action as title, the person under it); a counted row of a debt carries a small hand after
     its category name; the summary card gets "หนี้ (ยืม/คืน)" like "โอน", the report summary a
     "หนี้ ±x" chip.
+- **Events / trips** (#14, event.md → Web screens, mock-up `event.html`):
+  - **Events page** (⋮ menu and Account): "ยังไม่จบ (n)" rows (badge, name, a gold-tint
+    "กำลังใช้" tag while today is in its dates, the dates as a range "7–12 พ.ย. 2026", expense
+    and row count on the right), "จบแล้ว (n)" folded, "เพิ่มอีเวนต์" outline under the list.
+  - **Event page**: the debt page's hero (expense large in the expense colour, "รับ / สุทธิ"
+    under it, facts, a pencil), "จบทริป" / "เปิดอีกครั้ง" (outline) and "เพิ่มรายการ" (gold
+    tint) in one row, "ตามหมวด" bars, then the rows by day as on the Transactions tab.
+  - **Transaction form**: an "อีเวนต์" row under the date (label over the value, the value in
+    the brand colour when set, × to clear); a tagged row on the Transactions tab carries a small
+    gold-tint tag (plane + name) after its category name.
 - **Bottom sheet** (owner's choice in #6.2): **every sheet is the same near-full height**
   (`92dvh`, the page's header still showing above it), so its main action always sits in the same
   place. Inside, `app-sheet-frame`: a header bar with **close (X) on the left** (or **‹ back** in

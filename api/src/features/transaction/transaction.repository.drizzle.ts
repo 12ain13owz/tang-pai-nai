@@ -2,6 +2,7 @@ import { and, asc, eq, gt, isNull, lt, max } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
 import { findMergeTarget } from '@/core/database/category-merge'
 import { checkDebtLink } from '@/core/database/debt-link'
+import { checkEventLink } from '@/core/database/event-link'
 import { categories } from '@/core/database/schema/category'
 import { profiles } from '@/core/database/schema/profile'
 import { transactions } from '@/core/database/schema/transaction'
@@ -89,6 +90,17 @@ const checkParents = async (
       return TRANSACTION_MESSAGE.CURRENCY_FIXED
     }
   }
+  return checkLinks(executor, userId, row, profileId, walletId)
+}
+
+/** The row's debt and event (a gone one of either was cleared in `resolve`); the message or null. */
+const checkLinks = async (
+  executor: Executor,
+  userId: string,
+  row: SyncRowInput,
+  profileId: string,
+  walletId: string
+): Promise<string | null> => {
   // Debt rule 8: the debt of the same profile, in the wallet's currency.
   if (typeof row.debtId === 'string') {
     const link = await checkDebtLink(executor, userId, row.debtId, profileId, walletId)
@@ -99,13 +111,21 @@ const checkParents = async (
       return TRANSACTION_MESSAGE.DEBT_OTHER_CURRENCY
     }
   }
+  // Event rule 3: an event of the same profile.
+  if (typeof row.eventId === 'string') {
+    const link = await checkEventLink(executor, userId, row.eventId, profileId)
+    if (link.status === 'otherProfile') {
+      return TRANSACTION_MESSAGE.EVENT_OTHER_PROFILE
+    }
+  }
   return null
 }
 
 /**
  * Category rule 15: a live row on a merged category (added or edited on a device that hadn't
  * pulled the merge) moves to the category it was merged into, instead of being refused. Debt
- * rule 8: a link to a debt that is gone (deleted on another device) is cleared, never refused.
+ * rule 8: a link to a debt that is gone (deleted on another device) is cleared, never refused;
+ * likewise an event's (event rule 3).
  */
 const resolveTransaction = async (
   executor: Executor,
@@ -124,6 +144,12 @@ const resolveTransaction = async (
     const link = await checkDebtLink(executor, userId, row.debtId, String(row.profileId), null)
     if (link.status === 'gone') {
       resolved = { ...resolved, debtId: null }
+    }
+  }
+  if (typeof row.eventId === 'string') {
+    const link = await checkEventLink(executor, userId, row.eventId, String(row.profileId))
+    if (link.status === 'gone') {
+      resolved = { ...resolved, eventId: null }
     }
   }
   return resolved
@@ -200,6 +226,7 @@ export const transactionSyncHandler: SyncTableHandler = {
             excludeFromReport: row.excludeFromReport === true,
             recurringId: typeof row.recurringId === 'string' ? row.recurringId : null,
             debtId: typeof row.debtId === 'string' ? row.debtId : null,
+            eventId: typeof row.eventId === 'string' ? row.eventId : null,
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
             deletedAt: row.deletedAt,

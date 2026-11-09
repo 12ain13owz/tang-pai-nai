@@ -229,6 +229,26 @@ const MIGRATIONS: readonly string[] = [
   CREATE INDEX transactions_debt ON transactions (debt_id) WHERE debt_id IS NOT NULL;
   ALTER TABLE recurring_rules ADD COLUMN debt_id TEXT;
   CREATE INDEX recurring_rules_debt ON recurring_rules (debt_id)`,
+  // #14: events / trips (docs/features/event.md) and the event a transaction is tagged to.
+  // Indexes: the profile's events, an event's rows (its page and totals).
+  `CREATE TABLE events (
+    id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    icon TEXT NOT NULL,
+    color TEXT NOT NULL,
+    start_on TEXT NOT NULL,
+    end_on TEXT,
+    is_closed INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted_at INTEGER,
+    change_seq INTEGER,
+    updated_by TEXT
+  ) STRICT;
+  CREATE INDEX events_profile ON events (profile_id);
+  ALTER TABLE transactions ADD COLUMN event_id TEXT;
+  CREATE INDEX transactions_event ON transactions (event_id) WHERE event_id IS NOT NULL`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null

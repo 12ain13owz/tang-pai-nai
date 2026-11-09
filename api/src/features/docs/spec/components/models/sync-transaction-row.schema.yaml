@@ -72,6 +72,13 @@ properties:
       debt, interest, a forgiven rest), null otherwise (a push without it means null). It must be
       a debt of the same profile whose currency the wallet has (`CONFLICT`); a link to a debt
       that is gone is cleared, not refused.
+  eventId:
+    type: [string, 'null']
+    format: uuid
+    description: >-
+      The event / trip this row is tagged to (docs/features/event.md), null otherwise (a push
+      without it means null). It must be an event of the same profile, finished ones too
+      (`CONFLICT`); a link to an event that is gone is cleared, not refused.
   createdAt:
     type: integer
   updatedAt:

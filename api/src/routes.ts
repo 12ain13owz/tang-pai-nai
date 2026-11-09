@@ -10,6 +10,7 @@ import '@/features/transaction'
 import '@/features/transfer'
 import '@/features/recurring'
 import '@/features/debt'
+import '@/features/event'
 import { syncRouter } from '@/features/sync'
 import { todoRouter } from '@/features/todo'
 

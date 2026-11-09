@@ -30,6 +30,8 @@ const FIX_ROUTES: Readonly<Record<string, string>> = {
   // The debts page opens a debt's or an entry's sheet with the refused values (debt.md).
   debts: '/wallets/debts',
   debt_entries: '/wallets/debts',
+  // The events page opens the event sheet with the refused values (event.md).
+  events: '/transactions/events',
 }
 
 /**

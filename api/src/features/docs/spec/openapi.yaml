@@ -130,6 +130,8 @@ components:
       $ref: './components/models/sync-debt-row.schema.yaml'
     SyncDebtEntryRow:
       $ref: './components/models/sync-debt-entry-row.schema.yaml'
+    SyncEventRow:
+      $ref: './components/models/sync-event-row.schema.yaml'
   responses:
     SuccessResponse:
       $ref: './components/responses/success.response.yaml'
