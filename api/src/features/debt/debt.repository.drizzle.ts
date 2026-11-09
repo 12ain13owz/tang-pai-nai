@@ -40,8 +40,8 @@ const isLiveProfile = async (executor: Executor, userId: string, profileId: stri
 
 /**
  * What is left of each open debt (debt.md → Data model): Σ principal − Σ repayment − the linked
- * transactions that settle it. A linked income settles a borrowed debt (forgiven), a linked
- * expense a lent one (written off) or a `repaid` one (an instalment); the rest is interest.
+ * transactions that settle it: the instalments (expenses) of a `repaid` debt. Interest and a
+ * forgiven rest's transaction don't (its repayment entry does, debt rule 4).
  */
 const OPEN_DEBTS = (profileId: string, exceptId: string) => sql`
   SELECT count(*) AS total FROM debts d
@@ -51,8 +51,7 @@ const OPEN_DEBTS = (profileId: string, exceptId: string) => sql`
        - coalesce((SELECT sum(t.amount) FROM transactions t
                      JOIN categories c ON c.id = t.category_id
                     WHERE t.debt_id = d.id AND t.deleted_at IS NULL
-                      AND ((d.direction = 'borrowed' AND (c.type = 'income' OR d.count_as = 'repaid'))
-                        OR (d.direction = 'lent' AND c.type = 'expense'))), 0) <> 0`
+                      AND d.count_as = 'repaid' AND c.type = 'expense'), 0) <> 0`
 
 /** Rule 1's category of a `repaid` debt; the message or null. */
 const checkCategory = async (
