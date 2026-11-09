@@ -70,27 +70,27 @@ merging.
 
 ## Status
 
-| #   | Feature / phase            | API | Web | Notes                                                                                                                                                                    |
-| --- | -------------------------- | --- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0   | Starter repos              | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                                                                  |
-| 1   | Local dev workflow         | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                                                                              |
-| 2   | Database foundation        | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                                                               |
-| 3   | App shell                  | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                                                                           |
-| 4   | Auth                       | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                                                                             |
-| 4a  | Offline sync foundation    | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                |
-| 5   | Currency                   | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                      |
-| 6   | Profile + Wallet           | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
-| 7   | Category                   | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms); 7.3 merge. [spec](docs/features/category.md)                                          |
-| 8   | Transaction                | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                         |
-| 9   | Transfer                   | ✅  | ✅  | two linked rows of one `transfers` row, outside income / expense; ⋮ menu, Wallets tab button. [spec](docs/features/transfer.md)                                          |
-| 10  | Reports                    | —   | ✅  | on the device: H1 summary with balances, trend, by category with drill-down pages; Transactions header shared. [spec](docs/features/report.md)                           |
-| 11  | Budget                     | ⏸   | ⏸   | moved to the backlog after #10 (owner: not used in Money Lover; reports cover it); see Backlog                                                                           |
-| 12  | Recurring transactions     | ✅  | ✅  | rules recorded on the device when due (or asked first), deterministic ids, "อนาคต" shows what comes. [spec](docs/features/recurring.md)                                  |
-| 13  | Debt / loan                | ✅  | ✅  | borrowed / lent, entries outside income / expense, counted once per debt, instalments as rules, "หนี้สิน" card. [spec](docs/features/debt.md)                            |
-| 14  | **Event / trip** ← next    | ⬜  | ⬜  | tag transactions to a trip, see its total (useful when travelling)                                                                                                       |
-| 15  | Search, filter, CSV export | ⬜  | ⬜  | + bulk edit: move many transactions (e.g. one wallet's) to another category (owner, 7.3)                                                                                 |
-| 16  | Family sharing             | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                                                                   |
-| 17  | Deploy (Vercel)            | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
+| #   | Feature / phase                       | API | Web | Notes                                                                                                                                                                    |
+| --- | ------------------------------------- | --- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0   | Starter repos                         | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                                                                  |
+| 1   | Local dev workflow                    | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                                                                              |
+| 2   | Database foundation                   | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                                                               |
+| 3   | App shell                             | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                                                                           |
+| 4   | Auth                                  | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                                                                             |
+| 4a  | Offline sync foundation               | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                |
+| 5   | Currency                              | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                      |
+| 6   | Profile + Wallet                      | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
+| 7   | Category                              | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms); 7.3 merge. [spec](docs/features/category.md)                                          |
+| 8   | Transaction                           | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                         |
+| 9   | Transfer                              | ✅  | ✅  | two linked rows of one `transfers` row, outside income / expense; ⋮ menu, Wallets tab button. [spec](docs/features/transfer.md)                                          |
+| 10  | Reports                               | —   | ✅  | on the device: H1 summary with balances, trend, by category with drill-down pages; Transactions header shared. [spec](docs/features/report.md)                           |
+| 11  | Budget                                | ⏸   | ⏸   | moved to the backlog after #10 (owner: not used in Money Lover; reports cover it); see Backlog                                                                           |
+| 12  | Recurring transactions                | ✅  | ✅  | rules recorded on the device when due (or asked first), deterministic ids, "อนาคต" shows what comes. [spec](docs/features/recurring.md)                                  |
+| 13  | Debt / loan                           | ✅  | ✅  | borrowed / lent, entries outside income / expense, counted once per debt, instalments as rules, "หนี้สิน" card. [spec](docs/features/debt.md)                            |
+| 14  | Event / trip                          | ✅  | ✅  | events per profile, one per transaction, totals computed, default by date, close / reopen; under `/transactions/events`. [spec](docs/features/event.md)                  |
+| 15  | **Search, filter, CSV export** ← next | ⬜  | ⬜  | + bulk edit: move many transactions (e.g. one wallet's) to another category (owner, 7.3)                                                                                 |
+| 16  | Family sharing                        | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                                                                   |
+| 17  | Deploy (Vercel)                       | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
@@ -100,23 +100,60 @@ decision "Local-first").
 
 ---
 
-## Next: Event / trip (#14)
+## Next: Search, filter, CSV export (#15)
 
-Not started: write `docs/features/event.md` first, with a mock-up (owner's way since #10). The
-order stays **#14 → #15 → #16**, then #17 when the owner asks. #14 tags transactions to a trip
-or event and shows its total (useful when travelling); points to put to the owner with a
-proposal: a tag table or a column on transactions, one event per row or several, whether
-transfers and debt entries can carry one, where the event's total and list live, an active
-event that new rows take by default.
+Not started: write `docs/features/search.md` first (questions to the owner with a proposal; a
+mock-up only if the owner wants one, and **stop for the owner's review before building**). The
+order stays **#15 → #16**, then #17 when the owner asks. Row 15 in the table names the scope
+(+ bulk edit: move many transactions to another category, owner 7.3); an **event filter** in
+reports and the Transactions tab was deferred here from #14 (event.md Q10).
 
 Known, for later:
 
-- The initial bundle is **723.7 kB** after #13 (warning at 750 kB): step 12's SQL and the debt
-  rows in `TransactionService` grew `main`. Keep new screens lazy and their services out of the
-  shell (#12 loads `RecurringService` with a dynamic `import()` after the shell's first render;
-  `DebtService` is injected only by the Wallets tab and the debts pages).
+- The initial bundle is **726.9 kB** after #14 (warning at 750 kB). Keep new screens lazy and
+  their services out of the shell (#12 loads `RecurringService` with a dynamic `import()` after
+  the shell's first render; `DebtService` and `EventService` are injected only by their pages;
+  `core/transaction` reads `events` by name for the form's row and the list's tag).
 - Headless Chromium breaks some Thai lines inside a word ("บัน/ทึก"); the app's older notices do
   the same, so it's the test browser's line breaking, not our markup.
+- The API's sign-in only accepts `Origin: http://localhost:4200` (`WEB_ORIGIN`): a local server
+  for Playwright on `npm run build` output must listen on 4200, or `/auth/refresh` answers 403.
+
+## Done: Event / trip (#14)
+
+- **Decided at the start of #14** (owner: "ตามเสนอ" on Q1–Q12, event.md): its own `events`
+  table and `transactions.eventId`, one event per row (Q1); name, icon / colour, start and an
+  optional end, "จบทริป" / "เปิดอีกครั้ง" (Q2); per profile, across wallets, totals per
+  currency (Q3); income and expense only, not transfers or debt entries (Q4); totals of every
+  tagged row, report or not (Q5); pages under `/transactions/events` from the ⋮ menu and
+  Account, an "อีเวนต์" row in the form, a tag on the list's rows (Q6); the default is the open
+  event whose dates hold the form's date, nothing stored for an "active" event (Q7); rules carry
+  no event (Q8); delete asks first, rows stay (Q9); no event filter until #15 (Q10); 50 open
+  per profile (Q11); a Thai / dark mock-up `docs/features/mockups/event.html` (Q12; built
+  without the owner's review of it, see Next).
+- **Decided while building** (owner: confirmed from the screenshots): **delete writes only the
+  event's tombstone**. Untagging its rows in the same write lost another device's offline edit
+  of one of them (later edit wins the whole row: a note was gone); now rows keep `eventId`, no
+  screen reads a gone event, and the server clears the link when such a row is pushed again.
+- **API**: migration `0017_events` (`events`, `transactions.event_id` without a FK);
+  `features/event` (one handler: live profile, profile fixed, end not before start, 50 open);
+  `core/database/event-link.ts` (`checkEventLink`, read by the transaction handler: other
+  profile refused, gone cleared in `resolve`); OpenAPI `SyncEventRow`, `eventId`.
+- **Web**: local schema step 13; `core/event` (`EventService`); `core/transaction` reads `events`
+  by name (`eventOptions`, `defaultEventId`, `liveEventId`, `eventName`, `ListFilter.eventId`);
+  `features/events` (list, event page with rows 100 at a time, sheet); the form's event row and
+  picker; the ⋮ menu and Account rows; the profile delete confirm counts events; sync sheet
+  name and fix route.
+- **Checked**: an HTTP script on `/sync/push` + `/pull` (shapes, an end before the start, the
+  limit, other profile, a gone event cleared). Playwright at 375×812 in th/light and en/dark on
+  `npm run build`: totals (10,090 = 8,400 + 450 + 1,000 + 240), "เพิ่มรายการ" tagged, the
+  default by date (today → เชียงใหม่, 15 Oct → งานแต่ง, × kept across date changes), finishing
+  the trip moves the default, create and delete; `setOffline` (an event and a tagged row made
+  offline, synced 0.12 s after); two devices of one user (B edits a tagged row offline while A
+  deletes its event: B's note kept, the link cleared, both agree); 20,000 rows (event.md →
+  Volume). Tests: API 591, web 591. Initial bundle 726.9 kB.
+- **Known**: an event's totals ignore its dates (a row tagged by hand outside them counts);
+  rows of a deleted event keep its id on the server until they are edited.
 
 ## Done: Debt / loan (#13)
 

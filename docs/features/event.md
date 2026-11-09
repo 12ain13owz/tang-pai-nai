@@ -1,6 +1,9 @@
 # Event / trip
 
-> Status: **Spec** (#14; owner: "ตามเสนอ" on Q1–Q12 at the start). Mock-up:
+> Status: **Built** (#14; owner: "ตามเสนอ" on Q1–Q12 at the start). API: `api/src/features/event/`
+> (one sync handler), `api/src/core/database/event-link.ts` (a transaction's `eventId`). Web:
+> `core/event` (`EventService`), `features/events` (the pages under `/transactions/events` and
+> the sheet); the form's row and the list's tag read `events` by name in `core/transaction`. Mock-up:
 > [mockups/event.html](mockups/event.html) (Thai, dark; frame numbers below). Builds on
 > [transaction.md](transaction.md) and [offline-sync.md](offline-sync.md).
 
@@ -87,8 +90,11 @@ Lazy pages `features/events` at `/transactions/events` (Q6), reached from the Tr
 ## Volume
 
 Event totals for the list are **one** `GROUP BY event_id` query over the profile's events; the
-event page reads its rows through the `event_id` index. Checked with 20,000 rows (below, when
-built).
+event page reads its rows through the `event_id` index and draws them 100 at a time
+("แสดงเพิ่ม"). **Checked in #14** with 20,000 rows over 3 years, 600 of them in one event
+(Playwright, `npm run build`): the first pull ≈ 3.4 s, the events page ≈ 0.14 s, the event page
+≈ 0.15 s, the next 100 rows ≈ 0.26 s, the form with its default event ≈ 0.16 s, a save shown in
+the event's totals ≈ 0.22 s.
 
 ## Interactions
 

@@ -163,7 +163,8 @@ columns of one profile and currency; a wallet's currency rule reads it too),
 `features/recurring` (pushable, a kind with nullable columns per kind, the `resolve` /
 `sameChange` hooks; its rows fix a wallet's currency and a category's type),
 `features/debt` (two tables in one feature, registered as two handlers; an entry pushed after
-its debt was deleted is turned into a tombstone by `resolve` instead of being refused) and
+its debt was deleted is turned into a tombstone by `resolve` instead of being refused),
+`features/event` (one table that transactions point at; deleting it leaves their `eventId`) and
 `features/currency` (pull-only master data). A rule two features share and that needs no table
 (the date of a money entry: `isEntryDay`) lives in `@/shared/utils`. A rule about rows of another feature's table (a wallet's currency fixed while it has
 transactions) reads that table from `@/core/database/schema`, never the other feature.
@@ -189,7 +190,9 @@ transactions) reads that table from `@/core/database/schema`, never the other fe
   `@/core/database/category-merge` (`findMergeTarget`), not either feature. Likewise a row's
   `debtId` (transactions, recurring rules, debt entries) is checked by
   `@/core/database/debt-link` (`checkDebtLink`: gone / other profile / other currency); a
-  transaction's link to a gone debt is cleared in `resolve`, never refused (debt rule 8).
+  transaction's link to a gone debt is cleared in `resolve`, never refused (debt rule 8); a
+  transaction's `eventId` the same way through `@/core/database/event-link` (`checkEventLink`:
+  gone / other profile; event rule 3).
   Two pure optional hooks (#12, recurring rule 9): `keepsStored(row)` makes a **create**
   (`baseSeq` null) of an id the server already has keep the server's row, answered
   `overridden` with **no notice** (two devices record one recurring occurrence under one
@@ -218,8 +221,9 @@ transactions) reads that table from `@/core/database/schema`, never the other fe
   pushes; the handler writes the array as is.
 - **A nullable reference added to an existing table** can't carry an `onDelete: 'cascade'` FK
   in SQLite's `ALTER TABLE ADD`: drizzle-kit drops the cascade, and purging the parent's old
-  tombstone would then fail. Leave such a column without a FK, as `recurringId` and `debtId`
-  are, and let the device tombstone the rows that point at a deleted parent.
+  tombstone would then fail. Leave such a column without a FK, as `recurringId`, `debtId` and
+  `eventId` are, and let the device tombstone the rows that point at a deleted parent (or, for
+  a tag like `eventId`, leave the link: screens ignore a gone parent, `resolve` clears it).
 - **Data cleanup in a migration** (rows, not schema): `npx drizzle-kit generate --custom --name
 <what>` gives an empty migration to write the SQL in, with a comment saying why (see
   `0009_purge_sync_probe_history.sql`); never edit the generated schema migration for it.
@@ -233,7 +237,8 @@ transactions) reads that table from `@/core/database/schema`, never the other fe
   and `category.repository.drizzle.test.ts` insert the profiles their checks read;
   `transaction.repository.drizzle.test.ts` also inserts wallets and categories, and activates
   USD for the currency rule, as do `transfer.repository.drizzle.test.ts`,
-  `recurring.repository.drizzle.test.ts` and `debt.repository.drizzle.test.ts`); the quiet hooks in `sync.service.test.ts` (`setup`'s
+  `recurring.repository.drizzle.test.ts` and `debt.repository.drizzle.test.ts`;
+  `event.repository.drizzle.test.ts` inserts profiles only); the quiet hooks in `sync.service.test.ts` (`setup`'s
   second argument); HTTP with `accessTokens`
   for the Bearer header (`sync.controller.test.ts`).
 

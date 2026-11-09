@@ -85,7 +85,8 @@ layout    ->  core, shared
   and `SyncService` (`core/offline`), `ProfileService` (`core/profile`), `WalletService`
   (`core/wallet`), `CategoryService` (`core/category`), `TransactionService` (`core/transaction`),
   `ReportService` (`core/report`, kept out of the shell so it stays in the lazy chunks),
-  `DebtService` (`core/debt`, likewise: only the Wallets tab and the debts pages inject it).
+  `DebtService` (`core/debt`, likewise: only the Wallets tab and the debts pages inject it),
+  `EventService` (`core/event`, likewise: only the events pages inject it).
 - The header shows ‹ on a page inside the Account tab (`parentOf` in `layout/profile-routes`):
   the Account tab is grouped rows that each open a page (owner's choice A1 in #7). A report page
   goes one level up (`/reports/category/<id>/<sub>` → `/reports/category/<id>` → `/reports`). A
@@ -146,8 +147,8 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
   `delete` (the row with `deletedAt` set: a tombstone locally, `{ id, updatedAt }` on the wire).
   Keep the row's `changeSeq` in the object you pass (spread the current row), it becomes the
   op's `baseSeq`. Ids are `uuidv7()`. Screens list rows `WHERE deleted_at IS NULL`.
-- **A synced table on the device** = a schema step in `MIGRATIONS` (step 12 after #13; a spec that
-  rebuilds an older snapshot undoes the newer steps first, `UNDO_STEP_12` in
+- **A synced table on the device** = a schema step in `MIGRATIONS` (step 13 after #14; a spec that
+  rebuilds an older snapshot undoes the newer steps first, `UNDO_STEP_13` then `UNDO_STEP_12` in
   `local-database.spec.ts`) (snake_case columns,
   `change_seq INTEGER` nullable) + an entry in `SYNC_TABLES` (`sync-tables.ts`: key, camelCase
   columns, booleans, `json` columns, `readOnly` for master data). `putRow` / `getRow` / `fromSql`
@@ -437,6 +438,34 @@ Spec: [debt.md](../docs/features/debt.md).
   services, `debt` / `entry` / `transaction` helpers), `debt.service.spec.ts`,
   `features/debts/debts.spec.ts` (`RouterTestingHarness`). A component that reaches `DebtService`
   through a stubbed `SyncService` needs `rounds` in the stub (it injects `RecurringService`).
+
+### Events (`core/event`, #14)
+
+Spec: [event.md](../docs/features/event.md).
+
+- `EventService`: `items()` (the current profile's live events as `EventItem`s: `money` per
+  currency with every tagged row, `excludeFromReport` ones too, `count`, `walletCount`,
+  `current`; one aggregate query, never stored), `openItems()` / `closedItems()`, `atLimit()`
+  (50 open), `item(id)`, `byId()`, `byCategory(id)`, `save(id | null, values, fixOpId?)`,
+  `setClosed(id, closed)` (false when reopening is over the limit), `remove(id)` (**the
+  tombstone only**: rows keep `eventId`, so another device's offline edit of one never loses
+  to the delete), `rowCount(id)`, `sheet` / `open()` / `openFix()` / `refused()`.
+- `core/transaction` reads `events` **by name** (`EVENT_TABLE`, `EventOption`):
+  `eventOptions(profileId, keepId?)` (open ones by start, plus the row's own),
+  `defaultEventId(profileId, day)` (rule 5), `liveEventId(id)` (null for a deleted event),
+  `TransactionItem.eventName` (a live event only), `ListFilter.eventId`, and
+  `TransactionValues.eventId` (optional: absent keeps the row's). It never imports `core/event`.
+- The transaction sheet's "อีเวนต์" row is a signal (`eventId`, `eventChosen`), not a form
+  control: while adding, an effect sets it from the date until the user picks (or clears) one;
+  edit, fix and copy start from the row's live event; "ทำซ้ำ" saves none (rules carry no event).
+  A create state may carry `eventId` (the event page's "เพิ่มรายการ").
+- UI: `features/events` (`/transactions/events`, mounted in `app.routes.ts` before
+  `transactions`): the list and event pages `@defer` `components/event-sheet` (with its own copy
+  of the debts' date row); `event-view.ts` (`eventDates` with `formatRange`, `counted` for the
+  one/many keys).
+- Specs: `core/event/event-testing.ts` (`setUpEvents`: `setUpDebts` plus an `event` helper),
+  `event.service.spec.ts`, `features/events/events.spec.ts`, the transaction sheet's
+  `event / trip` block.
 
 ### Inside a feature
 
