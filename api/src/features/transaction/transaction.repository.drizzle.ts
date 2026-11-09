@@ -90,6 +90,17 @@ const checkParents = async (
       return TRANSACTION_MESSAGE.CURRENCY_FIXED
     }
   }
+  return checkLinks(executor, userId, row, profileId, walletId)
+}
+
+/** The row's debt and event (a gone one of either was cleared in `resolve`); the message or null. */
+const checkLinks = async (
+  executor: Executor,
+  userId: string,
+  row: SyncRowInput,
+  profileId: string,
+  walletId: string
+): Promise<string | null> => {
   // Debt rule 8: the debt of the same profile, in the wallet's currency.
   if (typeof row.debtId === 'string') {
     const link = await checkDebtLink(executor, userId, row.debtId, profileId, walletId)
@@ -100,7 +111,7 @@ const checkParents = async (
       return TRANSACTION_MESSAGE.DEBT_OTHER_CURRENCY
     }
   }
-  // Event rule 3: an event of the same profile (a gone one was cleared in `resolve`).
+  // Event rule 3: an event of the same profile.
   if (typeof row.eventId === 'string') {
     const link = await checkEventLink(executor, userId, row.eventId, profileId)
     if (link.status === 'otherProfile') {
