@@ -39,6 +39,11 @@ const row = z.object({
     .uuid({ error: ERRORS.invalidField('debtId') })
     .nullable()
     .default(null),
+  /** The event it is tagged to (docs/features/event.md rule 3); null otherwise. */
+  eventId: z
+    .uuid({ error: ERRORS.invalidField('eventId') })
+    .nullable()
+    .default(null),
   createdAt: epochMs,
   updatedAt: epochMs,
   deletedAt: epochMs.nullable().default(null),

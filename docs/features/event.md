@@ -37,7 +37,8 @@ event's dates new rows take it by themselves.
    profile, never moved to another profile; at most **50 open** (not closed) events per profile
    (Q11; a stored open one already counts).
 2. `name` 1–50 characters after trimming; `startOn` a real date from 2000-01-01 up to a year
-   after today (`isEntryDay`); `endOn` the same kind of date, not before `startOn`, or `null`.
+   after today (`isEntryDay`); `endOn` a real date (no upper bound), not before `startOn`, or
+   `null`.
 3. **A transaction's `eventId`** (Q4): an event of the transaction's profile (`CONFLICT`
    otherwise). An event that is **gone** (deleted on another device) is **cleared** by the
    server, never refused, like `debtId`. A closed event may stay on a row (an edit keeps it),

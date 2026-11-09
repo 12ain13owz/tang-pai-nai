@@ -13,4 +13,5 @@ export const TRANSACTION_MESSAGE = {
   CURRENCY_FIXED: 'A transaction cannot move to a wallet with another currency',
   DEBT_OTHER_PROFILE: 'The debt must belong to the transaction’s profile',
   DEBT_OTHER_CURRENCY: 'The wallet must have the debt’s currency',
+  EVENT_OTHER_PROFILE: 'The event must belong to the transaction’s profile',
 } as const

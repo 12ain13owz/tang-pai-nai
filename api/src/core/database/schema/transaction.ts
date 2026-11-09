@@ -38,6 +38,8 @@ export const transactions = sqliteTable(
     recurringId: text(),
     /** The debt this counted row belongs to (debt rule 3; no FK: a deleted debt leaves it). */
     debtId: text(),
+    /** The event / trip it is tagged to (event rule 3; no FK: a deleted event leaves it). */
+    eventId: text(),
     ...syncColumns,
   },
   (table) => [
@@ -47,5 +49,6 @@ export const transactions = sqliteTable(
     index('transactions_wallet_idx').on(table.walletId),
     index('transactions_category_idx').on(table.categoryId),
     index('transactions_debt_idx').on(table.debtId),
+    index('transactions_event_idx').on(table.eventId),
   ]
 )

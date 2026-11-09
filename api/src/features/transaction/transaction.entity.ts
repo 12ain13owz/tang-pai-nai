@@ -16,6 +16,8 @@ export type Transaction = {
   recurringId: string | null
   /** The debt it belongs to (debt rule 3); null otherwise. */
   debtId: string | null
+  /** The event it is tagged to (event rule 3); null otherwise. */
+  eventId: string | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null
