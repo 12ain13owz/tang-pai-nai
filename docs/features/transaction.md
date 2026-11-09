@@ -25,8 +25,8 @@ a few taps from the centre ➕.
   entry of the reference app (backlog).
 - Search and filter beyond month + wallet: dropped at the start of #15 (owner); CSV export is in
   Account ([export.md](export.md)).
-- Members adding to a shared wallet (#16): until then every transaction belongs to a wallet the
-  signed-in user owns.
+- Members adding to a shared wallet (#16.2, [sharing.md](sharing.md)): until then every
+  transaction belongs to a wallet the signed-in user owns.
 
 ## Data model
 

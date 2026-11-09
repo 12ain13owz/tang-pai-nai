@@ -347,6 +347,16 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   - **Transaction form**: an "อีเวนต์" row under the date (label over the value, the value in
     the brand colour when set, × to clear); a tagged row on the Transactions tab carries a small
     gold-tint tag (plane + name) after its category name.
+- **Family sharing** (16.1, sharing.md → Web screens, mock-up `sharing.html`): managed from
+  **Account › แชร์กระเป๋า** for the current profile, never from the wallet sheet. People are
+  list rows with an initial in a muted circle and a role tag (`bg-muted`, `text-xs`); an invite
+  to me is a `brand/10` card with ปฏิเสธ (outline) and รับคำเชิญ (filled); wallets shared with
+  nobody are `brand/10` cards too. The invite / member sheet: email, a segmented role with one
+  hint line under it, then the wallets as a switch list (all on for an invite). Everything is
+  online: offline, a `destructive/10` line says so and every action is disabled. A wallet shared
+  with me looks like a wallet page (balance, month strip, summary card, day cards) with no ➕,
+  a muted "ดูได้อย่างเดียว" line, and offline a `destructive` outlined line with the time the data
+  was read. Pending invitations to me put a small `destructive` dot on the Account tab icon.
 - **Bottom sheet** (owner's choice in #6.2): **every sheet is the same near-full height**
   (`92dvh`, the page's header still showing above it), so its main action always sits in the same
   place. Inside, `app-sheet-frame`: a header bar with **close (X) on the left** (or **‹ back** in

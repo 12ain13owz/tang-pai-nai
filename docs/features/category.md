@@ -25,7 +25,7 @@ their categories.
 - More than two levels.
 - Debt/loan categories. Debt (#13) gets its own types when it's built.
 - Global or shared categories. Each profile owns its copy, so editing one never affects another
-  profile or user. Categories of a wallet shared with you (#16): backlog.
+  profile or user. Categories of a wallet shared with you are the owner's, read online ([sharing.md](sharing.md)).
 - (Built in #8.1: the transaction form's picker and the "has transactions" rules.)
 
 ## Data model

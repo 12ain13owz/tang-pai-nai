@@ -89,7 +89,7 @@ merging.
 | 13  | Debt / loan                    | ✅  | ✅  | borrowed / lent, entries outside income / expense, counted once per debt, instalments as rules, "หนี้สิน" card. [spec](docs/features/debt.md)                            |
 | 14  | Event / trip                   | ✅  | ✅  | events per profile, one per transaction, totals computed, default by date, close / reopen; under `/transactions/events`. [spec](docs/features/event.md)                  |
 | 15  | CSV export + move transactions | —   | ✅  | owner cut search and filters; Account › ส่งออก CSV, "ย้ายรายการ" in the category sheet, no API change. [spec](docs/features/export.md)                                   |
-| 16  | **Family sharing** ← next      | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                                                                   |
+| 16  | **Family sharing** ← next      | 🚧  | 🚧  | 16.1 ✅ invite a person per profile (one role, wallet switches), Account › แชร์กระเป๋า, read-only shared wallets; 16.2 editor writes. [spec](docs/features/sharing.md)   |
 | 17  | Deploy (Vercel)                | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
@@ -100,24 +100,65 @@ decision "Local-first").
 
 ---
 
-## Next: Family sharing (#16)
+## Next: Family sharing 16.2 (#16)
 
-Not started: write or refine its spec first ([offline-sync](docs/features/offline-sync.md)
-rules 13–16 + backlog), with questions to the owner and a mock-up only if wanted (stop for the
-owner's review before building). #17 (deploy) waits until the owner asks.
+Editors write to a shared wallet ([sharing](docs/features/sharing.md) → Out of scope,
+[offline-sync](docs/features/offline-sync.md) rules 14 and 16): add offline (queued, "รอ sync"),
+edit / delete online only with `baseSeq` = the row's `changeSeq`, the owner wins, a removed
+member's queued adds come back `rejected`. Decided in 16.1, for 16.2: a member's transaction
+keeps **`userId` = the wallet's owner** (it syncs to the owner's devices) and a new nullable
+`addedBy` (the member's id) shows "เพิ่มโดย …"; the editor picks from the **owner's**
+categories (`GET /sharing/wallets/:id` already returns them). Start with questions to the owner
+and a mock-up only if wanted. #17 (deploy) waits until the owner asks.
 
 Known, for later:
 
-- The initial bundle is **729.3 kB** after #15 (warning at 750 kB). Keep new screens lazy and
-  their services out of the shell (#12 loads `RecurringService` with a dynamic `import()` after
-  the shell's first render; `DebtService` and `EventService` are injected only by their pages;
-  `core/transaction` reads `events` by name). A module exported from a barrel the shell imports
-  lands in the initial bundle even when only a lazy screen uses it (Angular builds keep a
-  barrel's modules): keep such code beside its screen (#15's `layout/category-move-rows.ts`).
+- The initial bundle is **733.1 kB** after 16.1 (warning at 750 kB); the +3.3 kB is the Thai
+  translations (`th.json` is an initial chunk). Keep new screens lazy and their services out of
+  the shell (#12 loads `RecurringService` and 16.1 `SharingService` with a dynamic `import()`
+  after the shell's first render; `DebtService` and `EventService` are injected only by their
+  pages; `core/transaction` reads `events` by name). A module exported from a barrel the shell
+  imports lands in the initial bundle even when only a lazy screen uses it (Angular builds keep
+  a barrel's modules): keep such code beside its screen (#15's `layout/category-move-rows.ts`).
 - Headless Chromium breaks some Thai lines inside a word ("บัน/ทึก"); the app's older notices do
   the same, so it's the test browser's line breaking, not our markup.
 - The API's sign-in only accepts `Origin: http://localhost:4200` (`WEB_ORIGIN`): a local server
   for Playwright on `npm run build` output must listen on 4200, or `/auth/refresh` answers 403.
+
+---
+
+## Done: Family sharing 16.1 (#16)
+
+- **Decided at the start** (owner, two mock-up rounds, `docs/features/mockups/sharing.html`):
+  #16 in two parts. Sharing is managed in **Account › แชร์กระเป๋า** for the **current profile**
+  (not in the wallet sheet or a ⋮ menu): an invite is per **person**, with **one role** for all
+  the wallets shared with them and every open wallet switched on by default; a new wallet is
+  **not** shared automatically (the page shows a card for wallets shared with nobody). The
+  member answers invites and leaves (all of one owner's profile) on the same page, and sees
+  balances in a "แชร์กับฉัน · ของ …" section of the Wallets tab, then `/wallets/shared/:id`.
+  Shared wallets count in **no** total or report of the member. In 16.1 every member is
+  read-only; the role is stored and shown.
+- **Decided while building**: invites match the verified `users.email` when read (no attach
+  step at sign-in); `wallet_invites` is server only, its expired rows are ignored everywhere
+  and deleted on the next invite (no cleanup job); one invite holds a set of wallets; a member
+  sees a wallet while it is live, open and on a live profile (archived = gone for them); the
+  entries hide the other wallet of a transfer and the debt of a debt entry; the mail's link only
+  fills the email in on sign-in (`?email=`); a shared wallet's page has no profile switcher and
+  skips the first-wallet step (`isProfileTab` / `isWalletTab` leave `/wallets/shared/` out).
+- **API**: `features/sharing` (REST only, Drizzle adapter reading other features' tables through
+  the schema, its own `hitRateLimit` on `rate_limit_buckets`), migration `0018_wallet_invites`,
+  11 routes in OpenAPI. **Web**: `core/sharing` (`SharingService`, memory only, cleared when the
+  user changes), `features/account/pages/sharing-page` (+ `share-sheet`),
+  `features/wallets/pages/shared-wallet-page`, the Account row with an invite badge and a dot on
+  the Account tab.
+- **Checked**: API end to end with two users (every rule and code); Playwright at 375×812 on
+  `npm run build`, owner th/light and member en/dark: invite → dot → accept → Wallets tab →
+  shared wallet of 20,000 rows (first rows in ≈ 0.2 s, another month in ≈ 0.05 s),
+  `setOffline` (the read data stays with a notice, actions disabled), role and wallet change and
+  removal seen by the member on the next read. No two-device case: nothing in 16.1 writes the
+  same row. Tests: API 616, web 626.
+- **Known**: the member limit (10 people) is reached before the daily send limit (10) with fresh
+  invites, so the daily limit mostly guards resends; a failed send still counts toward the limits.
 
 ## Done: CSV export + move transactions (#15)
 
@@ -1199,8 +1240,8 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   owner always wins**; delete beats edit; the losing version is kept in `change_history` and the
   loser is told.
 - **Shared wallets**: owner = full offline. Editor = view/edit/delete **online only**, but may
-  **add** transactions offline. Viewer = online, read only. `wallet_members` exists from #6; the
-  sharing UI is #16.
+  **add** transactions offline. Viewer = online, read only. Shared per **person and profile**:
+  one role over the wallets the owner switches on (16.1, [sharing](docs/features/sharing.md)).
 
 **Auth** (full spec: [docs/features/auth.md](docs/features/auth.md))
 
@@ -1228,14 +1269,6 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 - **SMS gateway account**: SMS is for phone-OTP sign-in (auth spec rules 21–27), gateway =
   **ThaiBulkSMS**. Its adapter (`sms.thaibulksms.ts`) is written when the account and API key
   exist; until then dev uses the `console` SMS provider.
-- **Invitations** (#16), proposal: the owner invites an email as editor/viewer. An existing user
-  sees the invite in the app; anyone else gets an email whose link opens sign-in with the email
-  filled in, and the invite attaches once that email is verified (matched on the verified email,
-  never on the link, so a forwarded mail grants nothing). At most **one pending invite per wallet
-  and email** (re-sending reuses the row, with a cooldown) and none for someone already a member,
-  to keep the table small. Invites expire after **14 days** (purged by the auth cleanup job), each
-  user may send **10 per day**, and invite mails count toward `EMAIL_DAILY_LIMIT`. The mail holds
-  only the inviter's name and the wallet name, no free text, so it can't carry phishing.
 - **GitGuardian check is red on auth PRs** (from 4.2): its GitHub App flags the made-up passwords
   in `*.test.ts` / `*.spec.ts` and the `PASSWORD_BREACH_CHECK` setting name as "Generic Password".
   They are false positives, and the check isn't required, so PRs merge anyway; don't chase it in a
@@ -1244,8 +1277,6 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   files in the workspace settings.
 - **Open sign-up obligations**: before strangers use the app, add account deletion (with its
   data) and a short privacy notice (PDPA).
-- **Shared wallet categories** (#16): when an editor adds to the owner's wallet, they pick from the
-  **owner's** categories (proposal), so the owner's reports stay consistent.
 - **Budget** (was #11, moved here after #10 by the owner: never used in Money Lover, and the
   Reports tab already shows spending per category against the months before). If a family
   member asks for it: per category or total per period, progress and an over-budget warning;

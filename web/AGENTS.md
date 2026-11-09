@@ -485,6 +485,26 @@ Spec: [export.md](../docs/features/export.md). Account › ส่งออก CS
 - Specs: `csv.spec.ts`, `export-data.spec.ts` and `export-page.spec.ts` on `setUpDebts()`
   (the page stubs `URL.createObjectURL` and the link's `click`).
 
+### Sharing (`core/sharing`, #16.1)
+
+Spec: [sharing.md](../docs/features/sharing.md).
+
+- `SharingService` is the one place that calls `/sharing/*` (online REST, offline-sync rule 15):
+  what it reads stays in **signals only** (`withMe`, `owner(profileId)`, `wallet(id)`,
+  `entries(id, from, to)`, `readAt`), never in the local database, and is cleared when the
+  signed-in user changes. `canCall()` = online and the server reachable; screens disable every
+  action without it and keep showing what was read. `failure(error)` gives a translation key
+  (`sharing.error.<CODE>`, `sharing.needsOnline`).
+- The shell loads it with a dynamic `import()` after its first render (like `RecurringService`)
+  and holds it in a signal only for the Account tab's invite dot (`BottomTabBar.accountDot`), so
+  the service stays out of the initial bundle; `import type` is all the shell has of it. Pages
+  inject it directly: `features/account/pages/sharing-page` (+ `share-sheet`), the Wallets
+  tab's "แชร์กับฉัน" section and `features/wallets/pages/shared-wallet-page`
+  (`/wallets/shared/:id`, outside `isProfileTab` / `isWalletTab`; ‹ goes to `/wallets`).
+- Specs: `core/sharing/sharing-testing.ts` (`setUpSharing`: test DB with profile `p1` and
+  wallets, `provideHttpClientTesting`, network signals); answer reads with `envelope(data)`
+  and let the promise settle (`setTimeout`) before checking signals.
+
 ### Inside a feature
 
 ```
@@ -751,7 +771,8 @@ are on, so don't disable them.
 
 - **Offline-first.** Screens read and write the **local database**, not the API. Own data reaches
   the server only through the sync outbox (`/sync/push` and `/sync/pull`). Direct API calls are for
-  auth, shared wallets you're a member of (online only), and sync itself. Read
+  auth, sharing (`core/sharing`: invitations and wallets you're a member of, online only), and
+  sync itself. Read
   [`offline-sync.md`](../docs/features/offline-sync.md) before building any data screen.
 - **All calls go through `ApiClient`** (`@/core/api`): `api.get<T>('/wallets')`,
   `api.post<T>('/auth/email/start', body)`, `api.put` / `api.delete` (a body is allowed). Paths are relative to **`/api`**. In production,

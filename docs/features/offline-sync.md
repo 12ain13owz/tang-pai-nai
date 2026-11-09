@@ -1,6 +1,6 @@
 # Offline & sync
 
-> Status: **Built** (rules 1–12; rules 13–16 arrive with sharing, #16). Built in two parts
+> Status: **Built** (rules 1–12; rules 13 and 15 with sharing 16.1, 14 and 16 with 16.2: [sharing.md](sharing.md)). Built in two parts
 > (decided at the start of #4a, one PR each): **4a.1** trusted device, encrypted local database,
 > PIN lock and the wipe rules (rules 1–7, web only: the API already answers `SESSION_REVOKED` /
 > `SESSION_EXPIRED`); **4a.2** sync (rules 8–12: sync tables, `/sync/push`, `/sync/pull`,

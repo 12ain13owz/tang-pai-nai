@@ -1,6 +1,6 @@
 # Family sharing
 
-> Status: Spec (16.1) — API `src/features/sharing/`, web `core/sharing`, `features/account`
+> Status: **Built (16.1)**; 16.2 (editors write) next — API `src/features/sharing/`, web `core/sharing`, `features/account`
 > (Account › แชร์กระเป๋า), `features/wallets` (แชร์กับฉัน, `/wallets/shared/:id`).
 > Mock-up: [mockups/sharing.html](mockups/sharing.html) (round 2).
 
@@ -109,3 +109,13 @@ Error codes: `SHARE_SELF`, `SHARE_ALREADY_MEMBER`, `SHARE_INVITE_PENDING` (409),
   `debt_entries`, `users` and `rate_limit_buckets` through `@/core/database/schema`, never other
   features.
 - Auth: the invitee signs in the usual way; matching uses `users.email` + `emailVerifiedAt`.
+
+## Open questions (16.2)
+
+- **A member's add**: `userId` stays the wallet's owner (the row syncs to the owner's devices);
+  a new nullable `addedBy` (the member's user id) shows "เพิ่มโดย …". Decided in 16.1, built in
+  16.2.
+- **Categories**: an editor picks from the owner's categories of that profile (already in
+  `GET /sharing/wallets/:id`).
+- Offline adds, online edit / delete with `baseSeq`, owner wins, removed member's queued adds
+  `rejected`: [offline-sync](offline-sync.md) rules 14 and 16.
