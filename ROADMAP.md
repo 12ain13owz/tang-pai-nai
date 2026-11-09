@@ -90,6 +90,7 @@ merging.
 | 14  | Event / trip                   | ✅  | ✅  | events per profile, one per transaction, totals computed, default by date, close / reopen; under `/transactions/events`. [spec](docs/features/event.md)                  |
 | 15  | CSV export + move transactions | —   | ✅  | owner cut search and filters; Account › ส่งออก CSV, "ย้ายรายการ" in the category sheet, no API change. [spec](docs/features/export.md)                                   |
 | 16  | **Family sharing** ← next      | 🚧  | 🚧  | 16.1 ✅ invite a person per profile (one role, wallet switches), Account › แชร์กระเป๋า, read-only shared wallets; 16.2 editor writes. [spec](docs/features/sharing.md)   |
+| 16R | Shared components refactor     | —   | ⬜  | after 16.2, before #17: components used in more than one place move to `shared/components` (web/AGENTS.md §2). Known: `date-row` ×2                                      |
 | 17  | Deploy (Vercel)                | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
@@ -109,7 +110,17 @@ member's queued adds come back `rejected`. Decided in 16.1, for 16.2: a member's
 keeps **`userId` = the wallet's owner** (it syncs to the owner's devices) and a new nullable
 `addedBy` (the member's id) shows "เพิ่มโดย …"; the editor picks from the **owner's**
 categories (`GET /sharing/wallets/:id` already returns them). Start with questions to the owner
-and a mock-up only if wanted. #17 (deploy) waits until the owner asks.
+and a mock-up only if wanted.
+
+**Order after 16.2** (owner, after 16.1): **16R, the shared components refactor**, then #17
+(deploy) last, when the owner asks. 16R is one PR with no behaviour change: list every
+component used in more than one place (or copied), show the list to the owner, move what they
+confirm under `shared/components/<group>/` (web/AGENTS.md §2 → "Shared components"), and check
+that the initial bundle doesn't grow. Known so far: `features/debts/components/date-row.ts` and
+its copy in `features/events/components/date-row.ts`; also look at the debts' `wallet-pick` /
+`category-pick` against the transaction sheet's views, and
+`features/reports/components/summary-card` against `shared/components/money-summary` (the
+Transactions tab's card, shared since 16.1).
 
 Known, for later:
 

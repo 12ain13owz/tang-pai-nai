@@ -67,6 +67,23 @@ layout    ->  core, shared
   and prefer lifting shared logic into `core/` or `shared/`. This is enforced by ESLint.
 - `shared/` imports nothing from `core/`, `layout/` or `features/`.
 
+### Shared components
+
+Owner's rule (after #16.1): **a component used in more than one place lives in
+`shared/components`**, never as a copy in each feature.
+
+- "More than one place" = two features, or a feature and `layout/`. A component used only
+  inside one feature stays in that feature's `components/`.
+- Put it in `shared/components/<group>/` with **its own barrel** (`money-summary`, `period`,
+  `sheet`). A module exported from a barrel the shell imports lands in the initial bundle even
+  when only a lazy screen uses it (ROADMAP → "Known, for later"), so never add a lazy screen's
+  component to a barrel the shell already uses, and check the build's initial total after a move.
+- `shared/` can't read `core/` services: pass data in through `input()` (already formatted, like
+  `MoneySummaryLine`) and send actions out through `output()`; the pages keep the services.
+- Form controls follow the same rule as `*-field` wrappers in `shared/components/form` (§3 Forms).
+- When you find a copy, don't add a third one: move it in the same PR if it is small, or list
+  it in ROADMAP (16R lists the ones known after 16.1).
+
 ### App shell & PWA
 
 - `app.routes.ts` mounts `AppShell` (`layout/`) as the layout route for the tab pages: header (page
@@ -469,8 +486,8 @@ Spec: [event.md](../docs/features/event.md).
   A create state may carry `eventId` (the event page's "เพิ่มรายการ").
 - UI: `features/events` (`/transactions/events`, mounted in `app.routes.ts` before
   `transactions`): the list and event pages `@defer` `components/event-sheet` (with its own copy
-  of the debts' date row); `event-view.ts` (`eventDates` with `formatRange`, `counted` for the
-  one/many keys).
+  of the debts' date row, to move to `shared/components` in 16R); `event-view.ts` (`eventDates`
+  with `formatRange`, `counted` for the one/many keys).
 - Specs: `core/event/event-testing.ts` (`setUpEvents`: `setUpDebts` plus an `event` helper),
   `event.service.spec.ts`, `features/events/events.spec.ts`, the transaction sheet's
   `event / trip` block.
