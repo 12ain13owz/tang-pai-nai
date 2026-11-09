@@ -27,7 +27,7 @@ describe('validateTransaction', () => {
   it('accepts a transaction, trims the note and defaults deletedAt to null', () => {
     expect(validateTransaction(valid)).toEqual({
       ok: true,
-      row: { ...valid, note: 'ลาเต้เย็น', recurringId: null, deletedAt: null },
+      row: { ...valid, note: 'ลาเต้เย็น', recurringId: null, debtId: null, deletedAt: null },
     })
   })
 

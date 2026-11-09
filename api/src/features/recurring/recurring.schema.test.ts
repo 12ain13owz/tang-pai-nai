@@ -37,6 +37,7 @@ describe('validateRecurringRule', () => {
         ...valid,
         note: 'ค่าเช่า',
         toWalletId: null,
+        debtId: null,
         excludeFromReport: false,
         endOn: null,
         endCount: null,

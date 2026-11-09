@@ -32,6 +32,7 @@ const transaction = (id: string, changeSeq: number, extra: Partial<SyncRowWrite>
   note: '',
   excludeFromReport: false,
   recurringId: null,
+  debtId: null,
   createdAt: 1000,
   updatedAt: 1000,
   deletedAt: null,

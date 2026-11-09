@@ -113,6 +113,13 @@
       "when": 1794148958392,
       "tag": "0015_recurring",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1794197717348,
+      "tag": "0016_debts",
+      "breakpoints": true
     }
   ]
 }

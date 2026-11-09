@@ -19,7 +19,7 @@ export const recurringRules = sqliteTable(
     profileId: text()
       .notNull()
       .references(() => profiles.id, { onDelete: 'cascade' }),
-    /** `transaction` | `transfer`. */
+    /** `transaction` | `transfer` | `debt` (a debt's repayment, debt rule 13). */
     kind: text().notNull(),
     /** The transaction's wallet, or the wallet a transfer leaves. */
     walletId: text()
@@ -29,6 +29,12 @@ export const recurringRules = sqliteTable(
     categoryId: text().references(() => categories.id, { onDelete: 'cascade' }),
     /** A transfer rule's wallet the money goes to; null for a transaction. */
     toWalletId: text().references(() => wallets.id, { onDelete: 'cascade' }),
+    /**
+     * A `debt` rule's debt, or a transaction rule's (its instalments); else null. No FK: SQLite
+     * can't add one with a cascade to a table that exists, and the device deletes a debt's rules
+     * with it (debt rule 5).
+     */
+    debtId: text(),
     /** Minor units, always > 0. */
     amount: integer().notNull(),
     /** `''` when empty. */
@@ -58,5 +64,6 @@ export const recurringRules = sqliteTable(
     index('recurring_rules_wallet_idx').on(table.walletId),
     index('recurring_rules_category_idx').on(table.categoryId),
     index('recurring_rules_to_wallet_idx').on(table.toWalletId),
+    index('recurring_rules_debt_idx').on(table.debtId),
   ]
 )

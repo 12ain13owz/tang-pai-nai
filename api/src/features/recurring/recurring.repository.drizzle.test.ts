@@ -28,6 +28,7 @@ const rule = (id: string, changeSeq: number, extra: Partial<SyncRowWrite> = {}) 
   walletId: 'bank',
   categoryId: 'rent',
   toWalletId: null,
+  debtId: null,
   amount: 850000,
   note: '',
   excludeFromReport: false,
