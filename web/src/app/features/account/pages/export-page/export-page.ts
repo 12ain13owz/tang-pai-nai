@@ -452,7 +452,10 @@ export class ExportPage {
     const file = new File([csv], name, { type: 'text/csv' })
     const navigator = view?.navigator
     // Phones share (a sheet to Files, Drive, LINE…); a computer just downloads.
-    const coarse = view?.matchMedia('(pointer: coarse)').matches ?? false
+    // `matchMedia` may be missing (an embedded view, the test DOM).
+    const media = view as Partial<Pick<Window, 'matchMedia'>> | null
+    const coarse =
+      typeof media?.matchMedia === 'function' && media.matchMedia('(pointer: coarse)').matches
     if (coarse && 'canShare' in (navigator ?? {}) && navigator?.canShare({ files: [file] })) {
       try {
         await navigator.share({ files: [file], title: name })
