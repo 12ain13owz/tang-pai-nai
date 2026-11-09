@@ -336,7 +336,9 @@ values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `rem
   (views `form` / `wallet` / `category` / `note` / `confirmDiscard`; keypad state: it closes on
   any other control of the form, `leaveAmount`; save and add, copy; the shell
   `@defer`s all three), `features/transactions` (the page; rows drawn 100 at a time with an
-  `IntersectionObserver` sentinel). ➕ opens the sheet (`BottomTabBar.add()`); "fix" goes to
+  `IntersectionObserver` sentinel; its summary card is `shared/components/money-summary`
+  (`app-money-summary-card`, also used by a shared wallet's page, so the two never drift). ➕
+  opens the sheet (`BottomTabBar.add()`); "fix" goes to
   `/transactions?fix=<opId>` (the page asks both services; each opens only its own table's op).
   `layout/transfer-sheet` (views `form` / `pick` (from or to) / `note` / `confirmDiscard`) is
   `@defer`red by the shell and opened by the header's two-level ⋮ menu and the Wallets tab.

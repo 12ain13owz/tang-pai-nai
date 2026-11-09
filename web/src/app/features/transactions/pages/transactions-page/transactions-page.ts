@@ -41,6 +41,8 @@ import { DueSheet } from '@/features/transactions/components/due-sheet'
 import { EmptyState } from '@/shared/components/empty-state'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
+import { MoneySummaryCard } from '@/shared/components/money-summary'
+import type { MoneySummaryLine } from '@/shared/components/money-summary'
 import { PeriodStrip, Swipe } from '@/shared/components/period'
 import { addDays, formatAmount, formatMoney, fromDay } from '@/shared/utils'
 
@@ -84,7 +86,17 @@ interface DayGroup {
  */
 @Component({
   selector: 'app-transactions-page',
-  imports: [TranslocoPipe, NgIcon, HlmButton, EmptyState, IconBadge, PeriodStrip, Swipe, DueSheet],
+  imports: [
+    TranslocoPipe,
+    NgIcon,
+    HlmButton,
+    EmptyState,
+    IconBadge,
+    MoneySummaryCard,
+    PeriodStrip,
+    Swipe,
+    DueSheet,
+  ],
   providers: [
     provideIcons({
       lucideArrowLeftRight,
@@ -150,43 +162,7 @@ interface DayGroup {
         </button>
       }
       @for (line of summary(); track line.currencyCode) {
-        <section
-          class="grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl border border-border bg-card px-4 py-3"
-          [attr.aria-label]="'transactions.summary' | transloco"
-        >
-          <div class="flex flex-col">
-            <span class="text-xs text-muted-foreground">{{ 'categories.income' | transloco }}</span>
-            <span class="text-base font-semibold tabular-nums" [class.text-income]="line.hasIncome">
-              {{ line.income }}
-            </span>
-          </div>
-          <div class="flex flex-col items-end">
-            <span class="text-xs text-muted-foreground">{{
-              'categories.expense' | transloco
-            }}</span>
-            <span class="text-base font-semibold text-expense tabular-nums">{{
-              line.expense
-            }}</span>
-          </div>
-          <div class="col-span-2 flex justify-between border-t border-border pt-2 text-sm">
-            <span class="text-muted-foreground">{{ 'transactions.net' | transloco }}</span>
-            <span class="font-semibold tabular-nums">{{ line.net }}</span>
-          </div>
-          @if (line.transfer) {
-            <!-- Transfers in − out of the wallets in view, when they don't cancel out. -->
-            <div class="col-span-2 -mt-1 flex justify-between text-sm">
-              <span class="text-muted-foreground">{{ 'transfers.summaryLine' | transloco }}</span>
-              <span class="font-semibold tabular-nums">{{ line.transfer }}</span>
-            </div>
-          }
-          @if (line.debt) {
-            <!-- Debt entries in − out of the wallets in view (debt rule 7). -->
-            <div class="col-span-2 -mt-1 flex justify-between text-sm">
-              <span class="text-muted-foreground">{{ 'debts.summaryLine' | transloco }}</span>
-              <span class="font-semibold tabular-nums">{{ line.debt }}</span>
-            </div>
-          }
-        </section>
+        <app-money-summary-card [line]="line" />
       }
       @for (group of days(); track group.day) {
         <section
@@ -505,12 +481,11 @@ export class TransactionsPage {
   })
 
   /** Rule 11 per currency; signed figures without the symbol (Money Lover style). */
-  protected summary = computed(() => {
+  protected summary = computed<(MoneySummaryLine & { currencyCode: string })[]>(() => {
     const locale = this.languageService.locale()
     return this.transactionService.summaryLines().map((line) => ({
       currencyCode: line.currencyCode,
       hasIncome: line.income > 0,
-      hasExpense: line.expense > 0,
       income: formatAmount(line.income, line.minorUnit, locale, true),
       expense: formatAmount(-line.expense, line.minorUnit, locale, true),
       net: formatAmount(line.net, line.minorUnit, locale, true),

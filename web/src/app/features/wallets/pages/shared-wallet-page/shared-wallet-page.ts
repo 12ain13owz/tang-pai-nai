@@ -25,6 +25,8 @@ import { WalletService } from '@/core/wallet'
 import { EmptyState } from '@/shared/components/empty-state'
 import { IconBadge } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
+import { MoneySummaryCard } from '@/shared/components/money-summary'
+import type { MoneySummaryLine } from '@/shared/components/money-summary'
 import { PeriodStrip } from '@/shared/components/period'
 import type { PeriodChip } from '@/shared/components/period'
 import { formatAmount, formatMoney, fromDay } from '@/shared/utils'
@@ -49,7 +51,7 @@ interface Row {
  */
 @Component({
   selector: 'app-shared-wallet-page',
-  imports: [TranslocoPipe, NgIcon, HlmButton, EmptyState, IconBadge, PeriodStrip],
+  imports: [TranslocoPipe, NgIcon, HlmButton, EmptyState, IconBadge, MoneySummaryCard, PeriodStrip],
   providers: [
     provideIcons({
       lucideArrowLeftRight,
@@ -126,48 +128,7 @@ interface Row {
             </p>
           }
           @if (page(); as current) {
-            <!-- The Transactions tab's summary card (transactions-page): same columns and lines. -->
-            <section
-              class="grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl border border-border bg-card px-4 py-3"
-              [attr.aria-label]="'transactions.summary' | transloco"
-            >
-              <div class="flex flex-col">
-                <span class="text-xs text-muted-foreground">{{
-                  'categories.income' | transloco
-                }}</span>
-                <span
-                  class="text-base font-semibold tabular-nums"
-                  [class.text-income]="summary().hasIncome"
-                  >{{ summary().income }}</span
-                >
-              </div>
-              <div class="flex flex-col items-end">
-                <span class="text-xs text-muted-foreground">{{
-                  'categories.expense' | transloco
-                }}</span>
-                <span class="text-base font-semibold text-expense tabular-nums">{{
-                  summary().expense
-                }}</span>
-              </div>
-              <div class="col-span-2 flex justify-between border-t border-border pt-2 text-sm">
-                <span class="text-muted-foreground">{{ 'transactions.net' | transloco }}</span>
-                <span class="font-semibold tabular-nums">{{ summary().net }}</span>
-              </div>
-              @if (summary().transfer; as transfer) {
-                <div class="col-span-2 -mt-1 flex justify-between text-sm">
-                  <span class="text-muted-foreground">{{
-                    'transfers.summaryLine' | transloco
-                  }}</span>
-                  <span class="font-semibold tabular-nums">{{ transfer }}</span>
-                </div>
-              }
-              @if (summary().debt; as debt) {
-                <div class="col-span-2 -mt-1 flex justify-between text-sm">
-                  <span class="text-muted-foreground">{{ 'debts.summaryLine' | transloco }}</span>
-                  <span class="font-semibold tabular-nums">{{ debt }}</span>
-                </div>
-              }
-            </section>
+            <app-money-summary-card [line]="summary()" />
             @if (days().length === 0) {
               <app-empty-state [heading]="'sharing.noRows' | transloco">
                 <ng-icon name="lucideEye" />
@@ -319,7 +280,7 @@ export class SharedWalletPage {
    * `excludeFromReport` rows, net = income − expense; transfers and debt entries are their own
    * lines, shown when they don't cancel out.
    */
-  protected summary = computed(() => {
+  protected summary = computed<MoneySummaryLine>(() => {
     const totals = { income: 0, expense: 0, transfer: 0, debt: 0 }
     for (const entry of this.page()?.entries ?? []) {
       if (entry.kind !== 'transaction') {
