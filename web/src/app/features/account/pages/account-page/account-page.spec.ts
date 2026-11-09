@@ -97,6 +97,7 @@ describe('AccountPage', () => {
     expect(links).toEqual([
       '/account/profiles',
       '/account/categories',
+      '/account/sharing',
       '/account/recurring',
       '/wallets/debts',
       '/transactions/events',

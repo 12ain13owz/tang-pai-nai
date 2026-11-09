@@ -1,9 +1,18 @@
-import { afterNextRender, Component, computed, DestroyRef, inject, Injector } from '@angular/core'
+import {
+  afterNextRender,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  Injector,
+  signal,
+} from '@angular/core'
 import { RouterOutlet } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { CategoryService } from '@/core/category'
 import { ProfileService } from '@/core/profile'
+import type { SharingService } from '@/core/sharing'
 import { TransactionService, TransferService } from '@/core/transaction'
 import { KeyboardService } from '@/core/viewport'
 import { WalletService } from '@/core/wallet'
@@ -66,6 +75,7 @@ import { WalletSheet } from './wallet-sheet'
     @if (!keyboardService.isOpen()) {
       <app-bottom-tab-bar
         class="fixed inset-x-0 bottom-0 z-10 bg-background pb-[env(safe-area-inset-bottom)]"
+        [accountDot]="(sharing()?.inviteCount() ?? 0) > 0"
       />
     }
     @defer (when profileService.switchSheet()) {
@@ -111,6 +121,8 @@ export class AppShell {
   protected switchSheetOpen = this.profileService.switchSheet
   private url = currentUrl()
   private injector = inject(Injector)
+  /** Family sharing (#16): loaded after the first render, for the Account tab's invite dot. */
+  protected sharing = signal<SharingService | null>(null)
 
   constructor() {
     // Recurring rule 7: due occurrences are recorded whatever tab shows. Loaded after the first
@@ -122,6 +134,11 @@ export class AppShell {
         // The chunk may arrive after the shell is gone (signed out, a spec's teardown).
         if (!destroyed) {
           this.injector.get(RecurringService)
+        }
+      })
+      void import('@/core/sharing').then(({ SharingService }) => {
+        if (!destroyed) {
+          this.sharing.set(this.injector.get(SharingService))
         }
       })
     })

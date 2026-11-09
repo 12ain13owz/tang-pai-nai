@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core'
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
 import { Router, RouterLink } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
@@ -11,6 +11,7 @@ import {
   lucidePlane,
   lucideRepeat,
   lucideShapes,
+  lucideShare2,
   lucideShieldCheck,
   lucideSmartphone,
   lucideUsers,
@@ -22,6 +23,7 @@ import { LanguageService } from '@/core/i18n'
 import { OfflineService, SyncService } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
 import { DeviceStorageService } from '@/core/pwa'
+import { SharingService } from '@/core/sharing'
 import { ThemeService } from '@/core/theme'
 
 /** A row of the account page: a page to go to, with a short line on what's there. */
@@ -30,6 +32,8 @@ interface AccountItem {
   icon: string
   label: string
   hint: string
+  /** A count on the row (invitations to me, sharing.md). */
+  badge?: number
 }
 
 @Component({
@@ -45,6 +49,7 @@ interface AccountItem {
       lucidePlane,
       lucideRepeat,
       lucideShapes,
+      lucideShare2,
       lucideShieldCheck,
       lucideSmartphone,
       lucideUsers,
@@ -86,7 +91,15 @@ interface AccountItem {
                     <ng-icon [name]="item.icon" />
                   </span>
                   <span class="flex min-w-0 flex-1 flex-col">
-                    <span class="text-base">{{ item.label | transloco }}</span>
+                    <span class="text-base"
+                      >{{ item.label | transloco }}
+                      @if (item.badge) {
+                        <span
+                          class="ml-1 rounded-full bg-destructive px-1.5 text-xs font-semibold text-white"
+                          >{{ item.badge }}</span
+                        >
+                      }
+                    </span>
                     <span class="truncate text-sm text-muted-foreground">{{ item.hint }}</span>
                   </span>
                   <ng-icon
@@ -170,6 +183,7 @@ export class AccountPage {
   private offlineService = inject(OfflineService)
   protected syncService = inject(SyncService)
   protected authStore = inject(AuthStore)
+  private sharingService = inject(SharingService)
 
   protected isSigningOut = signal(false)
   protected signOutFailed = signal(false)
@@ -202,6 +216,15 @@ export class AccountPage {
             hint: profile
               ? t('account.categoriesHint', { name: profile.name })
               : t('account.profilesNone'),
+          },
+          {
+            link: '/account/sharing',
+            icon: 'lucideShare2',
+            label: 'account.sharing',
+            hint: profile
+              ? this.sharingHint(profile.id, profile.name, t)
+              : t('account.profilesNone'),
+            badge: this.sharingService.inviteCount(),
           },
           {
             link: '/account/recurring',
@@ -297,6 +320,25 @@ export class AccountPage {
   constructor() {
     // Fresh profile; the one from sign-in is shown meanwhile, and offline it simply stays.
     this.authService.loadMe().catch(() => undefined)
+    // "แชร์กับ n คน" on the sharing row (sharing.md → Web screens): read online, kept in memory.
+    effect(() => {
+      const id = this.profileService.current()?.id
+      if (id && this.sharingService.canCall()) {
+        untracked(() => void this.sharingService.loadOwner(id).catch(() => undefined))
+      }
+    })
+  }
+
+  private sharingHint(
+    profileId: string,
+    name: string,
+    t: (key: string, params?: Record<string, unknown>) => string
+  ): string {
+    const count = this.sharingService.owner(profileId)?.members.length ?? 0
+    if (count === 0) {
+      return t('account.sharingHint', { name })
+    }
+    return t(`account.sharingHintCount${count === 1 ? 'One' : ''}`, { name, count })
   }
 
   /** The avatar's letter: the name's first character (Thai or Latin). */

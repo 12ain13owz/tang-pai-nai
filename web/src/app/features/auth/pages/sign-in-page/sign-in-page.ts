@@ -161,7 +161,8 @@ export class SignInPage {
 
   form: EmailFormGroup = this.nnfb.group({
     email: [
-      this.authFlowStore.pending().email,
+      // An invitation mail links here with `?email=` (sharing.md rule 4): only a prefill.
+      this.authFlowStore.pending().email || (this.route.snapshot.queryParamMap.get('email') ?? ''),
       [withMessage(Validators.required, 'auth.emailRequired'), Validators.email],
     ],
   })
