@@ -51,3 +51,9 @@ export interface PullResult {
   hasMore: boolean
   tables: string[]
 }
+
+/** The caller's role on a wallet (docs/features/sharing.md rules 8, 11); see `walletAccess`. */
+export interface WalletAccess {
+  ownerId: string
+  role: 'owner' | 'editor' | 'viewer' | null
+}

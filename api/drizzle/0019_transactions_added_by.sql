@@ -1,0 +1,1 @@
+ALTER TABLE `transactions` ADD `added_by` text;

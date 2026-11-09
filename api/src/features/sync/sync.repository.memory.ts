@@ -1,5 +1,5 @@
 import type { SyncRow, SyncRowInput } from '@/core/sync'
-import type { HistoryEntry, OpResult } from './sync.entity'
+import type { HistoryEntry, OpResult, WalletAccess } from './sync.entity'
 import type { StoredOp, SyncRepository } from './sync.repository'
 
 interface MemoryState {
@@ -21,6 +21,8 @@ export interface MemorySyncOptions {
   resolves?: Record<string, (row: SyncRowInput) => SyncRowInput>
   /** A table's `followUp`: called with each written row and the first of the seqs it took. */
   followUps?: Record<string, { seqs: (row: SyncRow) => number; run: FollowUpRule }>
+  /** Who may write a wallet's rows (#16.2); no answer = no such wallet. */
+  walletAccess?: (userId: string, walletId: string) => WalletAccess | null
 }
 
 type FollowUpRule = (row: SyncRow, firstSeq: number) => void
@@ -114,6 +116,8 @@ export const createMemorySyncRepository = (options: MemorySyncOptions = {}) => {
             createdAt,
           }))
       ),
+    walletAccess: async (userId, walletId) =>
+      Promise.resolve(options.walletAccess?.(userId, walletId) ?? null),
     deleteOpsBefore: async (before) => {
       let removed = 0
       for (const [opId, op] of state.ops) {

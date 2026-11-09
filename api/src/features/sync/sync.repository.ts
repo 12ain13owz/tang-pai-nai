@@ -1,5 +1,5 @@
 import type { SyncRow, SyncRowInput, SyncRowWrite } from '@/core/sync'
-import type { HistoryEntry, OpResult, SyncNotice } from './sync.entity'
+import type { HistoryEntry, OpResult, SyncNotice, WalletAccess } from './sync.entity'
 
 export interface StoredOp {
   userId: string
@@ -29,6 +29,8 @@ export interface SyncRepository {
   /** Notices pull carries to `deviceId` of `userId` with `since < changeSeq <= upTo` (rule 12). */
   notices(userId: string, deviceId: string, since: number, upTo: number): Promise<SyncNotice[]>
   deleteOpsBefore(before: number): Promise<number>
+  /** The wallet's owner and `userId`'s role on it; null when there's no such wallet (#16.2). */
+  walletAccess(userId: string, walletId: string): Promise<WalletAccess | null>
 
   // Per-table work, through the table's registered handler.
   pull(table: string, userId: string, since: number, limit: number): Promise<SyncRow[]>

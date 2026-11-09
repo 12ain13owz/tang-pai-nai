@@ -8,7 +8,7 @@ import { profiles } from '@/core/database/schema/profile'
 import { transactions } from '@/core/database/schema/transaction'
 import { wallets } from '@/core/database/schema/wallet'
 import { wrapUnexpected } from '@/core/error'
-import type { SyncRowInput, SyncTableHandler } from '@/core/sync'
+import type { SyncRowInput, SyncSharedRows, SyncTableHandler } from '@/core/sync'
 import { TRANSACTION_MESSAGE } from './transaction.const'
 import { validateTransaction } from './transaction.schema'
 import type { Transaction } from './transaction.entity'
@@ -176,6 +176,24 @@ const checkTransaction = async (
   return checkParents(executor, userId, row, stored)
 }
 
+const textOrNull = (value: unknown) => (typeof value === 'string' ? value : null)
+
+/**
+ * Sharing rules 12, 15: an editor's row keeps the links only the owner sets (null on a create)
+ * and records who added it; nobody else ever sets `addedBy`.
+ */
+const sharedTransactions: SyncSharedRows = {
+  walletOf: (row) => textOrNull(row.walletId),
+  forEditor: (row, stored, editorId) => ({
+    ...row,
+    recurringId: stored ? textOrNull(stored.recurringId) : null,
+    debtId: stored ? textOrNull(stored.debtId) : null,
+    eventId: stored ? textOrNull(stored.eventId) : null,
+    addedBy: stored ? textOrNull(stored.addedBy) : editorId,
+  }),
+  forOwner: (row, stored) => ({ ...row, addedBy: stored ? textOrNull(stored.addedBy) : null }),
+}
+
 /** An occurrence of a recurring rule (docs/features/recurring.md rule 9). */
 const isOccurrence = (row: SyncRowInput) => typeof row.recurringId === 'string'
 
@@ -196,6 +214,7 @@ export const transactionSyncHandler: SyncTableHandler = {
     // Recurring rule 9: two devices record one occurrence under the same id; the second create
     // keeps the server's row (maybe edited or skipped since).
     keepsStored: isOccurrence,
+    shared: sharedTransactions,
     validate: validateTransaction,
     find: async (executor, id) =>
       run(
@@ -227,6 +246,7 @@ export const transactionSyncHandler: SyncTableHandler = {
             recurringId: typeof row.recurringId === 'string' ? row.recurringId : null,
             debtId: typeof row.debtId === 'string' ? row.debtId : null,
             eventId: typeof row.eventId === 'string' ? row.eventId : null,
+            addedBy: textOrNull(row.addedBy),
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
             deletedAt: row.deletedAt,

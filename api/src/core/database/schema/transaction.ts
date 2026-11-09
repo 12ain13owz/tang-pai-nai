@@ -40,6 +40,11 @@ export const transactions = sqliteTable(
     debtId: text(),
     /** The event / trip it is tagged to (event rule 3; no FK: a deleted event leaves it). */
     eventId: text(),
+    /**
+     * The editor of a shared wallet who added it (sharing rule 12); null = the owner. Set by the
+     * server only (no FK: an added column, and a member's account may go).
+     */
+    addedBy: text(),
     ...syncColumns,
   },
   (table) => [
