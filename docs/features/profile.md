@@ -126,5 +126,5 @@ Glossary: โปรไฟล์ / Profile (DESIGN.md §11).
 
 ## Open questions
 
-- (Decided in #16.1: wallets shared with you belong to the owner's profile and show in a
-  "แชร์กับฉัน" section of the Wallets tab, not in the switcher: [sharing.md](sharing.md).)
+- (Decided in #16.2, replacing 16.1's Wallets tab section: profiles shared with you are a
+  "แชร์กับฉัน" group in the switcher, online only: [sharing.md](sharing.md) rule 10.)

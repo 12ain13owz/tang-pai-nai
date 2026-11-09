@@ -25,18 +25,17 @@ a few taps from the centre ➕.
   entry of the reference app (backlog).
 - Search and filter beyond month + wallet: dropped at the start of #15 (owner); CSV export is in
   Account ([export.md](export.md)).
-- Members adding to a shared wallet (#16.2, [sharing.md](sharing.md)): until then every
-  transaction belongs to a wallet the signed-in user owns.
 
 ## Data model
 
 `api/src/core/database/schema/transaction.ts`
 
 - **transactions** (synced, like `categories`): `id` (UUIDv7 from the device), `userId` (the
-  **wallet's owner**; #16 decides how a member's add is recorded), `profileId` (FK profiles,
+  **wallet's owner**, also for a row an editor added), `profileId` (FK profiles,
   cascade), `walletId` (FK wallets, cascade), `categoryId` (FK categories, cascade), `amount`
   (integer, minor units, **always > 0**), `occurredOn` (`YYYY-MM-DD`, the device's local date),
-  `note` (≤ 500 characters, `''` when empty), `excludeFromReport` (default `false`), plus the
+  `note` (≤ 500 characters, `''` when empty), `excludeFromReport` (default `false`), `addedBy`
+  (16.2: the editor who added it, set by the server; `null` = the owner), plus the
   sync columns (`createdAt`, `updatedAt`, `deletedAt?`, `changeSeq`, `updatedBy`; see
   [offline-sync.md](offline-sync.md)).
 - Server indexes: (`userId`, `changeSeq`), (`changeSeq`), (`walletId`), (`categoryId`),
@@ -247,8 +246,8 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
 ## Offline
 
 The owner's transactions live in the local database and change through sync (offline-sync rules
-8–12); a trusted device adds, edits and deletes offline. Editors of a shared wallet may **add**
-offline but edit / delete online only (offline-sync rules 13–16, #16).
+8–12); a trusted device adds, edits and deletes offline. Editors of a shared wallet add, edit and
+delete online only (offline-sync rules 13–16, [sharing](sharing.md) rules 10–14).
 
 ## Interactions
 
