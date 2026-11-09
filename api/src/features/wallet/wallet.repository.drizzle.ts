@@ -1,6 +1,7 @@
 import { and, asc, count, eq, gt, isNull, lt, max, ne, or, sql } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
 import { currencies } from '@/core/database/schema/currency'
+import { debtEntries } from '@/core/database/schema/debt'
 import { profiles } from '@/core/database/schema/profile'
 import { recurringRules } from '@/core/database/schema/recurring'
 import { transactions } from '@/core/database/schema/transaction'
@@ -42,7 +43,7 @@ const countOpenOthers = async (
 }
 
 /** Rules a device can't check offline (wallet rules 2–4); the broken rule's message or null. */
-/** Rule 4: live transactions, transfers on either side or recurring rules use the wallet. */
+/** Rule 4: live transactions, transfers, recurring rules or debt entries use the wallet. */
 const isUsed = async (executor: Executor, id: string) => {
   const used = await executor
     .select({ id: transactions.id })
@@ -70,7 +71,13 @@ const isUsed = async (executor: Executor, id: string) => {
       )
     )
     .limit(1)
-  return used.length > 0 || moved.length > 0 || repeats.length > 0
+  // Debt rule 9: a live debt entry (borrowed into it, repaid from it) fixes it too.
+  const owed = await executor
+    .select({ id: debtEntries.id })
+    .from(debtEntries)
+    .where(and(eq(debtEntries.walletId, id), isNull(debtEntries.deletedAt)))
+    .limit(1)
+  return used.length > 0 || moved.length > 0 || repeats.length > 0 || owed.length > 0
 }
 
 const checkWallet = async (

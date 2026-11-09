@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Debt mock-up (#13)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --background: oklch(0.975 0.007 265); --foreground: oklch(0.2 0.03 265);
+  --card: oklch(1 0 0); --muted: oklch(0.94 0.014 265); --muted-fg: oklch(0.48 0.03 265);
+  --primary: oklch(0.8 0.15 80); --primary-fg: oklch(0.2 0.03 70);
+  --destructive: oklch(0.55 0.22 27); --border: oklch(0.91 0.014 265); --brand: oklch(0.53 0.12 75);
+  --income: oklch(0.52 0.14 155); --expense: oklch(0.55 0.2 25);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+    --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+    --primary: oklch(0.82 0.15 82); --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+    --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+  }
+}
+:root[data-theme="dark"] {
+  --background: oklch(0.16 0.03 265); --foreground: oklch(0.97 0.01 265);
+  --card: oklch(0.22 0.035 265); --muted: oklch(0.29 0.04 265); --muted-fg: oklch(0.75 0.04 265);
+  --primary: oklch(0.82 0.15 82); --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%); --brand: oklch(0.82 0.15 82);
+  --income: oklch(0.78 0.16 155); --expense: oklch(0.72 0.17 22);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--foreground);
+  font-family: "Noto Sans Thai", system-ui, sans-serif; font-size: 15px; }
+header.page { max-width: 1300px; margin: 0 auto; padding: 24px 16px 8px; }
+header.page h1 { font-size: 20px; margin: 0 0 4px; }
+header.page p { margin: 0; color: var(--muted-fg); font-size: 14px; line-height: 1.5; }
+.toggle { margin-top: 10px; display: inline-flex; gap: 4px; background: var(--muted); border-radius: 10px; padding: 3px; }
+.toggle button { border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--card); font-weight: 600; }
+.grid { max-width: 1300px; margin: 0 auto; padding: 16px; display: flex; flex-wrap: wrap; gap: 24px; }
+figure { margin: 0; width: 320px; max-width: 100%; }
+figcaption { font-size: 13px; color: var(--muted-fg); margin-bottom: 6px; min-height: 92px; line-height: 1.45; }
+figcaption b { color: var(--foreground); }
+.phone { height: 690px; border: 1px solid var(--border); border-radius: 24px; overflow: hidden;
+  background: var(--background); display: flex; flex-direction: column; position: relative; }
+.hdr { height: 52px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 6px;
+  border-bottom: 1px solid var(--border); flex: none; }
+.hdr .l { display: flex; align-items: center; gap: 2px; }
+.hdr .r { display: flex; justify-content: flex-end; }
+.hdr .ttl { font-weight: 600; font-size: 16px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; background: var(--muted); border-radius: 999px; padding: 4px 10px 4px 4px; font-size: 14px; font-weight: 500; }
+.ib { width: 40px; height: 40px; display: grid; place-items: center; color: var(--foreground); }
+.ib.ok { color: var(--income); } .ib.red { color: var(--destructive); }
+.bal { text-align: center; padding: 8px 0 2px; flex: none; }
+.bal small { font-size: 12px; color: var(--muted-fg); } .bal div { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.chips { display: flex; gap: 6px; padding: 6px 12px; overflow: hidden; flex: none; border-bottom: 1px solid var(--border); justify-content: flex-end; }
+.chip { white-space: nowrap; font-size: 13px; padding: 5px 10px; color: var(--muted-fg); }
+.chip.on { color: var(--brand); font-weight: 600; box-shadow: inset 0 -2px 0 var(--brand); }
+.scroll { flex: 1; overflow: auto; scrollbar-width: none; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.tabbar { height: 56px; flex: none; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; text-align: center; font-size: 10.5px; color: var(--muted-fg); background: var(--background); }
+.tabbar .on { color: var(--brand); font-weight: 600; }
+.tabbar .plus { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: var(--primary-fg); display: grid; place-items: center; margin: 0 auto; }
+.tabbar div > svg { display: block; margin: 0 auto 2px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; }
+.inc { color: var(--income); } .exp { color: var(--expense); } .mut { color: var(--muted-fg); }
+.badge { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: #fff; flex: none; position: relative; }
+.badge.m { background: var(--muted); color: var(--muted-fg); }
+.badge .w { position: absolute; right: -4px; bottom: -4px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--card); }
+.badge .w svg { width: 10px; height: 10px; }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.badge svg.i { width: 18px; height: 18px; }
+svg.i.s { width: 14px; height: 14px; }
+.day { padding: 2px 14px; }
+.dayh { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.dayh .n { font-size: 26px; font-weight: 600; width: 34px; }
+.dayh .w { flex: 1; font-size: 12px; line-height: 1.3; color: var(--muted-fg); }
+.dayh .w b { display: block; color: var(--foreground); font-weight: 500; font-size: 13px; }
+.dayh .t { font-variant-numeric: tabular-nums; font-weight: 500; }
+.tx { display: flex; align-items: center; gap: 10px; min-height: 56px; }
+.tx .mid { flex: 1; min-width: 0; font-size: 14.5px; }
+.tx .mid small { display: flex; align-items: center; gap: 4px; color: var(--muted-fg); font-size: 12px; }
+.tx .amt { font-variant-numeric: tabular-nums; text-align: right; }
+.tx .amt small { display: block; font-size: 11.5px; color: var(--muted-fg); }
+.proj { opacity: .62; } .proj .badge { outline: 1.5px dashed var(--muted-fg); outline-offset: 2px; }
+.rep { color: var(--muted-fg); display: inline-flex; vertical-align: -2px; margin-left: 4px; }
+.sumc { padding: 10px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-variant-numeric: tabular-nums; }
+.sumc .k { font-size: 12px; color: var(--muted-fg); } .sumc .v { font-weight: 600; }
+.sumc .net { grid-column: 1 / -1; display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 6px; }
+.due { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--brand) 12%, var(--card)); border: 1px solid color-mix(in srgb, var(--brand) 35%, var(--card)); }
+.due .mid { flex: 1; font-size: 14px; } .due small { display: block; font-size: 12px; color: var(--muted-fg); }
+.due .ic { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--brand); color: var(--card); }
+/* sheet */
+.dim { position: absolute; inset: 0; background: rgb(0 0 0 / .3); z-index: 2; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 92%; z-index: 3; background: var(--background); border-radius: 18px 18px 0 0; display: flex; flex-direction: column; border-top: 1px solid var(--border); }
+.sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--border); margin: 6px auto 0; flex: none; }
+.shdr { height: 48px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 4px; flex: none; }
+.shdr .r { display: flex; justify-content: flex-end; }
+.shdr .ttl { font-weight: 600; font-size: 16px; }
+.sbody { flex: 1; overflow: auto; scrollbar-width: none; padding: 4px 14px 12px; display: flex; flex-direction: column; gap: 12px; }
+.sfoot { flex: none; padding: 10px 14px 14px; display: flex; gap: 8px; }
+.btn { flex: 1; height: 44px; border-radius: 12px; border: 0; font: inherit; font-weight: 600; background: var(--primary); color: var(--primary-fg); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn.o { flex: none; width: 44px; background: transparent; border: 1px solid var(--border); color: var(--foreground); }
+.btn.t { background: color-mix(in srgb, var(--brand) 12%, var(--card)); color: var(--brand); }
+.btn.sm { height: 34px; font-size: 13.5px; border-radius: 10px; flex: none; padding: 0 12px; }
+.btn.sm.gh { background: transparent; color: var(--muted-fg); border: 1px solid var(--border); }
+.seg { display: flex; background: var(--muted); border-radius: 10px; padding: 3px; }
+.seg span { flex: 1; text-align: center; padding: 5px; border-radius: 8px; font-size: 13.5px; color: var(--muted-fg); }
+.seg span.on { background: var(--card); color: var(--foreground); font-weight: 600; }
+.rows > div { display: flex; align-items: center; gap: 12px; padding: 0 14px; min-height: 52px; }
+.rows > div + div { border-top: 1px solid var(--border); }
+.rows .lbl { flex: 1; min-width: 0; font-size: 14.5px; }
+.rows .lbl small { display: block; font-size: 12px; color: var(--muted-fg); }
+.rows .val { color: var(--muted-fg); font-size: 14px; text-align: right; display: flex; align-items: center; gap: 4px; }
+.rows .val.on { color: var(--brand); font-weight: 600; }
+.amtrow .big { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.amtrow .code { font-size: 12px; color: var(--muted-fg); border: 1px solid var(--border); border-radius: 6px; padding: 1px 5px; }
+.sw { width: 40px; height: 24px; border-radius: 12px; background: var(--muted); position: relative; flex: none; border: 1px solid var(--border); }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--card); box-shadow: 0 1px 2px rgb(0 0 0 / .3); }
+.sw.on { background: var(--brand); border-color: var(--brand); } .sw.on::after { left: 18px; }
+.radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); flex: none; }
+.radio.on { border: 6px solid var(--brand); }
+.more { font-size: 13.5px; color: var(--muted-fg); display: flex; align-items: center; gap: 4px; padding: 0 4px; }
+.h { font-size: 13px; font-weight: 500; color: var(--muted-fg); margin: 2px 2px -4px; }
+.hint { font-size: 12.5px; color: var(--muted-fg); padding: 0 4px; line-height: 1.5; }
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stepper b { min-width: 34px; text-align: center; border: 1px solid var(--border); border-radius: 8px; padding: 3px 0; font-variant-numeric: tabular-nums; }
+.unit { display: flex; gap: 4px; }
+.unit span { font-size: 13px; padding: 4px 9px; border-radius: 999px; background: var(--muted); color: var(--muted-fg); }
+.unit span.on { background: var(--brand); color: var(--card); font-weight: 600; }
+.keypad { flex: none; background: var(--card); border-top: 1px solid var(--border); padding: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.keypad span { height: 40px; border-radius: 10px; background: var(--muted); display: grid; place-items: center; font-weight: 500; }
+.rule { display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+.rule + .rule { border-top: 1px solid var(--border); }
+.rule .mid { flex: 1; min-width: 0; font-size: 14.5px; }
+.rule .mid small { display: block; font-size: 12px; color: var(--muted-fg); line-height: 1.45; }
+.rule .mid small.warn { color: var(--destructive); }
+.rule .amt { font-variant-numeric: tabular-nums; text-align: right; font-weight: 500; }
+.rule .amt small { display: block; font-size: 11.5px; color: var(--muted-fg); font-weight: 400; }
+.rule.off { opacity: .6; }
+.fold { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted-fg); padding: 2px 4px; }
+.toast { position: absolute; top: 8px; left: 10px; right: 10px; z-index: 5; background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgb(0 0 0 / .18); padding: 10px 12px; display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.toast b { margin-left: auto; color: var(--brand); font-weight: 600; }
+.menu { position: absolute; top: 46px; right: 10px; width: 220px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgb(0 0 0 / .18); padding: 4px; z-index: 3; }
+.menu .it { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; font-size: 14px; }
+.menu .it .r { margin-left: auto; color: var(--muted-fg); font-size: 13px; display: flex; align-items: center; }
+.menu .it.new { background: color-mix(in srgb, var(--brand) 12%, var(--card)); }
+.empty { flex: 1; display: grid; place-items: center; text-align: center; padding: 24px; }
+.empty .ic { width: 64px; height: 64px; border-radius: 50%; background: var(--muted); display: grid; place-items: center; margin: 0 auto 12px; color: var(--muted-fg); }
+.empty h4 { margin: 0 0 4px; font-size: 16px; } .empty p { margin: 0 0 14px; color: var(--muted-fg); font-size: 13.5px; }
+.tag { font-size: 10.5px; font-weight: 600; border-radius: 6px; padding: 1px 6px; background: var(--muted); color: var(--muted-fg); white-space: nowrap; }
+.tag.b { background: color-mix(in srgb, var(--brand) 14%, var(--card)); color: var(--brand); }
+.qs { max-width: 1300px; margin: 0 auto; padding: 0 16px 40px; font-size: 14px; line-height: 1.6; }
+.qs h2 { font-size: 16px; margin: 20px 0 6px; }
+.qs li { margin-bottom: 4px; }
+.prog { height: 6px; border-radius: 3px; background: var(--muted); overflow: hidden; margin-top: 6px; }
+.prog i { display: block; height: 100%; background: var(--brand); border-radius: 3px; }
+.prog.inc i { background: var(--income); }
+.hero { padding: 14px; text-align: center; }
+.hero small { display: block; font-size: 12.5px; color: var(--muted-fg); }
+.hero .big { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 2px 0; }
+.hero .facts { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; font-size: 12.5px; color: var(--muted-fg); }
+.acts { display: flex; gap: 8px; }
+.acts .btn { height: 42px; }
+.btn.ol { background: transparent; border: 1px solid var(--border); color: var(--foreground); }
+.ent { display: flex; align-items: center; gap: 10px; padding: 9px 14px; }
+.ent + .ent { border-top: 1px solid var(--border); }
+.ent .mid { flex: 1; min-width: 0; font-size: 14px; }
+.ent .mid small { display: block; font-size: 12px; color: var(--muted-fg); }
+.ent .amt { font-variant-numeric: tabular-nums; text-align: right; }
+.ent .amt small { display: block; font-size: 11px; color: var(--muted-fg); }
+.warn { color: var(--destructive); }
+.opt { outline: 1.5px dashed var(--brand); outline-offset: 3px; border-radius: 10px; }
+.done { opacity: .62; }
+input.nm { border: 0; background: transparent; font: inherit; color: inherit; width: 100%; padding: 0; }
+.qchip { display: flex; gap: 6px; padding: 8px 8px 0; background: var(--card); flex: none; border-top: 1px solid var(--border); }
+.qchip span { font-size: 12.5px; padding: 4px 10px; border-radius: 999px; background: var(--muted); }
+.qchip span.b { background: color-mix(in srgb, var(--brand) 14%, var(--card)); color: var(--brand); font-weight: 600; }
+.sumc .xtra { grid-column: 1 / -1; display: flex; justify-content: space-between; font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>หนี้ / เงินกู้ (#13) · mock-up รอบ 1</h1>
+  <p>วันนี้ = จ. 9 พ.ย. 2026, โปรไฟล์ "ครอบครัว", THB. ภาพทั้งหมดคือ<b>ข้อเสนอ</b> (ดูคำถาม Q1–Q12 ใน docs/features/debt.md → Open questions):
+  หนี้เป็นตารางของตัวเอง (<code>debts</code>), เงินที่ยืม/คืนเข้าออกกระเป๋าแบบ<b>ไม่นับเป็นรายรับ-รายจ่าย</b> (เหมือนการโอน, <code>debt_entries</code>),
+  ส่วนที่นับ (ค่างวดแบบ "นับตอนผ่อน", ดอกเบี้ย, ยกหนี้) เป็น<b>ธุรกรรมธรรมดา</b>ที่ผูกกับหนี้ (<code>transactions.debtId</code>) จึงเข้ารายงานเองโดยไม่ต้องแก้รายงาน.
+  กรอบเส้นประสีทอง = ทางเลือกที่ยังไม่ได้เสนอเป็นค่าเริ่มต้น.</p>
+  <div class="toggle" role="group" aria-label="theme">
+    <button data-t="" aria-pressed="true">ตามระบบ</button>
+    <button data-t="light" aria-pressed="false">สว่าง</button>
+    <button data-t="dark" aria-pressed="false">มืด</button>
+  </div>
+</header>
+<div class="grid" id="grid"></div>
+<section class="qs">
+  <h2>สรุปภาพ</h2>
+  <ul>
+    <li><b>1</b> แท็บกระเป๋า: การ์ด "หนี้สิน" ใต้รายการกระเป๋า (ยืมมา / ให้ยืม) → หน้าหนี้ (Q8, Q9)</li>
+    <li><b>2</b> รายการหนี้ทั้งหมด: แท็บ ยืมมา | ให้ยืม, ความคืบหน้า, กำหนดคืน, "ปิดแล้ว (n)" พับไว้</li>
+    <li><b>3–4</b> บันทึกหนี้: ยืมเงินสด (นับตอนใช้) และซื้อของผ่อน (นับตอนผ่อน + สร้างรายการซ้ำของค่างวด) (Q1, Q7)</li>
+    <li><b>5–7</b> รายละเอียดหนี้ + คืนเงิน (มีดอกเบี้ยได้) + หนี้ผ่อนของ (Q4, Q5)</li>
+    <li><b>8</b> แท็บธุรกรรม: เงินยืม/คืนแสดงแบบการโอน ไม่นับในรายรับ-รายจ่าย; บรรทัด "หนี้" บนการ์ดสรุป (Q8)</li>
+    <li><b>9–10</b> ให้ยืม: เลยกำหนด, ปิดหนี้ (รับคืนที่เหลือ / ยกหนี้ = นับเป็นรายจ่ายตอนนั้น), หนี้ที่ปิดแล้ว (Q6)</li>
+    <li><b>11–12</b> เมนู ⋮ + บัญชี › ข้อมูลของฉัน, ลบหนี้ (Q9, Q10, Q11)</li>
+  </ul>
+</section>
+<script>
+const I = {
+  repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  chevL: '<path d="m15 18-6-6 6-6"/>', chevR: '<path d="m9 18 6-6-6-6"/>', chevD: '<path d="m6 9 6 6 6-6"/>', chevU: '<path d="m18 15-6-6-6 6"/>',
+  wallet: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+  bank: '<path d="M3 21h18"/><path d="M5 21V10"/><path d="M19 21V10"/><path d="M9 21V10"/><path d="M15 21V10"/><path d="m2 10 10-6 10 6"/>',
+  piggy: '<path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/>',
+  home: '<path d="M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>',
+  bolt: '<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+  drop: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+  phone: '<rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/>',
+  tv: '<rect width="20" height="15" x="2" y="7" rx="2"/><path d="m17 2-5 5-5-5"/>',
+  money: '<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  dumbbell: '<path d="M14.4 14.4 9.6 9.6"/><path d="M18.7 21.5a2 2 0 1 1-2.8-2.8l-1.8 1.8a2 2 0 1 1-2.8-2.8l6.4-6.4a2 2 0 1 1 2.8 2.8l-1.8 1.8a2 2 0 1 1 2.8 2.8z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.4 12.8a2 2 0 1 1-2.8-2.8l1.8-1.8a2 2 0 1 1-2.8-2.8l2.8-2.8a2 2 0 1 1 2.8 2.8l1.8-1.8a2 2 0 1 1 2.8 2.8z"/>',
+  swap: '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+  note: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h8M8 17h5"/>',
+  cal: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  calEnd: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/>',
+  shapes: '<path d="M8.3 10a.7.7 0 0 1-.6-1.1l3.7-6a.7.7 0 0 1 1.2 0l3.7 6a.7.7 0 0 1-.6 1.1z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/>',
+  pause: '<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
+  trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+  copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>', plusSq: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/>',
+  dots: '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
+  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9Z"/><path d="m9 14 2 2 4-4"/>',
+  list: '<path d="M3 12h.01M3 18h.01M3 6h.01M8 12h13M8 18h13M8 6h13"/>', chart: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16h3v-5H7zM14 16h3V8h-3z"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>',
+  bell: '<path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/><path d="M3.3 15.3A1 1 0 0 0 4 17h16a1 1 0 0 0 .7-1.7C19.4 14 18 12.5 18 8A6 6 0 0 0 6 8c0 4.5-1.4 6-2.7 7.3"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>', alert: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>',
+  eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+  hand: '<path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17"/><path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 16 6 6"/><circle cx="16" cy="9" r="2.9"/><circle cx="6" cy="5" r="3"/>',
+  bag: '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+  pencil: '<path d="M21.2 6.8a1 1 0 0 0-4-4L3.8 16.2a2 2 0 0 0-.5.8l-1.3 4.4a.5.5 0 0 0 .6.6l4.4-1.3a2 2 0 0 0 .8-.5z"/>',
+  percent: '<path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  card: '<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>',
+  lock: '<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+}
+const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24">${I[n]}</svg>`
+const badge = (c, n, w) => `<div class="badge" style="background:${c}">${ic(n)}${w ? `<span class="w" style="background:${w[0]}">${ic(w[1])}</span>` : ''}</div>`
+const mbadge = (n, w) => `<div class="badge m">${ic(n)}${w ? `<span class="w" style="background:${w[0]}">${ic(w[1])}</span>` : ''}</div>`
+const fmt = (v, sign = true) => (v < 0 ? '−' : sign && v > 0 ? '+' : '') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2 })
+const C = { food: '#c2410c', shop: '#be185d', bill: '#0369a1', other: '#475569', pay: '#15803d' }
+const W = { cash: ['#15803d', 'wallet'], bank: ['#1d4ed8', 'bank'], save: ['#be185d', 'piggy'], card: ['#7c3aed', 'card'] }
+
+const header = () => `<div class="hdr"><div class="l"><div class="ib">${ic('user')}</div></div>
+  <div class="pill"><div class="badge" style="width:26px;height:26px;background:#1d4ed8">${ic('wallet')}</div> ทุกกระเป๋า ${ic('chevD', 's')}</div>
+  <div class="r"><div class="ib ok">${ic('cloud')}</div><div class="ib">${ic('dots')}</div></div></div>`
+const pageHdr = (t, right = '', back = true) => `<div class="hdr"><div class="l">${back ? `<div class="ib">${ic('chevL')}</div>` : ''}</div><div class="ttl">${t}</div><div class="r">${right}<div class="ib ok">${ic('cloud')}</div></div></div>`
+const tabbar = (on = 0) => `<div class="tabbar">${[['list', 'ธุรกรรม'], ['wallet', 'กระเป๋า'], null, ['chart', 'รายงาน'], ['user', 'บัญชี']].map((t, i) =>
+  t ? `<div class="${i === on ? 'on' : ''}">${ic(t[0])}${t[1]}</div>` : `<div><div class="plus">${ic('plus')}</div></div>`).join('')}</div>`
+const chips = (list, on) => `<div class="chips">${list.map((c) => `<span class="chip ${c === on ? 'on' : ''}">${c}</span>`).join('')}</div>`
+const sheet = (left, title, right, body, foot, extra = '') => `<div class="dim"></div><div class="sheet"><div class="grab"></div>
+  <div class="shdr"><div class="ib">${ic(left)}</div><div class="ttl">${title}</div><div class="r">${right}</div></div>
+  <div class="sbody">${body}</div>${foot ? `<div class="sfoot">${foot}</div>` : ''}${extra}</div>`
+const tx = (b, name, sub, amt, opts = {}) => `<div class="tx">${b}<div class="mid">${name}${opts.link ? `<span class="rep">${ic('hand', 's')}</span>` : ''}
+  ${sub ? `<small>${sub}</small>` : ''}</div><div class="amt ${amt < 0 ? 'exp' : 'inc'}">${fmt(amt)}${opts.amtSub ? `<small>${opts.amtSub}</small>` : ''}</div></div>`
+const day = (n, w, my, total, rows) => `<div class="card day"><div class="dayh"><div class="n">${n}</div><div class="w"><b>${w}</b>${my}</div>
+  <div class="t ${total < 0 ? 'exp' : 'inc'}">${total === null ? '' : fmt(total)}</div></div>${rows.join('')}</div>`
+const keypad = (chipsHtml = '') => `${chipsHtml}<div class="keypad">${['C', '÷', '×', '⌫', '7', '8', '9', '−', '4', '5', '6', '+', '1', '2', '3', '=', '000', '0', '.', '✓'].map((k) => `<span>${k}</span>`).join('')}</div>`
+const debtRow = (b, name, sub, left, of, amt, side, opts = {}) => `<div class="rule ${opts.done ? 'done' : ''}">${b}<div class="mid">${name}${opts.tag ? ` <span class="tag ${opts.tagB ? 'b' : ''}">${opts.tag}</span>` : ''}
+  <small>${sub}</small>${of ? `<div class="prog ${side === 'inc' ? 'inc' : ''}"><i style="width:${Math.round((1 - left / of) * 100)}%"></i></div>` : ''}</div>
+  <div class="amt ${opts.done ? '' : side}">${fmt(amt, false)}<small class="${opts.late ? 'warn' : ''}">${opts.when ?? ''}</small></div></div>`
+const ent = (b, name, sub, amt, opts = {}) => `<div class="ent">${b}<div class="mid">${name}${opts.tag ? ` <span class="tag ${opts.tagB ? 'b' : ''}">${opts.tag}</span>` : ''}<small>${sub}</small></div>
+  <div class="amt ${amt < 0 ? 'exp' : amt > 0 ? 'inc' : ''}">${fmt(amt)}${opts.amtSub ? `<small>${opts.amtSub}</small>` : ''}</div></div>`
+const ME = mbadge('hand')
+
+const frames = [
+  ['1 · แท็บกระเป๋า: การ์ด "หนี้สิน" (Q8, Q9)', 'ใต้กระเป๋าที่ใช้อยู่ มีการ์ด <b>หนี้สิน</b>: ยืมมา (ต้องคืน) กับ ให้ยืม (รอรับคืน) แต่ละแถวเปิดหน้าหนี้ที่แท็บนั้น. <b>ยอดรวมไม่หักหนี้</b> (ยอดรวม = เงินที่มีในกระเป๋า เหมือนเดิม). กรอบประ = ทางเลือก: บรรทัด "หลังหักหนี้".',
+    () => pageHdr('กระเป๋าเงิน', '', false) + `<div class="scroll">
+      <div class="card hero"><small>ยอดรวม</small><div class="big">61,233.00</div><div class="opt" style="font-size:12.5px;color:var(--muted-fg);padding:2px 0">หลังหักหนี้ (−54,000 + 5,500): 12,733.00</div></div>
+      <div class="h">กระเป๋าที่ใช้อยู่ (4)</div>
+      <div class="card">
+        <div class="rule">${badge(W.cash[0], 'wallet')}<div class="mid">เงินสด</div><div class="amt">4,120.00</div></div>
+        <div class="rule">${badge(W.bank[0], 'bank')}<div class="mid">กสิกร</div><div class="amt">57,113.00</div></div>
+        <div class="rule">${badge(W.save[0], 'piggy')}<div class="mid">ออมทรัพย์<small>ไม่รวมในยอดรวม</small></div><div class="amt">120,000.00</div></div>
+      </div>
+      <div class="acts"><button class="btn ol">${ic('plus', 's')} เพิ่มกระเป๋าเงิน</button><button class="btn t">${ic('swap', 's')} โอนเงิน</button></div>
+      <div class="h">หนี้สิน</div>
+      <div class="card">
+        <div class="rule">${ME}<div class="mid">ยืมมา<small>ต้องคืน · 3 รายการ</small></div><div class="amt exp">54,000.00</div>${ic('chevR', 's')}</div>
+        <div class="rule">${ME}<div class="mid">ให้ยืม<small>รอรับคืน · 2 รายการ · <span class="warn">เลยกำหนด 1</span></small></div><div class="amt inc">5,500.00</div>${ic('chevR', 's')}</div>
+      </div>
+    </div>` + tabbar(1)],
+  ['2 · หน้า "หนี้ / เงินกู้" (Q3, Q6)', 'แท็บ <b>ยืมมา | ให้ยืม</b>. ยอดรวมที่ยังค้าง แล้วหนี้ที่ยังไม่ปิด เรียงตามกำหนดคืน (ไม่มีกำหนด ท้ายสุด). แถว: ชื่อคน/ที่ + โน้ต, คืนแล้วเท่าไรจากเท่าไร + แถบ, ยอดที่เหลือ, กำหนดคืน (เลยกำหนด = แดง). "ผ่อน" = นับตอนผ่อน. หนี้ที่เหลือ 0 ย้ายไป "ปิดแล้ว" เอง. ปุ่มเพิ่มอยู่ใต้รายการ (เหมือนหน้ารายการซ้ำ).',
+    () => pageHdr('หนี้ / เงินกู้') + `<div class="scroll">
+      <div class="seg"><span class="on">ยืมมา (3)</span><span>ให้ยืม (2)</span></div>
+      <div class="card hero"><small>ต้องคืนทั้งหมด</small><div class="big exp">54,000.00</div></div>
+      <div class="card">
+        ${debtRow(ME, 'แม่', 'ยืมซ่อมรถ · คืนแล้ว 4,000 จาก 10,000', 6000, 10000, 6000, 'exp', { when: 'ครบ 31 ธ.ค.' })}
+        ${debtRow(badge(C.shop, 'bag'), 'KTC', 'iPhone 16 · งวด 3 จาก 10 · ถัดไป 5 ธ.ค.', 21000, 30000, 21000, 'exp', { tag: 'ผ่อน', tagB: 1, when: '' })}
+        ${debtRow(ME, 'สหกรณ์ออมทรัพย์', 'เงินกู้สามัญ · คืนแล้ว 23,000 จาก 50,000', 27000, 50000, 27000, 'exp', { when: '' })}
+      </div>
+      <div class="fold">ปิดแล้ว (1) ${ic('chevD', 's')}</div>
+      <button class="btn ol" style="flex:none">${ic('plus', 's')} บันทึกหนี้</button>
+    </div>` + tabbar(1)],
+  ['3 · บันทึกหนี้: ยืมเงิน (นับตอนใช้) (Q1, Q3)', 'แท็บ <b>ยืมมา | ให้ยืม</b>. แถว: ชื่อคน (พิมพ์อิสระ เลือกชื่อที่เคยใช้ได้), จำนวน (keypad), <b>เงินเข้ากระเป๋า</b> (ให้ยืม: "จ่ายจากกระเป๋า"), โน้ต, วันที่. "เพิ่มเติม": กำหนดคืน. การ์ด "นับเป็นรายจ่าย" เลือกต่อหนี้ (ยืมมาเท่านั้น; ให้ยืมไม่มีตัวเลือก). บันทึก = หนี้ + รายการ "ยืม" 10,000 เข้าเงินสด (ไม่ใช่รายรับ).',
+    () => pageHdr('หนี้ / เงินกู้') + `<div class="scroll"></div>` + sheet('x', 'บันทึกหนี้', '', `<div class="seg"><span class="on">ยืมมา</span><span>ให้ยืม</span></div>
+      <div class="card rows">
+        <div>${ic('user')}<div class="lbl"><small>ยืมจาก</small>แม่</div></div>
+        <div class="amtrow"><span class="code">THB</span><div class="lbl"><small>จำนวนเงิน</small><span class="big">10,000.00</span></div></div>
+        <div>${ic('wallet')}<div class="lbl"><small>เงินเข้ากระเป๋า</small>เงินสด</div><div class="val">4,120.00 ${ic('chevR', 's')}</div></div>
+        <div>${ic('note')}<div class="lbl">ยืมซ่อมรถ</div><div class="val">${ic('chevR', 's')}</div></div>
+        <div>${ic('cal')}<div class="lbl" style="text-align:center">ส. 15 ส.ค. 2026</div><div class="val">${ic('chevL', 's')}&nbsp;${ic('chevR', 's')}</div></div>
+      </div>
+      <div class="h">นับเป็นรายจ่าย</div>
+      <div class="card rows"><div><div class="lbl">ตอนใช้เงิน<small>เงินที่ยืมเข้ากระเป๋าไม่ใช่รายรับ ของที่ซื้อด้วยเงินนี้เป็นรายจ่าย การคืนเงินต้นไม่ใช่รายจ่าย (มีแต่ดอกเบี้ย)</small></div><div class="radio on"></div></div>
+        <div><div class="lbl">ตอนผ่อนคืน<small>ซื้อของผ่อน: ไม่มีเงินเข้ากระเป๋า แต่ละงวดที่จ่ายเป็นรายจ่าย</small></div><div class="radio"></div></div></div>
+      <div class="more">เพิ่มเติม ${ic('chevU', 's')}</div>
+      <div class="card rows"><div>${ic('clock')}<div class="lbl">กำหนดคืน</div><div class="val on">31 ธ.ค. 2026 ${ic('chevR', 's')}</div></div></div>`,
+      `<button class="btn">บันทึก</button>`)],
+  ['4 · บันทึกหนี้: ซื้อของผ่อน (นับตอนผ่อน) (Q1, Q7)', 'เลือก "ตอนผ่อนคืน": แถวกระเป๋าเปลี่ยนเป็น <b>หมวดของค่างวด</b> (ช้อปปิ้ง) เพราะไม่มีเงินเข้ากระเป๋า. แถว "ผ่อนเป็นงวด" (ทางเลือก) = 10 งวด × 3,000 ทุกเดือน วันที่ 5 จากกสิกร → บันทึกพร้อม<b>รายการซ้ำ</b> (#12) ที่จบเองครบ 10 ครั้ง; งวดที่ถึงแล้วบันทึกทันที. ไม่ตั้งงวดก็ได้: กด "จ่ายงวด" เองทีละครั้ง.',
+    () => pageHdr('หนี้ / เงินกู้') + `<div class="scroll"></div>` + sheet('x', 'บันทึกหนี้', '', `<div class="seg"><span class="on">ยืมมา</span><span>ให้ยืม</span></div>
+      <div class="card rows">
+        <div>${ic('user')}<div class="lbl"><small>ยืมจาก</small>KTC</div></div>
+        <div class="amtrow"><span class="code">THB</span><div class="lbl"><small>จำนวนเงิน (ยอดผ่อนทั้งหมด)</small><span class="big">30,000.00</span></div></div>
+        <div>${badge(C.shop, 'bag')}<div class="lbl"><small>ค่างวดเป็นรายจ่ายหมวด</small>ช้อปปิ้ง</div><div class="val">${ic('chevR', 's')}</div></div>
+        <div>${ic('note')}<div class="lbl">iPhone 16 ผ่อน 0% 10 เดือน</div><div class="val">${ic('chevR', 's')}</div></div>
+        <div>${ic('cal')}<div class="lbl" style="text-align:center">ส. 1 ส.ค. 2026</div><div class="val">${ic('chevL', 's')}&nbsp;${ic('chevR', 's')}</div></div>
+      </div>
+      <div class="h">นับเป็นรายจ่าย</div>
+      <div class="card rows"><div><div class="lbl">ตอนใช้เงิน</div><div class="radio"></div></div>
+        <div><div class="lbl">ตอนผ่อนคืน<small>ซื้อของผ่อน: ไม่มีเงินเข้ากระเป๋า แต่ละงวดที่จ่ายเป็นรายจ่าย</small></div><div class="radio on"></div></div></div>
+      <div class="card rows"><div>${ic('repeat')}<div class="lbl"><span style="color:var(--brand);font-weight:600">ผ่อน 10 งวด · 3,000.00</span><small>ทุกเดือน วันที่ 5 · จาก กสิกร · บันทึกให้อัตโนมัติ</small></div><div class="val">${ic('chevR', 's')}</div></div></div>
+      <div class="hint">งวดแรก 5 ก.ย. 2026 · งวดสุดท้าย 5 มิ.ย. 2027 · งวด ก.ย.–พ.ย. (3 งวด) บันทึกตอนนี้</div>`,
+      `<button class="btn">บันทึก</button>`)],
+  ['5 · รายละเอียดหนี้ (Q4, Q6)', 'หน้าในแท็บ (‹ กลับ, ✎ แก้ชื่อ/โน้ต/กำหนดคืน). บนสุด: ยอดที่ต้องคืน, แถบ, คืนแล้ว / ทั้งหมด, กำหนดคืน, วิธีนับ. ปุ่ม <b>คืนเงิน</b> (หลัก) · <b>ยืมเพิ่ม</b> · <b>ปิดหนี้</b>. ประวัติล่าสุดก่อน: แต่ละแถวเปิดชีตของมัน (แก้/ลบได้). เงินยืม/คืนเปลี่ยนยอดกระเป๋า แต่ไม่ใช่รายรับ-รายจ่าย.',
+    () => pageHdr('แม่', `<div class="ib">${ic('pencil')}</div>`) + `<div class="scroll">
+      <div class="card hero"><small>ยืมมา · ต้องคืน</small><div class="big exp">6,000.00</div>
+        <div class="prog"><i style="width:40%"></i></div>
+        <div class="facts"><span>คืนแล้ว 4,000.00 จาก 10,000.00</span><span>กำหนดคืน 31 ธ.ค. 2026 · อีก 52 วัน</span><span>ยืมซ่อมรถ · นับเป็นรายจ่ายตอนใช้เงิน</span></div></div>
+      <div class="acts"><button class="btn">คืนเงิน</button><button class="btn t">ยืมเพิ่ม</button><button class="btn ol" style="flex:none;padding:0 14px">ปิดหนี้</button></div>
+      <div class="h">ประวัติ</div>
+      <div class="card">
+        ${ent(mbadge('hand', W.cash), 'คืนเงิน', 'พฤ. 15 ต.ค. 2026 · จาก เงินสด', -2000)}
+        ${ent(mbadge('hand', W.cash), 'คืนเงิน', 'อ. 15 ก.ย. 2026 · จาก เงินสด', -2000)}
+        ${ent(mbadge('hand', W.cash), 'ยืม', 'ส. 15 ส.ค. 2026 · เข้า เงินสด', 10000)}
+      </div>
+      <div class="hint">ยืม/คืนเงินต้นไม่นับเป็นรายรับ-รายจ่าย (เหมือนการโอน) ยอดเงินในกระเป๋าเปลี่ยนตามจริง</div>
+    </div>` + tabbar(1)],
+  ['6 · ชีต "คืนเงิน" + ดอกเบี้ย (Q4, Q5)', 'จำนวน (keypad; ชิป <b>"ทั้งหมด 27,000"</b> = คืนที่เหลือ), จากกระเป๋า, โน้ต, วันที่. "ดอกเบี้ย / ค่าธรรมเนียม" (ทางเลือก): บันทึกเป็น<b>รายจ่ายจริง</b>ในหมวดที่เลือก (จำไว้ต่อหนี้) ผูกกับหนี้นี้ ไม่ลดยอดหนี้. บันทึกครั้งเดียวได้ 2 แถว: คืน 4,600 (ไม่นับ) + ดอกเบี้ย 400 (นับ).',
+    () => pageHdr('สหกรณ์ออมทรัพย์') + `<div class="scroll"></div>` + sheet('x', 'คืนเงิน', '', `
+      <div class="card rows">
+        <div>${ME}<div class="lbl"><small>คืนให้</small>สหกรณ์ออมทรัพย์</div><div class="val">เหลือ 27,000.00</div></div>
+        <div class="amtrow"><span class="code">THB</span><div class="lbl"><small>จำนวนเงิน</small><span class="big">4,600.00</span></div></div>
+        <div>${ic('wallet')}<div class="lbl"><small>จากกระเป๋า</small>กสิกร</div><div class="val">57,113.00 ${ic('chevR', 's')}</div></div>
+        <div>${ic('note')}<div class="lbl mut">โน้ต</div><div class="val">${ic('chevR', 's')}</div></div>
+        <div>${ic('cal')}<div class="lbl" style="text-align:center">อา. 1 พ.ย. 2026</div><div class="val">${ic('chevL', 's')}&nbsp;${ic('chevR', 's')}</div></div>
+      </div>
+      <div class="card rows"><div>${ic('percent')}<div class="lbl"><small>ดอกเบี้ย / ค่าธรรมเนียม · รายจ่าย</small>400.00</div><div class="val">${badge(C.other, 'percent').replace('class="badge"', 'class="badge" style="width:26px;height:26px;background:' + C.other + '"')} ดอกเบี้ยจ่าย ${ic('chevR', 's')}</div></div></div>
+      <div class="hint">หลังคืน: เหลือ 22,400.00 · จ่ายรวม 5,000.00 จากกสิกร</div>`,
+      `<button class="btn">บันทึก</button>`, keypad(`<div class="qchip"><span class="b">ทั้งหมด 27,000</span><span>500</span><span>1,000</span><span>5,000</span></div>`))],
+  ['7 · หนี้ผ่อนของ (Q1, Q7)', 'แบบ "นับตอนผ่อน": แต่ละงวดเป็น<b>ธุรกรรมรายจ่าย</b>ในหมวดช้อปปิ้ง (เห็นในรายงาน) ที่ผูกกับหนี้ จึงลดยอดหนี้. แถว "งวดถัดไป" มาจากรายการซ้ำ (แตะ = แก้กฎ). ตอนเริ่มไม่มีเงินเข้ากระเป๋า (แถวเทา). ปุ่ม "จ่ายงวด" = ฟอร์มธุรกรรมที่กรอกหมวด/จำนวน/หนี้ไว้ให้.',
+    () => pageHdr('KTC', `<div class="ib">${ic('pencil')}</div>`) + `<div class="scroll">
+      <div class="card hero"><small>ผ่อน · เหลือ</small><div class="big exp">21,000.00</div>
+        <div class="prog"><i style="width:30%"></i></div>
+        <div class="facts"><span>จ่ายแล้ว 3 งวด 9,000.00 จาก 30,000.00</span><span>iPhone 16 ผ่อน 0% 10 เดือน · นับเป็นรายจ่ายตอนผ่อน</span></div></div>
+      <div class="card"><div class="rule">${ic('repeat')}<div class="mid">งวดถัดไป ศ. 5 ธ.ค. 2026<small>ทุกเดือน วันที่ 5 · เหลือ 7 งวด · บันทึกให้อัตโนมัติ</small></div><div class="amt exp">−3,000.00</div>${ic('chevR', 's')}</div></div>
+      <div class="acts"><button class="btn">จ่ายงวด</button><button class="btn ol" style="flex:none;padding:0 14px">ปิดหนี้</button></div>
+      <div class="h">ประวัติ</div>
+      <div class="card">
+        ${ent(badge(C.shop, 'bag', W.bank), 'ช้อปปิ้ง', 'พฤ. 5 พ.ย. 2026 · กสิกร · งวด 3', -3000, { tag: 'รายจ่าย' })}
+        ${ent(badge(C.shop, 'bag', W.bank), 'ช้อปปิ้ง', 'จ. 5 ต.ค. 2026 · กสิกร · งวด 2', -3000, { tag: 'รายจ่าย' })}
+        ${ent(badge(C.shop, 'bag', W.bank), 'ช้อปปิ้ง', 'ส. 5 ก.ย. 2026 · กสิกร · งวด 1', -3000, { tag: 'รายจ่าย' })}
+        ${ent(ME, 'เริ่มผ่อน', 'ส. 1 ส.ค. 2026 · ไม่มีเงินเข้ากระเป๋า', 0, { amtSub: '30,000.00' })}
+      </div>
+    </div>` + tabbar(1)],
+  ['8 · แท็บธุรกรรม (Q8)', 'เงินยืม/คืนเป็นแถวแบบการโอน: badge ✋ สีเทา (มุมกระเป๋า), "ยืมจาก แม่" / "คืนเงิน · สหกรณ์" / "รับคืนจาก น้องบี" ลง/ขึ้นตามเงินในกระเป๋า แต่<b>ไม่อยู่ในรายรับ-รายจ่าย-สุทธิ</b>. การ์ดสรุปมีบรรทัด <b>"หนี้"</b> (เหมือน "โอน") เมื่อไม่เป็นศูนย์. ดอกเบี้ย/ค่างวดเป็นธุรกรรมปกติ มี ✋ เล็กหลังชื่อ. แตะแถวยืม/คืน = ชีตคืนเงิน (แก้/ลบ).',
+    () => header() + `<div class="bal"><small>ยอดรวม</small><div>61,233.00</div></div>` + chips(['09/2026', 'เดือนที่แล้ว', 'เดือนนี้', 'อนาคต'], 'เดือนนี้') + `<div class="scroll">
+      <div class="card sumc"><div><div class="k">รายรับ</div><div class="v inc">+0.00</div></div><div><div class="k">รายจ่าย</div><div class="v exp">−3,495.00</div></div><div class="net"><span class="k">สุทธิ</span><span class="v">−3,495.00</span></div>
+        <div class="xtra"><span class="k">หนี้ (ยืม/คืน)</span><span class="exp">−3,100.00</span></div></div>
+      ${day('07', 'วันเสาร์', 'พฤศจิกายน 2026', -95, [tx(badge(C.food, 'shapes', W.cash), 'กาแฟ', '', -95)])}
+      ${day('05', 'วันพฤหัสบดี', 'พฤศจิกายน 2026', -3000, [tx(badge(C.shop, 'bag', W.bank), 'ช้อปปิ้ง', 'ผ่อน KTC · งวด 3/10', -3000, { link: 1 })])}
+      ${day('01', 'วันอาทิตย์', 'พฤศจิกายน 2026', -400, [tx(mbadge('hand', W.bank), 'คืนเงิน', 'สหกรณ์ออมทรัพย์', -4600), tx(badge(C.other, 'percent', W.bank), 'ดอกเบี้ยจ่าย', 'สหกรณ์ออมทรัพย์', -400, { link: 1 }), tx(mbadge('hand', W.bank), 'รับคืน', 'จาก น้องบี', 1500)])}
+    </div>` + tabbar(0)],
+  ['9 · ให้ยืม: เลยกำหนด + ปิดหนี้ (Q6)', 'พี่โจ้ยืมไป 2,000 เลยกำหนด 10 มิ.ย. (แดง). "ปิดหนี้" เมื่อยังเหลือ: <b>รับคืนส่วนที่เหลือ</b> (เงินเข้ากระเป๋า ไม่ใช่รายรับ) หรือ <b>ไม่ได้คืนแล้ว</b> = เงินที่หายไปนับเป็นรายจ่าย<b>ตอนนี้ครั้งเดียว</b> (หมวดที่เลือก). ฝั่งยืมมา: "เจ้าหนี้ยกให้" = รายรับ (แบบนับตอนใช้).',
+    () => pageHdr('พี่โจ้', `<div class="ib">${ic('pencil')}</div>`) + `<div class="scroll">
+      <div class="card hero"><small>ให้ยืม · รอรับคืน</small><div class="big inc">2,000.00</div><div class="facts"><span class="warn">เลยกำหนด 10 มิ.ย. 2026 (152 วัน)</span></div></div></div>` + sheet('x', 'ปิดหนี้', '', `
+      <div class="hint" style="font-size:14px;color:var(--foreground)">พี่โจ้ยังค้าง <b>2,000.00</b></div>
+      <div class="card rows">
+        <div><div class="lbl">รับคืนส่วนที่เหลือ<small>รับ 2,000.00 เข้ากระเป๋า · ไม่ใช่รายรับ</small></div><div class="radio"></div></div>
+        <div><div class="lbl">ไม่ได้คืนแล้ว (ยกหนี้)<small>บันทึก 2,000.00 เป็นรายจ่าย วันนี้ · เงินที่ให้ยืมไปไม่เคยนับเป็นรายจ่ายมาก่อน</small></div><div class="radio on"></div></div>
+      </div>
+      <div class="card rows">
+        <div>${badge(C.other, 'shapes')}<div class="lbl"><small>รายจ่ายหมวด</small>อื่น ๆ</div><div class="val">${ic('chevR', 's')}</div></div>
+        <div>${ic('cal')}<div class="lbl" style="text-align:center">จ. 9 พ.ย. 2026</div><div class="val">${ic('chevL', 's')}&nbsp;${ic('chevR', 's')}</div></div>
+      </div>
+      <div class="hint">หนี้ย้ายไป "ปิดแล้ว" · ยังเปิดดูและแก้ประวัติได้</div>`, `<button class="btn">ปิดหนี้</button>`)],
+  ['10 · หนี้ที่ปิดแล้ว (Q6)', 'แท็บ "ให้ยืม" กับ "ปิดแล้ว" ที่กางออก: จางลง, บอกวันที่ปิดและวิธีปิด. ปิด = ยอดที่เหลือเป็น 0 (คำนวณ ไม่เก็บสถานะ): คืนครบ หรือยกหนี้. "ให้ยืมเพิ่ม" ในหน้ารายละเอียดเปิดหนี้กลับมาเอง. เหลือติดลบ = "จ่ายเกิน" แสดงในกลุ่มที่ยังไม่ปิด.',
+    () => pageHdr('หนี้ / เงินกู้') + `<div class="scroll">
+      <div class="seg"><span>ยืมมา (3)</span><span class="on">ให้ยืม (2)</span></div>
+      <div class="card hero"><small>รอรับคืนทั้งหมด</small><div class="big inc">5,500.00</div></div>
+      <div class="card">
+        ${debtRow(ME, 'พี่โจ้', 'ยังไม่ได้คืน · 0 จาก 2,000', 2000, 2000, 2000, 'inc', { when: 'เลย 10 มิ.ย.', late: 1 })}
+        ${debtRow(ME, 'น้องบี', 'ค่าเทอม · คืนแล้ว 1,500 จาก 5,000', 3500, 5000, 3500, 'inc', { when: 'ครบ 30 พ.ย.' })}
+      </div>
+      <div class="fold">ปิดแล้ว (2) ${ic('chevU', 's')}</div>
+      <div class="card">
+        ${debtRow(ME, 'เพื่อนเอ', 'คืนครบ · ปิด 12 ต.ค. 2026', 0, 0, 1000, 'inc', { done: 1, when: 'คืนครบ' })}
+        ${debtRow(ME, 'ลุงชัย', 'ยกหนี้ 500 · ปิด 1 ก.ย. 2026', 0, 0, 3000, 'inc', { done: 1, when: 'ยกหนี้' })}
+      </div>
+      <button class="btn ol" style="flex:none">${ic('plus', 's')} บันทึกหนี้</button>
+    </div>` + tabbar(1)],
+  ['11 · ทางเข้า: เมนู ⋮ + บัญชี (Q9)', 'เมนู ⋮ ของแท็บธุรกรรมเพิ่มแถว <b>"หนี้ / เงินกู้ ›"</b> (ไปหน้าหนี้). บัญชี › ข้อมูลของฉัน มีแถว "หนี้ / เงินกู้ · 5 รายการที่ยังไม่ปิด". ทางหลักคือการ์ดในแท็บกระเป๋า (ภาพ 1). หน้าหนี้อยู่ที่ <code>/wallets/debts</code> (lazy).',
+    () => header() + `<div class="bal"><small>ยอดรวม</small><div>61,233.00</div></div>` + chips(['09/2026', 'เดือนที่แล้ว', 'เดือนนี้', 'อนาคต'], 'เดือนนี้') + `<div class="scroll"></div>
+      <div class="dim"></div><div class="menu"><div class="it">${ic('swap')} โอนเงิน</div><div class="it new">${ic('hand')} หนี้ / เงินกู้ <span class="r">${ic('chevR', 's')}</span></div><div class="it">${ic('repeat')} รายการซ้ำ <span class="r">${ic('chevR', 's')}</span></div><div class="it">${ic('cal')} ดูตาม <span class="r">เดือน ${ic('chevR', 's')}</span></div></div>` + tabbar(0)],
+  ['12 · ลบหนี้ (Q11)', 'ชีตแก้หนี้ (✎ จากภาพ 5) มีปุ่มลบในหัว. ลบ = ยืนยันก่อน (เพราะยอดกระเป๋าเปลี่ยน และไม่มีเลิกทำ): รายการยืม/คืนของหนี้นี้ถูกลบด้วย; ธุรกรรมที่นับแล้ว (ดอกเบี้ย/ค่างวด) <b>อยู่ต่อ</b>เป็นธุรกรรมธรรมดา; รายการซ้ำของค่างวดถูกลบ. ปิดหนี้แทนการลบได้เสมอ.',
+    () => pageHdr('แม่') + `<div class="scroll"></div>` + sheet('chevL', 'ลบหนี้', '', `
+      <div class="empty" style="flex:none;padding:12px 4px"><div class="ic" style="color:var(--destructive)">${ic('trash')}</div><h4>ลบหนี้ "แม่"?</h4>
+      <p>รายการยืม/คืน 3 รายการจะถูกลบด้วย ยอดเงินสดจะเปลี่ยน +6,000.00 (เหมือนไม่เคยยืม)</p>
+      <p>ถ้าคืนครบหรือไม่ต้องคืนแล้ว ใช้ "ปิดหนี้" แทน ประวัติจะยังอยู่</p></div>`,
+      `<button class="btn" style="background:var(--destructive);color:#fff">ลบหนี้</button>`)],
+]
+document.getElementById('grid').innerHTML = frames.map(([t, d, f]) =>
+  `<figure><figcaption><b>${t}</b><br>${d}</figcaption><div class="phone">${f()}</div></figure>`).join('')
+for (const b of document.querySelectorAll('.toggle button')) b.onclick = () => {
+  document.documentElement.dataset.theme = b.dataset.t
+  if (!b.dataset.t) delete document.documentElement.dataset.theme
+  for (const o of document.querySelectorAll('.toggle button')) o.setAttribute('aria-pressed', o === b)
+}
+</script>
+</body>
+</html>

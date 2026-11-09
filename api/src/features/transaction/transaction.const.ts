@@ -11,4 +11,6 @@ export const TRANSACTION_MESSAGE = {
   CATEGORY_GONE: 'The category does not exist or was deleted',
   OTHER_PROFILE: 'The wallet and the category must belong to the transaction’s profile',
   CURRENCY_FIXED: 'A transaction cannot move to a wallet with another currency',
+  DEBT_OTHER_PROFILE: 'The debt must belong to the transaction’s profile',
+  DEBT_OTHER_CURRENCY: 'The wallet must have the debt’s currency',
 } as const

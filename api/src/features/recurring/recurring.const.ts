@@ -11,6 +11,8 @@ export const RECURRING_LIMITS = {
 export const RecurringKind = {
   TRANSACTION: 'transaction',
   TRANSFER: 'transfer',
+  /** A debt's repayment (docs/features/debt.md rule 13). */
+  DEBT: 'debt',
 } as const
 
 export const RecurringFrequency = {
@@ -29,7 +31,11 @@ export const RECURRING_MESSAGE = {
   OTHER_PROFILE: 'The wallets and the category must belong to the rule’s profile',
   OTHER_CURRENCY: 'Both wallets must have the same currency',
   LIMIT: 'A profile holds at most 100 recurring rules',
-  KIND_FIELDS: 'A transaction rule needs a category, a transfer rule a wallet to transfer to',
+  KIND_FIELDS:
+    'A transaction rule needs a category, a transfer rule a wallet to transfer to, a debt rule a debt',
+  DEBT_GONE: 'The debt does not exist or was deleted',
+  DEBT_OTHER_PROFILE: 'The debt must belong to the rule’s profile',
+  DEBT_OTHER_CURRENCY: 'The wallet must have the debt’s currency',
   SAME_WALLET: 'A transfer needs two different wallets',
   END_BOTH: 'A rule ends on a date or after a count, not both',
   END_BEFORE_START: 'The end date must be on or after the start date',

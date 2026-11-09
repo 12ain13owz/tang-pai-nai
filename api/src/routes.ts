@@ -9,6 +9,7 @@ import '@/features/wallet'
 import '@/features/transaction'
 import '@/features/transfer'
 import '@/features/recurring'
+import '@/features/debt'
 import { syncRouter } from '@/features/sync'
 import { todoRouter } from '@/features/todo'
 

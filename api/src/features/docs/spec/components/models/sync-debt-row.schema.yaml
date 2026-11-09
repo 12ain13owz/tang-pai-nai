@@ -1,0 +1,90 @@
+type: object
+description: >-
+  A row of the `debts` table (docs/features/debt.md) as it travels in /sync/pull and in
+  /sync/push: a debt borrowed or lent. What is left (and whether it is closed) is computed from
+  its entries and linked transactions, never stored. Rules (each answers `CONFLICT`): profileId
+  is one of the user's live profiles and never changes; direction, countAs and currencyCode never
+  change, and the currency is active when the debt is created; a `repaid` debt's categoryId is a
+  live expense category of the profile (a merged one is followed); at most 100 open debts per
+  profile. A tombstone runs none of them. A live debt fixes its category's type, and a category
+  merge moves it.
+required:
+  [
+    id,
+    profileId,
+    direction,
+    person,
+    note,
+    currencyCode,
+    countAs,
+    categoryId,
+    dueOn,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    changeSeq,
+    updatedBy,
+  ]
+properties:
+  id:
+    type: string
+    format: uuid
+    description: UUIDv7 made on the device
+  profileId:
+    type: string
+    format: uuid
+  direction:
+    type: string
+    enum: [borrowed, lent]
+  person:
+    type: string
+    minLength: 1
+    maxLength: 50
+    description: Who or where, free text (trimmed)
+  note:
+    type: string
+    maxLength: 500
+    description: Trimmed; '' when empty
+  currencyCode:
+    type: string
+    description: ISO 4217; its entries' wallets have it
+  countAs:
+    type: string
+    enum: [spent, repaid]
+    description: >-
+      When the money counts as an expense: `spent` (borrowed money comes into a wallet, not
+      income; repaying isn't an expense, interest is) or `repaid` (borrowed only: an instalment
+      purchase, each instalment an expense in categoryId). A lent debt is always `spent`.
+  categoryId:
+    type: [string, 'null']
+    format: uuid
+    description: The instalments' expense category of a `repaid` debt; null otherwise
+  dueOn:
+    type: [string, 'null']
+    format: date
+    description: A real date from 2000-01-01, or null
+  createdAt:
+    type: integer
+  updatedAt:
+    type: integer
+  deletedAt:
+    type: [integer, 'null']
+  changeSeq:
+    type: integer
+  updatedBy:
+    type: string
+example:
+  id: 0199b000-0000-7000-8000-000000000701
+  profileId: 0199b000-0000-7000-8000-000000000001
+  direction: borrowed
+  person: แม่
+  note: ยืมซ่อมรถ
+  currencyCode: THB
+  countAs: spent
+  categoryId: null
+  dueOn: '2026-12-31'
+  createdAt: 1793600000000
+  updatedAt: 1793600000000
+  deletedAt: null
+  changeSeq: 901
+  updatedBy: 0199b000-0000-7000-8000-00000000a001

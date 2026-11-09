@@ -13,6 +13,27 @@ const epochMs = z.number().int().nonnegative()
 const day = (field: string) =>
   z.string({ error: ERRORS.invalidField(field) }).refine(isCalendarDay, ERRORS.invalidField(field))
 
+type KindFields = {
+  kind: string
+  categoryId: string | null
+  toWalletId: string | null
+  debtId: string | null
+}
+
+/**
+ * A transaction rule has a category (and maybe a debt: its instalments, debt rule 13), a
+ * transfer rule the wallet it goes to, a debt rule (a repayment) its debt only.
+ */
+const kindFits = ({ kind, categoryId, toWalletId, debtId }: KindFields) => {
+  if (kind === RecurringKind.TRANSACTION) {
+    return categoryId !== null && toWalletId === null
+  }
+  if (kind === RecurringKind.TRANSFER) {
+    return toWalletId !== null && categoryId === null && debtId === null
+  }
+  return debtId !== null && categoryId === null && toWalletId === null
+}
+
 // A pushed recurring rule (recurring rules 1–3). Server columns (`changeSeq`, `updatedBy`,
 // `userId`) are ignored if sent.
 const row = z
@@ -27,6 +48,10 @@ const row = z
       .default(null),
     toWalletId: z
       .uuid({ error: ERRORS.invalidField('toWalletId') })
+      .nullable()
+      .default(null),
+    debtId: z
+      .uuid({ error: ERRORS.invalidField('debtId') })
       .nullable()
       .default(null),
     amount: z
@@ -70,11 +95,10 @@ const row = z
   })
   .superRefine((value, ctx) => {
     const issue = (message: string) => ctx.addIssue({ code: 'custom', message })
-    const transfer = value.kind === RecurringKind.TRANSFER
-    if (transfer ? !value.toWalletId || value.categoryId : !value.categoryId || value.toWalletId) {
+    if (!kindFits(value)) {
       issue(RECURRING_MESSAGE.KIND_FIELDS)
     }
-    if (transfer && value.toWalletId === value.walletId) {
+    if (value.kind === RecurringKind.TRANSFER && value.toWalletId === value.walletId) {
       issue(RECURRING_MESSAGE.SAME_WALLET)
     }
     if (value.endOn !== null && value.endCount !== null) {
@@ -87,9 +111,9 @@ const row = z
       issue(RECURRING_MESSAGE.NEXT_BEFORE_START)
     }
   })
-  // A transfer is never in a report, so the switch means nothing for it.
+  // A transfer or a repayment is never in a report, so the switch means nothing for it.
   .transform((value) =>
-    value.kind === RecurringKind.TRANSFER ? { ...value, excludeFromReport: false } : value
+    value.kind === RecurringKind.TRANSACTION ? value : { ...value, excludeFromReport: false }
   )
 
 export const validateRecurringRule = (input: unknown): SyncValidation => {

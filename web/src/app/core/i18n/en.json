@@ -30,7 +30,8 @@
     "categories": "Categories",
     "appearance": "Appearance",
     "device": "This device",
-    "recurring": "Recurring"
+    "recurring": "Recurring",
+    "debts": "Debts & loans"
   },
   "status": {
     "online": "Online",
@@ -318,7 +319,8 @@
     "notFoundText": "It may have been deleted or merged.",
     "noneInPeriod": "No transactions in this category in this period",
     "back": "Back to reports",
-    "noneOfType": "Nothing of this type in this period"
+    "noneOfType": "Nothing of this type in this period",
+    "debt": "Debts {{amount}}"
   },
   "account": {
     "appearance": "Appearance",
@@ -400,7 +402,8 @@
     "quickAmounts": "Quick amount buttons",
     "quickAmountsHint": "A row of 20 · 50 · 100 · 500 · 1,000 above the keypad when adding a transaction; each tap adds",
     "recurring": "Recurring",
-    "recurringHint": "{{count}} in {{name}}"
+    "recurringHint": "{{count}} in {{name}}",
+    "debtsHint": "{{count}} in {{name}}"
   },
   "auth": {
     "signInHeading": "Sign in",
@@ -644,7 +647,10 @@
     "withTransactions": "{{count}} transactions",
     "tabletransactions": "Transaction",
     "tabletransfers": "Transfer",
-    "tablerecurring_rules": "Recurring"
+    "tablerecurring_rules": "Recurring",
+    "tabledebts": "Debt",
+    "tabledebt_entries": "Debt row",
+    "withDebts": "{{count}} debts"
   },
   "colors": {
     "label": "Colour {{number}}"
@@ -700,7 +706,9 @@
     "deleteTransactions": "{{count}} transactions",
     "deleteTextWith": "Its {{items}} go with it. This can’t be undone.",
     "deleteRule": "1 recurring rule",
-    "deleteRules": "{{count}} recurring rules"
+    "deleteRules": "{{count}} recurring rules",
+    "deleteDebt": "1 debt",
+    "deleteDebts": "{{count}} debts"
   },
   "icons": {
     "lucideUser": "Person",
@@ -964,6 +972,212 @@
       "week": "On {{weekday}}",
       "month": "On day {{day}}",
       "year": "On {{date}}"
+    },
+    "stoppedDebt": "“{{name}}” is closed"
+  },
+  "debts": {
+    "menu": "Debts & loans",
+    "borrowed": "Borrowed",
+    "lent": "Lent",
+    "direction": "Borrowed or lent",
+    "add": "Add a debt",
+    "createHeading": "Add a debt",
+    "editHeading": "Edit debt",
+    "fixHeading": "Fix the debt",
+    "edit": "Edit debt",
+    "created": "Debt added",
+    "saved": "Saved",
+    "entrySaved": "Saved",
+    "needsOnline": "This device isn’t set up for offline use, so saving needs the internet.",
+    "person": {
+      "borrowed": "Borrowed from",
+      "lent": "Lent to"
+    },
+    "personPlaceholder": "A person or place, e.g. Mum, KTC",
+    "personRequired": "Enter a person or place",
+    "amountTotal": "Amount (the whole plan)",
+    "walletOf": {
+      "borrowed": {
+        "principal": "Into wallet",
+        "repayment": "Paid from wallet"
+      },
+      "lent": {
+        "principal": "From wallet",
+        "repayment": "Into wallet"
+      }
+    },
+    "walletRequired": "Choose a wallet first",
+    "noWallet": "No open wallet in this currency",
+    "categoryOf": "Instalments are spent on",
+    "categoryRequired": "Choose a category first",
+    "countAs": "Counted as spent",
+    "count": {
+      "spent": "When the money is spent",
+      "spentHint": "Borrowed money isn’t income; what you buy with it is spending; paying it back isn’t (only interest is)",
+      "repaid": "When it’s paid back",
+      "repaidHint": "Bought on instalments: no money comes in; each instalment is spending"
+    },
+    "plan": "Pay in instalments",
+    "planNone": "No plan",
+    "planTitle": "{{count}} instalments · {{amount}}",
+    "planCount": "Instalments",
+    "planLess": "Fewer instalments",
+    "planMore": "More instalments",
+    "planAmount": "Each",
+    "planWallet": "Paid from wallet",
+    "planFirst": "First instalment",
+    "planHint": "Saved as a monthly recurring rule that ends after the last one; instalments already due are recorded now",
+    "planOff": "Or leave it: record each payment yourself",
+    "planLine": "First {{first}} · last {{last}}",
+    "dueOn": "Due",
+    "dueNone": "None",
+    "dueClear": "Remove the due date",
+    "delete": "Delete debt",
+    "deleteHeading": "Delete debt",
+    "deleteQuestion": "Delete “{{name}}”?",
+    "deleteText": "Its {{count}} borrow and repay rows go too, so wallet balances change as if it never happened. Counted transactions (interest, instalments) stay.",
+    "deleteCloseInstead": "If it’s paid off or no longer owed, use “Close” instead and keep its history.",
+    "deleted": "Debt deleted",
+    "entry": {
+      "borrowed": {
+        "principal": "Borrowed",
+        "repayment": "Repaid"
+      },
+      "lent": {
+        "principal": "Lent",
+        "repayment": "Paid back"
+      }
+    },
+    "more": {
+      "borrowed": "Borrow more",
+      "lent": "Lend more"
+    },
+    "repay": {
+      "borrowed": "Repay",
+      "lent": "Receive"
+    },
+    "payInstalment": "Pay an instalment",
+    "editEntry": "Edit debt row",
+    "fixEntry": "Fix the debt row",
+    "deleteEntry": "Delete this row",
+    "entryDeleted": "Row deleted",
+    "leftShort": "{{amount}} left",
+    "all": "All {{amount}}",
+    "notCounted": "Borrowing and repaying aren’t income or spending (like a transfer); the wallet’s balance still moves",
+    "interest": {
+      "borrowed": "Interest / fee",
+      "lent": "Interest received"
+    },
+    "interestHint": {
+      "borrowed": "Counted as spending",
+      "lent": "Counted as income"
+    },
+    "interestCategory": "Interest category",
+    "close": "Close debt",
+    "closed": "Debt closed",
+    "closeLeft": {
+      "borrowed": "{{amount}} still owed to {{name}}",
+      "lent": "{{name}} still owes {{amount}}"
+    },
+    "closeHow": {
+      "rest": {
+        "borrowed": "Pay back the rest",
+        "lent": "Get the rest back"
+      },
+      "forgive": {
+        "borrowed": "Forgiven by the lender",
+        "lent": "Not paid back (write off)"
+      }
+    },
+    "closeHint": {
+      "rest": {
+        "borrowed": "Pay {{amount}} from a wallet · not spending",
+        "lent": "Get {{amount}} into a wallet · not income"
+      },
+      "forgive": {
+        "borrowed": "Counts {{amount}} as income once · the loan never counted as income",
+        "lent": "Counts {{amount}} as spending once · the loan never counted as spending"
+      },
+      "forgiveRepaid": "Not counted: the purchase never counted as spending"
+    },
+    "forgiveExpense": "Counted as spending on",
+    "forgiveIncome": "Counted as income in",
+    "pickCategory": "Choose a category",
+    "closeNote": "The debt moves to “Closed” · its history stays editable",
+    "leftOf": {
+      "borrowed": "Borrowed · to pay back",
+      "lent": "Lent · to get back"
+    },
+    "leftRepaid": "Instalments · left",
+    "closedLabel": "Closed · total",
+    "overpaid": "Overpaid",
+    "paidOf": {
+      "borrowed": "{{paid}} of {{total}} paid back",
+      "lent": "{{paid}} of {{total}} back"
+    },
+    "instalmentsPaid": "{{count}} instalments paid, {{paid}}",
+    "ofTotal": " of {{total}}",
+    "interestTotal": {
+      "borrowed": "Interest paid {{amount}}",
+      "lent": "Interest received {{amount}}"
+    },
+    "dueLine": "Due {{date}} · in {{days}} days",
+    "overdueLine": "Overdue since {{date}} ({{days}} days)",
+    "dueShort": "Due {{date}}",
+    "overdueOn": "Overdue {{date}}",
+    "countLine": {
+      "spent": "Counted when spent",
+      "repaid": "Counted when paid back"
+    },
+    "nextInstalment": "Next instalment {{date}}",
+    "instalmentsLeft": "{{count}} left",
+    "ruleStopped": "Stopped (debt closed)",
+    "history": "History",
+    "historyNote": "Borrowing and repaying aren’t income or spending (like a transfer); wallet balances still move",
+    "walletShort": {
+      "in": "into {{name}}",
+      "out": "from {{name}}"
+    },
+    "noCashIn": "No money came in",
+    "forgivenRest": "Rest forgiven",
+    "instalmentNo": "Instalment {{n}}",
+    "goneHeading": "Debt not found",
+    "goneText": "It may have been deleted on another device.",
+    "emptyHeading": {
+      "borrowed": "Nothing borrowed yet",
+      "lent": "Nothing lent yet"
+    },
+    "emptyText": "Record money borrowed or lent and follow what is paid back.",
+    "leftTotal": {
+      "borrowed": "To pay back in total",
+      "lent": "To get back in total"
+    },
+    "repaidTag": "Instalments",
+    "closedGroup": "Closed ({{count}})",
+    "closedPaid": "Paid back · closed {{date}}",
+    "closedForgiven": "Forgiven · closed {{date}}",
+    "paidUp": "Paid back",
+    "forgiven": "Forgiven",
+    "limit": "A profile holds at most 100 open debts",
+    "walletsHeading": "Debts",
+    "walletsLine": {
+      "borrowed": "To pay back · {{count}}",
+      "lent": "To get back · {{count}}"
+    },
+    "overdueCount": "{{count}} overdue",
+    "summaryLine": "Debts (borrow/repay)",
+    "linked": "Debt",
+    "principalShort": "Borrowed / lent",
+    "repaymentShort": "Repaid / paid back",
+    "sheet": {
+      "borrowed": {
+        "principal": "Borrow more",
+        "repayment": "Repay"
+      },
+      "lent": {
+        "principal": "Lend more",
+        "repayment": "Receive back"
+      }
     }
   }
 }

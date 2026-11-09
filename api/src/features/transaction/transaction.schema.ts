@@ -34,6 +34,11 @@ const row = z.object({
     .uuid({ error: ERRORS.invalidField('recurringId') })
     .nullable()
     .default(null),
+  /** The debt it belongs to (docs/features/debt.md rule 3); null otherwise. */
+  debtId: z
+    .uuid({ error: ERRORS.invalidField('debtId') })
+    .nullable()
+    .default(null),
   createdAt: epochMs,
   updatedAt: epochMs,
   deletedAt: epochMs.nullable().default(null),

@@ -44,7 +44,10 @@ properties:
     format: uuid
   kind:
     type: string
-    enum: [transaction, transfer]
+    enum: [transaction, transfer, debt]
+    description: >-
+      `debt`: a debt's repayment (docs/features/debt.md rule 13), recorded as a debt entry; it has
+      a debtId and no categoryId or toWalletId
   walletId:
     type: string
     format: uuid
@@ -57,6 +60,12 @@ properties:
     type: [string, 'null']
     format: uuid
     description: A transfer rule's wallet the money goes to; null for a transaction
+  debtId:
+    type: [string, 'null']
+    format: uuid
+    description: >-
+      A `debt` rule's debt, or a transaction rule's (its occurrences are a debt's instalments);
+      a live debt of the profile in the wallet's currency (`CONFLICT`); null otherwise
   amount:
     type: integer
     minimum: 1
@@ -115,6 +124,7 @@ example:
   walletId: 0199b000-0000-7000-8000-000000000101
   categoryId: 0199b000-0000-7000-8000-000000000201
   toWalletId: null
+  debtId: null
   amount: 850000
   note: ค่าเช่าคอนโด
   excludeFromReport: false

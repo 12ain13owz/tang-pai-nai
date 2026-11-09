@@ -14,6 +14,8 @@ export type Transaction = {
   excludeFromReport: boolean
   /** The recurring rule it is an occurrence of; null otherwise. */
   recurringId: string | null
+  /** The debt it belongs to (debt rule 3); null otherwise. */
+  debtId: string | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null

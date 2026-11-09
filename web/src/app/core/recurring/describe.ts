@@ -1,6 +1,6 @@
 import { fromDay } from '@/shared/utils'
 import { lastOccurrence, occurrencesBetween } from './schedule'
-import type { RecurringSchedule, RepeatValues } from './recurring.type'
+import type { RecurringSchedule, RepeatValues, RuleItem } from './recurring.type'
 
 /** A translate function (`TranslocoService.translate`). */
 export type Translate = (key: string, params?: Record<string, unknown>) => string
@@ -80,4 +80,21 @@ export const lastLine = (
   }
   const last = lastOccurrence(schedule)
   return last ? t('recurring.lastOne', { date: shortDate(last, locale) }) : null
+}
+
+/**
+ * A rule's title in a list: its category, "โอนเงิน" (or "กสิกร → ออมทรัพย์" with `full`), or a
+ * debt's repayment ("คืนเงิน · แม่", debt rule 13).
+ */
+export const ruleTitle = (item: RuleItem, t: Translate, full = false): string => {
+  switch (item.rule.kind) {
+    case 'transfer':
+      return full
+        ? t('recurring.transferTitle', { from: item.walletName, to: item.toWalletName })
+        : t('transfers.title')
+    case 'debt':
+      return `${t(`debts.entry.${item.debtDirection ?? 'borrowed'}.repayment`)} · ${item.title}`
+    default:
+      return item.title
+  }
 }

@@ -24,6 +24,8 @@ export interface ReportSummary {
   net: number
   /** Transfers in − out of the wallets in view (explains the balances, never income). */
   transfer: number
+  /** Debt entries in − out of the wallets in view (debt rule 7: balances only, never income). */
+  debt: number
   /** `excludeFromReport` rows of the period: how many and their signed sum (rule 11). */
   excludedCount: number
   excluded: number

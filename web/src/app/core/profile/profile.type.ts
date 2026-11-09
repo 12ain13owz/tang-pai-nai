@@ -45,6 +45,9 @@ export const PROFILE_KEY_PREFIX = 'tpn-profile:'
 export const PROFILE_CHILD_TABLES = [
   'wallets',
   'categories',
+  // A debt before what points at it (its entries, linked transactions and rules: outbox order).
+  'debts',
+  'debt_entries',
   'transactions',
   'transfers',
   'recurring_rules',

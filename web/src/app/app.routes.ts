@@ -21,6 +21,11 @@ export const routes: Routes = [
           import('@/features/transactions').then((m) => m.transactionsRoutes),
       },
       {
+        // Debts live under the Wallets tab (debt.md Q9).
+        path: 'wallets/debts',
+        loadChildren: async () => import('@/features/debts').then((m) => m.debtsRoutes),
+      },
+      {
         path: 'wallets',
         loadChildren: async () => import('@/features/wallets').then((m) => m.walletsRoutes),
       },

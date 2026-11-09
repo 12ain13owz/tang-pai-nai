@@ -185,6 +185,50 @@ const MIGRATIONS: readonly string[] = [
   CREATE INDEX recurring_rules_category ON recurring_rules (category_id);
   ALTER TABLE transactions ADD COLUMN recurring_id TEXT;
   ALTER TABLE transfers ADD COLUMN recurring_id TEXT`,
+  // #13: debts and their uncounted entries (docs/features/debt.md), the debt a counted
+  // transaction or a recurring rule belongs to. Indexes: the profile's debts and entries (a
+  // period), a debt's entries and linked rows, a wallet's entries (balances).
+  `CREATE TABLE debts (
+    id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL,
+    direction TEXT NOT NULL,
+    person TEXT NOT NULL,
+    note TEXT NOT NULL,
+    currency_code TEXT NOT NULL,
+    count_as TEXT NOT NULL,
+    category_id TEXT,
+    due_on TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted_at INTEGER,
+    change_seq INTEGER,
+    updated_by TEXT
+  ) STRICT;
+  CREATE INDEX debts_profile ON debts (profile_id);
+  CREATE INDEX debts_category ON debts (category_id);
+  CREATE TABLE debt_entries (
+    id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL,
+    debt_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    wallet_id TEXT,
+    amount INTEGER NOT NULL,
+    occurred_on TEXT NOT NULL,
+    note TEXT NOT NULL,
+    recurring_id TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted_at INTEGER,
+    change_seq INTEGER,
+    updated_by TEXT
+  ) STRICT;
+  CREATE INDEX debt_entries_profile_day ON debt_entries (profile_id, occurred_on);
+  CREATE INDEX debt_entries_debt ON debt_entries (debt_id);
+  CREATE INDEX debt_entries_wallet ON debt_entries (wallet_id);
+  ALTER TABLE transactions ADD COLUMN debt_id TEXT;
+  CREATE INDEX transactions_debt ON transactions (debt_id) WHERE debt_id IS NOT NULL;
+  ALTER TABLE recurring_rules ADD COLUMN debt_id TEXT;
+  CREATE INDEX recurring_rules_debt ON recurring_rules (debt_id)`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null

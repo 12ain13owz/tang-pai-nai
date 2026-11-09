@@ -37,6 +37,7 @@ describe('validateRecurringRule', () => {
         ...valid,
         note: 'ค่าเช่า',
         toWalletId: null,
+        debtId: null,
         excludeFromReport: false,
         endOn: null,
         endCount: null,
@@ -83,5 +84,16 @@ describe('validateRecurringRule', () => {
     expect(messageOf({ amount: 0 })).not.toBeNull()
     expect(messageOf({ amount: 1.5 })).not.toBeNull()
     expect(messageOf({ startOn: '1999-12-31' })).not.toBeNull()
+  })
+
+  it('takes a debt rule with its debt only, and an instalment rule with a category and a debt', () => {
+    const debtId = '0199a000-0000-7000-8000-000000000301'
+    const repayment = { ...valid, kind: 'debt', categoryId: null, debtId, excludeFromReport: true }
+    const result = validateRecurringRule(repayment)
+    expect(result.ok && result.row['excludeFromReport']).toBe(false)
+    expect(messageOf({ kind: 'debt', categoryId: null })).toBe(RECURRING_MESSAGE.KIND_FIELDS)
+    expect(messageOf({ kind: 'debt', debtId })).toBe(RECURRING_MESSAGE.KIND_FIELDS)
+    expect(messageOf({ ...transfer, debtId })).toBe(RECURRING_MESSAGE.KIND_FIELDS)
+    expect(messageOf({ debtId })).toBeNull()
   })
 })

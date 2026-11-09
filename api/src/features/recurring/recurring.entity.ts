@@ -3,12 +3,14 @@
 export type RecurringRule = {
   id: string
   profileId: string
-  /** `transaction` | `transfer`. */
+  /** `transaction` | `transfer` | `debt`. */
   kind: string
   /** The transaction's wallet, or the wallet a transfer leaves. */
   walletId: string
   categoryId: string | null
   toWalletId: string | null
+  /** A `debt` rule's debt, or a transaction rule's (instalments); else null. */
+  debtId: string | null
   /** Minor units, always > 0. */
   amount: number
   note: string

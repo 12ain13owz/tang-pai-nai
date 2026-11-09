@@ -2,6 +2,7 @@ import { CdkDrag, CdkDragHandle, CdkDragPlaceholder, CdkDropList } from '@angula
 import type { CdkDragDrop } from '@angular/cdk/drag-drop'
 import { NgTemplateOutlet } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
+import { RouterLink } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
@@ -9,9 +10,11 @@ import {
   lucideChevronDown,
   lucideChevronRight,
   lucideGripVertical,
+  lucideHandCoins,
   lucidePlus,
 } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
+import { DEBTS_ROUTE, DebtService } from '@/core/debt'
 import { LanguageService } from '@/core/i18n'
 import { TransferService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
@@ -36,6 +39,7 @@ import { formatMoney } from '@/shared/utils'
     CdkDrag,
     CdkDragHandle,
     CdkDragPlaceholder,
+    RouterLink,
   ],
   providers: [
     provideIcons({
@@ -43,6 +47,7 @@ import { formatMoney } from '@/shared/utils'
       lucideChevronDown,
       lucideChevronRight,
       lucideGripVertical,
+      lucideHandCoins,
       lucidePlus,
     }),
   ],
@@ -177,6 +182,54 @@ import { formatMoney } from '@/shared/utils'
         }
       </div>
 
+      <!-- Debts (debt.md Q8–Q9): what is owed and lent, each opening the debts page. -->
+      <section class="flex flex-col gap-3" aria-labelledby="wallets-debts">
+        <h2 id="wallets-debts" class="text-sm font-medium text-muted-foreground">
+          {{ 'debts.walletsHeading' | transloco }}
+        </h2>
+        <ul class="divide-y divide-border rounded-xl border border-border bg-card">
+          @for (line of debtLines(); track line.direction) {
+            <li>
+              <a
+                class="flex min-h-16 items-center gap-3 px-4 py-2.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                [routerLink]="debtsRoute"
+                [queryParams]="line.direction === 'lent' ? { tab: 'lent' } : {}"
+              >
+                <span
+                  class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground"
+                >
+                  <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
+                </span>
+                <span class="flex min-w-0 flex-1 flex-col">
+                  <span class="text-base">{{ 'debts.' + line.direction | transloco }}</span>
+                  <span class="text-sm text-muted-foreground">
+                    {{ 'debts.walletsLine.' + line.direction | transloco: { count: line.count } }}
+                    @if (line.overdue > 0) {
+                      ·
+                      <span class="text-destructive">{{
+                        'debts.overdueCount' | transloco: { count: line.overdue }
+                      }}</span>
+                    }
+                  </span>
+                </span>
+                <span
+                  class="shrink-0 text-base tabular-nums"
+                  [class.text-expense]="line.direction === 'borrowed' && line.count > 0"
+                  [class.text-income]="line.direction === 'lent' && line.count > 0"
+                  >{{ line.text }}</span
+                >
+                <ng-icon
+                  name="lucideChevronRight"
+                  size="18"
+                  class="text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
+
       @if (archived.length > 0) {
         <section class="flex flex-col gap-3">
           <button
@@ -247,6 +300,35 @@ export class WalletsPage {
   private languageService = inject(LanguageService)
   protected walletService = inject(WalletService)
   protected transferService = inject(TransferService)
+  private debtService = inject(DebtService)
+  protected debtsRoute = DEBTS_ROUTE
+  /** Open debts per direction: how many, overdue, what is left (one currency per line). */
+  protected debtLines = computed(() => {
+    const locale = this.languageService.locale()
+    const open = this.debtService.openItems()
+    return (['borrowed', 'lent'] as const).map((direction) => {
+      const items = open.filter((item) => item.debt.direction === direction)
+      const sums = new Map<string, { amount: number; minorUnit: number }>()
+      for (const item of items) {
+        const sum = sums.get(item.debt.currencyCode) ?? { amount: 0, minorUnit: item.minorUnit }
+        sum.amount += Math.max(0, item.left)
+        sums.set(item.debt.currencyCode, sum)
+      }
+      const code = this.walletService.defaultCurrency()
+      const lines =
+        sums.size > 0
+          ? [...sums.entries()]
+          : [[code, { amount: 0, minorUnit: this.walletService.minorUnit(code) }] as const]
+      return {
+        direction,
+        count: items.length,
+        overdue: items.filter((item) => item.overdue).length,
+        text: lines
+          .map(([currency, sum]) => formatMoney(sum.amount, currency, sum.minorUnit, locale))
+          .join(' · '),
+      }
+    })
+  })
 
   protected defaultIcon = WALLET_DEFAULT_ICON
   protected ordering = signal(false)

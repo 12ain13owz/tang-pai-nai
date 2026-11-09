@@ -1,6 +1,7 @@
 import { and, asc, eq, gt, isNull, lt, max } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
 import { findMergeTarget } from '@/core/database/category-merge'
+import { checkDebtLink } from '@/core/database/debt-link'
 import { categories } from '@/core/database/schema/category'
 import { profiles } from '@/core/database/schema/profile'
 import { transactions } from '@/core/database/schema/transaction'
@@ -88,14 +89,25 @@ const checkParents = async (
       return TRANSACTION_MESSAGE.CURRENCY_FIXED
     }
   }
+  // Debt rule 8: the debt of the same profile, in the wallet's currency.
+  if (typeof row.debtId === 'string') {
+    const link = await checkDebtLink(executor, userId, row.debtId, profileId, walletId)
+    if (link.status === 'otherProfile') {
+      return TRANSACTION_MESSAGE.DEBT_OTHER_PROFILE
+    }
+    if (link.status === 'otherCurrency') {
+      return TRANSACTION_MESSAGE.DEBT_OTHER_CURRENCY
+    }
+  }
   return null
 }
 
 /**
  * Category rule 15: a live row on a merged category (added or edited on a device that hadn't
- * pulled the merge) moves to the category it was merged into, instead of being refused.
+ * pulled the merge) moves to the category it was merged into, instead of being refused. Debt
+ * rule 8: a link to a debt that is gone (deleted on another device) is cleared, never refused.
  */
-const followMergedCategory = async (
+const resolveTransaction = async (
   executor: Executor,
   userId: string,
   row: SyncRowInput
@@ -103,8 +115,18 @@ const followMergedCategory = async (
   if (row.deletedAt !== null) {
     return row
   }
+  let resolved = row
   const target = await findMergeTarget(executor, userId, String(row.categoryId))
-  return target ? { ...row, categoryId: target.id } : row
+  if (target) {
+    resolved = { ...resolved, categoryId: target.id }
+  }
+  if (typeof row.debtId === 'string') {
+    const link = await checkDebtLink(executor, userId, row.debtId, String(row.profileId), null)
+    if (link.status === 'gone') {
+      resolved = { ...resolved, debtId: null }
+    }
+  }
+  return resolved
 }
 
 /** Rules a device can't check offline (transaction rules 1, 5); the message or null. */
@@ -159,7 +181,7 @@ export const transactionSyncHandler: SyncTableHandler = {
         { id }
       ),
     resolve: async (executor, userId, row) =>
-      run('resolve', async () => followMergedCategory(executor, userId, row), { id: row.id }),
+      run('resolve', async () => resolveTransaction(executor, userId, row), { id: row.id }),
     check: async (executor, userId, row) =>
       run('check', async () => checkTransaction(executor, userId, row), { id: row.id }),
     write: async (executor, userId, row) =>
@@ -177,6 +199,7 @@ export const transactionSyncHandler: SyncTableHandler = {
             note: typeof row.note === 'string' ? row.note : '',
             excludeFromReport: row.excludeFromReport === true,
             recurringId: typeof row.recurringId === 'string' ? row.recurringId : null,
+            debtId: typeof row.debtId === 'string' ? row.debtId : null,
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
             deletedAt: row.deletedAt,

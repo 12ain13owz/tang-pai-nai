@@ -64,6 +64,14 @@ properties:
       otherwise (a push without it means null). An occurrence's id is made from its rule and day,
       so two devices record one occurrence under one id: a create (baseSeq null) of an id the
       server already has answers `overridden` with the stored row and no notice.
+  debtId:
+    type: [string, 'null']
+    format: uuid
+    description: >-
+      The debt this counted row belongs to (docs/features/debt.md: an instalment of a `repaid`
+      debt, interest, a forgiven rest), null otherwise (a push without it means null). It must be
+      a debt of the same profile whose currency the wallet has (`CONFLICT`); a link to a debt
+      that is gone is cleared, not refused.
   createdAt:
     type: integer
   updatedAt:

@@ -231,6 +231,9 @@ Glossary: รายการซ้ำ / Recurring, ทำซ้ำ / Repeat, ถ
 
 - **Transaction / Transfer**: occurrences are their rows (`recurringId`); the server's
   duplicate rule (rule 9) lives in their handlers.
+- **Debt** ([debt.md](debt.md) rules 13–14, #13): a third `kind`, `debt`, records a debt's
+  repayments as debt entries; a transaction rule may carry `debtId` (a repaid debt's
+  instalments). A closed debt stops its rules (shown as stopped), a deleted one takes them.
 - **Wallet / Category**: rules point at them; archive, merge, delete and the currency / type
   locks (rules 12–15).
 - **Profile**: `PROFILE_CHILD_TABLES` (rule 16).

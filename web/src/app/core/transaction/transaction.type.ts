@@ -15,6 +15,8 @@ export interface Transaction {
   excludeFromReport: boolean
   /** The recurring rule it is an occurrence of (docs/features/recurring.md); null otherwise. */
   recurringId: string | null
+  /** The debt it belongs to (docs/features/debt.md rule 3); null otherwise. */
+  debtId: string | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null
@@ -66,8 +68,32 @@ export interface TransferItem extends Transfer {
   currencyCode: string
 }
 
+/**
+ * A debt entry with a wallet as a row of the list (debt → Web screens): money in or out of the
+ * wallet that is not income or expense, signed by the wallet (debt rule 7).
+ */
+export interface DebtEntryItem {
+  kind: 'debt'
+  id: string
+  debtId: string
+  /** `principal` | `repayment`. */
+  entryKind: 'principal' | 'repayment'
+  direction: 'borrowed' | 'lent'
+  person: string
+  walletId: string
+  walletName: string
+  currencyCode: string
+  /** Minor units, signed by the money in the wallet. */
+  signed: number
+  amount: number
+  occurredOn: string
+  note: string
+  recurringId: string | null
+  createdAt: number
+}
+
 /** A row of the Transactions tab. */
-export type EntryItem = TransactionItem | TransferItem
+export type EntryItem = TransactionItem | TransferItem | DebtEntryItem
 
 /** What the transfer form edits. */
 export interface TransferValues {
@@ -101,6 +127,8 @@ export interface TransactionValues {
   occurredOn: string
   note: string
   excludeFromReport: boolean
+  /** The debt it belongs to (debt rule 3); absent keeps what the row has. */
+  debtId?: string | null
 }
 
 /** Days from `from` to `to`, both included; null is open on that side. */
@@ -128,6 +156,8 @@ export interface MoneySummary {
   net: number
   /** Transfers in − out of the wallets in view (transfer → Web screens: the "โอน" line). */
   transfer: number
+  /** Debt entries in − out of the wallets in view (debt → Web screens: the "หนี้" line). */
+  debt: number
 }
 
 /** Which transaction sheet is open: create, edit, or "fix" of a rejected op. */

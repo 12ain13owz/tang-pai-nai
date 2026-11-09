@@ -1,6 +1,7 @@
 import { and, asc, count, eq, gt, isNull, lt, max, ne } from 'drizzle-orm'
 import type { Executor } from '@/core/database'
 import { findMergeTarget } from '@/core/database/category-merge'
+import { checkDebtLink } from '@/core/database/debt-link'
 import { categories } from '@/core/database/schema/category'
 import { profiles } from '@/core/database/schema/profile'
 import { recurringRules } from '@/core/database/schema/recurring'
@@ -83,6 +84,22 @@ const checkParents = async (
       return RECURRING_MESSAGE.OTHER_PROFILE
     }
     return to.currencyCode === wallet.currencyCode ? null : RECURRING_MESSAGE.OTHER_CURRENCY
+  }
+  // Debt rule 13: a repayment's or an instalment's debt, of the profile and the wallet's currency.
+  if (typeof row.debtId === 'string') {
+    const link = await checkDebtLink(executor, userId, row.debtId, profileId, String(row.walletId))
+    if (link.status === 'gone') {
+      return RECURRING_MESSAGE.DEBT_GONE
+    }
+    if (link.status === 'otherProfile') {
+      return RECURRING_MESSAGE.DEBT_OTHER_PROFILE
+    }
+    if (link.status === 'otherCurrency') {
+      return RECURRING_MESSAGE.DEBT_OTHER_CURRENCY
+    }
+  }
+  if (row.kind === RecurringKind.DEBT) {
+    return null
   }
   const category = await findCategory(executor, String(row.categoryId))
   if (!isOwnLive(category, userId)) {
@@ -184,6 +201,7 @@ const CONTENT = [
   'walletId',
   'categoryId',
   'toWalletId',
+  'debtId',
   'amount',
   'note',
   'excludeFromReport',
@@ -238,6 +256,7 @@ export const recurringSyncHandler: SyncTableHandler = {
             walletId: String(row.walletId),
             categoryId: text(row.categoryId),
             toWalletId: text(row.toWalletId),
+            debtId: text(row.debtId),
             amount: Number(row.amount),
             note: typeof row.note === 'string' ? row.note : '',
             excludeFromReport: row.excludeFromReport === true,

@@ -30,7 +30,8 @@
     "categories": "หมวดหมู่",
     "appearance": "การแสดงผล",
     "device": "เครื่องนี้",
-    "recurring": "รายการซ้ำ"
+    "recurring": "รายการซ้ำ",
+    "debts": "หนี้ / เงินกู้"
   },
   "status": {
     "online": "ออนไลน์",
@@ -318,7 +319,8 @@
     "notFoundText": "หมวดหมู่นี้อาจถูกลบหรือผสานไปแล้ว",
     "noneInPeriod": "ช่วงนี้ไม่มีธุรกรรมในหมวดนี้",
     "back": "กลับไปรายงาน",
-    "noneOfType": "ช่วงนี้ไม่มีรายการประเภทนี้"
+    "noneOfType": "ช่วงนี้ไม่มีรายการประเภทนี้",
+    "debt": "หนี้ {{amount}}"
   },
   "account": {
     "appearance": "การแสดงผล",
@@ -400,7 +402,8 @@
     "quickAmounts": "ปุ่มจำนวนเงินด่วน",
     "quickAmountsHint": "แถว 20 · 50 · 100 · 500 · 1,000 เหนือแป้นตัวเลขตอนเพิ่มธุรกรรม แตะแล้วบวกเพิ่ม",
     "recurring": "รายการซ้ำ",
-    "recurringHint": "{{count}} รายการใน {{name}}"
+    "recurringHint": "{{count}} รายการใน {{name}}",
+    "debtsHint": "{{count}} รายการใน {{name}}"
   },
   "auth": {
     "signInHeading": "เข้าสู่ระบบ",
@@ -644,7 +647,10 @@
     "withTransactions": "ธุรกรรม {{count}} รายการ",
     "tabletransactions": "ธุรกรรม",
     "tabletransfers": "การโอนเงิน",
-    "tablerecurring_rules": "รายการซ้ำ"
+    "tablerecurring_rules": "รายการซ้ำ",
+    "tabledebts": "หนี้",
+    "tabledebt_entries": "รายการหนี้",
+    "withDebts": "หนี้ {{count}} รายการ"
   },
   "colors": {
     "label": "สีที่ {{number}}"
@@ -700,7 +706,9 @@
     "deleteTransactions": "ธุรกรรม {{count}} รายการ",
     "deleteTextWith": "{{items}} ในโปรไฟล์นี้จะถูกลบไปด้วย และเลิกทำไม่ได้",
     "deleteRule": "รายการซ้ำ 1 รายการ",
-    "deleteRules": "รายการซ้ำ {{count}} รายการ"
+    "deleteRules": "รายการซ้ำ {{count}} รายการ",
+    "deleteDebt": "หนี้ 1 รายการ",
+    "deleteDebts": "หนี้ {{count}} รายการ"
   },
   "icons": {
     "lucideUser": "คน",
@@ -964,6 +972,212 @@
       "week": "{{weekday}}",
       "month": "วันที่ {{day}}",
       "year": "{{date}}"
+    },
+    "stoppedDebt": "หนี้ \"{{name}}\" ปิดแล้ว"
+  },
+  "debts": {
+    "menu": "หนี้ / เงินกู้",
+    "borrowed": "ยืมมา",
+    "lent": "ให้ยืม",
+    "direction": "ยืมมาหรือให้ยืม",
+    "add": "บันทึกหนี้",
+    "createHeading": "บันทึกหนี้",
+    "editHeading": "แก้ไขหนี้",
+    "fixHeading": "แก้ไขหนี้ที่บันทึกไม่สำเร็จ",
+    "edit": "แก้ไขหนี้",
+    "created": "บันทึกหนี้แล้ว",
+    "saved": "บันทึกแล้ว",
+    "entrySaved": "บันทึกแล้ว",
+    "needsOnline": "เครื่องนี้ไม่ได้ใช้งานออฟไลน์ ต้องต่ออินเทอร์เน็ตก่อนจึงจะบันทึกได้",
+    "person": {
+      "borrowed": "ยืมจาก",
+      "lent": "ให้ยืมกับ"
+    },
+    "personPlaceholder": "ชื่อคนหรือที่ เช่น แม่, KTC",
+    "personRequired": "ใส่ชื่อคนหรือที่",
+    "amountTotal": "จำนวนเงิน (ยอดผ่อนทั้งหมด)",
+    "walletOf": {
+      "borrowed": {
+        "principal": "เงินเข้ากระเป๋า",
+        "repayment": "คืนจากกระเป๋า"
+      },
+      "lent": {
+        "principal": "จ่ายจากกระเป๋า",
+        "repayment": "รับเข้ากระเป๋า"
+      }
+    },
+    "walletRequired": "เลือกกระเป๋าเงินก่อน",
+    "noWallet": "ยังไม่มีกระเป๋าเงินที่ใช้สกุลเงินนี้",
+    "categoryOf": "ค่างวดเป็นรายจ่ายหมวด",
+    "categoryRequired": "เลือกหมวดหมู่ก่อน",
+    "countAs": "นับเป็นรายจ่าย",
+    "count": {
+      "spent": "ตอนใช้เงิน",
+      "spentHint": "เงินที่ยืมเข้ากระเป๋าไม่ใช่รายรับ ของที่ซื้อด้วยเงินนี้เป็นรายจ่าย การคืนเงินต้นไม่ใช่รายจ่าย (มีแต่ดอกเบี้ย)",
+      "repaid": "ตอนผ่อนคืน",
+      "repaidHint": "ซื้อของผ่อน: ไม่มีเงินเข้ากระเป๋า แต่ละงวดที่จ่ายเป็นรายจ่าย"
+    },
+    "plan": "ผ่อนเป็นงวด",
+    "planNone": "ไม่ตั้งงวด",
+    "planTitle": "ผ่อน {{count}} งวด · {{amount}}",
+    "planCount": "จำนวนงวด",
+    "planLess": "ลดจำนวนงวด",
+    "planMore": "เพิ่มจำนวนงวด",
+    "planAmount": "งวดละ",
+    "planWallet": "จ่ายจากกระเป๋า",
+    "planFirst": "งวดแรก",
+    "planHint": "บันทึกเป็นรายการซ้ำทุกเดือน จบเองเมื่อครบงวด งวดที่ถึงแล้วบันทึกทันที",
+    "planOff": "ไม่ตั้งงวดก็ได้: กดจ่ายงวดหรือคืนเงินเองทีละครั้ง",
+    "planLine": "งวดแรก {{first}} · งวดสุดท้าย {{last}}",
+    "dueOn": "กำหนดคืน",
+    "dueNone": "ไม่กำหนด",
+    "dueClear": "ไม่กำหนดวันคืน",
+    "delete": "ลบหนี้",
+    "deleteHeading": "ลบหนี้",
+    "deleteQuestion": "ลบหนี้ \"{{name}}\"?",
+    "deleteText": "รายการยืม/คืน {{count}} รายการจะถูกลบด้วย ยอดเงินในกระเป๋าจะเปลี่ยนเหมือนไม่เคยยืม ธุรกรรมที่นับแล้ว (ดอกเบี้ย ค่างวด) ยังอยู่",
+    "deleteCloseInstead": "ถ้าคืนครบหรือไม่ต้องคืนแล้ว ใช้ \"ปิดหนี้\" แทน ประวัติจะยังอยู่",
+    "deleted": "ลบหนี้แล้ว",
+    "entry": {
+      "borrowed": {
+        "principal": "ยืม",
+        "repayment": "คืนเงิน"
+      },
+      "lent": {
+        "principal": "ให้ยืม",
+        "repayment": "รับคืน"
+      }
+    },
+    "more": {
+      "borrowed": "ยืมเพิ่ม",
+      "lent": "ให้ยืมเพิ่ม"
+    },
+    "repay": {
+      "borrowed": "คืนเงิน",
+      "lent": "รับคืน"
+    },
+    "payInstalment": "จ่ายงวด",
+    "editEntry": "แก้ไขรายการหนี้",
+    "fixEntry": "แก้ไขรายการที่บันทึกไม่สำเร็จ",
+    "deleteEntry": "ลบรายการนี้",
+    "entryDeleted": "ลบรายการแล้ว",
+    "leftShort": "เหลือ {{amount}}",
+    "all": "ทั้งหมด {{amount}}",
+    "notCounted": "ยืม/คืนเงินต้นไม่นับเป็นรายรับ-รายจ่าย (เหมือนการโอน) ยอดเงินในกระเป๋าเปลี่ยนตามจริง",
+    "interest": {
+      "borrowed": "ดอกเบี้ย/ค่าธรรมเนียม",
+      "lent": "ดอกเบี้ยที่ได้รับ"
+    },
+    "interestHint": {
+      "borrowed": "บันทึกเป็นรายจ่าย",
+      "lent": "บันทึกเป็นรายรับ"
+    },
+    "interestCategory": "หมวดของดอกเบี้ย",
+    "close": "ปิดหนี้",
+    "closed": "ปิดหนี้แล้ว",
+    "closeLeft": {
+      "borrowed": "ยังต้องคืน {{name}} อีก {{amount}}",
+      "lent": "{{name}} ยังค้าง {{amount}}"
+    },
+    "closeHow": {
+      "rest": {
+        "borrowed": "คืนส่วนที่เหลือ",
+        "lent": "รับคืนส่วนที่เหลือ"
+      },
+      "forgive": {
+        "borrowed": "เจ้าหนี้ยกให้",
+        "lent": "ไม่ได้คืนแล้ว (ยกหนี้)"
+      }
+    },
+    "closeHint": {
+      "rest": {
+        "borrowed": "จ่าย {{amount}} จากกระเป๋า · ไม่ใช่รายจ่าย",
+        "lent": "รับ {{amount}} เข้ากระเป๋า · ไม่ใช่รายรับ"
+      },
+      "forgive": {
+        "borrowed": "บันทึก {{amount}} เป็นรายรับครั้งเดียว · เงินที่ยืมมาไม่เคยนับเป็นรายรับ",
+        "lent": "บันทึก {{amount}} เป็นรายจ่ายครั้งเดียว · เงินที่ให้ยืมไม่เคยนับเป็นรายจ่าย"
+      },
+      "forgiveRepaid": "ไม่นับเป็นรายรับ เพราะของที่ซื้อผ่อนไม่เคยนับเป็นรายจ่าย"
+    },
+    "forgiveExpense": "บันทึกเป็นรายจ่ายหมวด",
+    "forgiveIncome": "บันทึกเป็นรายรับหมวด",
+    "pickCategory": "เลือกหมวดหมู่",
+    "closeNote": "หนี้ย้ายไป \"ปิดแล้ว\" · ยังเปิดดูและแก้ประวัติได้",
+    "leftOf": {
+      "borrowed": "ยืมมา · ต้องคืน",
+      "lent": "ให้ยืม · รอรับคืน"
+    },
+    "leftRepaid": "ผ่อน · เหลือ",
+    "closedLabel": "ปิดแล้ว · ยอดทั้งหมด",
+    "overpaid": "จ่ายเกิน",
+    "paidOf": {
+      "borrowed": "คืนแล้ว {{paid}} จาก {{total}}",
+      "lent": "ได้คืนแล้ว {{paid}} จาก {{total}}"
+    },
+    "instalmentsPaid": "จ่ายแล้ว {{count}} งวด {{paid}}",
+    "ofTotal": " จาก {{total}}",
+    "interestTotal": {
+      "borrowed": "ดอกเบี้ยจ่ายแล้ว {{amount}}",
+      "lent": "ดอกเบี้ยได้รับ {{amount}}"
+    },
+    "dueLine": "กำหนดคืน {{date}} · อีก {{days}} วัน",
+    "overdueLine": "เลยกำหนด {{date}} ({{days}} วัน)",
+    "dueShort": "ครบ {{date}}",
+    "overdueOn": "เลย {{date}}",
+    "countLine": {
+      "spent": "นับเป็นรายจ่ายตอนใช้เงิน",
+      "repaid": "นับเป็นรายจ่ายตอนผ่อน"
+    },
+    "nextInstalment": "งวดถัดไป {{date}}",
+    "instalmentsLeft": "เหลือ {{count}} งวด",
+    "ruleStopped": "หยุดแล้ว (หนี้ปิด)",
+    "history": "ประวัติ",
+    "historyNote": "ยืม/คืนเงินต้นไม่นับเป็นรายรับ-รายจ่าย (เหมือนการโอน) ยอดเงินในกระเป๋าเปลี่ยนตามจริง",
+    "walletShort": {
+      "in": "เข้า {{name}}",
+      "out": "จาก {{name}}"
+    },
+    "noCashIn": "ไม่มีเงินเข้ากระเป๋า",
+    "forgivenRest": "ยกหนี้ส่วนที่เหลือ",
+    "instalmentNo": "งวด {{n}}",
+    "goneHeading": "ไม่พบหนี้นี้",
+    "goneText": "หนี้นี้อาจถูกลบไปแล้วบนเครื่องอื่น",
+    "emptyHeading": {
+      "borrowed": "ยังไม่มีหนี้ที่ยืมมา",
+      "lent": "ยังไม่มีเงินที่ให้ยืม"
+    },
+    "emptyText": "บันทึกเงินที่ยืมหรือให้ยืม แล้วติดตามการคืนได้ที่นี่",
+    "leftTotal": {
+      "borrowed": "ต้องคืนทั้งหมด",
+      "lent": "รอรับคืนทั้งหมด"
+    },
+    "repaidTag": "ผ่อน",
+    "closedGroup": "ปิดแล้ว ({{count}})",
+    "closedPaid": "คืนครบ · ปิด {{date}}",
+    "closedForgiven": "ยกหนี้ · ปิด {{date}}",
+    "paidUp": "คืนครบ",
+    "forgiven": "ยกหนี้",
+    "limit": "โปรไฟล์หนึ่งมีหนี้ที่ยังไม่ปิดได้ไม่เกิน 100 รายการ",
+    "walletsHeading": "หนี้สิน",
+    "walletsLine": {
+      "borrowed": "ต้องคืน · {{count}} รายการ",
+      "lent": "รอรับคืน · {{count}} รายการ"
+    },
+    "overdueCount": "เลยกำหนด {{count}}",
+    "summaryLine": "หนี้ (ยืม/คืน)",
+    "linked": "หนี้",
+    "principalShort": "ยืม / ให้ยืม",
+    "repaymentShort": "คืน / รับคืน",
+    "sheet": {
+      "borrowed": {
+        "principal": "ยืมเพิ่ม",
+        "repayment": "คืนเงิน"
+      },
+      "lent": {
+        "principal": "ให้ยืมเพิ่ม",
+        "repayment": "รับคืน"
+      }
     }
   }
 }

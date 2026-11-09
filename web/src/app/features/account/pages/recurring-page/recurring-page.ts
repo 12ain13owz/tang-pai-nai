@@ -5,6 +5,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
   lucideArrowLeftRight,
+  lucideHandCoins,
   lucideChevronDown,
   lucideCircleAlert,
   lucideRepeat,
@@ -13,7 +14,7 @@ import { HlmButton } from '@spartan-ng/helm/button'
 import { CATEGORY_DEFAULT_ICON } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
 import { SyncService } from '@/core/offline'
-import { describeRepeat, RecurringService, shortDate } from '@/core/recurring'
+import { describeRepeat, RecurringService, ruleTitle, shortDate } from '@/core/recurring'
 import type { RuleItem } from '@/core/recurring'
 import { TransactionService, TransferService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
@@ -41,7 +42,13 @@ interface RuleRow {
   selector: 'app-recurring-page',
   imports: [TranslocoPipe, NgIcon, HlmButton, EmptyState, IconBadge],
   providers: [
-    provideIcons({ lucideArrowLeftRight, lucideChevronDown, lucideCircleAlert, lucideRepeat }),
+    provideIcons({
+      lucideArrowLeftRight,
+      lucideChevronDown,
+      lucideCircleAlert,
+      lucideHandCoins,
+      lucideRepeat,
+    }),
   ],
   template: `
     <div class="flex flex-col gap-4 p-4">
@@ -88,11 +95,19 @@ interface RuleRow {
                       (click)="recurringService.open(row.item.rule.id)"
                     >
                       <span class="relative shrink-0">
-                        @if (row.item.rule.kind === 'transfer') {
+                        @if (row.item.rule.kind !== 'transaction') {
                           <span
                             class="flex size-10 items-center justify-center rounded-full bg-muted text-foreground"
                           >
-                            <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
+                            <ng-icon
+                              [name]="
+                                row.item.rule.kind === 'debt'
+                                  ? 'lucideHandCoins'
+                                  : 'lucideArrowLeftRight'
+                              "
+                              size="20"
+                              aria-hidden="true"
+                            />
                           </span>
                         } @else {
                           <app-icon-badge
@@ -220,16 +235,16 @@ export class RecurringPage {
       const transfer = rule.kind === 'transfer'
       return {
         item,
-        title: transfer
-          ? t('recurring.transferTitle', { from: item.walletName, to: item.toWalletName })
-          : item.title,
+        title: ruleTitle(item, t, true),
         note: rule.note,
         schedule: parts.join(' · '),
         warning: item.stoppedBy
           ? t(
               item.stoppedBy.kind === 'wallet'
                 ? 'recurring.stoppedWallet'
-                : 'recurring.stoppedCategory',
+                : item.stoppedBy.kind === 'debt'
+                  ? 'recurring.stoppedDebt'
+                  : 'recurring.stoppedCategory',
               {
                 name: item.stoppedBy.name,
               }

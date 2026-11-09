@@ -2,6 +2,7 @@ import { and, asc, count, eq, gt, inArray, isNull, lt, max, ne, sql } from 'driz
 import type { Executor } from '@/core/database'
 import { findMergeTarget } from '@/core/database/category-merge'
 import { categories } from '@/core/database/schema/category'
+import { debts } from '@/core/database/schema/debt'
 import { profiles } from '@/core/database/schema/profile'
 import { recurringRules } from '@/core/database/schema/recurring'
 import { transactions } from '@/core/database/schema/transaction'
@@ -52,7 +53,7 @@ const checkParent = async (
   return null
 }
 
-/** Whether the category has live transactions (rule 4, #8) or recurring rules (#12). */
+/** Whether the category has live transactions (rule 4, #8), recurring rules (#12) or debts (#13). */
 const hasTransactions = async (executor: Executor, id: string) => {
   const rows = await executor
     .select({ id: transactions.id })
@@ -65,7 +66,13 @@ const hasTransactions = async (executor: Executor, id: string) => {
     .from(recurringRules)
     .where(and(eq(recurringRules.categoryId, id), isNull(recurringRules.deletedAt)))
     .limit(1)
-  return rows.length > 0 || rules.length > 0
+  // Debt rule 9: a live debt's instalments go to it, so its type is fixed too.
+  const owed = await executor
+    .select({ id: debts.id })
+    .from(debts)
+    .where(and(eq(debts.categoryId, id), isNull(debts.deletedAt)))
+    .limit(1)
+  return rows.length > 0 || rules.length > 0 || owed.length > 0
 }
 
 /** Rule 1: the owner's live profile; whether `profileId` is one. */
@@ -207,6 +214,31 @@ const moveRules = async (
   }
 }
 
+/** Debt rule 9: live debts on `fromIds` follow the merge, each with its own `changeSeq`. */
+const moveDebts = async (
+  executor: Executor,
+  userId: string,
+  fromIds: string[],
+  targetId: string,
+  updatedAt: number,
+  takeSeqs: (count: number) => Promise<number>
+) => {
+  const rows = await executor
+    .select({ id: debts.id })
+    .from(debts)
+    .where(and(inArray(debts.categoryId, fromIds), isNull(debts.deletedAt)))
+  if (rows.length === 0) {
+    return
+  }
+  const first = await takeSeqs(rows.length)
+  for (const [index, debt] of rows.entries()) {
+    await executor
+      .update(debts)
+      .set({ categoryId: targetId, updatedAt, updatedBy: userId, changeSeq: first + index })
+      .where(eq(debts.id, debt.id))
+  }
+}
+
 /**
  * Rule 15: a merged category's tombstone moves what still points at it to the category it was
  * merged into: its live children (another device's, or a move that was refused) are merged in
@@ -248,6 +280,7 @@ const followMerge = async (
   const fromIds = [row.id, ...childIds]
   await moveTransactions(executor, userId, fromIds, target.id, row.updatedAt, takeSeqs)
   await moveRules(executor, userId, fromIds, target.id, row.updatedAt, takeSeqs)
+  await moveDebts(executor, userId, fromIds, target.id, row.updatedAt, takeSeqs)
 }
 
 /**

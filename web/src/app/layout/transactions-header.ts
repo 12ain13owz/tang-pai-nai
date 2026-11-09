@@ -10,6 +10,7 @@ import {
   lucideChevronLeft,
   lucideChevronRight,
   lucideEllipsisVertical,
+  lucideHandCoins,
   lucideRepeat,
   lucideWallet,
 } from '@ng-icons/lucide'
@@ -42,6 +43,7 @@ import { SyncStatus } from './sync-status'
       lucideChevronLeft,
       lucideChevronRight,
       lucideEllipsisVertical,
+      lucideHandCoins,
       lucideRepeat,
       lucideWallet,
     }),
@@ -124,6 +126,24 @@ import { SyncStatus } from './sync-status'
             >
               <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
               <span class="flex-1">{{ 'transfers.open' | transloco }}</span>
+            </button>
+          }
+          @if (view() === 'transactions') {
+            <!-- Debts (debt.md Q9): the debts page under the Wallets tab. -->
+            <button
+              type="button"
+              role="menuitem"
+              class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+              (click)="debts()"
+            >
+              <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
+              <span class="flex-1">{{ 'debts.menu' | transloco }}</span>
+              <ng-icon
+                name="lucideChevronRight"
+                size="16"
+                class="text-muted-foreground"
+                aria-hidden="true"
+              />
             </button>
           }
           @if (view() === 'transactions') {
@@ -246,6 +266,11 @@ export class TransactionsHeader {
   protected transfer(): void {
     this.closeMenu(false)
     this.transferService.open({ mode: 'create' })
+  }
+
+  protected debts(): void {
+    this.closeMenu(false)
+    void this.router.navigateByUrl('/wallets/debts')
   }
 
   protected recurring(): void {

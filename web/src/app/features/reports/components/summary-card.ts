@@ -71,7 +71,7 @@ import { formatAmount } from '@/shared/utils'
           <span class="truncate text-base font-semibold tabular-nums">{{ m.end }}</span>
         </div>
       </div>
-      @if (m.perDay || m.transfer || line().excludedCount > 0) {
+      @if (m.perDay || m.transfer || m.debt || line().excludedCount > 0) {
         <div class="mt-3 flex flex-wrap gap-1.5">
           @if (m.perDay; as perDay) {
             <span
@@ -85,6 +85,14 @@ import { formatAmount } from '@/shared/utils'
               class="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground tabular-nums"
             >
               {{ 'reports.transfer' | transloco: { amount: transfer } }}
+            </span>
+          }
+          @if (m.debt; as debt) {
+            <!-- Debt entries move the balances, never income or expense (debt rule 7). -->
+            <span
+              class="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground tabular-nums"
+            >
+              {{ 'reports.debt' | transloco: { amount: debt } }}
             </span>
           }
           @if (line().excludedCount > 0) {
@@ -122,6 +130,7 @@ export class ReportSummaryCard {
       end: format(line.end),
       perDay: line.perDay !== null && line.expense > 0 ? format(line.perDay) : null,
       transfer: line.transfer ? format(line.transfer, true) : null,
+      debt: line.debt ? format(line.debt, true) : null,
       excluded: format(line.excluded, true),
     }
   })

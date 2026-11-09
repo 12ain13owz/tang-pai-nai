@@ -10,6 +10,7 @@ import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
 import { categories } from '@/core/database/schema/category'
 import { currencies } from '@/core/database/schema/currency'
+import { debts } from '@/core/database/schema/debt'
 import { profiles } from '@/core/database/schema/profile'
 import { wallets } from '@/core/database/schema/wallet'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
@@ -32,6 +33,7 @@ const transaction = (id: string, changeSeq: number, extra: Partial<SyncRowWrite>
   note: '',
   excludeFromReport: false,
   recurringId: null,
+  debtId: null,
   createdAt: 1000,
   updatedAt: 1000,
   deletedAt: null,
@@ -261,5 +263,46 @@ describe('transactionSyncHandler', () => {
     const row = { id: 'x', createdAt: 1, updatedAt: 1, deletedAt: null }
     expect(push.keepsStored?.({ ...row, recurringId: 'r1' })).toBe(true)
     expect(push.keepsStored?.({ ...row, recurringId: null })).toBe(false)
+  })
+
+  it('links a debt of its profile and currency; a link to a gone debt is cleared (debt rule 8)', async () => {
+    const debtRow = (id: string, profileId: string, extra: object = {}) => ({
+      id,
+      userId: 'alice',
+      profileId,
+      direction: 'borrowed',
+      person: id,
+      note: '',
+      currencyCode: 'THB',
+      countAs: 'spent',
+      categoryId: null,
+      dueOn: null,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null as number | null,
+      changeSeq: 90,
+      updatedBy: 'alice',
+      ...extra,
+    })
+    await db
+      .insert(debts)
+      .values([
+        debtRow('mom', 'pa'),
+        debtRow('far', 'pa2'),
+        debtRow('gone', 'pa', { deletedAt: 5 }),
+      ])
+    const linked = (debtId: string, extra: Partial<SyncRowWrite> = {}) =>
+      transaction('t9', 0, { debtId, ...extra })
+    expect(await push.check(db, 'alice', linked('mom'))).toBeNull()
+    expect(await push.check(db, 'alice', linked('far'))).toBe(
+      TRANSACTION_MESSAGE.DEBT_OTHER_PROFILE
+    )
+    expect(await push.check(db, 'alice', linked('mom', { walletId: 'usd' }))).toBe(
+      TRANSACTION_MESSAGE.DEBT_OTHER_CURRENCY
+    )
+    expect(await push.resolve?.(db, 'alice', linked('gone'))).toMatchObject({ debtId: null })
+    expect(await push.resolve?.(db, 'alice', linked('nope'))).toMatchObject({ debtId: null })
+    expect(await push.resolve?.(db, 'alice', linked('mom'))).toMatchObject({ debtId: 'mom' })
+    expect((await push.write(db, 'alice', linked('mom'))).debtId).toBe('mom')
   })
 })

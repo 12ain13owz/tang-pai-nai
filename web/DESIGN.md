@@ -320,6 +320,23 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
     muted line, a small "ถามก่อน" tag (`bg-brand/10 text-brand`), a stopped rule's reason in
     `text-destructive` with an alert icon; the add buttons under the list (outline + the
     gold-tinted transfer one, as on the Wallets tab).
+- **Debts** (#13, owner's choices from a mock-up; debt.md → Web screens):
+  - **Wallets tab card "หนี้สิน"** under the wallets: two link rows (a muted hand badge, ยืมมา
+    / ให้ยืม, "ต้องคืน · n รายการ" with "เลยกำหนด n" in `text-destructive`, the left amount in
+    the expense / income colour, ›). ยอดรวม doesn't change.
+  - **Debts page**: ยืมมา | ให้ยืม as a `bg-muted` tab track, a card with the total left, then
+    rows: badge (the category's for an instalment debt, else the muted hand), the person and a
+    gold "ผ่อน" tag, the note, "คืนแล้ว x จาก y" (`text-xs`, no symbol), a 6px bar (brand gold
+    for borrowed, income green for lent), the left amount and the due date (red when overdue);
+    "ปิดแล้ว (n)" folded, rows at 65% opacity; "บันทึกหนี้" outline under the list.
+  - **Debt page**: a hero card (what is left large, the bar, facts lines, a pencil to edit),
+    the instalment rule's row, then **คืนเงิน / รับคืน / จ่ายงวด** (main), **ยืมเพิ่ม /
+    ให้ยืมเพิ่ม** (gold tint) and **ปิดหนี้** (outline) in one row; the history with an
+    "รายจ่าย" / "รายรับ" tag on counted rows and a muted note on what is uncounted.
+  - **Entry rows on the Transactions tab** look like transfer sides (a muted hand badge, the
+    action as title, the person under it); a counted row of a debt carries a small hand after
+    its category name; the summary card gets "หนี้ (ยืม/คืน)" like "โอน", the report summary a
+    "หนี้ ±x" chip.
 - **Bottom sheet** (owner's choice in #6.2): **every sheet is the same near-full height**
   (`92dvh`, the page's header still showing above it), so its main action always sits in the same
   place. Inside, `app-sheet-frame`: a header bar with **close (X) on the left** (or **‹ back** in

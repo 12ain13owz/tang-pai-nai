@@ -36,6 +36,8 @@ export const transactions = sqliteTable(
     excludeFromReport: integer({ mode: 'boolean' }).notNull(),
     /** The recurring rule this row is an occurrence of (no FK: the rule may be gone). */
     recurringId: text(),
+    /** The debt this counted row belongs to (debt rule 3; no FK: a deleted debt leaves it). */
+    debtId: text(),
     ...syncColumns,
   },
   (table) => [
@@ -44,5 +46,6 @@ export const transactions = sqliteTable(
     index('transactions_profile_idx').on(table.profileId),
     index('transactions_wallet_idx').on(table.walletId),
     index('transactions_category_idx').on(table.categoryId),
+    index('transactions_debt_idx').on(table.debtId),
   ]
 )
