@@ -1,0 +1,35 @@
+post:
+  tags:
+    - Sharing
+  summary: 'Accept an invite'
+  description: >-
+    The invitee (matched on their verified email) joins the invite’s wallets that are still open; `SHARE_INVITE_EMPTY` when none is left.
+  operationId: sharingAcceptInvite
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    '200':
+      description: 'Done'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/message-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '404':
+      description: 'Not the caller’s to see (404 hides whether it exists)'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '409':
+      description: '`SHARE_INVITE_EMPTY`'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

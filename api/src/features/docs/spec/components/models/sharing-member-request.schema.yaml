@@ -1,0 +1,9 @@
+type: object
+required: [role, walletIds]
+properties:
+  role: { $ref: './sharing-role.schema.yaml' }
+  walletIds:
+    type: array
+    maxItems: 200
+    description: The member's wallets of the profile from now on; empty removes them
+    items: { type: string, format: uuid }

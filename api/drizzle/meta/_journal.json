@@ -127,6 +127,13 @@
       "when": 1794216388279,
       "tag": "0017_events",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1794239337690,
+      "tag": "0018_wallet_invites",
+      "breakpoints": true
     }
   ]
 }

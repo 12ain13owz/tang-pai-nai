@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core'
+import { Component, inject, input } from '@angular/core'
 import { Router, RouterLink, RouterLinkActive } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
@@ -55,9 +55,16 @@ interface Tab {
           class="group flex flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground focus-visible:outline-none [&.active]:font-semibold [&.active]:text-brand [&.active]:[--ng-icon__stroke-width:2.4]"
         >
           <span
-            class="flex h-7 w-12 items-center justify-center rounded-full text-xl group-focus-visible:ring-2 group-focus-visible:ring-ring"
+            class="relative flex h-7 w-12 items-center justify-center rounded-full text-xl group-focus-visible:ring-2 group-focus-visible:ring-ring"
           >
             <ng-icon [name]="tab.icon" aria-hidden="true" />
+            @if (tab.path === '/account' && accountDot()) {
+              <span
+                class="absolute top-0 right-2.5 size-2 rounded-full bg-destructive"
+                data-testid="account-dot"
+              ></span>
+              <span class="sr-only">{{ 'sharing.invitesPending' | transloco }}</span>
+            }
           </span>
           {{ tab.label | transloco }}
         </a>
@@ -66,6 +73,8 @@ interface Tab {
   `,
 })
 export class BottomTabBar {
+  /** Invitations to me are waiting (sharing.md → Web screens). */
+  accountDot = input(false)
   /**
    * ➕ opens the transaction form over the current tab; with no profile or no wallet yet it
    * leads to the create step or the first-wallet step on the Transactions tab (profile rule 5,

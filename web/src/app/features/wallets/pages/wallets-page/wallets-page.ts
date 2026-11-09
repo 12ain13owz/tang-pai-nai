@@ -3,7 +3,7 @@ import type { CdkDragDrop } from '@angular/cdk/drag-drop'
 import { NgTemplateOutlet } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
 import { RouterLink } from '@angular/router'
-import { TranslocoPipe } from '@jsverse/transloco'
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
   lucideArrowLeftRight,
@@ -16,6 +16,7 @@ import {
 import { HlmButton } from '@spartan-ng/helm/button'
 import { DEBTS_ROUTE, DebtService } from '@/core/debt'
 import { LanguageService } from '@/core/i18n'
+import { SharingService } from '@/core/sharing'
 import { TransferService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
@@ -182,6 +183,42 @@ import { formatMoney } from '@/shared/utils'
         }
       </div>
 
+      <!-- Wallets shared with me (sharing.md → Web screens), read online, not in the total. -->
+      @for (group of sharedGroups(); track group.profileId) {
+        <section class="flex flex-col gap-3" [attr.aria-label]="group.heading">
+          <h2 class="text-sm font-medium text-muted-foreground">{{ group.heading }}</h2>
+          <ul class="divide-y divide-border rounded-xl border border-border bg-card">
+            @for (wallet of group.wallets; track wallet.id) {
+              <li>
+                <a
+                  class="flex min-h-14 items-center gap-3 py-2 pr-2 pl-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                  [routerLink]="['/wallets/shared', wallet.id]"
+                >
+                  <app-icon-badge
+                    [icon]="wallet.icon"
+                    [color]="wallet.color"
+                    [fallback]="defaultIcon"
+                  />
+                  <span class="flex min-w-0 flex-1 flex-col">
+                    <span class="truncate text-base">{{ wallet.name }}</span>
+                    <span class="text-sm text-muted-foreground">{{ group.role }}</span>
+                  </span>
+                  <span class="text-base tabular-nums" [class.text-expense]="wallet.negative">{{
+                    wallet.balance
+                  }}</span>
+                  <ng-icon
+                    name="lucideChevronRight"
+                    size="18"
+                    class="text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                </a>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
       <!-- Debts (debt.md Q8–Q9): what is owed and lent, each opening the debts page. -->
       <section class="flex flex-col gap-3" aria-labelledby="wallets-debts">
         <h2 id="wallets-debts" class="text-sm font-medium text-muted-foreground">
@@ -331,6 +368,28 @@ export class WalletsPage {
   })
 
   protected defaultIcon = WALLET_DEFAULT_ICON
+  private sharingService = inject(SharingService)
+  private transloco = inject(TranslocoService)
+  /** Grouped by the owner's profile; balances come from the server (sharing rule 9). */
+  protected sharedGroups = computed(() => {
+    this.languageService.language()
+    const locale = this.languageService.locale()
+    return (this.sharingService.withMe()?.shares ?? []).map((group) => ({
+      profileId: group.profileId,
+      heading: this.transloco.translate('sharing.withMeOf', { name: group.owner.displayName }),
+      role: this.transloco.translate(`sharing.${group.role}`),
+      wallets: group.wallets.map((wallet) => ({
+        ...wallet,
+        negative: wallet.balance < 0,
+        balance: formatMoney(
+          wallet.balance,
+          wallet.currencyCode,
+          this.walletService.minorUnit(wallet.currencyCode),
+          locale
+        ),
+      })),
+    }))
+  })
   protected ordering = signal(false)
   protected showArchived = signal(false)
 

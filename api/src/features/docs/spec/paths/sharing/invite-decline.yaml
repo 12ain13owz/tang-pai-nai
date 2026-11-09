@@ -1,0 +1,29 @@
+post:
+  tags:
+    - Sharing
+  summary: 'Decline an invite'
+  description: >-
+    Deletes the invite.
+  operationId: sharingDeclineInvite
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    '200':
+      description: 'Done'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/message-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '404':
+      description: 'Not the caller’s to see (404 hides whether it exists)'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

@@ -37,6 +37,12 @@ export default [
       import('./pages/categories-page/categories-page').then((m) => m.CategoriesPage),
   },
   {
+    path: 'sharing',
+    title: 'title.sharing',
+    loadComponent: async () =>
+      import('./pages/sharing-page/sharing-page').then((m) => m.SharingPage),
+  },
+  {
     path: 'recurring',
     title: 'title.recurring',
     loadComponent: async () =>

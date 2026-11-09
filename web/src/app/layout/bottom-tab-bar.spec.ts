@@ -64,4 +64,15 @@ describe('BottomTabBar', () => {
     expect(tab?.className).toContain('[&.active]:text-brand')
     expect(tab?.innerHTML).not.toContain('bg-muted')
   })
+
+  it('puts a dot on the Account tab while invitations to me wait (sharing.md)', () => {
+    const fixture = render()
+    const element = fixture.nativeElement as HTMLElement
+    expect(element.querySelector('[data-testid="account-dot"]')).toBeNull()
+    fixture.componentRef.setInput('accountDot', true)
+    fixture.detectChanges()
+    const dot = element.querySelector('[data-testid="account-dot"]')
+    expect(dot?.closest('a')?.getAttribute('href')).toBe('/account')
+    expect(element.textContent).toContain(th.sharing.invitesPending)
+  })
 })

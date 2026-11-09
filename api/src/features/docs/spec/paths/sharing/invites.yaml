@@ -1,0 +1,49 @@
+post:
+  tags:
+    - Sharing
+  summary: 'Invite a person'
+  description: >-
+    Creates one pending invite (14 days) for the given open wallets and mails the invitee the owner’s name and the wallet names. Ten sends per owner per day; every send counts toward `EMAIL_DAILY_LIMIT`.
+  operationId: sharingInvite
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: profileId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/sharing-invite-request.schema.yaml'
+  responses:
+    '201':
+      description: 'Invite created and mailed'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/sharing-invite-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '404':
+      description: 'Not the caller’s to see (404 hides whether it exists)'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '409':
+      description: '`SHARE_SELF`, `SHARE_ALREADY_MEMBER`, `SHARE_INVITE_PENDING` or `SHARE_MEMBER_LIMIT` (10 people per profile)'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '422':
+      description: 'Invalid input; `SHARE_WALLETS_INVALID` for a wallet that is not an open wallet of the profile'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '429':
+      $ref: '../../components/responses/too-many-requests.response.yaml'

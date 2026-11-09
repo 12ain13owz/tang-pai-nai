@@ -14,8 +14,9 @@ per currency, like Money Lover.
 
 ## Out of scope
 
-- The sharing UI (inviting members, roles screen) is #16. The `wallet_members` table exists from
-  this feature on (see [offline-sync.md](offline-sync.md) rules 13–16), empty until then.
+- Sharing (inviting members, roles) lives in [sharing.md](sharing.md) (#16, Account ›
+  แชร์กระเป๋า). The `wallet_members` table exists from this feature on (offline-sync rules
+  13–16).
 - A wallet **type** (cash / bank / card / …). Dropped at the start of #6: the icon says what the
   wallet is.
 - Bank or brand logos, and letter badges. Icons are drawings of what the wallet is (rule 8).

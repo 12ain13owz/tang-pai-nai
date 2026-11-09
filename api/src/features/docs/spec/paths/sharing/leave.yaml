@@ -1,0 +1,23 @@
+delete:
+  tags:
+    - Sharing
+  summary: 'Leave a profile’s sharing'
+  description: >-
+    The member leaves every wallet of that owner’s profile.
+  operationId: sharingLeave
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: profileId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    '200':
+      description: 'Done'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/message-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'

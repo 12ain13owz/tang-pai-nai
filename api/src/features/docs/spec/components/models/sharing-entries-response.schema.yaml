@@ -1,0 +1,24 @@
+type: object
+required: [message, timestamp, data]
+properties:
+  message: { type: string, example: Listed entries successfully }
+  timestamp: { type: string, format: date-time }
+  data:
+    type: object
+    required: [entries, truncated]
+    properties:
+      entries:
+        type: array
+        description: Newest first; at most 5000
+        items:
+          type: object
+          required: [id, kind, occurredOn, amount, categoryId, note, excludeFromReport]
+          properties:
+            id: { type: string }
+            kind: { type: string, enum: [transaction, transfer, debt] }
+            occurredOn: { type: string, format: date }
+            amount: { type: integer, description: Minor units, signed for the wallet }
+            categoryId: { type: [string, 'null'], description: Transactions only }
+            note: { type: string }
+            excludeFromReport: { type: boolean }
+      truncated: { type: boolean, description: More than 5000 entries in the range }

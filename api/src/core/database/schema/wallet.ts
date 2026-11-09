@@ -48,8 +48,8 @@ export const wallets = sqliteTable(
   ]
 )
 
-// Members of a shared wallet (offline-sync rules 13–16). Server only, not synced, and empty until
-// the sharing UI (#16). The owner isn't listed.
+// Members of a shared wallet (offline-sync rules 13–16, docs/features/sharing.md). Server only,
+// not synced. The owner isn't listed.
 export const walletMembers = sqliteTable(
   'wallet_members',
   {

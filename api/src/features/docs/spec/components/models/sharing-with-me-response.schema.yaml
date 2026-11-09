@@ -1,0 +1,49 @@
+type: object
+required: [message, timestamp, data]
+properties:
+  message: { type: string, example: Fetched sharing successfully }
+  timestamp: { type: string, format: date-time }
+  data:
+    type: object
+    required: [invites, shares]
+    properties:
+      invites:
+        type: array
+        description: Pending invites to the caller's verified email
+        items:
+          type: object
+          required: [id, role, owner, wallets, expiresAt]
+          properties:
+            id: { type: string, format: uuid }
+            role: { $ref: './sharing-role.schema.yaml' }
+            owner:
+              type: object
+              properties:
+                displayName: { type: string }
+                email: { type: string, format: email }
+            wallets:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  name: { type: string }
+            expiresAt: { type: integer }
+      shares:
+        type: array
+        description: Wallets shared with the caller, one group per owner's profile
+        items:
+          type: object
+          required: [profileId, role, owner, wallets]
+          properties:
+            profileId: { type: string, format: uuid }
+            role: { $ref: './sharing-role.schema.yaml' }
+            owner:
+              type: object
+              properties:
+                id: { type: string, format: uuid }
+                displayName: { type: string }
+                email: { type: string, format: email }
+            wallets:
+              type: array
+              items: { $ref: './sharing-wallet-view.schema.yaml' }

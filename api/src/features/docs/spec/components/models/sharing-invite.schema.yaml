@@ -1,0 +1,12 @@
+type: object
+required: [id, email, role, walletIds, createdAt, expiresAt, lastSentAt]
+properties:
+  id: { type: string, format: uuid }
+  email: { type: string, format: email }
+  role: { $ref: './sharing-role.schema.yaml' }
+  walletIds:
+    type: array
+    items: { type: string, format: uuid }
+  createdAt: { type: integer, description: Epoch ms }
+  expiresAt: { type: integer, description: Epoch ms, 14 days after `createdAt` }
+  lastSentAt: { type: integer, description: Epoch ms of the last mail }

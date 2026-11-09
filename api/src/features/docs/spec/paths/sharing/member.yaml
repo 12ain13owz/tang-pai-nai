@@ -1,0 +1,78 @@
+put:
+  tags:
+    - Sharing
+  summary: 'Change a member'
+  description: >-
+    Sets the member’s role and wallets of the profile; an empty list removes them. Takes effect on their next request.
+  operationId: sharingUpdateMember
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: profileId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    - name: userId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../components/models/sharing-member-request.schema.yaml'
+  responses:
+    '200':
+      description: 'Done'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/message-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '404':
+      description: 'Not the caller’s to see (404 hides whether it exists)'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '422':
+      description: 'Invalid input; `SHARE_WALLETS_INVALID` for a wallet that is not an open wallet of the profile'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+delete:
+  tags:
+    - Sharing
+  summary: 'Remove a member'
+  description: >-
+    Removes the member from every wallet of the profile.
+  operationId: sharingRemoveMember
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: profileId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    - name: userId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    '200':
+      description: 'Done'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/message-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '404':
+      description: 'Not the caller’s to see (404 hides whether it exists)'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

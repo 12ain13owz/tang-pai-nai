@@ -463,8 +463,8 @@ REAUTH_REQUIRED` opens a confirm step in place: the current password (if one is 
 - **App start**: the web app calls `/auth/refresh` once (the access token lives in memory only, so a
   reload starts without one). Success → into the app; failure → sign-in. A guard keeps every
   in-app route behind a signed-in user.
-- **Invitations** (#16): sign-in attaches pending wallet invitations addressed to the verified
-  email. Their rules (one pending invite per wallet and email, expiry, daily cap) live with #16.
+- **Invitations** (#16): a signed-in user sees the pending wallet invitations addressed to their
+  verified email and accepts or declines them. Their rules live in [sharing.md](sharing.md).
 - Every user-owned feature (wallet, category, transaction, …) sits behind `authenticate` and scopes
   every query by `req.user.id`.
 - Category: a new user gets the default category set seeded on creation (see `category.md`).

@@ -242,6 +242,25 @@ transactions) reads that table from `@/core/database/schema`, never the other fe
   second argument); HTTP with `accessTokens`
   for the Bearer header (`sync.controller.test.ts`).
 
+### Sharing (`src/features/sharing/`, #16.1)
+
+Spec: [`sharing.md`](../docs/features/sharing.md). The first **REST** feature over synced data:
+online endpoints for invitations, members and read-only shared wallets, no sync handler.
+
+- Its Drizzle adapter reads other features' tables (`wallets`, `profiles`, `categories`,
+  `transactions`, `transfers`, `debts`, `debt_entries`, `users`) through `@/core/database/schema`
+  and raw `sql` for the joins; a wallet a member may see is live, open and on a live profile
+  (`VISIBLE` in the adapter). A balance is computed there like the web's `WalletService`.
+- `wallet_invites` and `wallet_members` are server only. Invites match the verified
+  `users.email` when read; expired rows are ignored by every query and deleted on the next
+  invite. Rate limits use their own `hitRateLimit` on `rate_limit_buckets` (same SQL as auth's;
+  the global mail cap shares auth's `email:global:day` key).
+- Every lookup a caller may not see answers `404` (`NotFoundError`), never `403`.
+- **Testing**: the service and HTTP layer run on a temporary SQLite file with the committed
+  migrations, seeded by `sharing.fixture.ts` (`setUpSharing`: two owners, an unverified user,
+  wallets open / archived / deleted, a transaction, transfer and debt entry; a fake notifier
+  and a clock). Use it instead of a memory repository: the rules are mostly queries.
+
 ### Notifications (`src/core/notification/`)
 
 Everything the app sends to a person (OTP, magic link, later reminders) goes through one

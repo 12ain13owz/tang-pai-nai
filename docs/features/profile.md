@@ -126,6 +126,5 @@ Glossary: โปรไฟล์ / Profile (DESIGN.md §11).
 
 ## Open questions
 
-- **Wallets shared with you (#16)**: they belong to the owner's profile, which you can't see.
-  Proposal: a "แชร์กับฉัน" group in the switcher sheet, listing shared wallets outside your own
-  profiles. Decide at #16.
+- (Decided in #16.1: wallets shared with you belong to the owner's profile and show in a
+  "แชร์กับฉัน" section of the Wallets tab, not in the switcher: [sharing.md](sharing.md).)
