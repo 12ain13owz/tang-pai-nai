@@ -11,6 +11,7 @@ import { users } from '@/core/database/schema/auth'
 import { categories } from '@/core/database/schema/category'
 import { currencies } from '@/core/database/schema/currency'
 import { debts } from '@/core/database/schema/debt'
+import { events } from '@/core/database/schema/event'
 import { profiles } from '@/core/database/schema/profile'
 import { wallets } from '@/core/database/schema/wallet'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
@@ -305,5 +306,45 @@ describe('transactionSyncHandler', () => {
     expect(await push.resolve?.(db, 'alice', linked('nope'))).toMatchObject({ debtId: null })
     expect(await push.resolve?.(db, 'alice', linked('mom'))).toMatchObject({ debtId: 'mom' })
     expect((await push.write(db, 'alice', linked('mom'))).debtId).toBe('mom')
+  })
+
+  it('tags an event of its profile; a link to a gone event is cleared (event rule 3)', async () => {
+    const eventRow = (id: string, profileId: string, extra: object = {}) => ({
+      id,
+      userId: profileId === 'pb' ? 'bob' : 'alice',
+      profileId,
+      name: id,
+      icon: 'lucidePlane',
+      color: '#0e7490',
+      startOn: '2026-11-07',
+      endOn: null,
+      isClosed: false,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null as number | null,
+      changeSeq: 95,
+      updatedBy: 'alice',
+      ...extra,
+    })
+    await db
+      .insert(events)
+      .values([
+        eventRow('cm', 'pa'),
+        eventRow('done', 'pa', { isClosed: true }),
+        eventRow('far', 'pa2'),
+        eventRow('gone', 'pa', { deletedAt: 5 }),
+        eventRow('bobs', 'pb'),
+      ])
+    const tagged = (eventId: string) => transaction('t9', 0, { eventId })
+    expect(await push.check(db, 'alice', tagged('cm'))).toBeNull()
+    expect(await push.check(db, 'alice', tagged('done'))).toBeNull()
+    expect(await push.check(db, 'alice', tagged('far'))).toBe(
+      TRANSACTION_MESSAGE.EVENT_OTHER_PROFILE
+    )
+    for (const id of ['gone', 'nope', 'bobs']) {
+      expect(await push.resolve?.(db, 'alice', tagged(id))).toMatchObject({ eventId: null })
+    }
+    expect(await push.resolve?.(db, 'alice', tagged('cm'))).toMatchObject({ eventId: 'cm' })
+    expect((await push.write(db, 'alice', tagged('cm'))).eventId).toBe('cm')
   })
 })

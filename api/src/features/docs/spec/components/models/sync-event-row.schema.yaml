@@ -1,0 +1,79 @@
+type: object
+description: >-
+  A row of the `events` table (docs/features/event.md) as it travels in /sync/pull and in
+  /sync/push: a trip or event that transactions are tagged to (SyncTransactionRow.eventId). Its
+  totals are computed from those rows, never stored. Rules (each answers `CONFLICT`): profileId
+  is one of the user's live profiles and never changes; endOn, when set, is not before startOn;
+  at most 50 open (not closed) events per profile. A tombstone runs none of them; deleting an
+  event leaves its rows' eventId, which the server clears when such a row is pushed again.
+required:
+  [
+    id,
+    profileId,
+    name,
+    icon,
+    color,
+    startOn,
+    endOn,
+    isClosed,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    changeSeq,
+    updatedBy,
+  ]
+properties:
+  id:
+    type: string
+    format: uuid
+    description: UUIDv7 made on the device
+  profileId:
+    type: string
+    format: uuid
+  name:
+    type: string
+    minLength: 1
+    maxLength: 50
+    description: Trimmed
+  icon:
+    type: string
+    maxLength: 40
+    pattern: '^(lucide|tpn)[A-Z][A-Za-z0-9]*$'
+  color:
+    type: string
+    pattern: '^#[0-9a-f]{6}$'
+  startOn:
+    type: string
+    format: date
+    description: A real date from 2000-01-01 to a year after today
+  endOn:
+    type: [string, 'null']
+    format: date
+    description: A real date not before startOn, or null (no end set)
+  isClosed:
+    type: boolean
+    description: Finished ("จบแล้ว"); out of the form's picker and default, totals kept
+  createdAt:
+    type: integer
+  updatedAt:
+    type: integer
+  deletedAt:
+    type: [integer, 'null']
+  changeSeq:
+    type: integer
+  updatedBy:
+    type: string
+example:
+  id: 0199b000-0000-7000-8000-000000000801
+  profileId: 0199b000-0000-7000-8000-000000000001
+  name: เชียงใหม่
+  icon: lucidePlane
+  color: '#0e7490'
+  startOn: '2026-11-07'
+  endOn: '2026-11-12'
+  isClosed: false
+  createdAt: 1793600000000
+  updatedAt: 1793600000000
+  deletedAt: null
+  changeSeq: 950
+  updatedBy: 0199b000-0000-7000-8000-00000000a001
