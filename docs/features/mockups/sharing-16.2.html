@@ -198,36 +198,40 @@ input.nm { border: 0; background: transparent; font: inherit; color: inherit; wi
 </head>
 <body>
 <style>
-.pend { opacity: .7; } .pend .badge { outline: 1.5px dashed var(--muted-fg); outline-offset: 2px; }
-.fab { position: absolute; right: 14px; bottom: 70px; z-index: 1; height: 48px; padding: 0 18px 0 14px; border-radius: 24px; background: var(--primary); color: var(--primary-fg); display: flex; align-items: center; gap: 6px; font-weight: 600; box-shadow: 0 6px 18px rgb(0 0 0 / .3); }
-.fab.dis { opacity: .45; }
 .by { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; vertical-align: -2px; }
 .tx .mid small { display: block; }
-.amtrow .seg { flex: none; } .amtrow .seg span { white-space: nowrap; padding: 5px 10px; }
-.dis { opacity: .5; }
-.rj { padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
-.rj small { display: block; font-size: 12px; color: var(--muted-fg); }
-.rj .acts { justify-content: flex-end; }
+.dis { opacity: .45; pointer-events: none; }
+.pp { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 15px; }
+.pp .badge { width: 24px; height: 24px; } .pp .badge svg.i { width: 14px; height: 14px; }
+.pp small { white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; font-weight: 400; color: var(--muted-fg); font-size: 12px; }
+.wpill { display: flex; justify-content: center; padding: 6px 0 0; }
+.fld { padding: 2px 4px; } .fld small { font-size: 12.5px; color: var(--muted-fg); }
+.segf { display: flex; background: var(--muted); border-radius: 12px; padding: 3px; }
+.segf span { flex: 1; text-align: center; padding: 7px; border-radius: 9px; font-size: 14px; color: var(--muted-fg); }
+.segf span.on { background: var(--card); color: var(--foreground); font-weight: 600; }
+.amtline { padding: 6px 0 10px; } .amtline small { font-size: 12px; color: var(--muted-fg); }
+.amtline div { font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; border-bottom: 2px solid var(--brand); }
+.dt { justify-content: space-between; } .dt b { flex: 1; text-align: center; font-weight: 500; }
+.lockv { flex: 1; display: grid; place-items: center; text-align: center; padding: 24px; }
 </style>
 </head>
 <body>
 <header class="page">
-  <h1>แชร์กระเป๋า 16.2 (#16) · editor เขียนลงกระเป๋าที่แชร์ · mock-up</h1>
-  <p>วันนี้ = จ. 9 พ.ย. 2026. <b>เจ้าของ</b> = "พ่อ" (กระเป๋า "ค่าบ้าน") · <b>สมาชิก editor</b> = "แม่".
-  editor <b>เพิ่ม</b>ได้แม้ออฟไลน์ (เข้า outbox อย่างเดียว ไม่ลงฐานข้อมูลเครื่อง) · <b>แก้/ลบ</b>ต้องออนไลน์ (ส่งทันทีพร้อม baseSeq) ·
-  รายการที่สมาชิกเพิ่ม: userId = เจ้าของ + addedBy = สมาชิก → "เพิ่มโดย …" · เจ้าของชนะเสมอ · viewer ไม่เปลี่ยนจาก 16.1.</p>
+  <h1>แชร์กระเป๋า 16.2 (#16) · editor เขียนลงกระเป๋าที่แชร์ · mock-up รอบ 2</h1>
+  <p>วันนี้ = จ. 9 พ.ย. 2026. <b>เจ้าของ</b> = "พ่อ" (โปรไฟล์ "ครอบครัว" แชร์กระเป๋า "ค่าบ้าน", "เงินสด") · <b>สมาชิก editor</b> = "แม่" (โปรไฟล์ของตัวเอง "ส่วนตัว", "ร้านค้า").
+  รอบ 2: โปรไฟล์ที่แชร์มา<b>อยู่ในตัวสลับโปรไฟล์</b> เลือกแล้วทุกแท็บทำงาน<b>เหมือนโปรไฟล์ของเราเอง</b> (➕ ปุ่มเดียว ชีตเดิมทุกอย่าง) แต่<b>ใช้ได้เฉพาะออนไลน์</b>:
+  ออฟไลน์ = ปิดใช้งานทั้งโปรไฟล์. ข้อมูลอ่านผ่าน REST เก็บในหน่วยความจำ (rule 15); บันทึก/ลบส่งขึ้น server ทันที (ไม่มี outbox, ไม่มี "รอ sync").</p>
 </header>
 <div class="grid" id="grid"></div>
 <section class="qs">
   <h2>สรุปภาพ</h2>
   <ul>
-    <li><b>1</b> editor: หน้ากระเป๋าที่แชร์ มีปุ่ม <b>เพิ่มรายการ</b>, แถว <b>รอ sync</b> แทรกในวันของมัน (ยังไม่นับในยอด/สรุป), "เพิ่มโดย …" ใต้แถว</li>
-    <li><b>2</b> ชีตเพิ่ม (โหมดแชร์): กระเป๋าล็อก, หมวดของเจ้าของ, จำนวน/วันที่/โน้ต/ไม่นับในรายงาน; ไม่มีอีเวนต์ ทำซ้ำ โอน</li>
-    <li><b>3</b> แตะแถว → ชีตแก้: บันทึก / ลบ (ส่งทันที ไม่ผ่าน outbox)</li>
-    <li><b>4</b> ออฟไลน์: เพิ่มได้ (รอ sync), แตะแถวเปิดดูได้แต่แก้/ลบปิด</li>
-    <li><b>5</b> แก้ชน (เจ้าของเพิ่งแก้แถวนั้น): toast + โหลดใหม่</li>
-    <li><b>6</b> แท็บ sync ของ editor: ถูกเอาออกขณะมีรายการค้าง → บันทึกไม่สำเร็จ (ทิ้งได้อย่างเดียว); เจ้าของชนะทีหลัง → "ถูกแก้ไขโดย พ่อ"</li>
-    <li><b>7</b> เจ้าของ: แท็บธุรกรรมแสดง "เพิ่มโดย แม่" (ชื่อจากรายชื่อสมาชิก, ออฟไลน์ = "สมาชิก")</li>
+    <li><b>1</b> ตัวสลับโปรไฟล์: โปรไฟล์ของฉัน + กลุ่ม <b>แชร์กับฉัน</b> (โปรไฟล์ · ของใคร · สิทธิ์)</li>
+    <li><b>2</b> แท็บธุรกรรมในโปรไฟล์ที่แชร์: หน้าเดิม เฉพาะกระเป๋าที่แชร์ให้ "เพิ่มโดย …" ใต้แถว</li>
+    <li><b>3–4</b> ➕ และแตะแถว: ชีตธุรกรรมเดิมทุกอย่าง (กระเป๋าให้เลือกเฉพาะที่แชร์, หมวดของเจ้าของ; อีเวนต์/ทำซ้ำไม่มีให้เลือกเพราะไม่ได้แชร์)</li>
+    <li><b>5</b> แท็บกระเป๋าในโปรไฟล์ที่แชร์: รายการกระเป๋าที่แชร์ + ยอด, สร้าง/แก้กระเป๋าไม่ได้</li>
+    <li><b>6–7</b> ออฟไลน์: กลุ่มแชร์กับฉันในตัวสลับปิด; ถ้าอยู่ในโปรไฟล์ที่แชร์ทั้งหน้าปิดใช้งาน</li>
+    <li><b>8</b> แก้ชนกับเจ้าของ: toast + โหลดใหม่ · <b>9</b> เจ้าของเห็น "เพิ่มโดย แม่"</li>
   </ul>
 </section>
 <script>
@@ -337,59 +341,67 @@ const roles = (r) => `<div class="card rows"><div><span class="radio ${r === 'e'
   <div><span class="radio ${r === 'v' ? 'on' : ''}"></span><span class="lbl">ผู้ดู<small>ดูยอดและรายการอย่างเดียว ต้องออนไลน์</small></span></div></div>`
 const sharePage = (body, foot = '') => `${pageHdr('แชร์กระเป๋า')}<div class="scroll">${body}</div>${foot ? `<div class="sfoot">${foot}</div>` : ''}${tabbarA(false)}`
 
-Object.assign(I, { users2: I.users })
 const by = (n) => `<span class="by">${ic('users', 's')} เพิ่มโดย ${n}</span>`
-const pendTag = `<span class="tag b">${ic('clock', 's')} รอ sync</span>`
-const walletHdr = (offline, right = `<div class="ib">${ic('dots')}</div>`) => pageHdr('ค่าบ้าน', right).replace(`<div class="ib ok">${ic('cloud')}</div>`, offline ? `<div class="ib red">${ic('wifiOff')}</div>` : `<div class="ib ok">${ic('cloud')}</div>`)
-const pendRow = (amtSub = 'รอ sync') => `<div class="tx pend">${badge(C.food, 'food')}<div class="mid">อาหาร <small>ก๋วยเตี๋ยวกลางวัน · ${by('แม่')}</small></div><div class="amt exp">−250.00<small>${pendTag}</small></div></div>`
-const editorPage = (offline, opts = {}) => `${walletHdr(offline)}
-  <div class="bal"><small>ยอดคงเหลือ · THB</small><div>12,450.00</div>
-   <small style="display:flex;justify-content:center;gap:6px;align-items:center">${ic('users', 's')} ของ พ่อ ${role('ผู้แก้ไข')}</small></div>
+const PB = { me: badge('#0f766e', 'user'), shop: badge('#7c3aed', 'bag'), fam: badge('#b45309', 'home'), gran: badge('#be185d', 'home') }
+const hdrP = (p, name, sub, opts = {}) => `<div class="hdr"><div class="l"><div class="pp">${p}<span>${name}${sub ? `<br><small>${sub}</small>` : ''}</span>${ic('chevD', 's')}</div></div><div></div>
+  <div class="r">${opts.offline ? `<div class="ib red">${ic('wifiOff')}</div>` : `<div class="ib ok">${ic('cloud')}</div>`}<div class="ib">${ic('dots')}</div></div></div>`
+const famHdr = (offline) => hdrP(PB.fam, 'ครอบครัว', `${ic('users', 's')} ของ พ่อ`, { offline })
+const tabbarD = (on, plusOff) => plusOff ? tabbar(on).replace('<div class="plus">', '<div class="plus dis">') : tabbar(on)
+const wpill = (name, b) => `<div class="wpill"><div class="pill"><div class="badge" style="width:26px;height:26px;background:${b}">${ic('wallet')}</div> ${name} ${ic('chevD', 's')}</div></div>`
+const famTx = (opts = {}) => `${famHdr(false)}${wpill('ทุกกระเป๋าที่แชร์', '#b45309')}
+  <div class="bal"><small>ยอดคงเหลือ</small><div>14,590.00</div></div>
   ${chips(['ก.ย.', 'ต.ค.', 'เดือนนี้', 'อนาคต'], 'เดือนนี้')}
   <div class="scroll">
-   ${offline ? `<div class="off">${ic('wifiOff', 's')} ออฟไลน์ · เพิ่มรายการได้ (รอ sync) · แก้/ลบต้องออนไลน์</div>` : ''}
-   <div class="card sumc"><div><div class="k">รายรับ</div><div class="v inc">+15,000.00</div></div><div><div class="k">รายจ่าย</div><div class="v exp">−6,230.00</div></div>
-    <div class="xtra"><span class="mut">โอน</span><span>−2,000.00</span></div><div class="net"><span>คงเหลือสุทธิ</span><span>+6,770.00</span></div>
-    <div class="xtra"><span class="mut">${ic('clock', 's')} ยังไม่รวมรายการรอ sync 1 รายการ</span><span class="mut">−250.00</span></div></div>
-   ${day(9, 'วันจันทร์', 'พฤศจิกายน 2026', -1420, [pendRow(), tx(badge(C.food, 'food'), 'อาหาร', `กับข้าวเย็น · ${by('แม่')}`, -420), tx(badge(C.shop, 'cart'), 'ของใช้ในบ้าน', 'Big C', -1000)])}
-   ${day(5, 'วันพฤหัสบดี', 'พฤศจิกายน 2026', -2000, [tx(mbadge('swap'), 'โอนออก', '', -2000)])}
-   ${day(1, 'วันอาทิตย์', 'พฤศจิกายน 2026', 10190, [tx(badge(C.pay, 'money'), 'เงินเดือน', 'โอนเข้าบัญชีบ้าน', 15000), tx(badge(C.bill, 'bolt'), 'ค่าไฟ', '', -1810)])}
-  </div>
-  <div class="fab">${ic('plus')} เพิ่มรายการ</div>${tabbar(1)}${opts.extra ?? ''}`
-const lockedWallet = `<div>${WB.home}<span class="lbl">ค่าบ้าน<small>ของ พ่อ · แชร์กับฉัน</small></span><span class="val">${ic('lock', 's')}</span></div>`
-const formRows = (dis, cat = ['อาหาร', C.food, 'food'], note = 'ก๋วยเตี๋ยวกลางวัน') => `<div class="card rows ${dis ? 'dis' : ''}">
-   ${lockedWallet}
-   <div>${badge(cat[1], cat[2])}<span class="lbl">${cat[0]}<small>หมวดของ พ่อ</small></span><span class="val">${ic('chevR', 's')}</span></div>
-   <div><div class="badge m">${ic('cal')}</div><span class="lbl">วันนี้ · จ. 9 พ.ย. 2026</span></div>
-   <div><div class="badge m">${ic('note')}</div><span class="lbl">${note}</span></div>
-   <div><div class="badge m">${ic('eye')}</div><span class="lbl">ไม่นับในรายงาน</span><span class="sw"></span></div></div>`
-const amt = (v, dis) => `<div class="card rows amtrow ${dis ? 'dis' : ''}"><div><span class="seg"><span class="on">รายจ่าย</span><span>รายรับ</span></span><span class="lbl"></span><span class="big exp">${v}</span><span class="code">THB</span></div></div>`
+   <div class="card sumc"><div><div class="k">รายรับ</div><div class="v inc">+15,000.00</div></div><div><div class="k">รายจ่าย</div><div class="v exp">−6,480.00</div></div>
+    <div class="net"><span>คงเหลือสุทธิ</span><span>+8,520.00</span></div></div>
+   ${day(9, 'วันจันทร์', 'พฤศจิกายน 2026', -1670, [tx(badge(C.food, 'food'), 'อาหาร', `ก๋วยเตี๋ยวกลางวัน · ${by('แม่')}`, -250, { amtSub: 'เงินสด' }), tx(badge(C.food, 'food'), 'อาหาร', `กับข้าวเย็น · ${by('แม่')}`, -420, { amtSub: 'ค่าบ้าน' }), tx(badge(C.shop, 'cart'), 'ของใช้ในบ้าน', 'Big C', -1000, { amtSub: 'ค่าบ้าน' })])}
+   ${day(1, 'วันอาทิตย์', 'พฤศจิกายน 2026', 10190, [tx(badge(C.pay, 'money'), 'เงินเดือน', '', 15000, { amtSub: 'ค่าบ้าน' }), tx(badge(C.bill, 'bolt'), 'ค่าไฟ', '', -1810, { amtSub: 'ค่าบ้าน' })])}
+  </div>${tabbar(0)}${opts.extra ?? ''}`
+const txSheet = (title, right, v, cat, note, foot, opts = {}) => sheet('x', title, right, `
+   ${opts.banner ?? ''}
+   <div class="fld"><small>ประเภท</small><div class="segf" style="margin-top:4px"><span class="on">รายจ่าย</span><span>รายรับ</span></div></div>
+   <div class="card rows">
+    <div>${WB.home}<span class="lbl">ค่าบ้าน</span><span class="val">${ic('chevR', 's')}</span></div>
+    <div class="amtline" style="display:block"><small>จำนวนเงิน (THB)</small><div class="exp">${v}</div></div>
+    <div>${badge(C.food, 'food')}<span class="lbl" style="font-size:17px">${cat}</span><span class="val">${ic('chevR', 's')}</span></div>
+    <div><div class="badge m">${ic('note')}</div><span class="lbl ${note ? '' : 'mut'}">${note || 'บันทึกช่วยจำ'}</span><span class="val">${ic('chevR', 's')}</span></div>
+    <div class="dt"><div class="badge m">${ic('cal')}</div><span class="ib">${ic('chevL', 's')}</span><b>วันนี้ · จ. 9 พ.ย. 2026</b><span class="ib">${ic('chevR', 's')}</span></div>
+   </div>
+   <div class="more">เพิ่มเติม ${ic(opts.open ? 'chevU' : 'chevD', 's')}</div>
+   ${opts.open ? `<div class="card rows"><div><div class="badge m">${ic('eye')}</div><span class="lbl">ไม่รวมในรายงาน</span><span class="sw"></span></div></div>` : ''}`, foot, opts.keypad ? keypad() : '')
+const profSheet = (offline) => `${hdrP(PB.me, 'ส่วนตัว', '', { offline })}<div class="scroll"></div>${tabbar(0)}` + sheet('x', 'เลือกโปรไฟล์', `<div class="ib">${ic('pencil')}</div>`, `
+   <div class="card rows"><div>${PB.me}<span class="lbl">ส่วนตัว</span><span class="val on">${ic('check')}</span></div><div>${PB.shop}<span class="lbl">ร้านค้า</span></div></div>
+   <div class="h">แชร์กับฉัน</div>
+   ${offline ? `<div class="off">${ic('wifiOff', 's')} โปรไฟล์ที่แชร์ใช้ได้เฉพาะตอนออนไลน์</div>` : ''}
+   <div class="card rows ${offline ? 'dis' : ''}"><div>${PB.fam}<span class="lbl">ครอบครัว <span class="tag">ผู้แก้ไข</span><small>ของ พ่อ · 2 กระเป๋า</small></span></div>
+    <div>${PB.gran}<span class="lbl">บ้านยาย <span class="tag">ผู้ดู</span><small>ของ ยาย · 1 กระเป๋า</small></span></div></div>`, `<button class="btn">${ic('plus')} เพิ่มโปรไฟล์</button>`)
 
 const frames = [
-  ['1 · editor: กระเป๋าที่แชร์ (ออนไลน์)', 'เหมือน 16.1 แต่ไม่มีแถบ "ดูได้อย่างเดียว" และมีปุ่ม <b>เพิ่มรายการ</b> (ไม่ใช่ ➕ กลางแท็บ ซึ่งเป็นของกระเป๋าตัวเอง). แถว<b>รอ sync</b> (จาง + ป้าย) อ่านจาก outbox แทรกในวันของมัน ยังไม่นับในยอด/สรุป (บอกไว้ใต้การ์ด). รายการที่สมาชิกเพิ่ม: <b>"เพิ่มโดย แม่"</b>. ⋮ = โหลดใหม่ / ออกจากกระเป๋านี้.',
-    () => editorPage(false)],
-  ['2 · editor: เพิ่มรายการ', 'ชีต transaction เดิมใน<b>โหมดแชร์</b>: กระเป๋า<b>ล็อก</b>เป็น "ค่าบ้าน", หมวดหมู่เลือกจาก<b>หมวดของเจ้าของ</b> (แสดงเฉพาะที่ไม่ได้ซ่อนในกระเป๋านี้), วันที่ โน้ต ไม่นับในรายงาน. <b>ไม่มี</b> อีเวนต์ ทำซ้ำ โอน ปุ่มลัดจำนวน/โน้ตล่าสุดของฉัน. บันทึก → เข้า outbox → แถวรอ sync ในจอ 1.',
-    () => editorPage(false).replace(/<div class="tabbar">[^]*$/, '') + sheet('x', 'เพิ่มรายการ', '', amt('250') + formRows(false), `<button class="btn">${ic('check')} บันทึก</button>`, keypad())],
-  ['3 · editor: แก้ / ลบ (ออนไลน์)', 'แตะแถวที่ sync แล้ว (ของใครก็ได้ในกระเป๋านี้ ยกเว้นโอน/หนี้) → ชีตแก้ บอก "เพิ่มโดย …". <b>บันทึก/ลบส่งทันที</b> พร้อม baseSeq (ไม่ผ่าน outbox) ระหว่างส่งปุ่มหมุน; สำเร็จ → ปิดชีต + toast + โหลดรายการใหม่. ลบมีถามยืนยันเหมือนเดิม.',
-    () => editorPage(false).replace(/<div class="tabbar">[^]*$/, '') + sheet('x', 'แก้ไขรายการ', `<div class="ib red">${ic('trash')}</div>`, amt('420.00') + formRows(false, undefined, 'กับข้าวเย็น') + `<div class="hint">${by('แม่')} · แก้ได้เฉพาะตอนออนไลน์</div>`, `<button class="btn">${ic('check')} บันทึก</button>`)],
-  ['4 · editor: ออฟไลน์', 'ข้อมูลที่โหลดไว้ (หน่วยความจำ) + แถบเตือน. <b>เพิ่มรายการยังกดได้</b> (รอ sync). แตะแถวที่ sync แล้ว → ชีตเปิดดูได้ ช่องและปุ่มบันทึก/ลบ<b>ปิด</b> + "ต้องออนไลน์". เปิดแอปใหม่ตอนออฟไลน์ (ยังไม่เคยโหลดกระเป๋านี้) → หน้า "ต่ออินเทอร์เน็ตเพื่อดูกระเป๋าที่แชร์" และเพิ่มไม่ได้.',
-    () => editorPage(true).replace(/<div class="tabbar">[^]*$/, '') + sheet('x', 'รายการ', `<div class="ib dis">${ic('trash')}</div>`, `<div class="off">${ic('wifiOff', 's')} ต้องออนไลน์เพื่อแก้หรือลบรายการในกระเป๋าที่แชร์</div>` + amt('420.00', true) + formRows(true, undefined, 'กับข้าวเย็น'), `<button class="btn dis">${ic('check')} บันทึก</button>`)],
-  ['5 · editor: แก้ชนกัน', 'เจ้าของเพิ่งแก้แถวนั้น (changeSeq ไม่ตรง baseSeq) → server ตอบ rejected → toast <b>"รายการนี้เพิ่งถูกแก้ไข โหลดข้อมูลใหม่แล้ว"</b> ปิดชีต โหลดรายการใหม่ (ค่าของเจ้าของ). ค่าที่แม่กรอกไม่ถูกเก็บ.',
-    () => editorPage(false, { extra: `<div class="toast">${ic('alert')} รายการนี้เพิ่งถูกแก้ไข โหลดข้อมูลใหม่แล้ว</div>` })],
-  ['6 · editor: สถานะ sync', 'ชีต sync เดิม. <b>ถูกเอาออกจากกระเป๋า</b>ขณะมีรายการค้าง → "บันทึกไม่สำเร็จ" พร้อมเหตุผล มีแค่ <b>ทิ้ง</b> (แก้ไขไม่ได้แล้ว) + toast ครั้งเดียว. <b>เจ้าของชนะทีหลัง</b> (เจ้าของออฟไลน์แก้แถวที่แม่เพิ่งแก้) → "ถูกแก้ไขโดย พ่อ" พร้อมค่าที่ถูกแทนที่.',
-    () => `${header()}<div class="scroll"></div>${tabbar(0)}` + sheet('x', 'สถานะ sync', '', `
-      <div class="hint">sync ล่าสุด 14:32</div>
-      <div class="h" style="color:var(--destructive)">บันทึกไม่สำเร็จ</div>
-      <div class="card rj"><div>ธุรกรรม · ค่าบ้าน (ของ พ่อ)<small>อาหาร −250.00 · ก๋วยเตี๋ยวกลางวัน · 9 พ.ย.</small><small class="warn">คุณไม่ได้เป็นสมาชิกกระเป๋านี้แล้ว</small></div>
-        <div class="acts"><button class="btn sm gh">ทิ้ง</button></div></div>
-      <div class="h">ถูกแก้ไขจากที่อื่น</div>
-      <div class="card rj"><div>ธุรกรรม · รายการนี้ถูกแก้ไขโดย พ่อ ค่าที่ถูกแทนที่:<small>อาหาร −380.00 · กับข้าวเย็น</small></div>
-        <div class="acts"><button class="btn sm gh">รับทราบ</button></div></div>`, '')],
-  ['7 · เจ้าของ: แท็บธุรกรรม', 'แถวที่สมาชิกเพิ่มแสดง <b>"เพิ่มโดย แม่"</b> ต่อท้ายโน้ต (รายงาน ยอด เหมือนแถวปกติ). ชีตแก้ของเจ้าของก็แสดงบรรทัดเดียวกัน. ชื่อมาจากรายชื่อสมาชิก (โหลดครั้งเดียวเมื่อเจอแถวที่มี addedBy); ออฟไลน์/ยังไม่ได้โหลด = "เพิ่มโดย สมาชิก". เจ้าของแก้/ลบได้ตามปกติ ออฟไลน์ได้.',
-    () => `${header()}<div class="bal"><small>ยอดคงเหลือ</small><div>64,910.00</div></div>
+  ['1 · ตัวสลับโปรไฟล์ (สมาชิก)', 'ชีตเลือกโปรไฟล์เดิม + กลุ่ม <b>แชร์กับฉัน</b> ต่อท้าย: หนึ่งแถวต่อโปรไฟล์ของเจ้าของ (ชื่อโปรไฟล์ · ของใคร · กี่กระเป๋า · สิทธิ์). แตะ = สลับเหมือนโปรไฟล์ตัวเอง. ✎ จัดการโปรไฟล์และ "เพิ่มโปรไฟล์" ใช้กับโปรไฟล์ของฉันเท่านั้น.',
+    () => profSheet(false)],
+  ['2 · แท็บธุรกรรม: โปรไฟล์ที่แชร์', 'หน้าเดิมทุกอย่าง: หัวจอบอก "ครอบครัว · ของ พ่อ", ตัวเลือกกระเป๋า (เฉพาะที่แชร์ให้), แท็บเดือน, การ์ดสรุป, รายการตามวัน ด้วย<b>หมวดของเจ้าของ</b>. แถวที่สมาชิกเพิ่ม: <b>"เพิ่มโดย แม่"</b>. ➕ กลางแท็บคือปุ่มเพิ่มปุ่มเดียว (viewer: ➕ ปิด แตะแถวได้แค่ดู).',
+    () => famTx()],
+  ['3 · ➕ เพิ่มธุรกรรม', 'ชีตเดิมทุกอย่าง (ประเภท, กระเป๋า, จำนวน + keypad, หมวด, บันทึกช่วยจำ, วันที่, เพิ่มเติม, บันทึก / บันทึกแล้วเพิ่มต่อ). กระเป๋าให้เลือกเฉพาะที่แชร์; หมวดเป็นของเจ้าของ. แถวอีเวนต์และ "ทำซ้ำ" ไม่ขึ้น (ไม่ได้แชร์ เหมือนตอนโปรไฟล์ไม่มีอีเวนต์). บันทึก = ส่งขึ้น server ทันที.',
+    () => famTx().replace(/<div class="tabbar">[^]*$/, '') + txSheet('เพิ่มธุรกรรม', '', '250', 'อาหาร', 'ก๋วยเตี๋ยวกลางวัน', `<button class="btn">${ic('check')} บันทึก</button>`, { keypad: true })],
+  ['4 · แตะแถว: แก้ไขธุรกรรม', 'ชีตแก้เดิม (ถังขยะที่หัวชีต, เพิ่มเติม → ไม่รวมในรายงาน). บันทึก/ลบส่งทันทีพร้อม baseSeq; สำเร็จ = toast เดิม + รายการโหลดใหม่. editor แก้ได้ทุกรายการรายรับ/รายจ่ายในกระเป๋าที่แชร์ (ของเจ้าของด้วย); แถวโอน/หนี้เปิดดูได้อย่างเดียว.',
+    () => famTx().replace(/<div class="tabbar">[^]*$/, '') + txSheet('แก้ไขธุรกรรม', `<div class="ib red">${ic('trash')}</div>`, '420.00', 'อาหาร', 'กับข้าวเย็น', `<button class="btn">${ic('check')} บันทึก</button>`, { open: true })],
+  ['5 · แท็บกระเป๋า: โปรไฟล์ที่แชร์', 'กระเป๋าที่แชร์ให้ + ยอด (ยอดรวมของสองใบนี้). แตะ = ไปแท็บธุรกรรมที่กระเป๋านั้น เหมือนเดิม. <b>ไม่มี</b>สร้าง/แก้/เก็บกระเป๋า หมวดซ่อน หนี้สิน (เป็นของเจ้าของ). ส่วน "แชร์กับฉัน" เดิมในแท็บกระเป๋าและหน้า /wallets/shared/:id ถูกเอาออก.',
+    () => `${famHdr(false)}<div class="scroll">
+      <div class="card hero" style="padding:10px"><small>ยอดรวม</small><div class="big" style="font-size:24px">14,590.00</div></div>
+      <div class="h">กระเป๋าที่แชร์ให้ฉัน (2)</div>
+      <div class="card">${wrow(WB.home, 'ค่าบ้าน', 'ผู้แก้ไข', 12450)}${wrow(WB.cash, 'เงินสด', 'ผู้แก้ไข', 2140)}</div>
+      </div>${tabbar(1)}`],
+  ['6 · ออฟไลน์: ตัวสลับ', 'กลุ่ม <b>แชร์กับฉัน</b> ปิด (จาง แตะไม่ได้) + แถบ "ใช้ได้เฉพาะตอนออนไลน์". โปรไฟล์ของฉันใช้ได้ตามปกติ. เปิดแอปใหม่เข้าโปรไฟล์ของฉันเสมอ (ไม่จำโปรไฟล์ที่แชร์).',
+    () => profSheet(true)],
+  ['7 · ออฟไลน์ ขณะอยู่ในโปรไฟล์ที่แชร์', 'ทั้งหน้า<b>ปิดใช้งาน</b>: ไม่แสดงข้อมูลเก่า, ➕ ปิด, แท็บธุรกรรม/กระเป๋า/รายงานขึ้นหน้าเดียวกันนี้ + ปุ่มกลับโปรไฟล์ของฉัน. กลับมาออนไลน์ = โหลดใหม่เอง. server ล่มก็เหมือนกัน.',
+    () => `${famHdr(true)}<div class="lockv"><div><div class="empty" style="padding:0"><div><div class="ic">${ic('wifiOff')}</div><h4>ใช้งานไม่ได้ขณะออฟไลน์</h4><p>โปรไฟล์ที่แชร์กับคุณใช้ได้เฉพาะตอนออนไลน์<br>ต่ออินเทอร์เน็ตแล้วจะโหลดให้เอง</p></div></div>
+      <button class="btn ol" style="padding:0 16px;margin:0 auto">${ic('user')} กลับไปโปรไฟล์ ส่วนตัว</button></div></div>${tabbarD(0, true)}`],
+  ['8 · แก้ชนกับเจ้าของ', 'เจ้าของเพิ่งแก้/ลบแถวนั้น (changeSeq ≠ baseSeq) → toast <b>"รายการนี้เพิ่งถูกแก้ไข โหลดข้อมูลใหม่แล้ว"</b> ปิดชีต โหลดใหม่. ถูกเอาออกจากกระเป๋าระหว่างนั้น → toast "คุณไม่ได้เป็นสมาชิกแล้ว" แล้วกลับโปรไฟล์ของฉัน. เจ้าของแก้ทับทีหลัง (ออฟไลน์) → เจ้าของชนะ, แม่เห็นค่าใหม่ตอนโหลดครั้งถัดไป.',
+    () => famTx({ extra: `<div class="toast">${ic('alert')} รายการนี้เพิ่งถูกแก้ไข โหลดข้อมูลใหม่แล้ว</div>` })],
+  ['9 · เจ้าของ: แท็บธุรกรรม', 'โปรไฟล์ "ครอบครัว" ของพ่อ (ข้อมูลในเครื่อง ออฟไลน์ได้): แถวที่แม่เพิ่ม sync มาพร้อม <b>"เพิ่มโดย แม่"</b> (ชีตแก้ก็แสดง). ชื่อมาจากรายชื่อสมาชิก (โหลดเมื่อออนไลน์); ยังไม่ได้โหลด = "เพิ่มโดย สมาชิก". เจ้าของแก้/ลบได้ตามปกติ.',
+    () => `${hdrP(PB.fam, 'ครอบครัว', '')}${wpill('ทุกกระเป๋า', '#1d4ed8')}<div class="bal"><small>ยอดคงเหลือ</small><div>64,590.00</div></div>
       ${chips(['ก.ย.', 'ต.ค.', 'เดือนนี้', 'อนาคต'], 'เดือนนี้')}<div class="scroll">
-      ${day(9, 'วันจันทร์', 'พฤศจิกายน 2026', -1670, [tx(badge(C.food, 'food'), 'อาหาร', `ก๋วยเตี๋ยวกลางวัน · ${by('แม่')}`, -250, { amtSub: 'ค่าบ้าน' }), tx(badge(C.food, 'food'), 'อาหาร', `กับข้าวเย็น · ${by('แม่')}`, -420, { amtSub: 'ค่าบ้าน' }), tx(badge(C.shop, 'cart'), 'ของใช้ในบ้าน', 'Big C', -1000, { amtSub: 'ค่าบ้าน' })])}
-      ${day(8, 'วันอาทิตย์', 'พฤศจิกายน 2026', -95, [tx(badge(C.food, 'food'), 'กาแฟ', '', -95, { amtSub: 'เงินสด' })])}
+      ${day(9, 'วันจันทร์', 'พฤศจิกายน 2026', -1765, [tx(badge(C.food, 'food'), 'อาหาร', `ก๋วยเตี๋ยวกลางวัน · ${by('แม่')}`, -250, { amtSub: 'เงินสด' }), tx(badge(C.food, 'food'), 'อาหาร', `กับข้าวเย็น · ${by('แม่')}`, -420, { amtSub: 'ค่าบ้าน' }), tx(badge(C.shop, 'cart'), 'ของใช้ในบ้าน', 'Big C', -1000, { amtSub: 'ค่าบ้าน' }), tx(badge(C.food, 'food'), 'กาแฟ', '', -95, { amtSub: 'บัตรเครดิต' })])}
       </div>${tabbar(0)}`],
 ]
 document.getElementById('grid').innerHTML = frames.map(([t, d, f]) =>
