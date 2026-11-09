@@ -119,7 +119,7 @@ import { SyncStatus } from './sync-status'
         (keydown)="onMenuKey($event)"
       >
         @if (level() === 'main') {
-          @if (view() === 'transactions') {
+          @if (view() === 'transactions' && !profileService.isShared()) {
             <button
               type="button"
               role="menuitem"
@@ -130,7 +130,7 @@ import { SyncStatus } from './sync-status'
               <span class="flex-1">{{ 'transfers.open' | transloco }}</span>
             </button>
           }
-          @if (view() === 'transactions') {
+          @if (view() === 'transactions' && !profileService.isShared()) {
             <!-- Debts (debt.md Q9): the debts page under the Wallets tab. -->
             <button
               type="button"
@@ -148,7 +148,7 @@ import { SyncStatus } from './sync-status'
               />
             </button>
           }
-          @if (view() === 'transactions') {
+          @if (view() === 'transactions' && !profileService.isShared()) {
             <!-- Events (event.md Q6): the events page under the Transactions tab. -->
             <button
               type="button"
@@ -166,7 +166,7 @@ import { SyncStatus } from './sync-status'
               />
             </button>
           }
-          @if (view() === 'transactions') {
+          @if (view() === 'transactions' && !profileService.isShared()) {
             <!-- Recurring (recurring.md Q5): the rules page in Account. -->
             <button
               type="button"

@@ -1,12 +1,19 @@
-import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core'
+import { DOCUMENT, Injectable, computed, effect, inject, signal, untracked } from '@angular/core'
+import { TranslocoService } from '@jsverse/transloco'
+import { toast } from '@spartan-ng/brain/sonner'
 import { ApiClient, isUnreachable, toApiError } from '@/core/api'
 import { AuthStore } from '@/core/auth'
 import { NetworkStatusService } from '@/core/network'
+import { deleteOp, listOps, OfflineService, putRow, SyncService } from '@/core/offline'
+import type { LocalDatabase, SyncRow } from '@/core/offline'
+import { ProfileService } from '@/core/profile'
+import type { Profile } from '@/core/profile'
+import { TransactionService } from '@/core/transaction'
 import type {
   OwnerSharing,
   ShareRole,
-  SharedEntries,
-  SharedWallet,
+  ShareGroup,
+  SharedProfileRows,
   SharedWithMe,
   SharingInvite,
 } from './sharing.type'
@@ -30,18 +37,30 @@ const KNOWN_CODES = new Set([
  * this service with a dynamic `import()` after its first render, so it stays out of the initial
  * bundle; pages inject it directly.
  */
+/** Rows per read of a shared profile, like a pull page. */
+const ROWS_PAGE = 5000
+/** How often a shared profile in use reads what changed (others' writes). */
+const REFRESH_MS = 60_000
+
 @Injectable({ providedIn: 'root' })
 export class SharingService {
   private api = inject(ApiClient)
   private authStore = inject(AuthStore)
   private network = inject(NetworkStatusService)
+  private offlineService = inject(OfflineService)
+  private syncService = inject(SyncService)
+  private profileService = inject(ProfileService)
+  private transactionService = inject(TransactionService)
+  private transloco = inject(TranslocoService)
+  private window = inject(DOCUMENT).defaultView
 
   /** Invites to me and wallets shared with me; `null` until read once. */
   withMe = signal<SharedWithMe | null>(null)
   /** The owner's view per profile id. */
   private owners = signal<ReadonlyMap<string, OwnerSharing>>(new Map())
-  private wallets = signal<ReadonlyMap<string, SharedWallet>>(new Map())
-  private entryPages = signal<ReadonlyMap<string, SharedEntries>>(new Map())
+  /** The shared profile in use: its id and the last `changeSeq` read (sharing rule 9). */
+  private session: { profileId: string; cursor: number; walletIds: Set<string> } | null = null
+  private pushing: Promise<void> | null = null
   /** When the data on screen was read (the offline notice says it). */
   readAt = signal<number | null>(null)
 
@@ -63,18 +82,209 @@ export class SharingService {
         }
       })
     })
+    // An editor's write lands in the TEMP outbox: push it at once (sharing rule 11).
+    effect(() => {
+      this.offlineService.changes()
+      if (this.offlineService.sharedActive() && this.canCall()) {
+        untracked(() => void this.pushShared())
+      }
+    })
+    // Back online with a shared profile in use: read what changed meanwhile.
+    effect(() => {
+      if (this.canCall() && this.offlineService.sharedActive()) {
+        untracked(() => void this.refreshShared())
+      }
+    })
+    this.window?.setInterval(() => void this.refreshShared(), REFRESH_MS)
+    this.window?.document.addEventListener('visibilitychange', () => {
+      if (this.window?.document.visibilityState === 'visible') {
+        void this.refreshShared()
+      }
+    })
+  }
+
+  // ---------- A shared profile in use (sharing rules 9–15) ----------
+
+  /** Switches to a profile shared with me: its rows go into the TEMP tables. */
+  async openShared(group: ShareGroup): Promise<void> {
+    const profile: Profile = {
+      ...group.profile,
+      sortOrder: 0,
+      createdAt: 0,
+      updatedAt: 0,
+      deletedAt: null,
+      changeSeq: null,
+    }
+    this.profileService.leaveShared()
+    this.profileService.shared.set({
+      profile,
+      role: group.role,
+      owner: { id: group.owner.id, displayName: group.owner.displayName },
+      status: 'loading',
+    })
+    try {
+      // Read the rows while a running own sync round ends: the TEMP tables wait for it.
+      const [pages] = await Promise.all([this.fetchRows(profile.id, 0), this.syncService.idle()])
+      if (this.profileService.shared()?.profile.id !== profile.id) {
+        return // another profile was picked meanwhile
+      }
+      this.offlineService.enterShared()
+      this.session = { profileId: profile.id, cursor: 0, walletIds: new Set() }
+      this.putPages(pages)
+      const shared = this.profileService.shared()
+      if (shared?.profile.id === profile.id) {
+        this.profileService.shared.set({ ...shared, status: 'ready' })
+      }
+    } catch (error) {
+      this.endShared()
+      toast.error(this.transloco.translate(this.failure(error)))
+    }
+  }
+
+  /** Reads what changed in the shared profile in use (others' writes, a removal). */
+  async refreshShared(): Promise<void> {
+    const session = this.session
+    if (!session || !this.offlineService.sharedActive() || !this.canCall()) {
+      return
+    }
+    try {
+      await this.readRows(session.profileId)
+    } catch (error) {
+      if (toApiError(error).status === 404) {
+        this.removedFromShared()
+      }
+    }
+  }
+
+  private async readRows(profileId: string): Promise<void> {
+    const pages = await this.fetchRows(profileId, this.session?.cursor ?? 0)
+    if (this.session?.profileId === profileId && this.offlineService.sharedActive()) {
+      this.putPages(pages)
+    }
+  }
+
+  /** Every page from `since` on (sharing rule 9). */
+  private async fetchRows(profileId: string, since: number): Promise<SharedProfileRows[]> {
+    const pages: SharedProfileRows[] = []
+    let cursor = since
+    for (;;) {
+      const data = (
+        await this.api.get<SharedProfileRows>(
+          `/sharing/with-me/${profileId}/rows?since=${cursor}&limit=${ROWS_PAGE}`
+        )
+      ).data as SharedProfileRows
+      pages.push(data)
+      cursor = data.cursor
+      if (!data.hasMore) {
+        return pages
+      }
+    }
+  }
+
+  private putPages(pages: readonly SharedProfileRows[]): void {
+    for (const data of pages) {
+      this.putRows(data)
+      if (this.session) {
+        this.session.cursor = data.cursor
+      }
+    }
+  }
+
+  /** Wallets and categories are read whole each time; transactions by `changeSeq`. */
+  private putRows(data: SharedProfileRows): void {
+    const walletIds = new Set(data.wallets.map((row) => String(row['id'])))
+    this.offlineService.fillShared((db) => {
+      db.exec('DELETE FROM wallets')
+      db.exec('DELETE FROM categories')
+      for (const row of data.wallets) {
+        putRow(db, 'wallets', row)
+      }
+      for (const row of data.categories) {
+        putRow(db, 'categories', row)
+      }
+      const { columns, rows } = data.transactions
+      for (const values of rows) {
+        const row: SyncRow = Object.fromEntries<unknown>(
+          columns.map((column, i) => [column, values[i]])
+        )
+        // A pending write of mine stays until its push answers (offline-sync rule 9).
+        if (!hasPending(db, String(row['id']))) {
+          putRow(db, 'transactions', row)
+        }
+      }
+      // A wallet no longer shared takes its rows with it.
+      if (this.session) {
+        for (const id of this.session.walletIds) {
+          if (!walletIds.has(id)) {
+            db.exec('DELETE FROM transactions WHERE wallet_id = ?', [id])
+          }
+        }
+        this.session.walletIds = walletIds
+      }
+    })
+    this.transactionService.addPeople(data.people)
+    const shared = this.profileService.shared()
+    if (shared) {
+      this.profileService.shared.set({
+        ...shared,
+        role: data.role,
+        profile: { ...shared.profile, ...data.profile },
+      })
+    }
+  }
+
+  /** Pushes the TEMP outbox and settles what the server refused (sharing rules 13, 16). */
+  private async pushShared(): Promise<void> {
+    if (this.pushing || !hasOps(this.offlineService)) {
+      return
+    }
+    this.pushing = this.syncService
+      .pushShared()
+      .then(async () => this.settleRefused())
+      .catch(() => undefined)
+      .finally(() => {
+        this.pushing = null
+      })
+    await this.pushing
+  }
+
+  private async settleRefused(): Promise<void> {
+    if (!this.offlineService.sharedActive()) {
+      return
+    }
+    const refused = listOps(this.offlineService.db(), 'rejected')
+    if (refused.length === 0) {
+      return
+    }
+    // The rows already went back to the server's versions (or away, for a refused add).
+    this.offlineService.fillShared((db) => {
+      for (const op of refused) {
+        deleteOp(db, op.opId)
+      }
+    })
+    if (refused.some((op) => op.code === 'NOT_SHARED')) {
+      this.removedFromShared()
+      return
+    }
+    const stale = refused.some((op) => op.code === 'STALE')
+    toast.error(this.transloco.translate(stale ? 'sharing.stale' : 'sharing.refused'))
+    await this.refreshShared()
+  }
+
+  /** Sharing rule 16: told, then back to an own profile. */
+  private removedFromShared(): void {
+    toast.error(this.transloco.translate('sharing.removedFromShared'))
+    this.endShared()
+    void this.loadWithMe().catch(() => undefined)
+  }
+
+  private endShared(): void {
+    this.session = null
+    this.profileService.leaveShared()
   }
 
   owner(profileId: string): OwnerSharing | null {
     return this.owners().get(profileId) ?? null
-  }
-
-  wallet(walletId: string): SharedWallet | null {
-    return this.wallets().get(walletId) ?? null
-  }
-
-  entries(walletId: string, from: string, to: string | null): SharedEntries | null {
-    return this.entryPages().get(`${walletId}|${from}|${to ?? ''}`) ?? null
   }
 
   /** The translation key for a failed call. */
@@ -99,34 +309,11 @@ export class SharingService {
     const data = (await this.api.get<OwnerSharing>(`/sharing/profiles/${profileId}`))
       .data as OwnerSharing
     this.owners.update((map) => new Map(map).set(profileId, data))
+    // Sharing rule 15: the names behind "เพิ่มโดย …" on the owner's rows.
+    this.transactionService.addPeople(
+      data.members.map((member) => ({ id: member.userId, displayName: member.displayName }))
+    )
     return data
-  }
-
-  async loadWallet(walletId: string): Promise<SharedWallet> {
-    const data = (await this.api.get<SharedWallet>(`/sharing/wallets/${walletId}`))
-      .data as SharedWallet
-    this.wallets.update((map) => new Map(map).set(walletId, data))
-    this.readAt.set(Date.now())
-    return data
-  }
-
-  async loadEntries(walletId: string, from: string, to: string | null): Promise<SharedEntries> {
-    const query = `from=${from}${to ? `&to=${to}` : ''}`
-    const data = (
-      await this.api.get<SharedEntries>(`/sharing/wallets/${walletId}/entries?${query}`)
-    ).data as SharedEntries
-    this.entryPages.update((map) => new Map(map).set(`${walletId}|${from}|${to ?? ''}`, data))
-    this.readAt.set(Date.now())
-    return data
-  }
-
-  /** A shared wallet went away (404): drop what was read about it. */
-  forgetWallet(walletId: string): void {
-    this.wallets.update((map) => {
-      const next = new Map(map)
-      next.delete(walletId)
-      return next
-    })
   }
 
   // ---------- Owner ----------
@@ -193,8 +380,18 @@ export class SharingService {
   private clear(): void {
     this.withMe.set(null)
     this.owners.set(new Map())
-    this.wallets.set(new Map())
-    this.entryPages.set(new Map())
     this.readAt.set(null)
+    if (this.session) {
+      this.endShared()
+    }
   }
 }
+
+const hasPending = (db: LocalDatabase, rowId: string): boolean =>
+  db.selectValue(`SELECT 1 FROM outbox WHERE tbl = 'transactions' AND row_id = ?`, [rowId]) !==
+  undefined
+
+const hasOps = (offlineService: OfflineService): boolean =>
+  offlineService.sharedActive() &&
+  offlineService.db().selectValue(`SELECT 1 FROM outbox WHERE status = 'pending' LIMIT 1`) !==
+    undefined

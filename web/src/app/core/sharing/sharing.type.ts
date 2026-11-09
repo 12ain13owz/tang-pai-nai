@@ -47,6 +47,7 @@ export interface InviteToMe {
 
 export interface ShareGroup {
   profileId: string
+  profile: { id: string; name: string; icon: string; color: string }
   role: ShareRole
   owner: { id: string; displayName: string; email: string }
   wallets: SharedWalletView[]
@@ -57,38 +58,18 @@ export interface SharedWithMe {
   shares: ShareGroup[]
 }
 
-export interface SharedCategory {
-  id: string
-  type: 'income' | 'expense'
-  parentId: string | null
-  name: string
-  icon: string
-  color: string
-  isArchived: boolean
-  sortOrder: number
-}
-
-export interface SharedWallet {
-  wallet: SharedWalletView & { firstOn: string | null }
+/** `GET /sharing/with-me/:profileId/rows` (sharing rule 9): rows as `/sync/pull` sends them. */
+export interface SharedProfileRows {
+  profile: { id: string; name: string; icon: string; color: string }
   role: ShareRole
-  owner: { displayName: string; email: string }
-  categories: SharedCategory[]
-}
-
-/** One money movement, `amount` signed for the wallet (sharing rule 9). */
-export interface SharedEntry {
-  id: string
-  kind: 'transaction' | 'transfer' | 'debt'
-  occurredOn: string
-  amount: number
-  categoryId: string | null
-  note: string
-  excludeFromReport: boolean
-}
-
-export interface SharedEntries {
-  entries: SharedEntry[]
-  truncated: boolean
+  owner: { id: string; displayName: string; email: string }
+  people: { id: string; displayName: string }[]
+  wallets: Record<string, unknown>[]
+  categories: Record<string, unknown>[]
+  /** One array per row, in `columns`' order. */
+  transactions: { columns: string[]; rows: unknown[][] }
+  cursor: number
+  hasMore: boolean
 }
 
 /** What a sharing call failed with, for the UI: a translation key. */

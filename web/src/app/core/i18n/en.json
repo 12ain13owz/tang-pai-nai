@@ -34,8 +34,7 @@
     "debts": "Debts & loans",
     "events": "Events / trips",
     "export": "Export CSV",
-    "sharing": "Share wallets",
-    "sharedWallet": "Shared wallet"
+    "sharing": "Share wallets"
   },
   "status": {
     "online": "Online",
@@ -197,7 +196,8 @@
     "categoriesUsed": "Categories used",
     "categoriesAll": "All",
     "categoriesHidden": "{{count}} hidden",
-    "deleteUsed": "This wallet has transactions, so it can’t be deleted. Archive it instead."
+    "deleteUsed": "This wallet has transactions, so it can’t be deleted. Archive it instead.",
+    "sharedListHeading": "Shared with me ({{count}})"
   },
   "categories": {
     "title": "Categories",
@@ -1345,8 +1345,7 @@
     "unshared": "“{{name}}” isn’t shared with anyone",
     "unsharedHint": "New wallets aren’t shared automatically. Tap a person and tick this wallet",
     "withMe": "Shared with me",
-    "withMeHint": "See balances and entries in the Wallets tab → Shared with me",
-    "withMeOf": "Shared with me · by {{name}}",
+    "withMeHint": "Pick a shared profile in the profile switcher at the top of the Transactions tab",
     "leave": "Leave {{name}}’s sharing",
     "leaveHeading": "Leave {{name}}’s sharing?",
     "leaveText": "You won’t see the wallets {{name}} shared with you until you’re invited again.",
@@ -1361,7 +1360,7 @@
     "owner": "Owner",
     "editor": "Editor",
     "viewer": "Viewer",
-    "editorHint": "Sees every entry and (next round) adds entries even offline, edits and deletes online",
+    "editorHint": "Sees every entry and adds, edits and deletes entries, online",
     "viewerHint": "Sees balances and entries only, online",
     "walletsPicked": "Shared wallets ({{count}}/{{total}})",
     "selectAll": "Select all",
@@ -1384,23 +1383,7 @@
     "cancelInvite": "Cancel invitation",
     "cancelled": "Invitation cancelled",
     "cancel": "Cancel",
-    "more": "More options",
     "needsOnline": "Connect to the internet to manage sharing",
-    "offlineShown": "Offline · showing what was loaded at {{time}}, it may be out of date",
-    "offlineNone": "Connect to the internet to see shared wallets",
-    "readOnly": "View only for now. Adding entries comes in the next round",
-    "ownerOf": "by {{name}}",
-    "balance": "Balance · {{code}}",
-    "transferOut": "Transfer out",
-    "transferIn": "Transfer in",
-    "debtIn": "Money in (debt)",
-    "debtOut": "Money out (debt)",
-    "noRows": "No entries in this period",
-    "truncated": "Showing the latest 5,000 entries of this period",
-    "goneHeading": "Wallet not found",
-    "goneText": "The owner may have stopped sharing, archived or deleted it.",
-    "reload": "Reload",
-    "loadFailed": "Couldn’t load",
     "error": {
       "SHARE_SELF": "You can’t invite yourself",
       "SHARE_ALREADY_MEMBER": "This person already shares this profile",
@@ -1413,6 +1396,23 @@
       "RATE_LIMITED": "Can’t send email right now. Try again later",
       "generic": "Something went wrong. Try again"
     },
-    "pendingTitle": "Pending invitation"
+    "pendingTitle": "Pending invitation",
+    "ofOwner": "{{name}}'s",
+    "ofOwnerWallets": "{{name}}'s · {{count}} wallets",
+    "ofOwnerWalletOne": "{{name}}'s · 1 wallet",
+    "profileOnline": "Shared profiles work only online",
+    "offlineHeading": "Not available offline",
+    "offlineText": "A profile shared with you works only online. It loads again once you're back online.",
+    "reportsHeading": "Reports cover your own profiles",
+    "reportsText": "Switch to one of your profiles to see its reports.",
+    "mineHeading": "This page is for your own profiles",
+    "mineText": "In a shared profile, categories, debts, events, recurring rules and sharing belong to the owner.",
+    "backToMine": "Back to my profile",
+    "stale": "This entry was just changed, so it was reloaded",
+    "refused": "Couldn't save, so the data was reloaded",
+    "removedFromShared": "You're no longer a member of this wallet",
+    "addedBy": "Added by {{name}}",
+    "member": "a member",
+    "viewerReadOnly": "You're a viewer of this profile: read only"
   }
 }

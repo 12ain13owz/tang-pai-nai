@@ -23,7 +23,7 @@ import {
   PROFILE_LIMITS,
   PROFILE_TABLE,
 } from './profile.type'
-import type { Profile, ProfileSheetState, ProfileValues } from './profile.type'
+import type { Profile, ProfileSheetState, ProfileValues, SharedProfile } from './profile.type'
 
 const ORDER = 'ORDER BY sort_order, created_at, id'
 
@@ -66,8 +66,21 @@ export class ProfileService {
         )
       )
   )
-  /** The device's current profile: the stored one while live, else the first (rule 6). */
+  /**
+   * The shared profile in use (sharing rule 10), set by `SharingService`; null = an own one. It is
+   * never stored: opening the app starts on an own profile.
+   */
+  shared = signal<SharedProfile | null>(null)
+  isShared = computed(() => this.shared() !== null)
+  /**
+   * The device's current profile: the shared one in use, else the stored one while live, else
+   * the first (rule 6).
+   */
   current = computed(() => {
+    const shared = this.shared()
+    if (shared) {
+      return shared.profile
+    }
     const profiles = this.profiles()
     return profiles.find((profile) => profile.id === this.storedId()) ?? profiles.at(0) ?? null
   })
@@ -93,12 +106,21 @@ export class ProfileService {
    * Rule 10: an untrusted device writes only online (offline-sync rule 1), and only while the
    * server answers (rule 11): its rows live in memory until they're pushed.
    */
-  canWrite = computed(
-    () =>
-      this.offlineService.isOpen() &&
-      (this.offlineService.isTrusted() ||
-        (this.networkStatusService.isOnline() && this.networkStatusService.serverReachable()))
-  )
+  canWrite = computed(() => {
+    const online =
+      this.networkStatusService.isOnline() && this.networkStatusService.serverReachable()
+    const shared = this.shared()
+    if (shared) {
+      // Sharing rule 11: an editor, online, once the rows are in.
+      return (
+        this.offlineService.sharedActive() &&
+        online &&
+        shared.role === 'editor' &&
+        shared.status === 'ready'
+      )
+    }
+    return this.offlineService.isOpen() && (this.offlineService.isTrusted() || online)
+  })
   /**
    * Why an untrusted device can't write right now: the network is up but the server isn't
    * answering (rule 11), rather than no network. Picks the notice's wording.
@@ -127,6 +149,12 @@ export class ProfileService {
       untracked(() =>
         this.storedId.set(userId ? this.storage(trusted).getItem(this.key(userId)) : null)
       )
+    })
+    // Locked or closed while a shared profile was in use: its rows are gone with the database.
+    effect(() => {
+      if (!this.offlineService.sharedActive() && this.shared()?.status === 'ready') {
+        untracked(() => this.shared.set(null))
+      }
     })
     let wasSyncing = false
     effect(() => {
@@ -194,6 +222,7 @@ export class ProfileService {
   }
 
   select(id: string | null): void {
+    this.leaveShared()
     const userId = this.userId()
     this.storedId.set(id)
     if (!userId) {
@@ -205,6 +234,14 @@ export class ProfileService {
     } else {
       storage.removeItem(this.key(userId))
     }
+  }
+
+  /** Back to an own profile: the shared one's TEMP tables go (sharing rule 15). */
+  leaveShared(): void {
+    if (this.shared()) {
+      this.shared.set(null)
+    }
+    this.offlineService.leaveShared()
   }
 
   /** Rule 2 as far as this device knows. */
