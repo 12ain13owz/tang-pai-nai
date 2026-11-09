@@ -1,6 +1,6 @@
 # CSV export + move transactions
 
-> Status: Spec (#15) — code in `web/src/app/features/account/pages/export-page/` and
+> Status: Built (#15) — code in `web/src/app/features/account/pages/export-page/` and
 > `web/src/app/layout/category-sheet.ts`. Mock-up: [mockups/export.html](mockups/export.html)
 
 ## Purpose

@@ -70,27 +70,27 @@ merging.
 
 ## Status
 
-| #   | Feature / phase                       | API | Web | Notes                                                                                                                                                                    |
-| --- | ------------------------------------- | --- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0   | Starter repos                         | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                                                                  |
-| 1   | Local dev workflow                    | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                                                                              |
-| 2   | Database foundation                   | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                                                               |
-| 3   | App shell                             | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                                                                           |
-| 4   | Auth                                  | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                                                                             |
-| 4a  | Offline sync foundation               | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                |
-| 5   | Currency                              | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                      |
-| 6   | Profile + Wallet                      | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
-| 7   | Category                              | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms); 7.3 merge. [spec](docs/features/category.md)                                          |
-| 8   | Transaction                           | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                         |
-| 9   | Transfer                              | ✅  | ✅  | two linked rows of one `transfers` row, outside income / expense; ⋮ menu, Wallets tab button. [spec](docs/features/transfer.md)                                          |
-| 10  | Reports                               | —   | ✅  | on the device: H1 summary with balances, trend, by category with drill-down pages; Transactions header shared. [spec](docs/features/report.md)                           |
-| 11  | Budget                                | ⏸   | ⏸   | moved to the backlog after #10 (owner: not used in Money Lover; reports cover it); see Backlog                                                                           |
-| 12  | Recurring transactions                | ✅  | ✅  | rules recorded on the device when due (or asked first), deterministic ids, "อนาคต" shows what comes. [spec](docs/features/recurring.md)                                  |
-| 13  | Debt / loan                           | ✅  | ✅  | borrowed / lent, entries outside income / expense, counted once per debt, instalments as rules, "หนี้สิน" card. [spec](docs/features/debt.md)                            |
-| 14  | Event / trip                          | ✅  | ✅  | events per profile, one per transaction, totals computed, default by date, close / reopen; under `/transactions/events`. [spec](docs/features/event.md)                  |
-| 15  | **Search, filter, CSV export** ← next | ⬜  | ⬜  | + bulk edit: move many transactions (e.g. one wallet's) to another category (owner, 7.3)                                                                                 |
-| 16  | Family sharing                        | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                                                                   |
-| 17  | Deploy (Vercel)                       | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
+| #   | Feature / phase                | API | Web | Notes                                                                                                                                                                    |
+| --- | ------------------------------ | --- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0   | Starter repos                  | ✅  | ✅  | API from `node-express-ts-starter`; Angular 22 + Tailwind + shared lint                                                                                                  |
+| 1   | Local dev workflow             | ✅  | ✅  | run both apps in the sandbox, `/api` dev proxy, notifier (email/SMS providers), no API keys                                                                              |
+| 2   | Database foundation            | ✅  | —   | Drizzle + `@libsql/client`; local file DB, Turso in prod; migrations, seed                                                                                               |
+| 3   | App shell                      | —   | ✅  | PWA (offline app shell), bottom tab bar, dark mode, empty tab pages. See below                                                                                           |
+| 4   | Auth                           | ✅  | ✅  | email code + link, password, Google, Security page, phone OTP. [spec](docs/features/auth.md)                                                                             |
+| 4a  | Offline sync foundation        | ✅  | ✅  | 4a.1 encrypted local DB + PIN lock; 4a.2 outbox, `/sync/push` + `/pull`, sync pill. [spec](docs/features/offline-sync.md)                                                |
+| 5   | Currency                       | ✅  | ✅  | master table, THB default; built with 4a.2, pulled to the device. [spec](docs/features/currency.md)                                                                      |
+| 6   | Profile + Wallet               | ✅  | ✅  | 6.1 profiles; 6.2 wallets (`wallet_members`, `tpn` icons, near-full sheets, `sync_probes` gone). [profile](docs/features/profile.md) · [wallet](docs/features/wallet.md) |
+| 7   | Category                       | ✅  | ✅  | 7.1 categories, default set, Account › หมวดหมู่; 7.2 hide per wallet (both forms); 7.3 merge. [spec](docs/features/category.md)                                          |
+| 8   | Transaction                    | ✅  | ✅  | 8.1 table, form + keypad, Money Lover tab, real balances; 8.2 quick amounts, toasts on top. [spec](docs/features/transaction.md)                                         |
+| 9   | Transfer                       | ✅  | ✅  | two linked rows of one `transfers` row, outside income / expense; ⋮ menu, Wallets tab button. [spec](docs/features/transfer.md)                                          |
+| 10  | Reports                        | —   | ✅  | on the device: H1 summary with balances, trend, by category with drill-down pages; Transactions header shared. [spec](docs/features/report.md)                           |
+| 11  | Budget                         | ⏸   | ⏸   | moved to the backlog after #10 (owner: not used in Money Lover; reports cover it); see Backlog                                                                           |
+| 12  | Recurring transactions         | ✅  | ✅  | rules recorded on the device when due (or asked first), deterministic ids, "อนาคต" shows what comes. [spec](docs/features/recurring.md)                                  |
+| 13  | Debt / loan                    | ✅  | ✅  | borrowed / lent, entries outside income / expense, counted once per debt, instalments as rules, "หนี้สิน" card. [spec](docs/features/debt.md)                            |
+| 14  | Event / trip                   | ✅  | ✅  | events per profile, one per transaction, totals computed, default by date, close / reopen; under `/transactions/events`. [spec](docs/features/event.md)                  |
+| 15  | CSV export + move transactions | —   | ✅  | owner cut search and filters; Account › ส่งออก CSV, "ย้ายรายการ" in the category sheet, no API change. [spec](docs/features/export.md)                                   |
+| 16  | **Family sharing** ← next      | ⬜  | ⬜  | invite by email, editor/viewer; rules in [offline-sync](docs/features/offline-sync.md) 13–16 + backlog                                                                   |
+| 17  | Deploy (Vercel)                | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
@@ -100,24 +100,52 @@ decision "Local-first").
 
 ---
 
-## Next: Search, filter, CSV export (#15)
+## Next: Family sharing (#16)
 
-Not started: write `docs/features/search.md` first (questions to the owner with a proposal; a
-mock-up only if the owner wants one, and **stop for the owner's review before building**). The
-order stays **#15 → #16**, then #17 when the owner asks. Row 15 in the table names the scope
-(+ bulk edit: move many transactions to another category, owner 7.3); an **event filter** in
-reports and the Transactions tab was deferred here from #14 (event.md Q10).
+Not started: write or refine its spec first ([offline-sync](docs/features/offline-sync.md)
+rules 13–16 + backlog), with questions to the owner and a mock-up only if wanted (stop for the
+owner's review before building). #17 (deploy) waits until the owner asks.
 
 Known, for later:
 
-- The initial bundle is **726.9 kB** after #14 (warning at 750 kB). Keep new screens lazy and
+- The initial bundle is **729.3 kB** after #15 (warning at 750 kB). Keep new screens lazy and
   their services out of the shell (#12 loads `RecurringService` with a dynamic `import()` after
   the shell's first render; `DebtService` and `EventService` are injected only by their pages;
-  `core/transaction` reads `events` by name for the form's row and the list's tag).
+  `core/transaction` reads `events` by name). A module exported from a barrel the shell imports
+  lands in the initial bundle even when only a lazy screen uses it (Angular builds keep a
+  barrel's modules): keep such code beside its screen (#15's `layout/category-move-rows.ts`).
 - Headless Chromium breaks some Thai lines inside a word ("บัน/ทึก"); the app's older notices do
   the same, so it's the test browser's line breaking, not our markup.
 - The API's sign-in only accepts `Origin: http://localhost:4200` (`WEB_ORIGIN`): a local server
   for Playwright on `npm run build` output must listen on 4200, or `/auth/refresh` answers 403.
+
+## Done: CSV export + move transactions (#15)
+
+- **Decided at the start of #15** (owner, after a first mock-up of search / filters / a select
+  mode): **no search, no filters** in the Transactions tab or Reports and **no event filter**
+  (event.md Q10): the tab browses by period and Reports by category, and the event page lists
+  its rows. What stays: a **CSV export** in Account (dates, wallets, categories, each "all" by
+  default) and **moving a category's transactions** (all, or one wallet's, with "hide the old
+  one there") from the category sheet, with undo. Mock-up `docs/features/mockups/export.html`
+  (reviewed).
+- **Decided while building**: the export includes debt entries with the transfers (the switch is
+  "รวมการโอนเงินและหนี้สิน"); the file name keeps only ASCII (Chromium drops a Thai download
+  name); a conflict with another device's later edit gives the usual notice per row (not one
+  grouped notice).
+- **Web**: `features/account/pages/export-page` (`export-data.ts` reads the tables by name,
+  `csv.ts`, the pick sheet; Web Share on touch devices, a download elsewhere);
+  `layout/category-move.ts` + `category-move-rows.ts` (a view of the category sheet; one write
+  of row upserts, undo from the toast); `app-sheet-frame` takes `actions` (2 | 3 | 4) instead
+  of `threeActions`. No API change, no OpenAPI change.
+- **Checked**: Playwright at 375×812 on `npm run build`, th/light with 20,000 rows + 300
+  transfers: export of 20,600 rows in ≈ 0.3 s (BOM, quoting, the formula guard), a custom range
+  with some categories (4,534 rows, as computed from the seed), moving 2,857 rows in ≈ 0.5 s
+  with hide and undo, `setOffline` (export, then moving 3,333 rows in ≈ 0.6 s; synced 16 s after
+  coming back); en/dark (one wallet, the four-icon sheet header); two devices of one user (A
+  moves 100 rows offline, B edits one of them later: B's edit wins that row, 99 moved, A gets
+  one notice). Tests: web 611. Initial bundle 729.3 kB.
+- **Known**: many conflicting rows give one notice each; the export reads every chosen row into
+  memory at once (fine at 20,000).
 
 ## Done: Event / trip (#14)
 
