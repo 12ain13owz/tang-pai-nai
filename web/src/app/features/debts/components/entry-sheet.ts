@@ -567,7 +567,7 @@ export class DebtEntrySheet {
     if (state?.mode === 'edit' || state?.mode === 'fix') {
       return this.t(state.mode === 'fix' ? 'debts.fixEntry' : 'debts.editEntry')
     }
-    return this.t(`debts.entry.${debt?.direction ?? 'borrowed'}.${this.kind()}`)
+    return this.t(`debts.sheet.${debt?.direction ?? 'borrowed'}.${this.kind()}`)
   })
   protected walletLabel = computed(() => {
     this.languageService.language()

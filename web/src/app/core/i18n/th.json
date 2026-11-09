@@ -319,7 +319,8 @@
     "notFoundText": "หมวดหมู่นี้อาจถูกลบหรือผสานไปแล้ว",
     "noneInPeriod": "ช่วงนี้ไม่มีธุรกรรมในหมวดนี้",
     "back": "กลับไปรายงาน",
-    "noneOfType": "ช่วงนี้ไม่มีรายการประเภทนี้"
+    "noneOfType": "ช่วงนี้ไม่มีรายการประเภทนี้",
+    "debt": "หนี้ {{amount}}"
   },
   "account": {
     "appearance": "การแสดงผล",
@@ -1167,6 +1168,16 @@
     "summaryLine": "หนี้ (ยืม/คืน)",
     "linked": "หนี้",
     "principalShort": "ยืม / ให้ยืม",
-    "repaymentShort": "คืน / รับคืน"
+    "repaymentShort": "คืน / รับคืน",
+    "sheet": {
+      "borrowed": {
+        "principal": "ยืมเพิ่ม",
+        "repayment": "คืนเงิน"
+      },
+      "lent": {
+        "principal": "ให้ยืมเพิ่ม",
+        "repayment": "รับคืน"
+      }
+    }
   }
 }

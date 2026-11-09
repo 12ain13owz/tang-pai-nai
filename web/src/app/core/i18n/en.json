@@ -319,7 +319,8 @@
     "notFoundText": "It may have been deleted or merged.",
     "noneInPeriod": "No transactions in this category in this period",
     "back": "Back to reports",
-    "noneOfType": "Nothing of this type in this period"
+    "noneOfType": "Nothing of this type in this period",
+    "debt": "Debts {{amount}}"
   },
   "account": {
     "appearance": "Appearance",
@@ -1072,7 +1073,7 @@
       "lent": "Counted as income"
     },
     "interestCategory": "Interest category",
-    "close": "Close",
+    "close": "Close debt",
     "closed": "Debt closed",
     "closeLeft": {
       "borrowed": "{{amount}} still owed to {{name}}",
@@ -1167,6 +1168,16 @@
     "summaryLine": "Debts (borrow/repay)",
     "linked": "Debt",
     "principalShort": "Borrowed / lent",
-    "repaymentShort": "Repaid / paid back"
+    "repaymentShort": "Repaid / paid back",
+    "sheet": {
+      "borrowed": {
+        "principal": "Borrow more",
+        "repayment": "Repay"
+      },
+      "lent": {
+        "principal": "Lend more",
+        "repayment": "Receive back"
+      }
+    }
   }
 }

@@ -294,7 +294,15 @@ export class DebtCloseSheet {
         this.how.set('rest')
         this.missing.set(false)
         this.categoryId.set(null)
-        this.walletId.set(this.walletChoices().at(0)?.id ?? null)
+        // The wallet the debt used last, else the first open one of its currency.
+        const last = this.debtService
+          .history(id)
+          .find((row) => row.kind === 'entry' && row.entry.walletId !== null)
+        const lastId = last?.kind === 'entry' ? last.entry.walletId : null
+        const choices = this.walletChoices()
+        this.walletId.set(
+          choices.find((wallet) => wallet.id === lastId)?.id ?? choices.at(0)?.id ?? null
+        )
         this.day.reset(this.transactionService.today())
       })
     })
