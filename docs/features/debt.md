@@ -1,8 +1,8 @@
 # Debt / loan
 
-> Status: **Spec, round 1** (#13): every point below is a **proposal** until the owner answers
-> the Open questions (Q1–Q12). Mock-up: [mockups/debt.html](mockups/debt.html) (frame numbers
-> below). Builds on [transaction.md](transaction.md), [transfer.md](transfer.md),
+> Status: **Spec, agreed** (#13; the owner took every proposal of round 1: "ตามเสนอ", Open
+> questions Q1–Q12). Mock-up: [mockups/debt.html](mockups/debt.html) (frame numbers below).
+> Builds on [transaction.md](transaction.md), [transfer.md](transfer.md),
 > [recurring.md](recurring.md) and [offline-sync.md](offline-sync.md).
 
 ## Purpose
@@ -202,7 +202,8 @@ Forgive, ผ่อน / Instalment, กำหนดคืน / Due.
 
 ## Open questions
 
-Round 1, each with the proposal the mock-up shows:
+**Settled at the start of #13** (owner: "ตามเสนอ", every proposal of round 1 of the mock-up;
+the options offered beside them were not taken):
 
 - **Q1 Counted once.** Proposal: **a choice per debt** made when it is created, "ตอนใช้เงิน"
   (default) or "ตอนผ่อนคืน" (borrowed only), never changed after (rule 3). Alternative:
