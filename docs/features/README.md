@@ -18,6 +18,7 @@ AI can understand a feature without reading its code. These docs are the shared 
 | Debt / loan    | [debt.md](debt.md)                 | Built (#13)        |
 | Event / trip   | [event.md](event.md)               | Built (#14)        |
 | CSV export     | [export.md](export.md)             | Built (#15)        |
+| Family sharing | [sharing.md](sharing.md)           | Spec (16.1)        |
 | Offline & sync | [offline-sync.md](offline-sync.md) | Built (4a.1, 4a.2) |
 
 Order of work and project-wide decisions live in [`../../ROADMAP.md`](../../ROADMAP.md), not here.
