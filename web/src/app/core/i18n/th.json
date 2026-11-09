@@ -32,7 +32,8 @@
     "device": "เครื่องนี้",
     "recurring": "รายการซ้ำ",
     "debts": "หนี้ / เงินกู้",
-    "events": "อีเวนต์ / ทริป"
+    "events": "อีเวนต์ / ทริป",
+    "export": "ส่งออก CSV"
   },
   "status": {
     "online": "ออนไลน์",
@@ -281,7 +282,26 @@
     "mergeMerged": "หมวดหมู่ย่อย {{count}} รายการรวมเข้า “{{name}}” ด้วย",
     "mergeWarning": "“{{name}}” จะถูกลบ เลิกทำไม่ได้ เครื่องอื่นจะเห็นหลัง sync",
     "mergeConfirm": "ผสาน",
-    "merged": "ผสาน “{{from}}” เข้ากับ “{{to}}” แล้ว"
+    "merged": "ผสาน “{{from}}” เข้ากับ “{{to}}” แล้ว",
+    "moveAction": "ย้ายรายการไปหมวดอื่น",
+    "moveLink": "ย้ายรายการไปหมวดอื่น",
+    "moveHeading": "ย้ายรายการ",
+    "moveFrom": "จากกระเป๋า",
+    "moveAllWallets": "ทุกกระเป๋า",
+    "moveTo": "ไปหมวด",
+    "moveChoose": "เลือกหมวด",
+    "moveHide": "ซ่อน \"{{name}}\" ในกระเป๋านี้",
+    "moveHideHint": "ไม่แสดงตอนเพิ่มรายการในกระเป๋า {{wallet}} อีกต่อไป",
+    "moveButton": "ย้าย {{count}} รายการ",
+    "moveQuestion": "ย้าย {{count}} รายการจาก \"{{from}}\" ไป \"{{to}}\" ใช่ไหม",
+    "moveHideNote": "และซ่อน \"{{name}}\" ในกระเป๋า {{wallet}}",
+    "moveUndoNote": "เลิกทำได้จากข้อความที่ขึ้นหลังย้าย",
+    "moveCancel": "ยกเลิก",
+    "moveConfirm": "ย้าย",
+    "moved": "ย้าย {{count}} รายการแล้ว",
+    "moveButtonOne": "ย้าย 1 รายการ",
+    "moveQuestionOne": "ย้าย 1 รายการจาก \"{{from}}\" ไป \"{{to}}\" ใช่ไหม",
+    "movedOne": "ย้าย 1 รายการแล้ว"
   },
   "reports": {
     "emptyHeading": "ยังไม่มีธุรกรรมในช่วงนี้",
@@ -405,7 +425,9 @@
     "recurring": "รายการซ้ำ",
     "recurringHint": "{{count}} รายการใน {{name}}",
     "debtsHint": "{{count}} รายการใน {{name}}",
-    "eventsHint": "{{count}} อีเวนต์ใน {{name}}"
+    "eventsHint": "{{count}} อีเวนต์ใน {{name}}",
+    "export": "ส่งออก CSV",
+    "exportHint": "ธุรกรรมของ {{name}}"
   },
   "auth": {
     "signInHeading": "เข้าสู่ระบบ",
@@ -1246,5 +1268,57 @@
     "rowsOne": "1 รายการ",
     "walletsOne": "1 กระเป๋า",
     "deleteTextOne": "ธุรกรรม 1 รายการจะยังอยู่ แค่ไม่ผูกกับอีเวนต์นี้แล้ว"
+  },
+  "export": {
+    "intro": "ธุรกรรมของโปรไฟล์ {{name}} เป็นไฟล์ CSV ที่เปิดใน Excel หรือ Google Sheets ได้",
+    "dates": "ช่วงวันที่",
+    "allDates": "ทั้งหมด",
+    "customDates": "กำหนดเอง",
+    "wallets": "กระเป๋า",
+    "allWallets": "ทุกกระเป๋า",
+    "allWalletsHint": "{{count}} ใบ รวมที่เก็บถาวรแล้ว",
+    "allWalletsHintOne": "1 ใบ",
+    "someWallets": "เลือกบางกระเป๋า",
+    "walletCount": "{{count}} ใบ",
+    "walletCountOne": "1 ใบ",
+    "categories": "หมวดหมู่",
+    "allCategories": "ทุกหมวด",
+    "someCategories": "เลือกบางหมวด",
+    "categoryCount": "{{count}} หมวด",
+    "categoryCountOne": "1 หมวด",
+    "withChildren": "{{name}} (+{{count}} ย่อย)",
+    "edit": "แก้ไข",
+    "others": "รวมการโอนเงินและหนี้สิน",
+    "othersHint": "แถวโอนออก / โอนเข้า และรายการยืม / คืนของกระเป๋าที่เลือก",
+    "othersOff": "เลือกบางหมวดแล้ว การโอนและหนี้สินไม่มีหมวด",
+    "button": "ส่งออก {{count}} รายการ",
+    "none": "ไม่มีรายการให้ส่งออก",
+    "exported": "ส่งออก {{count}} รายการแล้ว",
+    "pickWallets": "เลือกกระเป๋า",
+    "pickCategories": "เลือกหมวด",
+    "clear": "ล้าง",
+    "done": "เสร็จ",
+    "archived": "เก็บถาวร",
+    "yes": "ใช่",
+    "kind": {
+      "income": "รายรับ",
+      "expense": "รายจ่าย",
+      "out": "โอนออก",
+      "in": "โอนเข้า"
+    },
+    "column": {
+      "date": "วันที่",
+      "type": "ประเภท",
+      "parent": "หมวดหลัก",
+      "category": "หมวด",
+      "wallet": "กระเป๋า",
+      "amount": "จำนวนเงิน",
+      "currency": "สกุลเงิน",
+      "note": "หมายเหตุ",
+      "event": "อีเวนต์",
+      "excluded": "ไม่รวมในรายงาน"
+    },
+    "buttonOne": "ส่งออก 1 รายการ",
+    "exportedOne": "ส่งออก 1 รายการแล้ว"
   }
 }

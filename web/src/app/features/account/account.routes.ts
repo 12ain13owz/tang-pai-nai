@@ -43,6 +43,11 @@ export default [
       import('./pages/recurring-page/recurring-page').then((m) => m.RecurringPage),
   },
   {
+    path: 'export',
+    title: 'title.export',
+    loadComponent: async () => import('./pages/export-page/export-page').then((m) => m.ExportPage),
+  },
+  {
     path: 'appearance',
     title: 'title.appearance',
     loadComponent: async () =>

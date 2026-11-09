@@ -49,8 +49,9 @@ writes `transactions` rows (and a wallet's `hiddenCategoryIds`) through the outb
    Order: `occurredOn` ascending, then `createdAt`, then `id`; a transfer's outgoing side first.
 5. **File**: UTF-8 with a BOM (Excel reads Thai), comma separated, CRLF line ends, RFC 4180
    quoting (a field with `,` `"` or a line break is quoted, `"` doubled). Named
-   `tangpainai-<profile>-<YYYY-MM-DD>.csv` (today; characters a file name can't hold become `-`).
-   Headers in the UI language.
+   `tangpainai-<profile>-<YYYY-MM-DD>.csv` (today), the profile's name kept to ASCII letters,
+   digits, `-` and `_`; a Thai name is left out (`tangpainai-<YYYY-MM-DD>.csv`): browsers drop a
+   download name with other characters. Headers in the UI language.
 6. **Columns**: date (`YYYY-MM-DD`), type (รายรับ / รายจ่าย / โอนออก / โอนเข้า / a debt entry's
    kind), parent category, category (a top-level category has an empty parent), wallet, amount
    (signed: + money in, − money out; the currency's minor-unit digits with `.`, no thousands
