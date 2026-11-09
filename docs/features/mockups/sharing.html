@@ -198,21 +198,24 @@ input.nm { border: 0; background: transparent; font: inherit; color: inherit; wi
 </head>
 <body>
 <header class="page">
-  <h1>แชร์กระเป๋า (#16.1) · mock-up รอบ 1</h1>
-  <p>วันนี้ = จ. 9 พ.ย. 2026. <b>เจ้าของ</b> = "พ่อ" (somchai@…) แชร์กระเป๋า "ค่าบ้าน" ให้ <b>สมาชิก</b> = "แม่" (malee@…).
-  16.1 = เชิญ / รับเชิญ / จัดการสมาชิก / ดูกระเป๋าที่แชร์<b>แบบอ่านอย่างเดียว</b> (editor ยังเพิ่มรายการไม่ได้ ทำใน 16.2).
-  ข้อมูลกระเป๋าที่แชร์อ่านผ่าน REST ตอนออนไลน์ เก็บในหน่วยความจำเท่านั้น (rule 15). กรอบเส้นประสีทอง = ทางเลือกที่ยังไม่เสนอเป็นค่าเริ่มต้น.</p>
+  <h1>แชร์กระเป๋า (#16.1) · mock-up รอบ 2</h1>
+  <p>วันนี้ = จ. 9 พ.ย. 2026. <b>เจ้าของ</b> = "พ่อ" (โปรไฟล์ "ครอบครัว": ค่าบ้าน, เงินสด, ออมทองลูก, บัตรเครดิต) · <b>สมาชิก</b> = "แม่".
+  รอบ 2: ศูนย์จัดการอยู่ที่ <b>แท็บบัญชี → แชร์กระเป๋า</b> (ของโปรไฟล์ที่เลือกอยู่). เชิญเป็น<b>คน</b> ติ๊กกระเป๋าไว้ครบเป็นค่าเริ่มต้น เอาออกได้;
+  ทุกกระเป๋าที่แชร์ให้คนหนึ่งใช้<b>สิทธิ์เดียวกัน</b>; กระเป๋าที่สร้างใหม่<b>ไม่แชร์อัตโนมัติ</b>. sheet กระเป๋าไม่มีแถว "สมาชิก" แล้ว.
+  16.1 ดูได้อย่างเดียว (editor เพิ่มรายการใน 16.2). ข้อมูลกระเป๋าที่แชร์อ่านผ่าน REST เก็บในหน่วยความจำ (rule 15).</p>
 </header>
 <div class="grid" id="grid"></div>
 <section class="qs">
   <h2>สรุปภาพ</h2>
   <ul>
-    <li><b>1–3</b> เจ้าของ: sheet แก้กระเป๋ามีแถว "สมาชิก" → หน้าสมาชิก (รายชื่อ, คำเชิญที่รอ, ปุ่มเชิญ) → ฟอร์มเชิญ (อีเมล + สิทธิ์)</li>
-    <li><b>4</b> เจ้าของแตะสมาชิก: เปลี่ยนสิทธิ์ / เอาออก (มีผลทันที, ต้องออนไลน์)</li>
-    <li><b>5</b> อีเมลเชิญ: มีแค่ชื่อผู้เชิญ + ชื่อกระเป๋า ลิงก์เปิดหน้าเข้าสู่ระบบโดยกรอกอีเมลไว้ให้</li>
-    <li><b>6</b> สมาชิก: การ์ดคำเชิญบนแท็บกระเป๋า + จุดแดงที่ไอคอนแท็บ; ส่วน "แชร์กับฉัน" ใต้กระเป๋าของตัวเอง ไม่นับในยอดรวม</li>
-    <li><b>7</b> สมาชิก: หน้ากระเป๋าที่แชร์ (อ่านอย่างเดียว) ยอด + รายการตามเดือน, โอนแสดงแค่ "โอนเข้า/โอนออก"; เมนู ⋮ มี "ออกจากกระเป๋านี้"</li>
-    <li><b>8</b> หน้าเดียวกันตอนออฟไลน์: แสดงข้อมูลที่โหลดไว้ (ในหน่วยความจำ) + แถบเตือน; ถ้ายังไม่เคยโหลดตั้งแต่เปิดแอป แสดง "ต้องออนไลน์"</li>
+    <li><b>1</b> แท็บบัญชี: แถวใหม่ <b>แชร์กระเป๋า</b> ในกลุ่มข้อมูลของฉัน (ใต้หมวดหมู่) บอกโปรไฟล์ + จำนวนคน; จุดแดงที่แท็บเมื่อมีคำเชิญถึงฉัน</li>
+    <li><b>2</b> หน้าแชร์กระเป๋า (เจ้าของ): สมาชิกเป็นรายคน (สิทธิ์ · กี่กระเป๋า), คำเชิญที่รอ, แจ้งกระเป๋าที่ยังไม่ได้แชร์กับใคร</li>
+    <li><b>3</b> เชิญ: อีเมล + สิทธิ์ + กระเป๋าของโปรไฟล์นี้ (ติ๊กครบ, ไม่รวมที่เก็บถาวร)</li>
+    <li><b>4</b> แตะคน: เปลี่ยนสิทธิ์, ติ๊กกระเป๋าเพิ่ม/ออก, เอาออก (คำเชิญที่รอ: ส่งอีกครั้ง / ยกเลิก)</li>
+    <li><b>5</b> อีเมลเชิญ: ชื่อผู้เชิญ + ชื่อกระเป๋า เท่านั้น</li>
+    <li><b>6</b> สมาชิก: หน้าแชร์กระเป๋า → คำเชิญถึงฉัน (รับ/ปฏิเสธ) + แชร์กับฉัน (แยกตามเจ้าของ, ออกได้)</li>
+    <li><b>7</b> สมาชิก: แท็บกระเป๋ามีส่วน "แชร์กับฉัน" สำหรับดูยอด (ไม่นับในยอดรวม)</li>
+    <li><b>8–9</b> หน้ากระเป๋าที่แชร์ (อ่านอย่างเดียว) และตอนออฟไลน์</li>
   </ul>
 </section>
 <script>
@@ -313,61 +316,78 @@ const sharedTx = (offline) => () => `${pageHdr('ค่าบ้าน', `<div cl
   </div>${tabbar(1)}
   ${offline ? '' : `<div class="menu"><div class="it">${ic('refresh')} โหลดใหม่</div><div class="it" style="color:var(--destructive)">${ic('out')} ออกจากกระเป๋านี้</div></div>`}`
 
+const acctRow = (icon, name, sub, opts = {}) => `<div class="rule" ${opts.hl ? 'style="background:color-mix(in srgb, var(--brand) 9%, var(--card))"' : ''}><div class="badge m">${ic(icon)}</div><div class="mid">${name}${opts.dot ? ' <span class="tag" style="background:var(--destructive);color:#fff">1</span>' : ''}<small>${sub}</small></div>${ic('chevR', 's')}</div>`
+const tabbarA = (dot) => tabbar(4).replace('<div class="on">', `<div class="on ${dot ? 'dot' : ''}">`)
+const check = (on) => `<span class="radio" style="border-radius:6px;${on ? 'background:var(--brand);border-color:var(--brand)' : ''}">${on ? `<span style="color:var(--card);display:grid;place-items:center">${ic('check', 's')}</span>` : ''}</span>`
+const wcheck = (w, name, on, sub = '') => `<div>${check(on)}${w}<span class="lbl">${name}${sub ? `<small>${sub}</small>` : ''}</span></div>`
+const WB = { home: badge('#1d4ed8', 'home'), cash: badge(...W.cash), gold: badge('#b45309', 'piggy'), card: badge(...W.card) }
+const roles = (r) => `<div class="card rows"><div><span class="radio ${r === 'e' ? 'on' : ''}"></span><span class="lbl">ผู้แก้ไข<small>ดูทุกรายการ และ (รอบถัดไป) เพิ่มรายการได้แม้ออฟไลน์ แก้/ลบได้ตอนออนไลน์</small></span></div>
+  <div><span class="radio ${r === 'v' ? 'on' : ''}"></span><span class="lbl">ผู้ดู<small>ดูยอดและรายการอย่างเดียว ต้องออนไลน์</small></span></div></div>`
+const sharePage = (body, foot = '') => `${pageHdr('แชร์กระเป๋า')}<div class="scroll">${body}</div>${foot ? `<div class="sfoot">${foot}</div>` : ''}${tabbarA(false)}`
+
 const frames = [
-  ['1 · เจ้าของ: sheet แก้ไขกระเป๋า', 'แถวใหม่ <b>สมาชิก</b> ใต้ "หมวดหมู่ที่ใช้" แสดงจำนวนคน (+ คำเชิญที่รอ). แตะแล้วเปิด view ในตัว sheet เดิม. ตอนออฟไลน์แถวนี้ยังแตะได้ แต่หน้าในจะบอกว่าต้องออนไลน์.',
-    () => `${header()}<div class="scroll"></div>${tabbar(1)}${sheet('x', 'แก้ไขกระเป๋าเงิน', `<div class="ib">${ic('dots')}</div>`,
-      `<div class="field"><small>ชื่อกระเป๋าเงิน</small><div class="v" style="display:flex;gap:10px;align-items:center">${badge('#1d4ed8', 'home')} ค่าบ้าน</div></div>
-       <div class="card rows"><div><span class="lbl">ยอดเงินเริ่มต้น</span><span class="val">0.00 THB</span></div>
-        <div><span class="lbl">ไม่รวมในยอดรวม</span><span class="sw"></span></div>
-        <div><span class="lbl">หมวดหมู่ที่ใช้</span><span class="val">ทั้งหมด ${ic('chevR', 's')}</span></div>
-        <div style="background:color-mix(in srgb, var(--brand) 8%, var(--card))"><span class="lbl">${''}สมาชิก<small>พ่อ (คุณ), แม่ · รอตอบ 1</small></span><span class="val on">${ic('users', 's')} 2 ${ic('chevR', 's')}</span></div></div>`,
-      `<button class="btn">บันทึก</button>`)}`],
-  ['2 · เจ้าของ: สมาชิก', 'เจ้าของอยู่บนสุด (เอาออกไม่ได้). สมาชิกแสดงชื่อ + อีเมล + สิทธิ์. <b>รอตอบรับ</b>: ส่งอีกครั้ง (เว้น 10 นาที) / ยกเลิก, หมดอายุใน 14 วัน. สูงสุด 10 คนรวมคำเชิญที่รอ.',
-    () => `${header()}<div class="scroll"></div>${tabbar(1)}${sheet('chevL', 'สมาชิก', '',
-      `<div class="card">${person(av('พ', '#b45309'), 'พ่อ (คุณ)', 'somchai@example.com', role('เจ้าของ'))}
-        ${person(av('ม', '#be185d'), 'แม่', 'malee@example.com', `${role('ผู้แก้ไข')}${ic('chevR', 's')}`)}
-        ${person(av('ต', '#0369a1'), 'ต้น', 'ton@example.com', `${role('ผู้ดู')}${ic('chevR', 's')}`)}</div>
-       <div class="h">รอตอบรับ (1)</div>
-       <div class="card">${person(`<div class="av">${ic('mail', 's')}</div>`, 'nid@example.com', 'ผู้ดู · ส่งเมื่อ 8 พ.ย. · หมดอายุ 22 พ.ย.', `<div class="ib">${ic('dots')}</div>`)}</div>
-       <div class="hint">ผู้แก้ไข: ดูได้ทุกรายการ (เพิ่ม/แก้รายการได้ในรอบถัดไป) · ผู้ดู: ดูอย่างเดียว. สมาชิกเห็นแค่กระเป๋านี้ ไม่เห็นกระเป๋าอื่นหรือรายงานของคุณ</div>`,
-      `<button class="btn">${ic('plus')} เชิญสมาชิก</button>`)}
-      <div class="menu" style="top:420px"><div class="it">${ic('send')} ส่งอีกครั้ง</div><div class="it" style="color:var(--destructive)">${ic('x')} ยกเลิกคำเชิญ</div></div>`],
-  ['3 · เจ้าของ: เชิญสมาชิก', 'กรอกอีเมล + เลือกสิทธิ์ (ค่าเริ่มต้น <b>ผู้แก้ไข</b>). ส่งแล้วกลับไปหน้าสมาชิก + toast "ส่งคำเชิญแล้ว". ข้อผิดพลาด: เป็นสมาชิกแล้ว / เชิญตัวเอง / ครบ 10 คน / เชิญวันนี้ครบ 10 ครั้ง / ออฟไลน์.',
-    () => `${header()}<div class="scroll"></div>${tabbar(1)}${sheet('chevL', 'เชิญสมาชิก', '',
+  ['1 · แท็บบัญชี', 'แถวใหม่ <b>แชร์กระเป๋า</b> ใต้ "หมวดหมู่" (ของโปรไฟล์ที่เลือกอยู่ เหมือนหมวดหมู่). ข้อความรอง = โปรไฟล์ + จำนวนคน. ถ้ามี<b>คำเชิญถึงฉัน</b>: ป้ายตัวเลขบนแถว + จุดแดงที่ไอคอนแท็บบัญชี.',
+    () => `<div class="hdr"><div class="l"></div><div class="ttl">บัญชี</div><div class="r"><div class="ib ok">${ic('cloud')}</div></div></div><div class="scroll">
+      <div class="card">${person(av('พ', '#b45309'), 'พ่อ', 'somchai@example.com', '')}</div>
+      <div class="h">ข้อมูลของฉัน</div>
+      <div class="card">${acctRow('users', 'โปรไฟล์', 'ใช้อยู่: ครอบครัว · ทั้งหมด 2')}${acctRow('shapes', 'หมวดหมู่', 'ของโปรไฟล์ ครอบครัว')}
+       ${acctRow('send', 'แชร์กระเป๋า', 'ของโปรไฟล์ ครอบครัว · แชร์กับ 2 คน', { hl: true, dot: true })}
+       ${acctRow('repeat', 'รายการซ้ำ', 'ของโปรไฟล์ ครอบครัว')}${acctRow('hand', 'หนี้สิน', 'ของโปรไฟล์ ครอบครัว')}${acctRow('note', 'ส่งออก CSV', 'ของโปรไฟล์ ครอบครัว')}</div>
+      <div class="h">บัญชีและความปลอดภัย</div><div class="card">${acctRow('shield', 'ความปลอดภัย', 'รหัสผ่าน, เบอร์มือถือ, Google, PIN และอุปกรณ์')}</div>
+    </div>${tabbarA(true)}`],
+  ['2 · เจ้าของ: หน้าแชร์กระเป๋า', 'หัวบอกโปรไฟล์. <b>สมาชิก</b> รายคน: สิทธิ์ + จำนวนกระเป๋า. <b>รอตอบรับ</b> (หมดอายุ 14 วัน). การ์ดแจ้ง <b>กระเป๋าที่ยังไม่ได้แชร์</b> (เช่นสร้างใหม่) แตะแล้วเลือกคนที่จะแชร์ให้. "คำเชิญถึงฉัน" / "แชร์กับฉัน" ซ่อนเมื่อว่าง. สูงสุด 10 คนต่อโปรไฟล์.',
+    () => sharePage(`<div class="hint">โปรไฟล์ <b>ครอบครัว</b> · สมาชิกเห็นเฉพาะกระเป๋าที่คุณแชร์ ไม่เห็นกระเป๋าอื่นหรือรายงานของคุณ</div>
+      <div class="h">สมาชิก (2)</div>
+      <div class="card">${person(av('ม', '#be185d'), 'แม่', 'malee@example.com · 3 กระเป๋า', `${role('ผู้แก้ไข')}${ic('chevR', 's')}`)}
+        ${person(av('ต', '#0369a1'), 'ต้น', 'ton@example.com · 1 กระเป๋า', `${role('ผู้ดู')}${ic('chevR', 's')}`)}</div>
+      <div class="h">รอตอบรับ (1)</div>
+      <div class="card">${person(`<div class="av">${ic('mail', 's')}</div>`, 'nid@example.com', 'ผู้ดู · 2 กระเป๋า · หมดอายุ 22 พ.ย.', `${ic('chevR', 's')}`)}</div>
+      <div class="due">${WB.card}<div class="mid">"บัตรเครดิต" ยังไม่ได้แชร์กับใคร<small>กระเป๋าใหม่ไม่แชร์อัตโนมัติ แตะเพื่อเลือกคน</small></div>${ic('chevR', 's')}</div>`,
+      `<button class="btn">${ic('plus')} เชิญสมาชิก</button>`)],
+  ['3 · เจ้าของ: เชิญสมาชิก', 'อีเมล + สิทธิ์ (ค่าเริ่มต้น <b>ผู้แก้ไข</b>) + กระเป๋าของโปรไฟล์นี้ <b>ติ๊กครบ</b> เอาออกได้ (ต้องเหลืออย่างน้อย 1). ไม่แสดงกระเป๋าที่เก็บถาวร. ข้อผิดพลาด: เป็นสมาชิกแล้ว / เชิญตัวเอง / ครบ 10 คน / วันนี้ครบ 10 ครั้ง / ออฟไลน์.',
+    () => `${sharePage('')}${sheet('x', 'เชิญสมาชิก', '',
       `<div class="field"><small>อีเมล</small><div class="v">nid@example.com</div></div>
-       <div class="h">สิทธิ์</div>
-       <div class="card rows"><div><span class="radio on"></span><span class="lbl">ผู้แก้ไข<small>ดูรายการทั้งหมด และ (รอบถัดไป) เพิ่มรายการได้แม้ออฟไลน์ แก้/ลบได้ตอนออนไลน์</small></span></div>
-        <div><span class="radio"></span><span class="lbl">ผู้ดู<small>ดูยอดและรายการอย่างเดียว ต้องออนไลน์</small></span></div></div>
-       <div class="hint">เราจะส่งอีเมลที่มีแค่ชื่อคุณกับชื่อกระเป๋า "ค่าบ้าน" ผู้รับต้องเข้าสู่ระบบด้วยอีเมลนี้ แล้วกด "รับ" ในแอป คำเชิญหมดอายุใน 14 วัน</div>`,
+       <div class="h">สิทธิ์ (ใช้กับทุกกระเป๋าที่เลือก)</div>${roles('e')}
+       <div class="fold"><span>กระเป๋าที่แชร์ (4/4)</span><span style="color:var(--brand)">ไม่เลือกทั้งหมด</span></div>
+       <div class="card rows">${wcheck(WB.home, 'ค่าบ้าน', true)}${wcheck(WB.cash, 'เงินสด', true)}${wcheck(WB.gold, 'ออมทองลูก', true)}${wcheck(WB.card, 'บัตรเครดิต', true)}</div>`,
       `<button class="btn">${ic('send')} ส่งคำเชิญ</button>`)}`],
-  ['4 · เจ้าของ: แตะสมาชิก', 'เปลี่ยนสิทธิ์ (บันทึกทันทีเมื่อเลือก) หรือ <b>เอาออกจากกระเป๋า</b> (ยืนยันก่อน). มีผลกับคำขอถัดไปของสมาชิก (rule 16). รายการที่สมาชิกเคยเพิ่ม (16.2) ยังอยู่ในกระเป๋า.',
-    () => `${header()}<div class="scroll"></div>${tabbar(1)}${sheet('chevL', 'แม่', '',
+  ['4 · เจ้าของ: แตะสมาชิก', 'เปลี่ยนสิทธิ์ / ติ๊กกระเป๋า แล้วกด <b>บันทึก</b> (ต้องออนไลน์; เอาติ๊กออกหมด = เอาออก). <b>เอาออก</b> อยู่ใน ⋮ (ยืนยันก่อน). มีผลกับคำขอถัดไปของสมาชิก (rule 16). คำเชิญที่รอใช้ sheet เดียวกัน: ⋮ = ส่งอีกครั้ง (เว้น 10 นาที) / ยกเลิกคำเชิญ.',
+    () => `${sharePage('')}${sheet('x', 'แม่', `<div class="ib">${ic('dots')}</div>`,
       `<div class="card">${person(av('ม', '#be185d'), 'แม่', 'malee@example.com · เข้าร่วม 9 พ.ย.', '')}</div>
-       <div class="h">สิทธิ์</div>
-       <div class="card rows"><div><span class="radio on"></span><span class="lbl">ผู้แก้ไข</span></div><div><span class="radio"></span><span class="lbl">ผู้ดู</span></div></div>
-       <div class="empty" style="flex:none;padding:12px 4px 0;margin-top:auto"><h4>เอา "แม่" ออกจากกระเป๋า "ค่าบ้าน"?</h4><p>แม่จะไม่เห็นกระเป๋านี้อีก เชิญกลับได้ภายหลัง</p></div>`,
-      `<button class="btn" style="background:var(--destructive);color:#fff">${ic('out')} เอาออกจากกระเป๋า</button>`)}`],
-  ['5 · อีเมลเชิญ', 'ภาษาตามที่ผู้เชิญใช้อยู่. <b>ไม่มีข้อความอิสระ</b> (กัน phishing). ลิงก์ = <code>/auth/sign-in?email=…</code> แค่กรอกอีเมลให้ ไม่ได้ให้สิทธิ์อะไร (ส่งต่อไปก็ไม่มีผล). นับใน EMAIL_DAILY_LIMIT.',
+       <div class="h">สิทธิ์</div>${roles('e')}
+       <div class="fold"><span>กระเป๋าที่แชร์ (3/4)</span><span style="color:var(--brand)">เลือกทั้งหมด</span></div>
+       <div class="card rows">${wcheck(WB.home, 'ค่าบ้าน', true)}${wcheck(WB.cash, 'เงินสด', true)}${wcheck(WB.gold, 'ออมทองลูก', true)}${wcheck(WB.card, 'บัตรเครดิต', false, 'สร้างใหม่ ยังไม่ได้แชร์')}</div>`,
+      `<button class="btn">บันทึก</button>`)}
+      <div class="menu" style="top:96px;z-index:4"><div class="it" style="color:var(--destructive)">${ic('out')} เอาออกจากการแชร์</div></div>`],
+  ['5 · อีเมลเชิญ', 'ภาษาตามที่ผู้เชิญใช้อยู่. มีแค่ชื่อผู้เชิญ + ชื่อกระเป๋า <b>ไม่มีข้อความอิสระ</b>. ลิงก์ = <code>/auth/sign-in?email=…</code> แค่กรอกอีเมลให้ ไม่ได้ให้สิทธิ์. นับใน EMAIL_DAILY_LIMIT.',
     () => `<div class="scroll" style="background:#e5e7eb;justify-content:center"><div class="mail">
-      <small>ถึง: nid@example.com</small><small>เรื่อง: พ่อ เชิญคุณดูกระเป๋า "ค่าบ้าน" ใน ตังค์ไปไหน</small><hr style="border:0;border-top:1px solid #e5e7eb">
-      <h3>คุณได้รับคำเชิญ</h3>พ่อ เชิญคุณเป็น <b>ผู้ดู</b> ของกระเป๋า <b>ค่าบ้าน</b><br>
+      <small>ถึง: nid@example.com</small><small>เรื่อง: พ่อ แชร์กระเป๋าให้คุณใน ตังค์ไปไหน</small><hr style="border:0;border-top:1px solid #e5e7eb">
+      <h3>คุณได้รับคำเชิญ</h3>พ่อ เชิญคุณเป็น <b>ผู้ดู</b> ของกระเป๋า 2 ใบ: <b>ค่าบ้าน, เงินสด</b><br>
       <span class="b">เปิด ตังค์ไปไหน</span><br>
-      เข้าสู่ระบบด้วยอีเมลนี้ (nid@example.com) แล้วกด "รับ" ที่แท็บกระเป๋า ถ้ายังไม่มีบัญชี ระบบจะสร้างให้
+      เข้าสู่ระบบด้วยอีเมลนี้ (nid@example.com) แล้วกด "รับ" ที่ บัญชี → แชร์กระเป๋า ถ้ายังไม่มีบัญชี ระบบจะสร้างให้
       <small style="margin-top:10px">คำเชิญหมดอายุ 22 พ.ย. 2026 ถ้าไม่รู้จักผู้เชิญ ไม่ต้องทำอะไร</small></div></div>`],
-  ['6 · สมาชิก: แท็บกระเป๋า', '<b>การ์ดคำเชิญ</b> บนสุด (รับ / ปฏิเสธ) + จุดแดงที่แท็บ. ส่วน <b>แชร์กับฉัน</b> ใต้กระเป๋าของตัวเอง: ชื่อเจ้าของ + สิทธิ์ + ยอด. <b>ยอดรวมไม่นับ</b>กระเป๋าที่แชร์. กระเป๋าของฉันที่แชร์ให้คนอื่นมีไอคอน 👥.',
-    () => `${header()}<div class="scroll">
-      <div class="card inv"><div class="top">${av('พ', '#b45309')}<div>พ่อ เชิญคุณเป็น<b>ผู้ดู</b>ของกระเป๋า <b>"ออมทองลูก"</b><small>somchai@example.com · หมดอายุ 22 พ.ย.</small></div></div>
+  ['6 · สมาชิก: หน้าแชร์กระเป๋า', '<b>คำเชิญถึงฉัน</b> บนสุด (รับ / ปฏิเสธ). <b>แชร์กับฉัน</b> แยกตามเจ้าของ: สิทธิ์ + กระเป๋า; ⋮ = <b>ออกจากการแชร์ของ พ่อ</b> (ทุกกระเป๋าของคนนั้น). สองส่วนนี้ไม่ขึ้นกับโปรไฟล์ที่เลือกอยู่. ส่วนสมาชิกของโปรไฟล์ตัวเองยังเชิญได้ตามปกติ.',
+    () => sharePage(`<div class="h">คำเชิญถึงฉัน (1)</div>
+      <div class="card inv"><div class="top">${av('ป', '#047857')}<div>ป้า เชิญคุณเป็น<b>ผู้ดู</b>ของกระเป๋า <b>กองทุนเที่ยว</b><small>pa@example.com · หมดอายุ 20 พ.ย.</small></div></div>
         <div class="acts"><button class="btn sm gh">ปฏิเสธ</button><button class="btn sm">รับคำเชิญ</button></div></div>
+      <div class="h">แชร์กับฉัน</div>
+      <div class="card"><div class="rule">${av('พ', '#b45309')}<div class="mid">พ่อ ${role('ผู้แก้ไข')}<small>ค่าบ้าน, เงินสด, ออมทองลูก</small></div><div class="ib">${ic('dots')}</div></div></div>
+      <div class="hint">ดูยอดและรายการได้ที่แท็บกระเป๋า → แชร์กับฉัน</div>
+      <div class="h">สมาชิกของโปรไฟล์ ส่วนตัว</div>
+      <div class="card" style="padding:14px;font-size:13.5px;color:var(--muted-fg)">ยังไม่ได้แชร์กระเป๋ากับใคร</div>`,
+      `<button class="btn">${ic('plus')} เชิญสมาชิก</button>`)],
+  ['7 · สมาชิก: แท็บกระเป๋า', 'ส่วน <b>แชร์กับฉัน</b> ใต้กระเป๋าของตัวเอง แยกตามเจ้าของ: ชื่อ + ยอด (ดึงตอนออนไลน์). <b>ยอดรวมไม่นับ</b>กระเป๋าที่แชร์. ไม่มีการ์ดคำเชิญที่นี่แล้ว (อยู่ที่แท็บบัญชี). แตะ → หน้ากระเป๋าที่แชร์.',
+    () => `${header()}<div class="scroll">
       <div class="card hero" style="padding:10px"><small>ยอดรวม (เฉพาะกระเป๋าของฉัน)</small><div class="big" style="font-size:24px">18,320.00</div></div>
       <div class="h">กระเป๋าที่ใช้อยู่ (2)</div>
-      <div class="card">${wrow(badge(...W.cash), 'เงินสด', '', 3320)}${wrow(badge(...W.save), 'ออมของแม่', '', 15000, ` <span class="mut" style="vertical-align:-2px">${ic('users', 's')}</span>`)}</div>
-      <div class="h">แชร์กับฉัน (1)</div>
-      <div class="card">${wrow(badge('#1d4ed8', 'home'), 'ค่าบ้าน', `ของ พ่อ · ผู้แก้ไข`, 12450)}</div>
+      <div class="card">${wrow(badge(...W.cash), 'เงินสด', '', 3320)}${wrow(badge(...W.save), 'ออมของแม่', '', 15000)}</div>
+      <div class="h">แชร์กับฉัน · ของ พ่อ</div>
+      <div class="card">${wrow(WB.home, 'ค่าบ้าน', 'ผู้แก้ไข', 12450)}${wrow(WB.cash, 'เงินสด', 'ผู้แก้ไข', 2140)}${wrow(WB.gold, 'ออมทองลูก', 'ผู้แก้ไข', 48000)}</div>
       <div class="h">หนี้สิน</div><div class="card" style="height:40px"></div>
-    </div>${tabbarN(1, true)}`],
-  ['7 · สมาชิก: กระเป๋าที่แชร์', 'หน้า lazy <code>/wallets/shared/:id</code>: ยอด, แท็บช่วงเวลา, การ์ดสรุป, รายการตามวันด้วย<b>หมวดของเจ้าของ</b>. โอน = "โอนออก/โอนเข้า" ไม่บอกกระเป๋าอีกฝั่ง; ไม่แสดงหนี้/อีเวนต์. ไม่มี ➕ / แก้ / ลบ. ⋮ = โหลดใหม่ / ออกจากกระเป๋านี้.',
-    sharedTx(false)],
-  ['8 · สมาชิก: ออฟไลน์', 'ไอคอนสถานะเป็นออฟไลน์ + แถบเตือน แสดงข้อมูลที่โหลดไว้ในหน่วยความจำ (ไม่ลงฐานข้อมูลเครื่อง, rule 15). ช่วงเวลาที่ยังไม่เคยโหลด / เปิดแอปใหม่ตอนออฟไลน์ → "ต่ออินเทอร์เน็ตเพื่อดูกระเป๋าที่แชร์". ส่วน "แชร์กับฉัน" ในแท็บกระเป๋าก็ใช้กติกาเดียวกัน.',
+    </div>${tabbar(1)}`],
+  ['8 · สมาชิก: กระเป๋าที่แชร์', 'หน้า lazy <code>/wallets/shared/:id</code>: ยอด, แท็บช่วงเวลา, การ์ดสรุป, รายการด้วย<b>หมวดของเจ้าของ</b>. โอน = "โอนออก/โอนเข้า" ไม่บอกกระเป๋าอีกฝั่ง; ไม่แสดงหนี้/อีเวนต์. ไม่มี ➕ / แก้ / ลบ. ⋮ = โหลดใหม่.',
+    () => sharedTx(false)().replace(/<div class="menu">[^]*$/, `<div class="menu"><div class="it">${ic('refresh')} โหลดใหม่</div></div>`)],
+  ['9 · สมาชิก: ออฟไลน์', 'แสดงข้อมูลที่โหลดไว้ในหน่วยความจำ + แถบเตือน (ไม่ลงฐานข้อมูลเครื่อง, rule 15). ช่วงที่ยังไม่เคยโหลด / เปิดแอปใหม่ตอนออฟไลน์ → "ต่ออินเทอร์เน็ตเพื่อดูกระเป๋าที่แชร์". หน้าแชร์กระเป๋า (จอ 2, 6) ตอนออฟไลน์: ปุ่มทั้งหมดปิด + "ต้องออนไลน์".',
     sharedTx(true)],
 ]
 document.getElementById('grid').innerHTML = frames.map(([t, d, f]) =>
