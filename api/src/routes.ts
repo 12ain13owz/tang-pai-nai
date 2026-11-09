@@ -11,6 +11,7 @@ import '@/features/transfer'
 import '@/features/recurring'
 import '@/features/debt'
 import '@/features/event'
+import { sharingRouter } from '@/features/sharing'
 import { syncRouter } from '@/features/sync'
 import { todoRouter } from '@/features/todo'
 
@@ -20,6 +21,7 @@ router.use('/health', healthRouter)
 router.use('/auth', authRouter)
 router.use('/currencies', currencyRouter)
 router.use('/sync', syncRouter)
+router.use('/sharing', sharingRouter)
 router.use('/todos', todoRouter)
 router.use('/docs', docsRouter)
 
