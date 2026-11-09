@@ -2,12 +2,11 @@ import { BusinessRuleError, ConflictError, NotFoundError, TooManyRequestsError }
 import { NotificationChannel } from '@/shared/types'
 import { SHARING_LIMITS as L, SHARING_MESSAGE, ShareErrorCode } from './sharing.const'
 import { buildInviteMail } from './sharing.mail'
-import type { Entry, Invite, MemberRow, ShareRole, UserRef, WalletRef } from './sharing.entity'
+import type { Invite, MemberRow, ProfileRef, ShareRole, UserRef, WalletRef } from './sharing.entity'
 import type { SharingRepository } from './sharing.repository'
 import type {
   OwnerSharing,
-  SharedEntries,
-  SharedWallet,
+  SharedProfileRows,
   SharedWithMe,
   SharingMember,
 } from './sharing.type'
@@ -67,6 +66,9 @@ const publicInvite = (invite: Invite) => ({
   expiresAt: invite.expiresAt,
   lastSentAt: invite.lastSentAt,
 })
+
+/** A profile gone between two reads: its id, nothing to show. */
+const noProfile = (id: string): ProfileRef => ({ id, name: '', icon: '', color: '' })
 
 const walletView = (wallet: WalletRef, balance: number) => ({
   id: wallet.id,
@@ -322,6 +324,7 @@ export const createSharingService = ({
         const owner = await sharingRepo.findUser(wallet.ownerId)
         group = {
           profileId: wallet.profileId,
+          profile: (await sharingRepo.findProfile(wallet.profileId)) ?? noProfile(wallet.profileId),
           role,
           owner: {
             id: wallet.ownerId,
@@ -367,38 +370,50 @@ export const createSharingService = ({
     await sharingRepo.setMembership(profileId, userId, 'viewer', [], now())
   }
 
-  const requireShare = async (userId: string, walletId: string, operation: string) => {
-    const share = await sharingRepo.shareOf(userId, walletId)
-    if (!share) {
-      throw new NotFoundError('Wallet', { walletId }).withOperation(operation)
-    }
-    return share
-  }
-
-  const wallet = async (userId: string, walletId: string): Promise<SharedWallet> => {
-    const { role, wallet: found } = await requireShare(userId, walletId, 'sharing.wallet')
-    const balances = await sharingRepo.balances([found.id])
-    const owner = await sharingRepo.findUser(found.ownerId)
-    return {
-      wallet: {
-        ...walletView(found, balances.get(found.id) ?? found.initialBalance),
-        firstOn: await sharingRepo.firstDay(found.id),
-      },
-      role,
-      owner: { displayName: owner?.displayName ?? '', email: owner?.email ?? '' },
-      categories: await sharingRepo.categoriesOf(found.profileId),
-    }
-  }
-
-  const entries = async (
+  /** Rule 9: a shared profile's rows for the member's in-memory view. */
+  const rows = async (
     userId: string,
-    walletId: string,
-    from: string,
-    to: string | null
-  ): Promise<SharedEntries> => {
-    await requireShare(userId, walletId, 'sharing.entries')
-    const rows: Entry[] = await sharingRepo.entries(walletId, from, to, L.ENTRIES_MAX + 1)
-    return { entries: rows.slice(0, L.ENTRIES_MAX), truncated: rows.length > L.ENTRIES_MAX }
+    profileId: string,
+    since: number,
+    limit: number
+  ): Promise<SharedProfileRows> => {
+    const shares = (await sharingRepo.sharesOf(userId)).filter(
+      (row) => row.wallet.profileId === profileId
+    )
+    const first = shares.at(0)
+    const profile = first ? await sharingRepo.findProfile(profileId) : null
+    if (!first || !profile) {
+      throw new NotFoundError('Profile', { profileId }).withOperation('sharing.rows')
+    }
+    const ids = shares.map((row) => row.wallet.id)
+    const other = await sharingRepo.otherMoney(ids)
+    const wallets = (await sharingRepo.walletRows(ids)).map((row) => ({
+      ...row,
+      initialBalance: Number(row['initialBalance']) + (other.get(String(row['id'])) ?? 0),
+      excludeFromTotal: false,
+    }))
+    const found = await sharingRepo.transactionRows(ids, since, limit + 1)
+    const page = found.slice(0, limit)
+    const owner = await sharingRepo.findUser(first.wallet.ownerId)
+    const people = new Map<string, string>([[first.wallet.ownerId, owner?.displayName ?? '']])
+    for (const member of await sharingRepo.membersOf(profileId)) {
+      people.set(member.userId, member.displayName)
+    }
+    return {
+      profile,
+      role: first.role,
+      owner: {
+        id: first.wallet.ownerId,
+        displayName: owner?.displayName ?? '',
+        email: owner?.email ?? '',
+      },
+      people: [...people].map(([id, displayName]) => ({ id, displayName })),
+      wallets,
+      categories: await sharingRepo.categoryRows(profileId),
+      transactions: page,
+      cursor: Number(page.at(-1)?.['changeSeq'] ?? since),
+      hasMore: found.length > limit,
+    }
   }
 
   return {
@@ -412,8 +427,7 @@ export const createSharingService = ({
     accept,
     decline,
     leave,
-    wallet,
-    entries,
+    rows,
   }
 }
 

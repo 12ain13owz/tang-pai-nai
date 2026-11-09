@@ -53,28 +53,13 @@ export interface ShareRow {
   wallet: WalletRef
 }
 
-export interface CategoryRef {
+/** A profile as the switcher shows it. */
+export interface ProfileRef {
   id: string
-  type: 'income' | 'expense'
-  parentId: string | null
   name: string
   icon: string
   color: string
-  isArchived: boolean
-  sortOrder: number
 }
 
-/**
- * One money movement of a shared wallet (rule 9), `amount` signed for the wallet: a transaction
- * (with its category), one side of a transfer, or a debt entry. Neither carries the other wallet
- * or the debt.
- */
-export interface Entry {
-  id: string
-  kind: 'transaction' | 'transfer' | 'debt'
-  occurredOn: string
-  amount: number
-  categoryId: string | null
-  note: string
-  excludeFromReport: boolean
-}
+/** A synced row as `/sync/pull` answers it (camelCase, no `userId`). */
+export type RowData = Record<string, unknown>

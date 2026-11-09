@@ -17,8 +17,9 @@ export const SHARING_LIMITS = {
   EMAIL_DAILY_WINDOW_MS: DAY_MS,
   /** Wallets in one invite or membership: a profile holds at most this many anyway. */
   WALLETS_MAX: 200,
-  /** Entries in one read; more answers `truncated`. */
-  ENTRIES_MAX: 5000,
+  /** Transactions per read of a shared profile (rule 9), like a pull page. */
+  ROWS_DEFAULT: 2000,
+  ROWS_MAX: 5000,
 } as const
 
 /** `code` beside `message` in error responses, for the web app to pick its text. */

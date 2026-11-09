@@ -1,9 +1,9 @@
 import type {
-  CategoryRef,
-  Entry,
   Invite,
   MemberRow,
   NewInvite,
+  ProfileRef,
+  RowData,
   ShareRole,
   ShareRow,
   UserRef,
@@ -52,11 +52,16 @@ export interface SharingRepository {
 
   /** Balances of live wallets: initial + transactions ± transfers ± debt entries. */
   balances(walletIds: string[]): Promise<Map<string, number>>
-  categoriesOf(profileId: string): Promise<CategoryRef[]>
-  /** The wallet's entries from `from` to `to` (inclusive, `null` = no end), newest first. */
-  entries(walletId: string, from: string, to: string | null, limit: number): Promise<Entry[]>
-  /** The wallet's oldest entry day. */
-  firstDay(walletId: string): Promise<string | null>
+  /** Per wallet, the signed sum of its live transfer sides and debt entries (rule 9). */
+  otherMoney(walletIds: string[]): Promise<Map<string, number>>
+  /** A live profile's name, icon and colour. */
+  findProfile(profileId: string): Promise<ProfileRef | null>
+  /** The wallets as pull answers them, in the owner's order. */
+  walletRows(walletIds: string[]): Promise<RowData[]>
+  /** The profile's live categories as pull answers them (archived too). */
+  categoryRows(profileId: string): Promise<RowData[]>
+  /** The wallets' transactions with `changeSeq > since`, tombstones included, by `changeSeq`. */
+  transactionRows(walletIds: string[], since: number, limit: number): Promise<RowData[]>
 
   /** Counts one hit in a fixed window (`rate_limit_buckets`). */
   hitRateLimit(

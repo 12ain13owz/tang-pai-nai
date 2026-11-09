@@ -13,17 +13,27 @@ const lang = z.enum(['th', 'en'], { error: ERRORS.invalidField('lang') }).defaul
 const role = z.enum(['editor', 'viewer'], { error: ERRORS.invalidField('role') })
 const uuid = (name: string) => z.uuid({ error: ERRORS.invalidField(name) })
 const walletIds = z.array(uuid('wallet id')).max(SHARING_LIMITS.WALLETS_MAX)
-const day = z.iso.date({ error: ERRORS.invalidField('date') })
 
 const profileParams = z.object({ profileId: uuid('profile id') })
 const memberParams = z.object({ profileId: uuid('profile id'), userId: uuid('user id') })
 const inviteParams = z.object({ id: uuid('invite id') })
-const walletParams = z.object({ walletId: uuid('wallet id') })
 
 const inviteBody = z.object({ email, role, walletIds: walletIds.min(1), lang })
 const memberBody = z.object({ role, walletIds })
 const langBody = z.object({ lang }).default({ lang: 'th' })
-const entriesQuery = z.object({ from: day, to: day.optional() })
+const rowsQuery = z.object({
+  since: z.coerce
+    .number({ error: ERRORS.invalidField('since') })
+    .int()
+    .nonnegative()
+    .default(0),
+  limit: z.coerce
+    .number({ error: ERRORS.invalidField('limit') })
+    .int()
+    .min(1)
+    .max(SHARING_LIMITS.ROWS_MAX)
+    .default(SHARING_LIMITS.ROWS_DEFAULT),
+})
 
 export const sharingSchema = {
   ofProfile: { params: profileParams },
@@ -33,15 +43,13 @@ export const sharingSchema = {
   member: { params: memberParams, body: memberBody },
   byMember: { params: memberParams },
   leave: { params: profileParams },
-  wallet: { params: walletParams },
-  entries: { params: walletParams, query: entriesQuery },
+  rows: { params: profileParams, query: rowsQuery },
 } as const
 
 export type ProfileParams = z.infer<typeof profileParams>
 export type MemberParams = z.infer<typeof memberParams>
 export type InviteParams = z.infer<typeof inviteParams>
-export type WalletParams = z.infer<typeof walletParams>
 export type InviteBody = z.infer<typeof inviteBody>
 export type MemberBody = z.infer<typeof memberBody>
 export type LangBody = z.infer<typeof langBody>
-export type EntriesQuery = z.infer<typeof entriesQuery>
+export type RowsQuery = z.infer<typeof rowsQuery>
