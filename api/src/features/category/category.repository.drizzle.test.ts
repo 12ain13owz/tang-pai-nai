@@ -9,6 +9,7 @@ import type { Database } from '@/core/database'
 import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
 import { categories } from '@/core/database/schema/category'
+import { debts } from '@/core/database/schema/debt'
 import { profiles } from '@/core/database/schema/profile'
 import { recurringRules } from '@/core/database/schema/recurring'
 import { transactions } from '@/core/database/schema/transaction'
@@ -460,6 +461,33 @@ describe('categorySyncHandler', () => {
       const [r2] = await db.select().from(recurringRules).where(eq(recurringRules.id, 'r2'))
       expect(r1).toMatchObject({ categoryId: 'rice', changeSeq: 101, updatedBy: 'alice' })
       expect(r2).toMatchObject({ categoryId: 'water', changeSeq: 70 })
+    })
+
+    it("moves a merged tombstone's live debts too, and a debt fixes its category's type (debt rule 9)", async () => {
+      await db.insert(debts).values({
+        id: 'd1',
+        userId: 'alice',
+        profileId: 'pa',
+        direction: 'borrowed',
+        person: 'KTC',
+        note: '',
+        currencyCode: 'THB',
+        countAs: 'repaid',
+        categoryId: 'water',
+        dueOn: null,
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+        changeSeq: 80,
+        updatedBy: 'alice',
+      })
+      expect(await push.check(db, 'alice', category('water', 'Water', 0, { type: 'income' }))).toBe(
+        CATEGORY_MESSAGE.TYPE_USED
+      )
+      const row = await push.write(db, 'alice', tombstone('water', 'Water', 'rice'))
+      await push.followUp?.(db, 'alice', row, takeSeqs)
+      const [d1] = await db.select().from(debts).where(eq(debts.id, 'd1'))
+      expect(d1).toMatchObject({ categoryId: 'rice', changeSeq: 101, updatedBy: 'alice' })
     })
 
     it("merges a top-level source's leftover children into the target, with their rows", async () => {

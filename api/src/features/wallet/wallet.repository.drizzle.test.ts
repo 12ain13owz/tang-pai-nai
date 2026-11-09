@@ -10,6 +10,7 @@ import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
 import { categories } from '@/core/database/schema/category'
 import { currencies } from '@/core/database/schema/currency'
+import { debtEntries, debts } from '@/core/database/schema/debt'
 import { profiles } from '@/core/database/schema/profile'
 import { recurringRules } from '@/core/database/schema/recurring'
 import { transactions } from '@/core/database/schema/transaction'
@@ -348,5 +349,44 @@ describe('walletSyncHandler', () => {
     expect(await usd('w2', 'Card')).toBe(WALLET_MESSAGE.CURRENCY_FIXED)
     await db.update(recurringRules).set({ deletedAt: 5 }).where(eq(recurringRules.id, 'r2'))
     expect(await usd('w3', 'Savings')).toBeNull()
+  })
+
+  it('keeps the currency of a wallet with a live debt entry (debt rule 9)', async () => {
+    await db.update(currencies).set({ isActive: true }).where(eq(currencies.code, 'USD'))
+    await push.write(db, 'alice', wallet('w1', 'Cash', 15))
+    const sync = { createdAt: 1, updatedAt: 1, changeSeq: 60, updatedBy: 'alice' }
+    await db.insert(debts).values({
+      id: 'd1',
+      userId: 'alice',
+      profileId: 'pa',
+      direction: 'borrowed',
+      person: 'แม่',
+      note: '',
+      currencyCode: 'THB',
+      countAs: 'spent',
+      categoryId: null,
+      dueOn: null,
+      deletedAt: null,
+      ...sync,
+    })
+    await db.insert(debtEntries).values({
+      id: 'e1',
+      userId: 'alice',
+      profileId: 'pa',
+      debtId: 'd1',
+      kind: 'principal',
+      walletId: 'w1',
+      amount: 100,
+      occurredOn: '2026-11-01',
+      note: '',
+      recurringId: null,
+      deletedAt: null,
+      ...sync,
+    })
+    const usd = async () =>
+      push.check(db, 'alice', wallet('w1', 'Cash', 0, { currencyCode: 'USD' }))
+    expect(await usd()).toBe(WALLET_MESSAGE.CURRENCY_FIXED)
+    await db.update(debtEntries).set({ deletedAt: 5 }).where(eq(debtEntries.id, 'e1'))
+    expect(await usd()).toBeNull()
   })
 })

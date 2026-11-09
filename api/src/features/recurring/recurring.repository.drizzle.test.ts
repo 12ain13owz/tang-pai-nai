@@ -10,6 +10,7 @@ import { createDatabase } from '@/core/database/client'
 import { users } from '@/core/database/schema/auth'
 import { categories } from '@/core/database/schema/category'
 import { currencies } from '@/core/database/schema/currency'
+import { debts } from '@/core/database/schema/debt'
 import { profiles } from '@/core/database/schema/profile'
 import { wallets } from '@/core/database/schema/wallet'
 import type { SyncPushHandler, SyncRowWrite } from '@/core/sync'
@@ -261,5 +262,49 @@ describe('recurringSyncHandler', () => {
     await push.write(db, 'alice', rule('r4', 18, { categoryId: 'home' }))
     await db.delete(categories).where(eq(categories.id, 'home'))
     expect(await push.find(db, 'r4')).toBeNull()
+  })
+
+  it('checks a debt rule’s or an instalment rule’s debt: live, the profile, the currency', async () => {
+    const debtRow = (id: string, profileId: string, extra: object = {}) => ({
+      id,
+      userId: 'alice',
+      profileId,
+      direction: 'borrowed',
+      person: id,
+      note: '',
+      currencyCode: 'THB',
+      countAs: 'spent',
+      categoryId: null,
+      dueOn: null,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null as number | null,
+      changeSeq: 90,
+      updatedBy: 'alice',
+      ...extra,
+    })
+    await db
+      .insert(debts)
+      .values([
+        debtRow('mom', 'pa'),
+        debtRow('far', 'pa2'),
+        debtRow('gone', 'pa', { deletedAt: 5 }),
+      ])
+    const repay = async (debtId: string, extra: Partial<SyncRowWrite> = {}) =>
+      push.check(db, 'alice', rule('r9', 0, { kind: 'debt', categoryId: null, debtId, ...extra }))
+    expect(await repay('mom')).toBeNull()
+    expect(await repay('gone')).toBe(RECURRING_MESSAGE.DEBT_GONE)
+    expect(await repay('far')).toBe(RECURRING_MESSAGE.DEBT_OTHER_PROFILE)
+    expect(await repay('mom', { walletId: 'usd' })).toBe(RECURRING_MESSAGE.DEBT_OTHER_CURRENCY)
+    expect(await push.check(db, 'alice', rule('r9', 0, { debtId: 'mom' }))).toBeNull()
+    expect(
+      (
+        await push.write(
+          db,
+          'alice',
+          rule('r9', 5, { kind: 'debt', categoryId: null, debtId: 'mom' })
+        )
+      ).debtId
+    ).toBe('mom')
   })
 })

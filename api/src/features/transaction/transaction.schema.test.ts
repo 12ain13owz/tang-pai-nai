@@ -64,7 +64,7 @@ describe('validateTransaction', () => {
   })
 
   it('needs UUIDs for the row and the rows it points at', () => {
-    for (const field of ['id', 'profileId', 'walletId', 'categoryId']) {
+    for (const field of ['id', 'profileId', 'walletId', 'categoryId', 'debtId']) {
       expect(messageOf({ [field]: 'nope' })).toBe(`Invalid ${field} format`)
     }
   })
