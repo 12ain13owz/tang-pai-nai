@@ -67,8 +67,11 @@ export interface SharedProfileRows {
   wallets: RowData[]
   /** The owner's live categories of the profile (archived too). */
   categories: RowData[]
-  /** The wallets' transactions with `changeSeq > since`, tombstones included, in order. */
-  transactions: RowData[]
+  /**
+   * The wallets' transactions with `changeSeq > since`, tombstones included, in order; one array
+   * per row in `columns`' order (a pull's fields, a fifth of the size as objects).
+   */
+  transactions: { columns: string[]; rows: unknown[][] }
   cursor: number
   hasMore: boolean
 }

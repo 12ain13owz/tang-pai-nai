@@ -2,14 +2,17 @@ import { BusinessRuleError, ConflictError, NotFoundError, TooManyRequestsError }
 import { NotificationChannel } from '@/shared/types'
 import { SHARING_LIMITS as L, SHARING_MESSAGE, ShareErrorCode } from './sharing.const'
 import { buildInviteMail } from './sharing.mail'
-import type { Invite, MemberRow, ProfileRef, ShareRole, UserRef, WalletRef } from './sharing.entity'
-import type { SharingRepository } from './sharing.repository'
 import type {
-  OwnerSharing,
-  SharedProfileRows,
-  SharedWithMe,
-  SharingMember,
-} from './sharing.type'
+  Invite,
+  MemberRow,
+  ProfileRef,
+  RowData,
+  ShareRole,
+  UserRef,
+  WalletRef,
+} from './sharing.entity'
+import type { SharingRepository } from './sharing.repository'
+import type { OwnerSharing, SharedProfileRows, SharedWithMe, SharingMember } from './sharing.type'
 
 type Lang = 'th' | 'en'
 
@@ -66,6 +69,16 @@ const publicInvite = (invite: Invite) => ({
   expiresAt: invite.expiresAt,
   lastSentAt: invite.lastSentAt,
 })
+
+/** Rows as one header and one array each (rule 9: thousands of rows in a read). */
+const toColumns = (rows: RowData[]): { columns: string[]; rows: unknown[][] } => {
+  const columns = Object.keys(rows.at(0) ?? {})
+  return {
+    columns,
+    // eslint-disable-next-line security/detect-object-injection -- keys of the row itself
+    rows: rows.map((row) => columns.map((column) => row[column] ?? null)),
+  }
+}
 
 /** A profile gone between two reads: its id, nothing to show. */
 const noProfile = (id: string): ProfileRef => ({ id, name: '', icon: '', color: '' })
@@ -410,7 +423,7 @@ export const createSharingService = ({
       people: [...people].map(([id, displayName]) => ({ id, displayName })),
       wallets,
       categories: await sharingRepo.categoryRows(profileId),
-      transactions: page,
+      transactions: toColumns(page),
       cursor: Number(page.at(-1)?.['changeSeq'] ?? since),
       hasMore: found.length > limit,
     }
