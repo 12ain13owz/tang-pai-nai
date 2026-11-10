@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http'
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import type { ComponentFixture } from '@angular/core/testing'
@@ -24,6 +26,8 @@ describe('TransactionsPage', () => {
 
   const offline = {
     isOpen: signal(true),
+    sharedActive: signal(false),
+    leaveShared: () => undefined,
     isTrusted: signal(true),
     meta: signal(null),
     changes,
@@ -127,6 +131,8 @@ describe('TransactionsPage', () => {
       ],
       providers: [
         provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: OfflineService, useValue: offline },
         { provide: SyncService, useValue: sync },
         {
@@ -162,6 +168,39 @@ describe('TransactionsPage', () => {
     expect(element().textContent).not.toContain('older')
     expect(element().textContent).toContain('฿')
     expect(rows()[0].textContent).toContain('Pay')
+  })
+
+  it('shows "เพิ่มโดย …" on a row an editor added, named once the members are read', async () => {
+    transaction('a', { note: 'ก๋วยเตี๋ยว', addedBy: 'm1' })
+    transaction('b', { note: 'mine' })
+    await settle()
+    const row = (note: string) => rows().find((li) => li.textContent.includes(note))
+    expect(row('ก๋วยเตี๋ยว')?.textContent).toContain('เพิ่มโดย สมาชิก')
+    expect(row('mine')?.textContent).not.toContain('เพิ่มโดย')
+    // Sharing rule 15: the owner's members, read online once.
+    TestBed.inject(HttpTestingController)
+      .expectOne('/api/sharing/profiles/p1')
+      .flush({
+        message: 'ok',
+        timestamp: '',
+        data: {
+          members: [
+            {
+              userId: 'm1',
+              displayName: 'แม่',
+              email: 'm@x',
+              role: 'editor',
+              walletIds: [],
+              addedAt: 1,
+            },
+          ],
+          invites: [],
+          unsharedWalletIds: [],
+        },
+      })
+    await new Promise((resolve) => setTimeout(resolve))
+    await settle()
+    expect(row('ก๋วยเตี๋ยว')?.textContent).toContain('เพิ่มโดย แม่')
   })
 
   it('shows the wallet badge and only the note on "ทุกกระเป๋า", no badge for one wallet', async () => {

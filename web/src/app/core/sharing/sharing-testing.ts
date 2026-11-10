@@ -9,7 +9,7 @@ import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
 import th from '@/core/i18n/th.json'
 import { NetworkStatusService } from '@/core/network'
-import { OfflineService, putRow, SyncService } from '@/core/offline'
+import { OfflineService, putRow, SHARED_TABLES, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
 import type { OwnerSharing, SharedWithMe } from './sharing.type'
@@ -66,6 +66,15 @@ export const setUpSharing = async (routes: Routes = []) => {
     })
   }
   const network = { isOnline: signal(true), serverReachable: signal(true) }
+  const sharedActive = signal(false)
+  const bump = () => changes.update((n) => n + 1)
+  /** What the fake push does with the TEMP outbox (default: every op applied); counts pushes. */
+  const sync = {
+    pushes: 0,
+    answer: (database: LocalDatabase): void => {
+      database.exec(`DELETE FROM outbox WHERE status = 'pending'`)
+    },
+  }
   TestBed.configureTestingModule({
     imports: [
       TranslocoTestingModule.forRoot({
@@ -85,17 +94,50 @@ export const setUpSharing = async (routes: Routes = []) => {
           isTrusted: signal(true),
           meta: signal(null),
           changes,
+          sharedActive,
           db: () => db,
-          write: <T>(work: (database: LocalDatabase) => T): T => db.transaction(work),
+          write: <T>(work: (database: LocalDatabase) => T): T => {
+            const result = db.transaction(work)
+            bump()
+            return result
+          },
+          enterShared: () => {
+            db.createShadows(SHARED_TABLES)
+            sharedActive.set(true)
+            bump()
+          },
+          fillShared: (work: (database: LocalDatabase) => void) => {
+            db.transaction(work)
+            bump()
+          },
+          leaveShared: () => {
+            if (sharedActive()) {
+              db.dropShadows(SHARED_TABLES)
+              sharedActive.set(false)
+              bump()
+            }
+          },
         },
       },
       {
         provide: SyncService,
-        useValue: { canSync: signal(false), isSyncing: signal(false), rounds: signal(0) },
+        useValue: {
+          canSync: signal(false),
+          isSyncing: signal(false),
+          rounds: signal(0),
+          lastSyncedAt: signal(1),
+          idle: async () => Promise.resolve(),
+          pushShared: async () => {
+            sync.pushes++
+            sync.answer(db)
+            bump()
+            return Promise.resolve()
+          },
+        },
       },
       { provide: NetworkStatusService, useValue: network },
     ],
   })
   TestBed.inject(AuthStore).user.set({ id: 'u1' } as AuthUser)
-  return { db, network, http: TestBed.inject(HttpTestingController) }
+  return { db, network, sync, sharedActive, http: TestBed.inject(HttpTestingController) }
 }

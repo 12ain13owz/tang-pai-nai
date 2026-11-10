@@ -22,6 +22,8 @@ export const setUpDebts = async (today = '2026-11-09', routes: Routes = []) => {
   const changes = signal(0)
   const offline = {
     isOpen: signal(true),
+    sharedActive: signal(false),
+    leaveShared: () => undefined,
     isTrusted: signal(true),
     meta: signal(null),
     changes,

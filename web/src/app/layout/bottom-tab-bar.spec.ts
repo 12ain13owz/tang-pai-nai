@@ -11,6 +11,8 @@ import { BottomTabBar } from './bottom-tab-bar'
 describe('BottomTabBar', () => {
   const hasWallet = signal(false)
   const current = signal<{ id: string } | null>(null)
+  const isShared = signal(false)
+  const canWrite = signal(true)
   const open = vi.fn()
 
   const render = () => {
@@ -25,7 +27,7 @@ describe('BottomTabBar', () => {
       providers: [
         provideRouter([]),
         { provide: WalletService, useValue: { hasWallet } },
-        { provide: ProfileService, useValue: { current } },
+        { provide: ProfileService, useValue: { current, isShared, canWrite } },
         { provide: TransactionService, useValue: { open } },
       ],
     })
@@ -38,6 +40,8 @@ describe('BottomTabBar', () => {
 
   beforeEach(() => {
     open.mockClear()
+    isShared.set(false)
+    canWrite.set(true)
   })
 
   it('sends ➕ to the Transactions tab while there is no profile or wallet (wallet rule 12)', () => {
@@ -56,6 +60,19 @@ describe('BottomTabBar', () => {
     const fixture = render()
     plus(fixture.nativeElement as HTMLElement)?.click()
     expect(open).toHaveBeenCalledWith({ mode: 'create' })
+  })
+
+  it("turns ➕ off in a shared profile that can't be written now (sharing rule 10)", () => {
+    hasWallet.set(true)
+    current.set({ id: 'pz' })
+    isShared.set(true)
+    canWrite.set(false)
+    const fixture = render()
+    const button = plus(fixture.nativeElement as HTMLElement)
+    expect(button?.disabled).toBe(true)
+    canWrite.set(true)
+    fixture.detectChanges()
+    expect(button?.disabled).toBe(false)
   })
 
   it('marks the active tab by colour and weight only, with no pill behind the icon', () => {

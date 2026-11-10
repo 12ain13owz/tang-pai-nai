@@ -7,8 +7,10 @@ import { provideServiceWorker } from '@angular/service-worker'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
 import th from '@/core/i18n/th.json'
-import { OPEN_LOCAL_DATABASE } from '@/core/offline'
+import { NetworkStatusService } from '@/core/network'
+import { OfflineService, OPEN_LOCAL_DATABASE } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
+import { ProfileService } from '@/core/profile'
 import { DeviceStorageService } from '@/core/pwa'
 import { PageTitleStrategy } from '@/core/routing'
 import { App } from './app'
@@ -48,8 +50,7 @@ describe('App', () => {
     }).compileComponents()
   })
 
-  it('renders the shell with the bottom tab bar', async () => {
-    // The shell sits behind the auth guard.
+  const signIn = () =>
     TestBed.inject(AuthStore).setSession({
       accessToken: 'token',
       expiresIn: 600,
@@ -64,6 +65,10 @@ describe('App', () => {
         identities: [],
       },
     })
+
+  it('renders the shell with the bottom tab bar', async () => {
+    // The shell sits behind the auth guard.
+    signIn()
     const fixture = TestBed.createComponent(App)
     await TestBed.inject(Router).navigateByUrl('/')
     await fixture.whenStable()
@@ -81,5 +86,39 @@ describe('App', () => {
     expect(toaster?.parentElement).toBe(document.documentElement)
     fixture.destroy()
     toaster?.remove()
+  })
+
+  it('shows a note instead of what a shared profile lacks, and blocks it offline (sharing rule 10)', async () => {
+    signIn()
+    const fixture = TestBed.createComponent(App)
+    const router = TestBed.inject(Router)
+    await router.navigateByUrl('/transactions')
+    await fixture.whenStable()
+    TestBed.inject(OfflineService).enterShared()
+    TestBed.inject(ProfileService).shared.set({
+      profile: {
+        id: 'pz',
+        name: 'Family',
+        icon: 'lucideHouse',
+        color: '#000',
+        sortOrder: 0,
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+        changeSeq: null,
+      },
+      role: 'editor',
+      owner: { id: 'z', displayName: 'Dad' },
+      status: 'ready',
+    })
+    const text = async (url: string) => {
+      await router.navigateByUrl(url)
+      await fixture.whenStable()
+      return (fixture.nativeElement as HTMLElement).textContent
+    }
+    expect(await text('/reports')).toContain(th.sharing.reportsHeading)
+    expect(await text('/account/categories')).toContain(th.sharing.mineHeading)
+    TestBed.inject(NetworkStatusService).isOnline.set(false)
+    expect(await text('/transactions')).toContain(th.sharing.offlineHeading)
   })
 })

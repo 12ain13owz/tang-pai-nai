@@ -1,7 +1,7 @@
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import type { ComponentFixture } from '@angular/core/testing'
-import { provideRouter } from '@angular/router'
+import { provideRouter, Router } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
@@ -10,7 +10,8 @@ import { NetworkStatusService } from '@/core/network'
 import { findOp, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
-import { TransferService } from '@/core/transaction'
+import { ProfileService } from '@/core/profile'
+import { TransactionService, TransferService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import { WalletsPage } from './wallets-page'
 
@@ -22,6 +23,8 @@ describe('WalletsPage', () => {
 
   const offline = {
     isOpen: signal(true),
+    sharedActive: signal(false),
+    leaveShared: () => undefined,
     isTrusted: signal(true),
     meta: signal(null),
     changes,
@@ -161,6 +164,37 @@ describe('WalletsPage', () => {
     await settle()
     expect(toggle?.getAttribute('aria-expanded')).toBe('true')
     expect(text()).toContain('Old ฿0.00')
+  })
+
+  it("shows a shared profile's balances only, and a wallet opens its transactions", async () => {
+    wallet('Cash')
+    offline.sharedActive.set(true)
+    TestBed.inject(ProfileService).shared.set({
+      profile: {
+        id: 'p1',
+        name: 'Family',
+        icon: 'lucideHouse',
+        color: '#000',
+        sortOrder: 0,
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+        changeSeq: null,
+      },
+      role: 'editor',
+      owner: { id: 'z', displayName: 'Dad' },
+      status: 'ready',
+    })
+    await settle()
+    expect(text()).toContain('กระเป๋าที่แชร์ให้ฉัน (1)')
+    expect(button(/เพิ่มกระเป๋าเงิน/)).toBeUndefined()
+    expect(text()).not.toContain(th.debts.walletsHeading)
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true)
+    button('แก้ไข Cash ยอดเงิน ฿0.00')?.click()
+    expect(wallets.sheet()).toBeNull()
+    expect(TestBed.inject(TransactionService).viewWalletId()).toBe('Cash')
+    expect(navigate).toHaveBeenCalledWith('/transactions')
+    offline.sharedActive.set(false)
   })
 
   it('opens a wallet in the sheet, and the add button in create mode', async () => {

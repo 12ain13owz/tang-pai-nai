@@ -2,6 +2,7 @@ import { RouterTestingHarness } from '@angular/router/testing'
 import { toastState } from '@spartan-ng/brain/sonner'
 import { setUpDebts } from '@/core/debt/debt-testing'
 import type { LocalDatabase } from '@/core/offline'
+import { toDay } from '@/shared/utils'
 import { ExportPage } from './export-page'
 
 describe('ExportPage (docs/features/export.md rules 1–4)', () => {
@@ -109,7 +110,8 @@ describe('ExportPage (docs/features/export.md rules 1–4)', () => {
     button(/ส่งออก 4 รายการ/)?.click()
     await new Promise((resolve) => setTimeout(resolve))
     await settle()
-    expect(names).toEqual(['tangpainai-2026-11-09.csv'])
+    // The file is named after the device's date, not the page's fixed one.
+    expect(names).toEqual([`tangpainai-${toDay()}.csv`])
     const csv = await saved[0].text()
     expect(csv.split('\r\n')).toHaveLength(6)
     expect(toastState.toasts().map((toast) => toast.title)).toEqual(['ส่งออก 4 รายการแล้ว'])

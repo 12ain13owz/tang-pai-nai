@@ -44,6 +44,7 @@ const withMe: SharedWithMe = {
   shares: [
     {
       profileId: 'pz',
+      profile: { id: 'pz', name: 'งานบ้าน', icon: 'lucideHouse', color: '#000' },
       role: 'viewer',
       owner: { id: 'z', displayName: 'Zed', email: 'zed@example.com' },
       wallets: [

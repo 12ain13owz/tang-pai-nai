@@ -59,11 +59,8 @@ describe('isReportsTab', () => {
   })
 })
 
-describe('a wallet shared with me (sharing.md)', () => {
-  it('belongs to no profile tab, needs no wallet of mine and goes back to the Wallets tab', () => {
-    expect(isProfileTab('/wallets/shared/w1')).toBe(false)
-    expect(isWalletTab('/wallets/shared/w1')).toBe(false)
-    expect(parentOf('/wallets/shared/w1')).toBe('/wallets')
+describe('sharing pages (sharing.md)', () => {
+  it('Account › แชร์กระเป๋า goes back to the Account tab', () => {
     expect(parentOf('/account/sharing')).toBe('/account')
   })
 })

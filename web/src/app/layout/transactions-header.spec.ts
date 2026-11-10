@@ -74,6 +74,7 @@ describe('TransactionsHeader', () => {
           provide: ProfileService,
           useValue: {
             current: signal(null),
+            isShared: signal(false),
             switchSheet: signal(false),
             rejectedItems: computed(() => []),
           },

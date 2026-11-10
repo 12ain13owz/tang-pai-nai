@@ -10,6 +10,7 @@ import { NetworkStatusService } from '@/core/network'
 import { findOp, getRow, listOps, OfflineService, putRow, SyncService } from '@/core/offline'
 import type { LocalDatabase } from '@/core/offline'
 import { openTestDatabase } from '@/core/offline/testing-db'
+import { ProfileService } from '@/core/profile'
 import { occurrenceId, RecurringService } from '@/core/recurring'
 import { QuickAmountsService, TransactionService } from '@/core/transaction'
 import { TransactionSheet } from './transaction-sheet'
@@ -24,6 +25,8 @@ describe('TransactionSheet', () => {
 
   const offline = {
     isOpen: signal(true),
+    sharedActive: signal(false),
+    leaveShared: () => undefined,
     isTrusted: trusted,
     meta: signal(null),
     changes,
@@ -409,6 +412,48 @@ describe('TransactionSheet', () => {
     await open({ mode: 'create' })
     expect(text()).toContain(th.transactions.needsOnline)
     expect(button(th.transactions.save)?.disabled).toBe(true)
+  })
+
+  describe('a shared profile (sharing rules 10, 11)', () => {
+    const useShared = (role: 'editor' | 'viewer') => {
+      offline.sharedActive.set(true)
+      TestBed.inject(ProfileService).shared.set({
+        profile: {
+          id: 'p1',
+          name: 'Family',
+          icon: 'lucideHouse',
+          color: '#000',
+          sortOrder: 0,
+          createdAt: 1,
+          updatedAt: 1,
+          deletedAt: null,
+          changeSeq: null,
+        },
+        role,
+        owner: { id: 'z', displayName: 'Dad' },
+        status: 'ready',
+      })
+    }
+
+    afterEach(() => {
+      TestBed.inject(ProfileService).shared.set(null)
+      offline.sharedActive.set(false)
+    })
+
+    it('is the same form, without "ทำซ้ำ" (no rules are shared)', async () => {
+      useShared('editor')
+      await open({ mode: 'create' })
+      await click(th.transactions.more)
+      expect(button(th.recurring.repeat, true)).toBeUndefined()
+      expect(button(th.transactions.save)?.disabled).toBe(false)
+    })
+
+    it('lets a viewer read only, and says so', async () => {
+      useShared('viewer')
+      await open({ mode: 'create' })
+      expect(text()).toContain(th.sharing.viewerReadOnly)
+      expect(button(th.transactions.save)?.disabled).toBe(true)
+    })
   })
 
   describe('recurring (docs/features/recurring.md)', () => {

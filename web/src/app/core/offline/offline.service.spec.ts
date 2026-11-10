@@ -10,6 +10,8 @@ import {
   OPEN_LOCAL_DATABASE,
   VAULT_STORAGE,
 } from './offline.service'
+import { queueWrite } from './outbox'
+import { openTestDatabase } from './testing-db'
 import type { LocalDatabase } from './local-database'
 import type { Sealed } from './vault-crypto'
 import type { VaultMeta, VaultStorage } from './vault-storage'
@@ -299,5 +301,91 @@ describe('OfflineService', () => {
     await vi.advanceTimersByTimeAsync(60_000)
     await vi.waitFor(() => expect(service.state()).toBe('locked'))
     expect(navigate).toHaveBeenCalledWith(['/auth/lock'], { queryParams: { returnUrl: undefined } })
+  })
+})
+
+describe('OfflineService › a shared profile in use (sharing rule 15)', () => {
+  let service: OfflineService
+  let vault: ReturnType<typeof memoryVault>
+
+  const tx = (id: string) => ({
+    id,
+    profileId: 'pz',
+    walletId: 'zh',
+    categoryId: 'zc',
+    amount: 100,
+    occurredOn: '2026-11-09',
+    note: '',
+    excludeFromReport: false,
+    createdAt: 1,
+    updatedAt: 1,
+    deletedAt: null,
+  })
+
+  beforeEach(async () => {
+    vault = memoryVault()
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: VAULT_STORAGE, useValue: vault },
+        { provide: OPEN_LOCAL_DATABASE, useValue: openTestDatabase },
+        { provide: AuthService, useValue: { signOutOrLater: vi.fn(), refresh: vi.fn() } },
+        {
+          provide: DeviceStorageService,
+          useValue: {
+            isInstalled: signal(true),
+            isPersisted: signal(null),
+            persist: vi.fn(async () => Promise.resolve(true)),
+          },
+        },
+      ],
+    })
+    TestBed.inject(AuthStore).setSession({ accessToken: 't', expiresIn: 600, user: user() })
+    service = TestBed.inject(OfflineService)
+    await service.enable(PIN)
+    await service.save()
+  })
+
+  it('writes transactions to the TEMP tables only, and saves nothing meanwhile', async () => {
+    vault.writeSnapshot.mockClear()
+    service.enterShared()
+    expect(service.sharedActive()).toBe(true)
+    const before = service.changes()
+    service.write((db) => queueWrite(db, 'transactions', 'upsert', tx('t1')))
+    expect(service.changes()).toBe(before + 1)
+    expect(service.db().selectValue('SELECT count(*) FROM transactions')).toBe(1)
+    expect(service.db().selectValue('SELECT count(*) FROM temp.outbox')).toBe(1)
+    await new Promise((resolve) => setTimeout(resolve))
+    expect(vault.writeSnapshot).not.toHaveBeenCalled()
+
+    service.leaveShared()
+    expect(service.sharedActive()).toBe(false)
+    expect(service.db().selectValue('SELECT count(*) FROM transactions')).toBe(0)
+    expect(service.db().selectValue('SELECT count(*) FROM outbox')).toBe(0)
+  })
+
+  it('rolls back a write that queues anything but transactions', () => {
+    service.enterShared()
+    expect(() =>
+      service.write((db) => {
+        queueWrite(db, 'transactions', 'upsert', tx('t1'))
+        queueWrite(db, 'wallets', 'upsert', { id: 'w1', name: 'x' })
+      })
+    ).toThrow()
+    expect(service.db().selectValue('SELECT count(*) FROM transactions')).toBe(0)
+    expect(service.db().selectValue('SELECT count(*) FROM outbox')).toBe(0)
+  })
+
+  it('fills the TEMP tables without an op, and ends with a lock', async () => {
+    service.enterShared()
+    service.fillShared((db) =>
+      db.exec(`INSERT INTO categories (id, profile_id, type, name, icon, color, is_archived,
+          sort_order, created_at, updated_at) VALUES ('zc', 'pz', 'expense', 'Food', 'x', '#000',
+          0, 0, 1, 1)`)
+    )
+    expect(service.db().selectValue('SELECT count(*) FROM categories')).toBe(1)
+    expect(service.db().selectValue('SELECT count(*) FROM outbox')).toBe(0)
+    await service.lock()
+    expect(service.sharedActive()).toBe(false)
   })
 })
