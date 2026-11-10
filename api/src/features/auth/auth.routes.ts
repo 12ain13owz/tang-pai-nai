@@ -1,9 +1,13 @@
 import { Router } from 'express'
-import { authenticate, requireOrigin, validate } from '@/core/middleware'
+import { authenticate, requireCronSecret, requireOrigin, validate } from '@/core/middleware'
 import { authSchema } from './auth.schema'
 import type { AuthController } from './auth.controller'
 
-export const createAuthRouter = (authController: AuthController, webOrigin: string): Router => {
+export const createAuthRouter = (
+  authController: AuthController,
+  webOrigin: string,
+  cronSecret?: string
+): Router => {
   const router = Router()
   // Routes that act on the refresh cookie only accept the web app's own origin (rule 16).
   const sameOrigin = requireOrigin(webOrigin)
@@ -84,6 +88,9 @@ export const createAuthRouter = (authController: AuthController, webOrigin: stri
     validate(authSchema.sessionRevoke),
     authController.sessionRevoke
   )
+
+  // Rule 20: the daily cleanup, called by Vercel Cron with `CRON_SECRET`.
+  router.get('/cleanup', requireCronSecret(cronSecret), authController.cleanup)
 
   return router
 }

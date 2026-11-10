@@ -1,5 +1,6 @@
 export * from './authenticate'
 export type * from './authenticate.type'
 export * from './request-logger'
+export * from './require-cron-secret'
 export * from './require-origin'
 export * from './validate'

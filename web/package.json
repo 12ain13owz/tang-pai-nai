@@ -42,6 +42,7 @@
     "@eslint/js": "^10.0.1",
     "@spartan-ng/cli": "^1.8.0",
     "@tailwindcss/postcss": "^4.1.12",
+    "@vercel/functions": "3.10.3",
     "angular-eslint": "^22.6.0",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",

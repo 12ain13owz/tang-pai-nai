@@ -56,8 +56,8 @@ const baseLogger = createLogger({
       level: env.LOG_LEVEL_CONSOLE,
       silent: env.LOG_SILENT,
     }),
-    // Skipped entirely when silent so no logs/ directory or file is created (e.g. under tests).
-    ...(env.LOG_SILENT
+    // Skipped entirely when silent or off so no logs/ directory or file is created (tests, Vercel).
+    ...(env.LOG_SILENT || !env.LOG_FILE_ENABLED
       ? []
       : [
           createFileTransport(env.LOG_LEVEL_FILE, jsonFileFormat),

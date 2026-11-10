@@ -1,11 +1,12 @@
 import { AppError } from '@/core/error'
-import { ERRORS, ErrorSeverity, HttpStatus } from '@/shared/constants'
+import { logger } from '@/core/logger'
+import { ERRORS, ErrorSeverity, HttpStatus, LOG, SUCCESS } from '@/shared/constants'
 import { createResponse } from '@/shared/utils'
 import { SYNC_MESSAGE } from './sync.const'
 import type { PullResult } from './sync.entity'
 import type { SyncPullQuery, SyncPushBody } from './sync.schema'
 import type { SyncService } from './sync.service'
-import type { SyncPushData } from './sync.type'
+import type { SyncCleanupData, SyncPushData } from './sync.type'
 import type { NextFunction, Request, Response } from 'express'
 
 /** `req.auth.userId`, set by `authenticate` in front of every sync route. */
@@ -47,7 +48,19 @@ export const createSyncController = (syncService: SyncService) => {
     }
   }
 
-  return { pull, push }
+  /** Rule 9, daily from Vercel Cron (`requireCronSecret` in front). */
+  const cleanup = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const data: SyncCleanupData = await syncService.cleanup()
+      logger.info(LOG.SYNC.cleanedUp(data.tombstones, data.ops))
+      const response = createResponse(SUCCESS.OK, data)
+      res.status(HttpStatus.OK).json(response)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  return { pull, push, cleanup }
 }
 
 export type SyncController = ReturnType<typeof createSyncController>

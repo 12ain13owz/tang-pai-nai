@@ -12,14 +12,16 @@ import { createMemorySyncRepository } from './sync.repository.memory'
 import { createSyncRouter } from './sync.routes'
 import { createSyncService } from './sync.service'
 import type { PullResult } from './sync.entity'
-import type { SyncPushData } from './sync.type'
+import type { SyncCleanupData, SyncPushData } from './sync.type'
 
 // The HTTP side of /sync (validation, auth, envelopes, 410). The rules are in sync.service.test.ts.
 
 const DEVICE = '11111111-1111-4111-8111-111111111111'
 const OP_ID = '0199a000-0000-7000-8000-000000000001'
 
-const buildApp = () => {
+const CRON_SECRET = 'c'.repeat(32)
+
+const buildApp = (cronSecret?: string) => {
   const registry = createSyncRegistry()
   const unused = async () => Promise.reject(new Error('unused'))
   registry.register({
@@ -40,7 +42,7 @@ const buildApp = () => {
   const service = createSyncService({ syncRepo: memory.repo, registry, newId: () => 'h1' })
   const app = express()
   app.use(express.json())
-  app.use('/sync', createSyncRouter(createSyncController(service)))
+  app.use('/sync', createSyncRouter(createSyncController(service), cronSecret))
   app.use(errorHandler)
   return { app, memory }
 }
@@ -162,5 +164,31 @@ describe('POST /sync/push', () => {
       .set('Authorization', await bearer())
       .send(body)
     expect(res.status).toBe(HttpStatus.UNPROCESSABLE_ENTITY)
+  })
+})
+
+describe('GET /sync/cleanup', () => {
+  it('runs the cleanup for the cron secret and answers what it removed', async () => {
+    const { app } = buildApp(CRON_SECRET)
+    const res = await request(app)
+      .get('/sync/cleanup')
+      .set('Authorization', `Bearer ${CRON_SECRET}`)
+    const body = res.body as AppResponse<SyncCleanupData>
+    expect(res.status).toBe(HttpStatus.OK)
+    expect(body.data).toEqual({ tombstones: 0, ops: 0 })
+  })
+
+  it('refuses a user token with 401', async () => {
+    const { app } = buildApp(CRON_SECRET)
+    const res = await request(app)
+      .get('/sync/cleanup')
+      .set('Authorization', await bearer())
+    expect(res.status).toBe(HttpStatus.UNAUTHORIZED)
+  })
+
+  it('answers 404 when no cron secret is configured', async () => {
+    const { app } = buildApp()
+    const res = await request(app).get('/sync/cleanup').set('Authorization', 'Bearer ')
+    expect(res.status).toBe(HttpStatus.NOT_FOUND)
   })
 })

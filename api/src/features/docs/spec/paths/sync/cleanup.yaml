@@ -1,0 +1,26 @@
+get:
+  tags:
+    - Sync
+  summary: Daily sync cleanup (Vercel Cron)
+  description: >-
+    Deletes tombstones and sync op records older than 90 days and raises the purge watermark
+    (offline-sync rule 9), as `npm run sync:cleanup` does. Called daily by Vercel Cron with
+    `CRON_SECRET`.
+  operationId: syncCleanup
+  security:
+    - cronSecret: []
+  responses:
+    '200':
+      description: Cleanup done; how many rows it removed
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/sync-cleanup-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '404':
+      description: "`CRON_SECRET` is not set: the route doesn't exist"
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

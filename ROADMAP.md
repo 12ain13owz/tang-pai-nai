@@ -91,7 +91,7 @@ merging.
 | 15  | CSV export + move transactions | —   | ✅  | owner cut search and filters; Account › ส่งออก CSV, "ย้ายรายการ" in the category sheet, no API change. [spec](docs/features/export.md)                                   |
 | 16  | Family sharing                 | ✅  | ✅  | 16.1 invites per person, Account › แชร์กระเป๋า; 16.2 shared profiles in the switcher, online only, editors write. [spec](docs/features/sharing.md)                       |
 | 16R | Shared components              | —   | ✅  | `date-row` (4 sheets) and `wallet-pick` (3 sheets) moved to `shared/components`; same look, same initial bundle                                                          |
-| 17  | **Deploy (Vercel)** ← next     | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
+| 17  | **Deploy (Vercel)** ← now      | 🚧  | 🚧  | code in the #17 PR (Vercel entries, cron, `/api` middleware); the owner sets up Vercel ×2, Turso, Resend: [steps](docs/deploy.md)                                        |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
@@ -103,7 +103,26 @@ decision "Local-first").
 
 ## Next: Deploy (#17)
 
-Only when the owner asks: the steps are under "Later: Deploy (#17)" below.
+**Code: done in the #17 PR.** What's left is the owner's setup in each dashboard, step by step in
+[docs/deploy.md](docs/deploy.md): GitHub settings, Turso (staging + prod), Resend, the two Vercel
+projects and their environment variables, then the first check on staging.
+
+Decisions (owner, #17):
+
+- **Staging = the `develop` branch** (Vercel _Preview_ scoped to `develop`), production = `main`;
+  each with its own Turso database and secrets. Migrations run by hand from the owner's PC
+  (`npm run db:migrate` with that database's URL), never by a deploy.
+- Mail: Resend through the existing SMTP adapter (env only). SMS stays `disabled` (phone sign-in
+  hidden) and Google stays off until the owner sets them up.
+- `/api` on the web goes through **Vercel Routing Middleware** (`web/middleware.js`, `API_ORIGIN`
+  per environment) instead of a fixed rewrite in `vercel.json`, so staging and production each
+  reach their own API (locked decision "Same origin via rewrite" still holds).
+- Cleanups: `GET /auth/cleanup` and `GET /sync/cleanup` behind `CRON_SECRET`, two daily Vercel
+  Cron jobs (production only; on staging by hand).
+
+Known: a pull request's own preview URL can't keep a session (the API accepts the refresh cookie
+only from `WEB_ORIGIN`): test sign-in on the `develop` URL. `TRUST_PROXY_HOPS` is checked on the
+first staging deploy (docs/deploy.md step 7).
 
 ---
 
@@ -1164,45 +1183,22 @@ with no deploy and no third-party API keys.
    first real mail is `POST /auth/email/start`, so seeing it on stdout is part of Auth (#4)'s
    check, not a separate test endpoint.
 
-## Later: Deploy (#17)
+## Done in code: Deploy (#17)
 
-Deferred: do this only when the owner asks. Kept here so the work is ready to pick up.
+The plan written before #17, and where each item ended up:
 
-1. **GitHub**: ✅ repo pushed with `main` + `develop`. Still to do:
-   - Set **`develop` as the default branch** (Settings → General), so Claude sessions and new PRs
-     start from it.
-   - Protect `develop` and `main` (PR + green CI required). CI already exists:
-     `.github/workflows/api.yml` and `web.yml`, each running only when its folder changes.
-   - Vercel: production deploys from `main`, previews from `develop` and PR branches.
-2. **API on Vercel**
-   - Add a Vercel entry for Express (export the app from `createApp()`; `main.ts`'s `listen` stays for
-     local dev). Check that `@/` aliases resolve in the Vercel build (build with `tsc` + `tsc-alias`
-     and point Vercel at `dist/`, or bundle).
-   - **Logger:** file transports can't run on Vercel (read-only filesystem). Add an env flag (e.g.
-     `LOG_FILE_ENABLED`, default `true`, `false` on Vercel) so prod logs go to the console, which
-     Vercel collects.
-   - The `docs` feature reads `src/features/docs/spec/` at runtime, so include it in the function
-     bundle (`includeFiles`) or bundle the spec at build time.
-   - `express-rate-limit`'s in-memory store resets per instance. Keep it as a coarse global guard;
-     security-critical limits (auth) are DB-backed (see auth spec).
-   - Auth env per environment: fresh `JWT_SECRET` / `OTP_PEPPER` (never the dev ones),
-     `WEB_ORIGIN` = the web project's URL, `TRUST_PROXY_HOPS` matching Vercel's proxy chain.
-     Rate limits trust `X-Forwarded-For`, so the API must only be reachable through the web
-     project's rewrite (or the hop count must strip a client-sent header); check this before
-     launch.
-   - Auth cleanup (rule 20): add `POST /internal/cron/auth-cleanup` behind `CRON_SECRET` calling
-     the same `authService.cleanup()` as `npm run auth:cleanup`, scheduled daily.
-   - Graceful shutdown hooks don't run on serverless. That's harmless, but don't rely on them there.
-3. **Web on Vercel**: static Angular build + SPA fallback + **rewrite `/api/:path*` → API project**
-   (see locked decision "Same origin via rewrite"). Dev: `proxy.conf.json` to `localhost:3000`.
-4. **Claude Code GitHub Action** on the repo, so `@claude` in an issue or PR opens or updates a PR.
-   Claude Code on the web/mobile app also works, because one session sees the whole repo.
-5. **Preview deploys** per PR on both Vercel projects (both point at this repo, Root Directory
-   `api` / `web`). Set each project's "Ignored Build Step" to skip builds when its folder didn't
-   change (`git diff --quiet HEAD^ HEAD ./`). The web preview's `/api` points at the API's preview
-   or staging URL.
-6. **Mail/SMS in prod**: pick providers (see backlog) and plug them in behind `core/notification`,
-   as SMTP settings or as a new adapter in `provider.registry.ts`.
+1. **GitHub** (`develop` default, branch protection): owner, docs/deploy.md step 1.
+2. **API on Vercel**: `api/api/index.js` (the built app as one function) + `api/vercel.json`
+   (rewrite everything to it, `includeFiles` for the OpenAPI spec). `PORT` defaults to 3000,
+   `LOG_FILE_ENABLED=false` keeps logs on the console. Auth cleanup is `GET /auth/cleanup` (and
+   sync's `GET /sync/cleanup`), Vercel Cron sends `GET` with `CRON_SECRET`. The request log ends
+   with `:remote-addr` to check `TRUST_PROXY_HOPS`. Graceful shutdown doesn't run on Vercel.
+3. **Web on Vercel**: `web/vercel.json` (SPA fallback outside `/api`, no-cache for `index.html`
+   and the service worker) + `web/middleware.js` for `/api/*`.
+4. **Claude Code GitHub Action**: not done (not needed for staging); still open.
+5. **Previews**: both projects skip builds when their folder didn't change (`ignoreCommand`);
+   the web's Preview `API_ORIGIN` is the API's `develop` URL.
+6. **Mail/SMS**: Resend via `SMTP_URL`; SMS later (backlog).
 
 ## Done: Database foundation (#2)
 

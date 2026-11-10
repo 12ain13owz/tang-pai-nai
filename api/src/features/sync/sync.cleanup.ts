@@ -12,7 +12,7 @@ import { logger } from '@/core/logger'
 import { LOG } from '@/shared/constants'
 import { syncService } from './index'
 
-// Rule 9, run as `npm run sync:cleanup` until the Vercel Cron endpoint lands with deploy (#17).
+// Rule 9, run as `npm run sync:cleanup` by hand; on Vercel, Cron calls `GET /sync/cleanup` daily.
 try {
   const removed = await syncService.cleanup()
   logger.info(LOG.SYNC.cleanedUp(removed.tombstones, removed.ops))
