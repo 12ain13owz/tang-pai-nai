@@ -353,10 +353,16 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   to me is a `brand/10` card with ปฏิเสธ (outline) and รับคำเชิญ (filled); wallets shared with
   nobody are `brand/10` cards too. The invite / member sheet: email, a segmented role with one
   hint line under it, then the wallets as a switch list (all on for an invite). Everything is
-  online: offline, a `destructive/10` line says so and every action is disabled. A wallet shared
-  with me looks like a wallet page (balance, month strip, summary card, day cards) with no ➕,
-  a muted "ดูได้อย่างเดียว" line, and offline a `destructive` outlined line with the time the data
-  was read. Pending invitations to me put a small `destructive` dot on the Account tab icon.
+  online: offline, a `destructive/10` line says so and every action is disabled. Pending
+  invitations to me put a small `destructive` dot on the Account tab icon.
+- **A profile shared with me** (16.2, mock-up `sharing-16.2.html`): a "แชร์กับฉัน" group under
+  my profiles in the switch sheet (badge, name, a role tag, "ของ <owner> · n กระเป๋า" with a
+  users icon); offline the group is dimmed and disabled under a `destructive/10` line. In use,
+  every screen is the **same as an own profile's** (no special page, one ➕, the same sheet):
+  the header's switcher adds "ของ <owner>" under the name, and what isn't shared is simply not
+  there. Where nothing can show (offline, Reports, the profile's own setup pages) an empty state
+  says why with an outline "กลับไปโปรไฟล์ของฉัน". A row an editor added carries a muted
+  "เพิ่มโดย <name>" line (users icon, `text-xs`) under its note, on both sides.
 - **Bottom sheet** (owner's choice in #6.2): **every sheet is the same near-full height**
   (`92dvh`, the page's header still showing above it), so its main action always sits in the same
   place. Inside, `app-sheet-frame`: a header bar with **close (X) on the left** (or **‹ back** in

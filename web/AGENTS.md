@@ -164,9 +164,9 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
   `delete` (the row with `deletedAt` set: a tombstone locally, `{ id, updatedAt }` on the wire).
   Keep the row's `changeSeq` in the object you pass (spread the current row), it becomes the
   op's `baseSeq`. Ids are `uuidv7()`. Screens list rows `WHERE deleted_at IS NULL`.
-- **A synced table on the device** = a schema step in `MIGRATIONS` (step 13 after #14; a spec that
-  rebuilds an older snapshot undoes the newer steps first, `UNDO_STEP_13` then `UNDO_STEP_12` in
-  `local-database.spec.ts`) (snake_case columns,
+- **A synced table on the device** = a schema step in `MIGRATIONS` (step 14 after #16.2; a spec
+  that rebuilds an older snapshot undoes the newer steps first, `UNDO_STEP_14`, `UNDO_STEP_13`
+  then `UNDO_STEP_12` in `local-database.spec.ts`) (snake_case columns,
   `change_seq INTEGER` nullable) + an entry in `SYNC_TABLES` (`sync-tables.ts`: key, camelCase
   columns, booleans, `json` columns, `readOnly` for master data). `putRow` / `getRow` / `fromSql`
   map between them. A **JSON column** (an array, e.g. `wallets.hiddenCategoryIds`) is stored as
@@ -205,9 +205,10 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
 Spec: [profile.md](../docs/features/profile.md). Every data screen (wallets, transactions,
 reports) shows the **current profile's** data.
 
-- `ProfileService`: `profiles()` (live, in order), `current()` (the device's choice, else the
-  first), `ready()` (false only while a new device waits for its first pull), `canWrite()`
-  (untrusted = online and the server answering), `serverDown()`, `atLimit()`, `nameTaken()`, `save(id | null, values, fixOpId?)`,
+- `ProfileService`: `profiles()` (live, in order), `current()` (a shared profile in use, else the
+  device's choice, else the first; `shared()` / `isShared()`, #16.2), `ready()` (false only
+  while a new device waits for its first pull), `canWrite()` (untrusted = online and the server
+  answering; a shared profile = an editor, online, ready), `serverDown()`, `atLimit()`, `nameTaken()`, `save(id | null, values, fixOpId?)`,
   `remove(id)`, `moveTo(id, index)`, `select(id)`. The current id is `tpn-profile:<userId>` in
   `localStorage` (trusted) or `sessionStorage` (untrusted); `OfflineService.wipe()` removes it.
   `save()` of a new profile writes the default category set in the same write
@@ -504,25 +505,41 @@ Spec: [export.md](../docs/features/export.md). Account › ส่งออก CS
 - Specs: `csv.spec.ts`, `export-data.spec.ts` and `export-page.spec.ts` on `setUpDebts()`
   (the page stubs `URL.createObjectURL` and the link's `click`).
 
-### Sharing (`core/sharing`, #16.1)
+### Sharing (`core/sharing`, #16.1, #16.2)
 
 Spec: [sharing.md](../docs/features/sharing.md).
 
 - `SharingService` is the one place that calls `/sharing/*` (online REST, offline-sync rule 15):
-  what it reads stays in **signals only** (`withMe`, `owner(profileId)`, `wallet(id)`,
-  `entries(id, from, to)`, `readAt`), never in the local database, and is cleared when the
-  signed-in user changes. `canCall()` = online and the server reachable; screens disable every
-  action without it and keep showing what was read. `failure(error)` gives a translation key
-  (`sharing.error.<CODE>`, `sharing.needsOnline`).
-- The shell loads it with a dynamic `import()` after its first render (like `RecurringService`)
-  and holds it in a signal only for the Account tab's invite dot (`BottomTabBar.accountDot`), so
-  the service stays out of the initial bundle; `import type` is all the shell has of it. Pages
-  inject it directly: `features/account/pages/sharing-page` (+ `share-sheet`), the Wallets
-  tab's "แชร์กับฉัน" section and `features/wallets/pages/shared-wallet-page`
-  (`/wallets/shared/:id`, outside `isProfileTab` / `isWalletTab`; ‹ goes to `/wallets`).
+  what it reads stays in **signals only** (`withMe`, `owner(profileId)`, `readAt`) and is
+  cleared when the signed-in user changes. `canCall()` = online and the server reachable;
+  screens disable every action without it. `failure(error)` gives a translation key
+  (`sharing.error.<CODE>`, `sharing.needsOnline`). `loadOwner` also feeds
+  `TransactionService.addPeople` (the names behind "เพิ่มโดย …").
+- **A shared profile in use** (16.2): `openShared(group)` sets `ProfileService.shared`
+  (`loading` → `ready`; `current()` returns its profile, never stored), reads
+  `/sharing/with-me/:id/rows` page by page while a running own round ends
+  (`SyncService.idle()`), then `OfflineService.enterShared()` and `fillShared()` put the rows in
+  **TEMP tables that shadow `SHARED_TABLES`** (`LocalDatabase.createShadows`): every service
+  and screen reads them unchanged, `export()` (the saved snapshot) never holds them. Meanwhile
+  own sync rounds wait (`canSync` false) and nothing is saved; `OfflineService.write` rolls back
+  any op that isn't a transaction. An editor's write lands in the TEMP outbox and an effect
+  pushes it at once (`SyncService.pushShared`, no pull); `STALE` → toast + read again,
+  `NOT_SHARED` (or a 404 read) → toast + back to an own profile. `refreshShared()` reads what
+  changed (every minute, back online, on visibility). `ProfileService.select()` /
+  `leaveShared()` drop the TEMP tables; a lock clears it too.
+- The shell loads the service with a dynamic `import()` after its first render (like
+  `RecurringService`) and holds it in a signal for the Account tab's invite dot and the switch
+  sheet's "แชร์กับฉัน" group (`[sharing]` input), so it stays out of the initial bundle; `import
+type` is all the shell has of it. `AppShell.gate()` shows `layout/shared-profile-step` for a
+  shared profile offline, on Reports and on the profile's own setup pages (`OWN_ONLY`). In a
+  shared profile, screens hide what isn't shared (the Wallets tab's wallet actions and debts, the
+  ⋮ menu's transfer / debts / events / rules, the sheet's "ทำซ้ำ" and hidden-category links),
+  and ➕ is off while `canWrite()` is false (viewer, offline, loading).
 - Specs: `core/sharing/sharing-testing.ts` (`setUpSharing`: test DB with profile `p1` and
-  wallets, `provideHttpClientTesting`, network signals); answer reads with `envelope(data)`
-  and let the promise settle (`setTimeout`) before checking signals.
+  wallets, a fake `OfflineService` with real TEMP shadows, a fake push `sync.answer`,
+  `provideHttpClientTesting`, network signals); answer reads with `envelope(data)` and let the
+  promise settle (`setTimeout`) before checking signals. A fake `OfflineService` for a service
+  that reaches `ProfileService` gives it `sharedActive` and `leaveShared`.
 
 ### Inside a feature
 

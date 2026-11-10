@@ -89,8 +89,8 @@ merging.
 | 13  | Debt / loan                    | ✅  | ✅  | borrowed / lent, entries outside income / expense, counted once per debt, instalments as rules, "หนี้สิน" card. [spec](docs/features/debt.md)                            |
 | 14  | Event / trip                   | ✅  | ✅  | events per profile, one per transaction, totals computed, default by date, close / reopen; under `/transactions/events`. [spec](docs/features/event.md)                  |
 | 15  | CSV export + move transactions | —   | ✅  | owner cut search and filters; Account › ส่งออก CSV, "ย้ายรายการ" in the category sheet, no API change. [spec](docs/features/export.md)                                   |
-| 16  | **Family sharing** ← next      | 🚧  | 🚧  | 16.1 ✅ invite a person per profile (one role, wallet switches), Account › แชร์กระเป๋า, read-only shared wallets; 16.2 editor writes. [spec](docs/features/sharing.md)   |
-| 16R | Shared components refactor     | —   | ⬜  | after 16.2, before #17: components used in more than one place move to `shared/components` (web/AGENTS.md §2). Known: `date-row` ×2                                      |
+| 16  | Family sharing                 | ✅  | ✅  | 16.1 invites per person, Account › แชร์กระเป๋า; 16.2 shared profiles in the switcher, online only, editors write. [spec](docs/features/sharing.md)                       |
+| 16R | **Shared components** ← next   | —   | ⬜  | after 16.2, before #17: components used in more than one place move to `shared/components` (web/AGENTS.md §2). Known: `date-row` ×2                                      |
 | 17  | Deploy (Vercel)                | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
@@ -101,31 +101,22 @@ decision "Local-first").
 
 ---
 
-## Next: Family sharing 16.2 (#16)
+## Next: Shared components refactor (16R)
 
-Editors write to a shared wallet ([sharing](docs/features/sharing.md) → Out of scope,
-[offline-sync](docs/features/offline-sync.md) rules 14 and 16): add offline (queued, "รอ sync"),
-edit / delete online only with `baseSeq` = the row's `changeSeq`, the owner wins, a removed
-member's queued adds come back `rejected`. Decided in 16.1, for 16.2: a member's transaction
-keeps **`userId` = the wallet's owner** (it syncs to the owner's devices) and a new nullable
-`addedBy` (the member's id) shows "เพิ่มโดย …"; the editor picks from the **owner's**
-categories (`GET /sharing/wallets/:id` already returns them). Start with questions to the owner
-and a mock-up only if wanted.
-
-**Order after 16.2** (owner, after 16.1): **16R, the shared components refactor**, then #17
-(deploy) last, when the owner asks. 16R is one PR with no behaviour change: list every
-component used in more than one place (or copied), show the list to the owner, move what they
-confirm under `shared/components/<group>/` (web/AGENTS.md §2 → "Shared components"), and check
-that the initial bundle doesn't grow. Known so far: `features/debts/components/date-row.ts` and
-its copy in `features/events/components/date-row.ts`; also look at the debts' `wallet-pick` /
-`category-pick` against the transaction sheet's views, and
+**Order** (owner, after 16.1): **16R**, then #17 (deploy) last, when the owner asks. 16R is one PR
+with no behaviour change: list every component used in more than one place (or copied), show the
+list to the owner, move what they confirm under `shared/components/<group>/` (web/AGENTS.md §2 →
+"Shared components"), and check that the initial bundle doesn't grow. Known so far:
+`features/debts/components/date-row.ts` and its copy in `features/events/components/date-row.ts`;
+also look at the debts' `wallet-pick` / `category-pick` against the transaction sheet's views, and
 `features/reports/components/summary-card` against `shared/components/money-summary` (the
 Transactions tab's card, shared since 16.1).
 
 Known, for later:
 
-- The initial bundle is **733.1 kB** after 16.1 (warning at 750 kB); the +3.3 kB is the Thai
-  translations (`th.json` is an initial chunk). Keep new screens lazy and their services out of
+- The initial bundle is **737.4 kB** after 16.2 (warning at 750 kB): 16.1's Thai translations
+  (`th.json` is an initial chunk) and 16.2's shell pieces (switcher group, shared-profile step,
+  TEMP tables). Keep new screens lazy and their services out of
   the shell (#12 loads `RecurringService` and 16.1 `SharingService` with a dynamic `import()`
   after the shell's first render; `DebtService` and `EventService` are injected only by their
   pages; `core/transaction` reads `events` by name). A module exported from a barrel the shell
@@ -135,6 +126,42 @@ Known, for later:
   the same, so it's the test browser's line breaking, not our markup.
 - The API's sign-in only accepts `Origin: http://localhost:4200` (`WEB_ORIGIN`): a local server
   for Playwright on `npm run build` output must listen on 4200, or `/auth/refresh` answers 403.
+
+---
+
+## Done: Family sharing 16.2 (#16)
+
+- **Decided at the start** (owner, two mock-up rounds, `docs/features/mockups/sharing-16.2.html`):
+  a profile shared with you is a **"แชร์กับฉัน" group in the profile switcher** and works like an
+  own profile (the same tabs, one ➕, the same transaction sheet), **online only**: offline (or
+  the server down) the group is disabled and a shared profile in use shows a blocked screen.
+  This replaced 16.1's Wallets tab section and `/wallets/shared/:id`, and offline-sync rule 14's
+  offline adds (no member outbox, no "รอ sync"). Editors add, edit and delete any income /
+  expense row of the shared wallets; a viewer reads. The owner wins even over an editor's delete
+  (the row comes back). Reports and the profile's own setup pages (categories, rules, debts,
+  events, export, sharing) show a note in a shared profile.
+- **Decided while building**: an editor's write goes through `POST /sync/push` at once (the
+  feature's own validation, as the owner), `STALE` / `NOT_SHARED` refusals; `addedBy` is set by
+  the server only; transfers and debt entries aren't listed for a member, their money is folded
+  into the wallet's `initialBalance`; the member's read is `GET /sharing/with-me/:id/rows`, a
+  pull-like read with transactions as columns + rows (20,000 rows ≈ 4 MB instead of 10).
+- **API**: migration `0019_transactions_added_by`; `core/database/wallet-access`; sync's
+  `SyncPushHandler.shared` hook (transactions) and the editor / owner-wins rules in
+  `sync.service`; 16.1's `/sharing/wallets/*` routes gone. **Web**: schema step 14; TEMP shadow
+  tables (`LocalDatabase.createShadows`, `OfflineService.enterShared` / `fillShared` /
+  `leaveShared`, own sync paused, `SyncService.pushShared`); `ProfileService.shared`;
+  `SharingService.openShared` / `refreshShared`; `layout/shared-profile-step`; "เพิ่มโดย …".
+- **Checked**: Playwright at 375×812 on `npm run build`, owner th/light and member en/dark, a
+  shared profile of 20,000 rows (open ≈ 2.4 s, another month ≈ 0.3 s): editor add / edit of the
+  owner's row / delete stored as the owner's with `addedBy` / `updatedBy`; owner offline vs editor
+  on one row (owner wins); a stale editor edit (`STALE`, reload); editor delete vs owner offline
+  edit (row back); two owner devices on one row (later edit wins, notice); member removed while
+  the profile is open (`NOT_SHARED`, back to own); viewer read only; offline blocked; own sync
+  after leaving. Tests: API 631, web 648.
+- **Known**: a row the owner moves out of the shared wallets stays in the member's view until the
+  profile is opened again (incremental reads go by wallet); a shared profile in use is read again
+  every minute, on coming back online and after a refusal; a trusted device's service worker
+  serves the previous build once after a deploy (the usual update banner).
 
 ---
 
@@ -1247,12 +1274,14 @@ Agreed with the user. Do not re-propose alternatives unless asked.
   local data. Untrusted devices work online only.
 - **Local DB = SQLite WASM in memory** + one encrypted snapshot in IndexedDB (decided by a spike
   at the start of #4a), and the app runs in one tab at a time.
-- **Conflicts**: the later edit wins between the same user's devices; in a shared wallet **the
-  owner always wins**; delete beats edit; the losing version is kept in `change_history` and the
-  loser is told.
-- **Shared wallets**: owner = full offline. Editor = view/edit/delete **online only**, but may
-  **add** transactions offline. Viewer = online, read only. Shared per **person and profile**:
-  one role over the wallets the owner switches on (16.1, [sharing](docs/features/sharing.md)).
+- **Conflicts**: the later edit wins between the same user's devices; delete beats edit; the
+  losing version is kept in `change_history` and the loser is told. In a shared wallet **the
+  owner always wins**, even over an editor's delete, and the editor isn't told (16.2).
+- **Shared wallets**: owner = full offline. Editor = add / edit / delete transactions **online
+  only** (16.2: no offline adds). Viewer = online, read only. Shared per **person and profile**:
+  one role over the wallets the owner switches on (16.1); the member picks the owner's profile
+  in the switcher and uses it like their own, online only (16.2,
+  [sharing](docs/features/sharing.md)).
 
 **Auth** (full spec: [docs/features/auth.md](docs/features/auth.md))
 

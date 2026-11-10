@@ -1,8 +1,8 @@
 # Family sharing
 
-> Status: **Built (16.1)**; **16.2 in progress** (shared profiles in the switcher, editors write)
-> — API `src/features/sharing/`, sync push; web `core/sharing`, `features/account`
-> (Account › แชร์กระเป๋า), the profile switcher.
+> Status: **Built (16.1, 16.2)** — API `src/features/sharing/`, sync push
+> (`core/database/wallet-access`); web `core/sharing`, `features/account` (Account › แชร์กระเป๋า),
+> the profile switcher and `layout/shared-profile-step`.
 > Mock-ups: [mockups/sharing.html](mockups/sharing.html) (16.1, round 2),
 > [mockups/sharing-16.2.html](mockups/sharing-16.2.html) (16.2, round 2).
 
