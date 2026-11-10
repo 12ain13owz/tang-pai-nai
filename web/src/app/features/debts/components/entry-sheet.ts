@@ -30,6 +30,7 @@ import {
 } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
+import { DateRow } from '@/shared/components/date-row'
 import { CalcAmountField, CalcKeypad, FORM_IMPORTS, TextareaField } from '@/shared/components/form'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
@@ -46,7 +47,6 @@ import {
 } from '@/shared/utils'
 import type { CalcKey } from '@/shared/utils'
 import { DebtCategoryPick } from './category-pick'
-import { DebtDateRow } from './date-row'
 import { DebtWalletPick } from './wallet-pick'
 
 type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
@@ -73,7 +73,7 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
     IconBadge,
     SheetFrame,
     DebtCategoryPick,
-    DebtDateRow,
+    DateRow,
     DebtWalletPick,
   ],
   providers: [
@@ -268,7 +268,9 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
                       />
                     </button>
                     @if (!rule()) {
-                      <app-debt-date-row
+                      <app-date-row
+                        [today]="transactionService.today()"
+                        [locale]="languageService.locale()"
                         [control]="f.occurredOn"
                         [value]="values().occurredOn ?? ''"
                         [max]="lastDay()"
@@ -462,7 +464,7 @@ export class DebtEntrySheet {
   protected debtService = inject(DebtService)
   private walletService = inject(WalletService)
   private categoryService = inject(CategoryService)
-  private transactionService = inject(TransactionService)
+  protected transactionService = inject(TransactionService)
   private recurringService = inject(RecurringService)
   private quickAmountsService = inject(QuickAmountsService)
 

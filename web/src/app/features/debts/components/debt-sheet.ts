@@ -34,6 +34,7 @@ import {
 } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
+import { DateRow } from '@/shared/components/date-row'
 import {
   CalcAmountField,
   CalcKeypad,
@@ -57,7 +58,6 @@ import {
 } from '@/shared/utils'
 import type { CalcKey } from '@/shared/utils'
 import { DebtCategoryPick } from './category-pick'
-import { DebtDateRow } from './date-row'
 import { DebtWalletPick } from './wallet-pick'
 
 /** Whether the form a control sits in describes a `repaid` debt (the validators run before the
@@ -100,7 +100,7 @@ type View =
     IconBadge,
     SheetFrame,
     DebtCategoryPick,
-    DebtDateRow,
+    DateRow,
     DebtWalletPick,
   ],
   providers: [
@@ -320,7 +320,9 @@ type View =
                       />
                     </button>
                     @if (!editing()) {
-                      <app-debt-date-row
+                      <app-date-row
+                        [today]="transactionService.today()"
+                        [locale]="languageService.locale()"
                         [control]="f.occurredOn"
                         [value]="values().occurredOn ?? ''"
                         [max]="lastDay()"
@@ -421,7 +423,9 @@ type View =
                       class="-mt-2 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
                     >
                       @if (values().dueOn) {
-                        <app-debt-date-row
+                        <app-date-row
+                          [today]="transactionService.today()"
+                          [locale]="languageService.locale()"
                           [control]="f.dueOn"
                           [value]="values().dueOn ?? ''"
                           [label]="'debts.dueOn' | transloco"
@@ -614,7 +618,9 @@ type View =
                       aria-hidden="true"
                     />
                   </button>
-                  <app-debt-date-row
+                  <app-date-row
+                    [today]="transactionService.today()"
+                    [locale]="languageService.locale()"
                     [control]="planStart"
                     [value]="planStartValue()"
                     [label]="'debts.planFirst' | transloco"
@@ -722,7 +728,7 @@ export class DebtSheet {
   private walletService = inject(WalletService)
   private categoryService = inject(CategoryService)
   private profileService = inject(ProfileService)
-  private transactionService = inject(TransactionService)
+  protected transactionService = inject(TransactionService)
   private quickAmountsService = inject(QuickAmountsService)
 
   protected walletIcon = WALLET_DEFAULT_ICON
