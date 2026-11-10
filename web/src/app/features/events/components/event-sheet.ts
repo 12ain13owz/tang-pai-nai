@@ -18,7 +18,9 @@ import {
   toEvent,
 } from '@/core/event'
 import type { EventValues, TripEvent } from '@/core/event'
+import { LanguageService } from '@/core/i18n'
 import { TransactionService } from '@/core/transaction'
+import { DateRow } from '@/shared/components/date-row'
 import {
   ColorField,
   FORM_IMPORTS,
@@ -29,7 +31,6 @@ import {
 import { USER_COLORS } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
 import { addDays } from '@/shared/utils'
-import { EventDateRow } from './date-row'
 
 type View = 'form' | 'icons' | 'confirmDelete' | 'confirmDiscard'
 
@@ -62,7 +63,7 @@ const endAfterStart: ValidatorFn = (control) => {
     IconField,
     ColorField,
     SheetFrame,
-    EventDateRow,
+    DateRow,
   ],
   providers: [provideIcons({ lucideCalendarCheck, lucidePlus, lucideTrash2, lucideX })],
   template: `
@@ -117,7 +118,9 @@ const endAfterStart: ValidatorFn = (control) => {
                   <div
                     class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
                   >
-                    <app-event-date-row
+                    <app-date-row
+                      [today]="transactionService.today()"
+                      [locale]="languageService.locale()"
                       [control]="f.startOn"
                       [value]="values().startOn ?? ''"
                       [label]="'events.start' | transloco"
@@ -125,7 +128,9 @@ const endAfterStart: ValidatorFn = (control) => {
                       [max]="lastDay()"
                     />
                     @if (values().endOn) {
-                      <app-event-date-row
+                      <app-date-row
+                        [today]="transactionService.today()"
+                        [locale]="languageService.locale()"
                         [control]="f.endOn"
                         [value]="values().endOn ?? ''"
                         [label]="'events.end' | transloco"
@@ -279,7 +284,8 @@ export class EventSheet {
   private transloco = inject(TranslocoService)
   private router = inject(Router)
   protected eventService = inject(EventService)
-  private transactionService = inject(TransactionService)
+  protected languageService = inject(LanguageService)
+  protected transactionService = inject(TransactionService)
 
   protected defaultIcon = EVENT_DEFAULT_ICON
   protected icons = EVENT_ICONS

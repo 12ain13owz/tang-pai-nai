@@ -5,16 +5,16 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideCalendar, lucideChevronLeft, lucideChevronRight } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
-import { LanguageService } from '@/core/i18n'
-import { TransactionService } from '@/core/transaction'
 import { addDays, fromDay } from '@/shared/utils'
 
 /**
- * A date row of a debt sheet, like the transaction form's (DESIGN.md §6): ‹ › a day, the middle
- * opens the native date picker. `label` reads over the date ("เริ่ม", "กำหนดคืน").
+ * A form's date row (DESIGN.md §6): ‹ › a day, the middle opens the native date picker and reads
+ * "วันนี้ · 10/11/2026". One row for the transaction, transfer, debt and event sheets.
+ * `label` reads over the date ("เริ่ม", "กำหนดคืน"); `today` and `locale` come from the sheet
+ * (`shared/` can't read `core/`).
  */
 @Component({
-  selector: 'app-debt-date-row',
+  selector: 'app-date-row',
   imports: [ReactiveFormsModule, TranslocoPipe, NgIcon, HlmButton],
   providers: [provideIcons({ lucideCalendar, lucideChevronLeft, lucideChevronRight })],
   template: `
@@ -46,7 +46,7 @@ import { addDays, fromDay } from '@/shared/utils'
         <input
           type="date"
           class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-          [attr.aria-label]="label() || ('transactions.date' | transloco)"
+          [attr.aria-label]="ariaLabel() || label() || ('transactions.date' | transloco)"
           [min]="min()"
           [max]="max()"
           [formControl]="control()"
@@ -67,24 +67,27 @@ import { addDays, fromDay } from '@/shared/utils'
     </div>
   `,
 })
-export class DebtDateRow {
-  private languageService = inject(LanguageService)
-  private transactionService = inject(TransactionService)
+export class DateRow {
   private transloco = inject(TranslocoService)
 
   control = input.required<FormControl<string>>()
   /** The control's value (the parent's form signal: a control's own value isn't a signal). */
   value = input.required<string>()
+  /** Today as `YYYY-MM-DD`: the day shown while `value` is empty, and "วันนี้ / เมื่อวาน". */
+  today = input.required<string>()
+  /** The language's locale (`LanguageService.locale()`): the text follows a language switch. */
+  locale = input.required<string>()
   label = input('')
+  /** The picker's name when it isn't `label` (the transaction form's "เริ่ม" keeps "วันที่"). */
+  ariaLabel = input('')
   min = input('2000-01-01')
   max = input('2099-12-31')
 
-  protected day = computed(() => this.value() || this.transactionService.today())
+  protected day = computed(() => this.value() || this.today())
   protected text = computed(() => {
-    this.languageService.language()
     const day = this.day()
-    const today = this.transactionService.today()
-    const locale = this.languageService.locale()
+    const today = this.today()
+    const locale = this.locale()
     const date = new Intl.DateTimeFormat(locale, {
       day: '2-digit',
       month: '2-digit',

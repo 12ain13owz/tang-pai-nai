@@ -6,10 +6,8 @@ import { Router } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
-  lucideCalendar,
   lucideCheck,
   lucideChevronDown,
-  lucideChevronLeft,
   lucideChevronRight,
   lucideCopy,
   lucideEyeOff,
@@ -49,6 +47,7 @@ import {
 import type { EventOption, TransactionSheetState, TransactionValues } from '@/core/transaction'
 import { isHiddenIn, WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
+import { DateRow } from '@/shared/components/date-row'
 import {
   CalcAmountField,
   CalcKeypad,
@@ -61,6 +60,7 @@ import {
 import { IconBadge, userColor, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
+import { WalletPick, walletPickItem } from '@/shared/components/wallet-pick'
 import type { SelectOption } from '@/shared/types'
 import {
   addDays,
@@ -97,6 +97,8 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
     TranslocoPipe,
     NgIcon,
     HlmButton,
+    DateRow,
+    WalletPick,
     HlmDrawerImports,
     SegmentedField,
     SwitchField,
@@ -110,10 +112,8 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
   ],
   providers: [
     provideIcons({
-      lucideCalendar,
       lucideCheck,
       lucideChevronDown,
-      lucideChevronLeft,
       lucideChevronRight,
       lucideCopy,
       lucideEyeOff,
@@ -327,55 +327,16 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                         aria-hidden="true"
                       />
                     </button>
-                    <div class="flex min-h-14 items-center gap-2 px-4 py-2">
-                      <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                        <ng-icon name="lucideCalendar" size="22" aria-hidden="true" />
-                      </span>
-                      <button
-                        hlmBtn
-                        variant="outline"
-                        size="icon"
-                        type="button"
-                        class="size-10 shrink-0"
-                        [disabled]="day() <= firstDay"
-                        [attr.aria-label]="'transactions.dayBefore' | transloco"
-                        (click)="moveDay(-1)"
-                      >
-                        <ng-icon name="lucideChevronLeft" size="20" aria-hidden="true" />
-                      </button>
-                      <label
-                        class="relative flex h-10 min-w-0 flex-1 items-center justify-center rounded-md text-base font-medium has-focus-visible:ring-2 has-focus-visible:ring-ring"
-                      >
-                        <span class="flex min-w-0 flex-col items-center leading-tight">
-                          @if (startsRule()) {
-                            <span class="text-xs text-muted-foreground">{{
-                              'recurring.start' | transloco
-                            }}</span>
-                          }
-                          <span class="truncate">{{ dayText() }}</span>
-                        </span>
-                        <input
-                          type="date"
-                          class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          [attr.aria-label]="'transactions.date' | transloco"
-                          [min]="firstDay"
-                          [max]="lastDay()"
-                          [formControl]="f.occurredOn"
-                        />
-                      </label>
-                      <button
-                        hlmBtn
-                        variant="outline"
-                        size="icon"
-                        type="button"
-                        class="size-10 shrink-0"
-                        [disabled]="day() >= lastDay()"
-                        [attr.aria-label]="'transactions.dayAfter' | transloco"
-                        (click)="moveDay(1)"
-                      >
-                        <ng-icon name="lucideChevronRight" size="20" aria-hidden="true" />
-                      </button>
-                    </div>
+                    <app-date-row
+                      [control]="f.occurredOn"
+                      [value]="day()"
+                      [today]="transactionService.today()"
+                      [locale]="languageService.locale()"
+                      [label]="startsRule() ? ('recurring.start' | transloco) : ''"
+                      [ariaLabel]="'transactions.date' | transloco"
+                      [min]="firstDay"
+                      [max]="lastDay()"
+                    />
                     @if (showEvent()) {
                       <!-- The event / trip (event rule 5): set by the date when adding. -->
                       <div class="flex min-h-14 items-center gap-1 pr-2">
@@ -556,33 +517,11 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
               [leadingLabel]="'sheet.back' | transloco"
               (leading)="view.set('form')"
             >
-              <ul class="divide-y divide-border rounded-xl border border-border bg-card">
-                @for (item of walletChoices(); track item.id) {
-                  <li>
-                    <button
-                      type="button"
-                      class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                      [attr.aria-current]="item.id === f.walletId.value ? 'true' : null"
-                      (click)="chooseWallet(item.id)"
-                    >
-                      <app-icon-badge
-                        [icon]="item.icon"
-                        [color]="item.color"
-                        [fallback]="walletIcon"
-                      />
-                      <span class="min-w-0 flex-1 truncate text-base">{{ item.name }}</span>
-                      @if (item.id === f.walletId.value) {
-                        <ng-icon
-                          name="lucideCheck"
-                          size="20"
-                          class="text-brand"
-                          aria-hidden="true"
-                        />
-                      }
-                    </button>
-                  </li>
-                }
-              </ul>
+              <app-wallet-pick
+                [wallets]="walletItems()"
+                [chosen]="f.walletId.value"
+                (picked)="chooseWallet($event)"
+              />
               @if (editingId() && sameCurrencyOnly()) {
                 <p class="mt-3 text-sm text-muted-foreground">
                   {{ 'transactions.sameCurrency' | transloco }}
@@ -1128,6 +1067,9 @@ export class TransactionSheet {
     const current = this.wallet()
     return current && !open.some((item) => item.id === current.id) ? [current, ...open] : open
   })
+  protected walletItems = computed(() =>
+    this.walletChoices().map((wallet) => walletPickItem(wallet))
+  )
   /** Category rule 13: the type's open categories the wallet doesn't hide. */
   protected tree = computed<CategoryNode[]>(() => {
     const wallet = this.wallet()
@@ -1161,29 +1103,6 @@ export class TransactionSheet {
       .frequentCategoryIds(this.profileId(), type)
       .flatMap((id) => offered.get(id) ?? [])
       .slice(0, 4)
-  })
-  protected dayText = computed(() => {
-    const day = this.day()
-    const today = this.transactionService.today()
-    const date = new Intl.DateTimeFormat(this.languageService.locale(), {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }).format(fromDay(day))
-    const relative =
-      day === today
-        ? 'transactions.today'
-        : day === addDays(today, -1)
-          ? 'transactions.yesterday'
-          : day === addDays(today, 1)
-            ? 'transactions.tomorrow'
-            : null
-    const lead = relative
-      ? this.transloco.translate(relative)
-      : new Intl.DateTimeFormat(this.languageService.locale(), { weekday: 'short' }).format(
-          fromDay(day)
-        )
-    return `${lead} · ${date}`
   })
 
   /** Unsaved input: swiping or tapping the sheet away asks first (DESIGN.md §6). */
@@ -1291,14 +1210,6 @@ export class TransactionSheet {
     const wallet = this.wallet()
     if (wallet) {
       this.walletService.open({ mode: 'edit', id: wallet.id, view: 'categories' })
-    }
-  }
-
-  protected moveDay(days: number): void {
-    const next = addDays(this.day(), days)
-    if (next >= this.firstDay && next <= this.lastDay()) {
-      this.form.controls.occurredOn.setValue(next)
-      this.form.controls.occurredOn.markAsDirty()
     }
   }
 

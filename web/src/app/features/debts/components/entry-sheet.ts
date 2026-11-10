@@ -30,10 +30,13 @@ import {
 } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
+import { walletPickItems } from '@/features/debts/debt-view'
+import { DateRow } from '@/shared/components/date-row'
 import { CalcAmountField, CalcKeypad, FORM_IMPORTS, TextareaField } from '@/shared/components/form'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
+import { WalletPick } from '@/shared/components/wallet-pick'
 import {
   addDays,
   addQuickAmount,
@@ -46,8 +49,6 @@ import {
 } from '@/shared/utils'
 import type { CalcKey } from '@/shared/utils'
 import { DebtCategoryPick } from './category-pick'
-import { DebtDateRow } from './date-row'
-import { DebtWalletPick } from './wallet-pick'
 
 type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
 
@@ -73,8 +74,8 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
     IconBadge,
     SheetFrame,
     DebtCategoryPick,
-    DebtDateRow,
-    DebtWalletPick,
+    DateRow,
+    WalletPick,
   ],
   providers: [
     provideIcons({
@@ -268,7 +269,9 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
                       />
                     </button>
                     @if (!rule()) {
-                      <app-debt-date-row
+                      <app-date-row
+                        [today]="transactionService.today()"
+                        [locale]="languageService.locale()"
                         [control]="f.occurredOn"
                         [value]="values().occurredOn ?? ''"
                         [max]="lastDay()"
@@ -387,8 +390,9 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
               [leadingLabel]="'sheet.back' | transloco"
               (leading)="view.set('form')"
             >
-              <app-debt-wallet-pick
-                [wallets]="walletChoices()"
+              <app-wallet-pick
+                [wallets]="walletItems()"
+                [empty]="'debts.noWallet' | transloco"
                 [chosen]="f.walletId.value"
                 (picked)="chooseWallet($event)"
               />
@@ -462,7 +466,7 @@ export class DebtEntrySheet {
   protected debtService = inject(DebtService)
   private walletService = inject(WalletService)
   private categoryService = inject(CategoryService)
-  private transactionService = inject(TransactionService)
+  protected transactionService = inject(TransactionService)
   private recurringService = inject(RecurringService)
   private quickAmountsService = inject(QuickAmountsService)
 
@@ -541,6 +545,14 @@ export class DebtEntrySheet {
           .filter((wallet) => wallet.currencyCode === debt.currencyCode)
       : []
   })
+  protected walletItems = computed(() =>
+    walletPickItems(
+      this.walletChoices(),
+      this.walletService,
+      this.languageService.locale(),
+      (key) => this.transloco.translate(key)
+    )
+  )
   protected lastDay = computed(() => addDays(this.transactionService.today(), 365))
   protected interestValue = computed(() => {
     const parsed = parseMajor(this.interestValues() || '0', this.minorUnit())

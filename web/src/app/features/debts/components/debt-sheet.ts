@@ -34,6 +34,8 @@ import {
 } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
+import { walletPickItems } from '@/features/debts/debt-view'
+import { DateRow } from '@/shared/components/date-row'
 import {
   CalcAmountField,
   CalcKeypad,
@@ -44,6 +46,7 @@ import {
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
+import { WalletPick } from '@/shared/components/wallet-pick'
 import {
   addDays,
   addMonths,
@@ -57,8 +60,6 @@ import {
 } from '@/shared/utils'
 import type { CalcKey } from '@/shared/utils'
 import { DebtCategoryPick } from './category-pick'
-import { DebtDateRow } from './date-row'
-import { DebtWalletPick } from './wallet-pick'
 
 /** Whether the form a control sits in describes a `repaid` debt (the validators run before the
  * form is assigned, so they read the control's parent). */
@@ -100,8 +101,8 @@ type View =
     IconBadge,
     SheetFrame,
     DebtCategoryPick,
-    DebtDateRow,
-    DebtWalletPick,
+    DateRow,
+    WalletPick,
   ],
   providers: [
     provideIcons({
@@ -320,7 +321,9 @@ type View =
                       />
                     </button>
                     @if (!editing()) {
-                      <app-debt-date-row
+                      <app-date-row
+                        [today]="transactionService.today()"
+                        [locale]="languageService.locale()"
                         [control]="f.occurredOn"
                         [value]="values().occurredOn ?? ''"
                         [max]="lastDay()"
@@ -421,7 +424,9 @@ type View =
                       class="-mt-2 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
                     >
                       @if (values().dueOn) {
-                        <app-debt-date-row
+                        <app-date-row
+                          [today]="transactionService.today()"
+                          [locale]="languageService.locale()"
                           [control]="f.dueOn"
                           [value]="values().dueOn ?? ''"
                           [label]="'debts.dueOn' | transloco"
@@ -488,8 +493,9 @@ type View =
               [leadingLabel]="'sheet.back' | transloco"
               (leading)="view.set('form')"
             >
-              <app-debt-wallet-pick
-                [wallets]="walletChoices()"
+              <app-wallet-pick
+                [wallets]="walletItems()"
+                [empty]="'debts.noWallet' | transloco"
                 [chosen]="f.walletId.value"
                 (picked)="chooseWallet($event)"
               />
@@ -502,8 +508,9 @@ type View =
               [leadingLabel]="'sheet.back' | transloco"
               (leading)="view.set('plan')"
             >
-              <app-debt-wallet-pick
-                [wallets]="walletChoices()"
+              <app-wallet-pick
+                [wallets]="walletItems()"
+                [empty]="'debts.noWallet' | transloco"
                 [chosen]="planWalletId()"
                 (picked)="planWalletId.set($event); view.set('plan')"
               />
@@ -614,7 +621,9 @@ type View =
                       aria-hidden="true"
                     />
                   </button>
-                  <app-debt-date-row
+                  <app-date-row
+                    [today]="transactionService.today()"
+                    [locale]="languageService.locale()"
                     [control]="planStart"
                     [value]="planStartValue()"
                     [label]="'debts.planFirst' | transloco"
@@ -722,7 +731,7 @@ export class DebtSheet {
   private walletService = inject(WalletService)
   private categoryService = inject(CategoryService)
   private profileService = inject(ProfileService)
-  private transactionService = inject(TransactionService)
+  protected transactionService = inject(TransactionService)
   private quickAmountsService = inject(QuickAmountsService)
 
   protected walletIcon = WALLET_DEFAULT_ICON
@@ -810,6 +819,14 @@ export class DebtSheet {
   })
   protected profileId = computed(() => this.profileService.current()?.id ?? '')
   protected walletChoices = computed(() => this.walletService.openOf(this.profileId()))
+  protected walletItems = computed(() =>
+    walletPickItems(
+      this.walletChoices(),
+      this.walletService,
+      this.languageService.locale(),
+      (key) => this.transloco.translate(key)
+    )
+  )
   protected wallet = computed<Wallet | null>(() => {
     const id = this.values().walletId ?? ''
     return id ? this.walletService.byId(id) : null
