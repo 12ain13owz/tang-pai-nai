@@ -11,6 +11,7 @@ import { RouterOutlet } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { CategoryService } from '@/core/category'
+import { NetworkStatusService } from '@/core/network'
 import { ProfileService } from '@/core/profile'
 import type { SharingService } from '@/core/sharing'
 import { TransactionService, TransferService } from '@/core/transaction'
@@ -24,11 +25,25 @@ import { ProfileCreateStep } from './profile-create-step'
 import { currentUrl, isProfileTab, isWalletTab } from './profile-routes'
 import { ProfileSheet } from './profile-sheet'
 import { ProfileSwitchSheet } from './profile-switch-sheet'
+import { SharedProfileStep } from './shared-profile-step'
 import { TransactionSheet } from './transaction-sheet'
 import { TransferSheet } from './transfer-sheet'
 import { ViewWalletSheet } from './view-wallet-sheet'
 import { WalletFirstStep } from './wallet-first-step'
 import { WalletSheet } from './wallet-sheet'
+
+/**
+ * Pages about the current profile that a shared one doesn't have (sharing rule 10): its
+ * categories, rules, debts, events, export and sharing are the owner's.
+ */
+const OWN_ONLY = [
+  '/account/categories',
+  '/account/recurring',
+  '/account/export',
+  '/account/sharing',
+  '/wallets/debts',
+  '/transactions/events',
+]
 
 /** Layout route for the signed-in tabs: header, page, fixed bottom tab bar. */
 @Component({
@@ -40,6 +55,7 @@ import { WalletSheet } from './wallet-sheet'
     AppHeader,
     BottomTabBar,
     ProfileCreateStep,
+    SharedProfileStep,
     ProfileSheet,
     WalletFirstStep,
     WalletSheet,
@@ -66,6 +82,15 @@ import { WalletSheet } from './wallet-sheet'
           @case ('firstWallet') {
             <app-wallet-first-step />
           }
+          @case ('sharedOffline') {
+            <app-shared-profile-step reason="offline" />
+          }
+          @case ('sharedReports') {
+            <app-shared-profile-step reason="reports" />
+          }
+          @case ('sharedMine') {
+            <app-shared-profile-step reason="mine" />
+          }
           @default {
             <router-outlet />
           }
@@ -79,7 +104,7 @@ import { WalletSheet } from './wallet-sheet'
       />
     }
     @defer (when profileService.switchSheet()) {
-      <app-profile-switch-sheet [(open)]="switchSheetOpen" />
+      <app-profile-switch-sheet [(open)]="switchSheetOpen" [sharing]="sharing()" />
     }
     @defer (when profileService.sheet() !== null) {
       <app-profile-sheet />
@@ -119,6 +144,7 @@ export class AppShell {
   /** Also keeps its sweep of transfers whose wallet was deleted (transfer rule 8). */
   protected transferService = inject(TransferService)
   protected switchSheetOpen = this.profileService.switchSheet
+  private networkStatusService = inject(NetworkStatusService)
   private url = currentUrl()
   private injector = inject(Injector)
   /** Family sharing (#16): loaded after the first render, for the Account tab's invite dot. */
@@ -150,12 +176,32 @@ export class AppShell {
    */
   protected gate = computed(() => {
     const url = this.url()
+    const shared = this.profileService.shared()
+    if (shared && OWN_ONLY.some((path) => url.startsWith(path))) {
+      return 'sharedMine'
+    }
     if (!isProfileTab(url)) {
       return 'page'
+    }
+    if (shared) {
+      return this.sharedGate(url, shared.status)
     }
     if (this.profileService.current() === null) {
       return this.profileService.ready() ? 'create' : 'loading'
     }
     return isWalletTab(url) && !this.walletService.hasWallet() ? 'firstWallet' : 'page'
   })
+
+  /** Sharing rule 10: a shared profile shows only online, and has no reports. */
+  private sharedGate(url: string, status: 'loading' | 'ready') {
+    const online =
+      this.networkStatusService.isOnline() && this.networkStatusService.serverReachable()
+    if (!online) {
+      return 'sharedOffline'
+    }
+    if (status === 'loading') {
+      return 'loading'
+    }
+    return url.startsWith('/reports') ? 'sharedReports' : 'page'
+  }
 }

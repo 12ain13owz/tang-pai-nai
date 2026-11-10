@@ -1,4 +1,4 @@
-import { Component, inject, input } from '@angular/core'
+import { Component, computed, inject, input } from '@angular/core'
 import { Router, RouterLink, RouterLinkActive } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
@@ -40,7 +40,8 @@ interface Tab {
               type="button"
               [attr.aria-label]="'nav.add' | transloco"
               aria-haspopup="dialog"
-              class="-mt-6 flex size-14 items-center justify-center rounded-full bg-primary text-2xl text-primary-foreground shadow-lg ring-4 ring-background focus-visible:ring-ring focus-visible:outline-none"
+              class="-mt-6 flex size-14 items-center justify-center rounded-full bg-primary text-2xl text-primary-foreground shadow-lg ring-4 ring-background focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
+              [disabled]="sharedReadOnly()"
               (click)="add()"
             >
               <ng-icon name="lucidePlus" aria-hidden="true" />
@@ -84,6 +85,11 @@ export class BottomTabBar {
   private profileService = inject(ProfileService)
   private transactionService = inject(TransactionService)
   private router = inject(Router)
+
+  /** A shared profile I can't write now: a viewer, offline, still loading (sharing rule 10). */
+  protected sharedReadOnly = computed(
+    () => this.profileService.isShared() && !this.profileService.canWrite()
+  )
 
   protected add(): void {
     if (this.profileService.current() && this.walletService.hasWallet()) {

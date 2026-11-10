@@ -215,12 +215,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                 >
                   @if (!transactionService.canWrite()) {
                     <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                      {{
-                        (transactionService.serverDown()
-                          ? 'sync.serverDownWrite'
-                          : 'transactions.needsOnline'
-                        ) | transloco
-                      }}
+                      {{ readOnlyKey() | transloco }}
                     </p>
                   }
                   <app-segmented-field
@@ -707,18 +702,22 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                       </li>
                     }
                   </ul>
-                  <p class="text-sm text-muted-foreground">
-                    {{ 'transactions.categoryMissing' | transloco }}
-                    <button
-                      type="button"
-                      class="min-h-11 font-semibold text-brand underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                      (click)="openWalletCategories()"
-                    >
-                      {{
-                        'transactions.walletCategories' | transloco: { name: wallet()?.name ?? '' }
-                      }}
-                    </button>
-                  </p>
+                  <!-- A shared profile's hidden categories are the owner's to change (sharing rule 11). -->
+                  @if (!profileService.isShared()) {
+                    <p class="text-sm text-muted-foreground">
+                      {{ 'transactions.categoryMissing' | transloco }}
+                      <button
+                        type="button"
+                        class="min-h-11 font-semibold text-brand underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        (click)="openWalletCategories()"
+                      >
+                        {{
+                          'transactions.walletCategories'
+                            | transloco: { name: wallet()?.name ?? '' }
+                        }}
+                      </button>
+                    </p>
+                  }
                 </div>
               } @else {
                 <div class="flex flex-col items-center gap-2 px-2 py-8 text-center">
@@ -738,7 +737,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                   </p>
                 </div>
               }
-              @if (tree().length === 0) {
+              @if (tree().length === 0 && !profileService.isShared()) {
                 <div sheetFooter class="pt-3">
                   <button
                     hlmBtn
@@ -886,7 +885,7 @@ export class TransactionSheet {
   protected transactionService = inject(TransactionService)
   private walletService = inject(WalletService)
   private categoryService = inject(CategoryService)
-  private profileService = inject(ProfileService)
+  protected profileService = inject(ProfileService)
   private recurringService = inject(RecurringService)
   private syncService = inject(SyncService)
 
@@ -990,7 +989,21 @@ export class TransactionSheet {
   /** "ทำซ้ำ" shows when adding (not a due occurrence) and on a rule. */
   protected repeatable = computed(() => {
     const state = this.state()
+    // A shared profile has no recurring rules (sharing rule 11).
+    if (this.profileService.isShared()) {
+      return false
+    }
     return (state?.mode === 'create' && !state.occurrence) || this.ruleMode()
+  })
+  /** Why nothing can be saved: a viewer of a shared profile, else no network / server. */
+  protected readOnlyKey = computed(() => {
+    const shared = this.profileService.shared()
+    if (shared?.role === 'viewer') {
+      return 'sharing.viewerReadOnly'
+    }
+    return this.transactionService.serverDown()
+      ? 'sync.serverDownWrite'
+      : 'transactions.needsOnline'
   })
   /** The date row starts the rule ("เริ่ม"). */
   protected startsRule = computed(() => this.repeatable() && this.repeat() !== null)

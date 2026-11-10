@@ -19,6 +19,8 @@ describe('TransactionService', () => {
 
   const offline = {
     isOpen: signal(true),
+    sharedActive: signal(false),
+    leaveShared: () => undefined,
     isTrusted: signal(true),
     meta: signal(null),
     changes,

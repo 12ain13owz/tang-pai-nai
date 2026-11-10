@@ -1,19 +1,31 @@
-import { Component, inject, model } from '@angular/core'
+import { Component, computed, inject, input, model } from '@angular/core'
 import { RouterLink } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideCheck, lucidePlus, lucideSettings2 } from '@ng-icons/lucide'
+import {
+  lucideCheck,
+  lucidePlus,
+  lucideSettings2,
+  lucideUsers,
+  lucideWifiOff,
+} from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
 import { ProfileService } from '@/core/profile'
+import type { SharingService, ShareGroup } from '@/core/sharing'
 import { IconBadge } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
 
-/** The switcher's sheet: profiles in order, add (footer), manage (header icon); profile.md. */
+/**
+ * The switcher's sheet: profiles in order, add (footer), manage (header icon); profile.md. Then
+ * "แชร์กับฉัน": profiles shared with me, online only (sharing rule 10).
+ */
 @Component({
   selector: 'app-profile-switch-sheet',
   imports: [TranslocoPipe, RouterLink, NgIcon, HlmButton, HlmDrawerImports, IconBadge, SheetFrame],
-  providers: [provideIcons({ lucideCheck, lucidePlus, lucideSettings2 })],
+  providers: [
+    provideIcons({ lucideCheck, lucidePlus, lucideSettings2, lucideUsers, lucideWifiOff }),
+  ],
   template: `
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
       <hlm-drawer-content
@@ -40,7 +52,8 @@ import { SheetFrame } from '@/shared/components/sheet'
           </div>
           <ul class="flex flex-col" [attr.aria-label]="'profiles.switchHeading' | transloco">
             @for (profile of profileService.profiles(); track profile.id) {
-              @let current = profile.id === profileService.current()?.id;
+              @let current =
+                !profileService.isShared() && profile.id === profileService.current()?.id;
               <li>
                 <button
                   type="button"
@@ -65,13 +78,73 @@ import { SheetFrame } from '@/shared/components/sheet'
               </li>
             }
           </ul>
+          @if (groups().length > 0) {
+            <section class="mt-4 flex flex-col gap-2" aria-labelledby="switch-shared">
+              <h3 id="switch-shared" class="px-2 text-sm font-medium text-muted-foreground">
+                {{ 'sharing.withMe' | transloco }}
+              </h3>
+              @if (!canCall()) {
+                <p
+                  class="flex items-center gap-2 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                >
+                  <ng-icon name="lucideWifiOff" size="16" aria-hidden="true" />
+                  {{ 'sharing.profileOnline' | transloco }}
+                </p>
+              }
+              <ul class="flex flex-col">
+                @for (group of groups(); track group.profileId) {
+                  @let current = profileService.shared()?.profile?.id === group.profileId;
+                  <li>
+                    <button
+                      type="button"
+                      class="flex min-h-14 w-full items-center gap-3 rounded-xl px-2 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
+                      [class.bg-muted]="current"
+                      [attr.aria-current]="current ? 'true' : null"
+                      [disabled]="!canCall()"
+                      (click)="pickShared(group)"
+                    >
+                      <app-icon-badge [icon]="group.profile.icon" [color]="group.profile.color" />
+                      <span class="flex min-w-0 flex-1 flex-col">
+                        <span class="flex min-w-0 items-center gap-2">
+                          <span class="truncate text-base">{{ group.profile.name }}</span>
+                          <span
+                            class="shrink-0 rounded-md bg-muted px-1.5 text-xs font-semibold text-muted-foreground"
+                            >{{ 'sharing.' + group.role | transloco }}</span
+                          >
+                        </span>
+                        <span class="flex items-center gap-1 text-sm text-muted-foreground">
+                          <ng-icon name="lucideUsers" size="13" aria-hidden="true" />
+                          {{
+                            (group.wallets.length === 1
+                              ? 'sharing.ofOwnerWalletOne'
+                              : 'sharing.ofOwnerWallets'
+                            )
+                              | transloco
+                                : { name: group.owner.displayName, count: group.wallets.length }
+                          }}
+                        </span>
+                      </span>
+                      @if (current) {
+                        <ng-icon
+                          name="lucideCheck"
+                          size="20"
+                          class="text-brand"
+                          aria-hidden="true"
+                        />
+                      }
+                    </button>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
           @if (!profileService.atLimit()) {
             <div sheetFooter class="pt-3">
               <button
                 hlmBtn
                 type="button"
                 class="h-11 w-full text-base"
-                [disabled]="!profileService.canWrite()"
+                [disabled]="!ownCanWrite()"
                 (click)="add()"
               >
                 <ng-icon name="lucidePlus" size="20" aria-hidden="true" />
@@ -88,13 +161,29 @@ export class ProfileSwitchSheet {
   protected profileService = inject(ProfileService)
 
   open = model(false)
+  /** Loaded by the shell after its first render (null until then). */
+  sharing = input<SharingService | null>(null)
+
+  protected groups = computed(() => this.sharing()?.withMe()?.shares ?? [])
+  protected canCall = computed(() => this.sharing()?.canCall() ?? false)
+
+  protected pickShared(group: ShareGroup): void {
+    this.open.set(false)
+    void this.sharing()?.openShared(group)
+  }
 
   protected pick(id: string): void {
     this.profileService.select(id)
     this.open.set(false)
   }
 
+  /** "เพิ่มโปรไฟล์" adds an own profile: what an own one could write. */
+  protected ownCanWrite = computed(
+    () => this.profileService.isShared() || this.profileService.canWrite()
+  )
+
   protected add(): void {
+    this.profileService.leaveShared()
     this.open.set(false)
     this.profileService.open({ mode: 'create' })
   }

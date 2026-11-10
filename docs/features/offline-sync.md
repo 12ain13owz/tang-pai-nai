@@ -34,7 +34,7 @@ and so does a reading app like Meb.
 | App shell      | ✅ always                                                   | Angular service worker (`@angular/pwa`) caches HTML/JS/CSS/icons. It does **not** cache API responses, because data comes from the local DB, not the SW cache. Built in #3. |
 | Data           | ✅ on trusted devices                                       | An encrypted local database in the browser (rules 4–6), plus an outbox of pending changes (rule 8).                                                                         |
 | Auth           | Sign-in online; reopening on a trusted device works offline | The app unlocks with a PIN (rules 2–3). The server stays the authority whenever the device is online (rule 7).                                                              |
-| Shared wallets | Owner offline; members online, plus offline _adds_          | Rules 13–16.                                                                                                                                                                |
+| Shared wallets | Owner offline; members online only                          | Rules 13–16.                                                                                                                                                                |
 
 ## Data model
 
@@ -239,8 +239,9 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
     than the row's current `changeSeq`.
     - **Own wallet, the same user's two devices**: the later `updatedAt` wins (after the clamp in
       rule 10). If they're equal, the one the server received first wins.
-    - **Shared wallet**: the **owner always wins** over a member, whatever the times. Between
-      members, conflicts can't happen, because members edit online only (rule 14).
+    - **Shared wallet**: the **owner always wins** over a member, whatever the times, even over
+      a member's delete (the row comes back), and the member gets no notice. Between members,
+      conflicts can't happen: their edits need the current `baseSeq` (rule 14).
     - **Delete beats edit**: if either side deleted the row, it stays deleted. (Without a
       conflict, an upsert on a tombstone the device has seen restores the row: that is undo.)
     - The losing version goes to `change_history`, and the person whose change lost sees a notice
@@ -255,22 +256,23 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
 13. A wallet has one **owner** (`wallets.userId`) and zero or more members in `wallet_members` with
     role `editor` or `viewer`. Only the owner can change the wallet itself (name, currency, archive,
     delete) and manage members.
-14. What each role can do:
+14. What each role can do (16.2, owner's choice: a shared profile is online only):
 
-    |                                 | Owner            | Editor                                      | Viewer      |
-    | ------------------------------- | ---------------- | ------------------------------------------- | ----------- |
-    | See the wallet and transactions | online + offline | online only                                 | online only |
-    | Add a transaction               | online + offline | online + **offline** (queued, synced later) | ❌          |
-    | Edit / delete a transaction     | online + offline | **online only**                             | ❌          |
-    - An editor's offline add shows in that editor's own list as "รอ sync" until it's pushed.
-    - Edit and delete buttons are disabled for editors while offline.
+    |                                 | Owner            | Editor          | Viewer      |
+    | ------------------------------- | ---------------- | --------------- | ----------- |
+    | See the wallet and transactions | online + offline | online only     | online only |
+    | Add a transaction               | online + offline | **online only** | ❌          |
+    | Edit / delete a transaction     | online + offline | **online only** | ❌          |
+    - An editor's write is pushed at once (`POST /sync/push`), never queued; offline, the shared
+      profile is disabled ([sharing](sharing.md) rule 10).
     - On the server, an editor's update or delete must carry a `baseSeq` equal to the row's current
-      `changeSeq`; otherwise it's `rejected` and the editor refreshes.
+      `changeSeq`; otherwise it's `rejected` (`STALE`) and the editor's screen reloads.
 
-15. Members read shared wallets through ordinary online endpoints (feature REST `GET`s with access
-    checks). That data is held in memory only, never written to the member's local database.
-16. Losing membership (removed by the owner) takes effect on the next request. Queued adds for that
-    wallet are then `rejected` and shown to the member.
+15. Members read shared wallets through online endpoints ([sharing](sharing.md) rule 9). That data
+    is held in memory only (TEMP tables while a shared profile is in use), never in the member's
+    saved local database.
+16. Losing membership (removed by the owner) takes effect on the next request: a push is then
+    `rejected` (`NOT_SHARED`) and the member is told and sent back to an own profile.
 
 ## Endpoints
 

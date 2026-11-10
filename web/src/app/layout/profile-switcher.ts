@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideChevronDown } from '@ng-icons/lucide'
+import { lucideChevronDown, lucideUsers } from '@ng-icons/lucide'
 import { ProfileService } from '@/core/profile'
 import { IconBadge } from '@/shared/components/icon-badge'
 
@@ -12,7 +12,7 @@ import { IconBadge } from '@/shared/components/icon-badge'
 @Component({
   selector: 'app-profile-switcher',
   imports: [TranslocoPipe, NgIcon, IconBadge],
-  providers: [provideIcons({ lucideChevronDown })],
+  providers: [provideIcons({ lucideChevronDown, lucideUsers })],
   host: { class: 'flex min-w-0' },
   template: `
     @if (profileService.current(); as profile) {
@@ -24,7 +24,18 @@ import { IconBadge } from '@/shared/components/icon-badge'
         (click)="profileService.switchSheet.set(true)"
       >
         <app-icon-badge [icon]="profile.icon" [color]="profile.color" [size]="28" />
-        <span class="truncate text-lg font-semibold">{{ profile.name }}</span>
+        @if (profileService.shared(); as shared) {
+          <!-- A profile shared with me (sharing rule 10): whose it is under the name. -->
+          <span class="flex min-w-0 flex-col items-start leading-tight">
+            <span class="max-w-full truncate text-base font-semibold">{{ profile.name }}</span>
+            <span class="flex items-center gap-1 text-xs text-muted-foreground">
+              <ng-icon name="lucideUsers" size="12" aria-hidden="true" />
+              {{ 'sharing.ofOwner' | transloco: { name: shared.owner.displayName } }}
+            </span>
+          </span>
+        } @else {
+          <span class="truncate text-lg font-semibold">{{ profile.name }}</span>
+        }
         <ng-icon
           name="lucideChevronDown"
           size="20"

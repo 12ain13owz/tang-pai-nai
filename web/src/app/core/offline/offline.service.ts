@@ -31,6 +31,21 @@ export type PinCheck = 'ok' | 'wrong' | 'wiped'
 export type SyncMetaKey = 'deviceId' | 'userId' | 'cursor' | 'lastSyncedAt' | 'tables'
 
 export const LOCK_URL = '/auth/lock'
+
+/** The tables a shared profile's view shadows (sharing rule 15): what its screens read. */
+export const SHARED_TABLES = [
+  'wallets',
+  'categories',
+  'transactions',
+  'transfers',
+  'debts',
+  'debt_entries',
+  'events',
+  'recurring_rules',
+  'outbox',
+] as const
+
+const OTHER_SHARED_OPS = `SELECT count(*) FROM temp.outbox WHERE tbl <> 'transactions'`
 export const OTHER_TAB_URL = '/auth/tab'
 
 /** Keys of per-user device choices that a wipe removes (`tpn-profile:<userId>`). */
@@ -79,6 +94,11 @@ export class OfflineService {
   isOpen = signal(false)
   /** Bumped after every local write, so screens re-read the database (rule 8). */
   changes = signal(0)
+  /**
+   * A shared profile is in use (docs/features/sharing.md → Web screens): its rows are in TEMP
+   * tables that shadow `SHARED_TABLES`, own sync waits, and nothing is saved meanwhile.
+   */
+  sharedActive = signal(false)
   attemptsLeft = computed(() => MAX_PIN_ATTEMPTS - (this.meta()?.failedAttempts ?? 0))
 
   private reading: Promise<VaultMeta | null> | null = null
@@ -130,12 +150,51 @@ export class OfflineService {
     return this.database
   }
 
-  /** A local write (rule 8): one SQLite transaction, then the snapshot is saved. */
+  /**
+   * A local write (rule 8): one SQLite transaction, then the snapshot is saved. While a shared
+   * profile is in use, only transactions may be queued (an editor's writes, sharing rule 11):
+   * any other op rolls the write back.
+   */
   write<T>(work: (db: LocalDatabase) => T): T {
-    const result = this.db().transaction(work)
+    const shared = this.sharedActive()
+    const result = this.db().transaction((db) => {
+      const done = work(db)
+      if (shared && Number(db.selectValue(OTHER_SHARED_OPS)) > 0) {
+        throw new Error('Only transactions are written while a shared profile is in use')
+      }
+      return done
+    })
     this.changes.update((n) => n + 1)
-    void this.save()
+    if (!shared) {
+      void this.save()
+    }
     return result
+  }
+
+  /** Starts a shared profile's view: empty TEMP copies of `SHARED_TABLES` (sharing rule 15). */
+  enterShared(): void {
+    this.db().createShadows(SHARED_TABLES)
+    this.sharedActive.set(true)
+    this.changes.update((n) => n + 1)
+  }
+
+  /** Puts a shared profile's rows in its TEMP tables: no outbox, no save. */
+  fillShared(work: (db: LocalDatabase) => void): void {
+    if (!this.sharedActive()) {
+      return
+    }
+    this.db().transaction(work)
+    this.changes.update((n) => n + 1)
+  }
+
+  /** Back to the own data: the TEMP tables go. */
+  leaveShared(): void {
+    if (!this.sharedActive()) {
+      return
+    }
+    this.database?.dropShadows(SHARED_TABLES)
+    this.sharedActive.set(false)
+    this.changes.update((n) => n + 1)
   }
 
   /**
@@ -398,6 +457,7 @@ export class OfflineService {
   }
 
   private closeDatabase(): void {
+    this.sharedActive.set(false)
     this.database?.close()
     this.database = null
     this.isOpen.set(false)

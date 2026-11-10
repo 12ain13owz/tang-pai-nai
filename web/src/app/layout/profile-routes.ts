@@ -12,12 +12,9 @@ const WALLET_TABS = ['/transactions', '/wallets']
 const under = (tabs: readonly string[], url: string): boolean =>
   tabs.some((tab) => url === tab || url.startsWith(`${tab}/`) || url.startsWith(`${tab}?`))
 
-/** A wallet shared with me belongs to no profile of mine (sharing.md): no switcher, no gate. */
-const isShared = (url: string): boolean => url.startsWith('/wallets/shared/')
+export const isProfileTab = (url: string): boolean => under(PROFILE_TABS, url)
 
-export const isProfileTab = (url: string): boolean => !isShared(url) && under(PROFILE_TABS, url)
-
-export const isWalletTab = (url: string): boolean => !isShared(url) && under(WALLET_TABS, url)
+export const isWalletTab = (url: string): boolean => under(WALLET_TABS, url)
 
 /**
  * Where the header's ‹ goes from a page inside a tab: `/account/<page>` → `/account`; a debt's
@@ -33,8 +30,7 @@ export const parentOf = (url: string): string | null => {
   if (/^\/wallets\/debts\/[^/]+/.test(path)) {
     return '/wallets/debts'
   }
-  // A shared wallet goes back to the Wallets tab (sharing.md).
-  if (path === '/wallets/debts' || /^\/wallets\/shared\/[^/]+/.test(path)) {
+  if (path === '/wallets/debts') {
     return '/wallets'
   }
   // An event's page goes back to the events, the events to the Transactions tab (event.md).

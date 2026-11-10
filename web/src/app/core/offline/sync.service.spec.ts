@@ -6,7 +6,7 @@ import { TestBed } from '@angular/core/testing'
 import { AuthStore } from '@/core/auth'
 import type { AuthUser } from '@/core/auth'
 import { NetworkStatusService } from '@/core/network'
-import { OfflineService } from './offline.service'
+import { OfflineService, SHARED_TABLES } from './offline.service'
 import { countOps, findPending, listOps, queueWrite } from './outbox'
 import { getRow, putRow } from './sync-tables'
 import { RETRY_DELAYS_MS, SyncService } from './sync.service'
@@ -53,6 +53,7 @@ const fakeOffline = (db: LocalDatabase) => {
   return {
     isOpen: signal(true),
     isTrusted: signal(true),
+    sharedActive: signal(false),
     changes,
     db: () => db,
     write: <T>(work: (database: LocalDatabase) => T): T => {
@@ -378,6 +379,44 @@ describe('SyncService', () => {
     TestBed.inject(AuthStore).clear('expired')
     expect(service.canSync()).toBe(false)
     expect(service.status()).toBe('pending')
+  })
+
+  it('waits while a shared profile is in use, and pushes its TEMP outbox alone on demand', async () => {
+    offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p1', 'Mine')))
+    db.createShadows(SHARED_TABLES)
+    offline.sharedActive.set(true)
+    expect(service.canSync()).toBe(false)
+    await service.sync()
+    expect(http.match(() => true)).toEqual([])
+
+    offline.write((tx) => queueWrite(tx, 'profiles', 'upsert', profile('p2', 'Theirs')))
+    const sent: string[] = []
+    let pulls = 0
+    pullData = (since) => {
+      pulls++
+      return emptyPull(since)
+    }
+    await drive(service.pushShared(), (ops, req) => {
+      sent.push(...ops.map((op) => op.row.id))
+      req.flush(
+        envelope({
+          results: ops.map((op) => ({
+            opId: op.opId,
+            status: 'applied',
+            row: op.row,
+            changeSeq: 9,
+          })),
+        })
+      )
+    })
+    // Only the TEMP op went, and no pull followed; the own op waits in main.
+    expect(sent).toEqual(['p2'])
+    expect(pulls).toBe(0)
+    expect(countOps(db, 'pending')).toBe(0)
+    db.dropShadows(SHARED_TABLES)
+    offline.sharedActive.set(false)
+    expect(listOps(db, 'pending').map((op) => op.rowId)).toEqual(['p1'])
+    await service.idle()
   })
 
   describe('while the server is unreachable (rule 11)', () => {

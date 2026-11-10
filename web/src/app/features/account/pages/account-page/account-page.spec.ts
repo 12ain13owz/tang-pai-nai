@@ -10,6 +10,7 @@ import { OfflineService, SyncService } from '@/core/offline'
 import { ProfileService } from '@/core/profile'
 import { DeviceStorageService } from '@/core/pwa'
 import { PALETTES, ThemeService } from '@/core/theme'
+import { TransactionService } from '@/core/transaction'
 import { AccountPage } from './account-page'
 
 describe('AccountPage', () => {
@@ -18,7 +19,11 @@ describe('AccountPage', () => {
     loadMe: vi.fn(async () => Promise.resolve()),
     signOut: vi.fn(async () => Promise.resolve()),
   }
-  const offlineService = { wipe: vi.fn(async () => Promise.resolve()) }
+  const offlineService = {
+    wipe: vi.fn(async () => Promise.resolve()),
+    changes: signal(0),
+    sharedActive: signal(false),
+  }
   const syncService = {
     flush: vi.fn(async () => Promise.resolve(0)),
     serverTables: signal<readonly string[]>([]),
@@ -48,10 +53,13 @@ describe('AccountPage', () => {
         { provide: AuthService, useValue: authService },
         { provide: OfflineService, useValue: offlineService },
         { provide: SyncService, useValue: syncService },
+        { provide: TransactionService, useValue: { addPeople: vi.fn() } },
         {
           provide: ProfileService,
           useValue: {
             current: signal({ id: 'p1', name: 'ส่วนตัว' }),
+            currentId: signal('p1'),
+            isShared: signal(false),
             profiles: signal([{}, {}]),
             ruleCount: () => 2,
             debtCount: () => 3,

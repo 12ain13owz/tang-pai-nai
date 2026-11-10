@@ -1,0 +1,45 @@
+get:
+  tags:
+    - Sharing
+  summary: 'A shared profile’s rows'
+  description: >-
+    Member: what the app shows of a profile shared with the caller (docs/features/sharing.md rule 9),
+    read like a pull: the profile, role, owner, people, shared wallets and the owner's categories
+    every time, transactions by `changeSeq`. Editors write through `POST /sync/push`.
+  operationId: sharingRows
+  security:
+    - bearerAuth: []
+  parameters:
+    - name: profileId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    - name: since
+      in: query
+      required: false
+      schema: { type: integer, minimum: 0, default: 0 }
+    - name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 5000, default: 2000 }
+  responses:
+    '200':
+      description: 'The rows'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/sharing-rows-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '404':
+      description: 'Nothing of this profile is shared with the caller'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'
+    '422':
+      description: 'Invalid since or limit'
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

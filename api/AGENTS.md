@@ -198,7 +198,9 @@ transactions) reads that table from `@/core/database/schema`, never the other fe
   `overridden` with **no notice** (two devices record one recurring occurrence under one
   deterministic id; transactions and transfers say so when `recurringId` is set), and
   `sameChange(a, b)` says two versions differ in nothing the user changed (a rule's `nextOn`),
-  so a conflict between them writes no `change_history` (`features/recurring`).
+  so a conflict between them writes no `change_history` (`features/recurring`). A table whose
+  rows editors of a shared wallet may write adds `shared` (#16.2, see Sharing below;
+  `features/transaction`).
 - **The service owns the rules**: one write transaction per op (the `changeSeq` counter in
   `sync_state` is taken inside it, so rows commit in order), idempotency via `sync_ops`, the
   clock clamp, the conflict rules (later edit wins, tie keeps the server row, delete beats edit)
@@ -242,10 +244,12 @@ transactions) reads that table from `@/core/database/schema`, never the other fe
   second argument); HTTP with `accessTokens`
   for the Bearer header (`sync.controller.test.ts`).
 
-### Sharing (`src/features/sharing/`, #16.1)
+### Sharing (`src/features/sharing/`, #16.1, #16.2)
 
 Spec: [`sharing.md`](../docs/features/sharing.md). The first **REST** feature over synced data:
-online endpoints for invitations, members and read-only shared wallets, no sync handler.
+online endpoints for invitations, members and a shared profile's rows
+(`GET /sharing/with-me/:profileId/rows`, pull-like, transactions as `columns` + `rows`), no sync
+handler. **Editors write through sync** (below).
 
 - Its Drizzle adapter reads other features' tables (`wallets`, `profiles`, `categories`,
   `transactions`, `transfers`, `debts`, `debt_entries`, `users`) through `@/core/database/schema`
@@ -256,6 +260,14 @@ online endpoints for invitations, members and read-only shared wallets, no sync 
   invite. Rate limits use their own `hitRateLimit` on `rate_limit_buckets` (same SQL as auth's;
   the global mail cap shares auth's `email:global:day` key).
 - Every lookup a caller may not see answers `404` (`NotFoundError`), never `403`.
+- **Editors** (16.2, sharing rules 11–14): `features/sync` asks `walletAccess`
+  (`@/core/database/wallet-access`, through `SyncRepository.walletAccess`) who may write a row's
+  wallet. An editor's op runs the table's own `resolve` / `check` / `write` **as the owner**
+  (`userId` = the owner, `updatedBy` = the editor), needs the current `baseSeq` (`STALE`) and an
+  editor role on the wallet before and after (`NOT_SHARED`); a table opts in with
+  `SyncPushHandler.shared` (`walletOf`, `forEditor` / `forOwner`: fields only the owner or the
+  server sets, `addedBy`; transactions only). Over an editor's version the owner always wins,
+  delete included, and no `change_history` is written for the editor.
 - **Testing**: the service and HTTP layer run on a temporary SQLite file with the committed
   migrations, seeded by `sharing.fixture.ts` (`setUpSharing`: two owners, an unverified user,
   wallets open / archived / deleted, a transaction, transfer and debt entry; a fake notifier

@@ -36,6 +36,7 @@ const transaction = (id: string, changeSeq: number, extra: Partial<SyncRowWrite>
   recurringId: null,
   debtId: null,
   eventId: null,
+  addedBy: null,
   createdAt: 1000,
   updatedAt: 1000,
   deletedAt: null,
@@ -346,5 +347,56 @@ describe('transactionSyncHandler', () => {
     }
     expect(await push.resolve?.(db, 'alice', tagged('cm'))).toMatchObject({ eventId: 'cm' })
     expect((await push.write(db, 'alice', tagged('cm'))).eventId).toBe('cm')
+  })
+})
+
+describe('transactionSyncHandler › shared (sharing rules 12, 15)', () => {
+  const shared = push.shared
+  const linked = transaction('t1', 5, {
+    recurringId: 'r1',
+    debtId: 'd1',
+    eventId: 'e1',
+    addedBy: 'bob',
+  })
+
+  it('names the wallet a row lives in', () => {
+    expect(shared?.walletOf({ walletId: 'cash' })).toBe('cash')
+    expect(shared?.walletOf({ id: 't1' })).toBeNull()
+  })
+
+  it("adds an editor's row without links, recording who added it", () => {
+    const pushed = transaction('t2', 0, { eventId: 'e1', debtId: 'd1', addedBy: 'alice' })
+    expect(shared?.forEditor(pushed, null, 'bob')).toMatchObject({
+      recurringId: null,
+      debtId: null,
+      eventId: null,
+      addedBy: 'bob',
+    })
+  })
+
+  it("keeps the stored links and adder on an editor's edit", () => {
+    const pushed = transaction('t1', 5, { amount: 1, addedBy: 'carol' })
+    expect(shared?.forEditor(pushed, linked, 'carol')).toMatchObject({
+      amount: 1,
+      recurringId: 'r1',
+      debtId: 'd1',
+      eventId: 'e1',
+      addedBy: 'bob',
+    })
+  })
+
+  it("keeps the stored adder on the owner's write, and none on the owner's add", () => {
+    expect(shared?.forOwner(transaction('t1', 5, { addedBy: null }), linked)).toMatchObject({
+      addedBy: 'bob',
+    })
+    expect(shared?.forOwner(transaction('t3', 0, { addedBy: 'bob' }), null)).toMatchObject({
+      addedBy: null,
+    })
+  })
+
+  it('stores addedBy', async () => {
+    expect((await push.write(db, 'alice', transaction('t4', 9, { addedBy: 'bob' }))).addedBy).toBe(
+      'bob'
+    )
   })
 })

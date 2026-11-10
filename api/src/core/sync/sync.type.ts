@@ -27,6 +27,20 @@ export type SyncRowWrite = SyncRowInput & { changeSeq: number; updatedBy: string
 
 export type SyncValidation = { ok: true; row: SyncRowInput } | { ok: false; message: string }
 
+/**
+ * Rows an editor of a shared wallet may write too (docs/features/sharing.md rules 11–14). The
+ * row is stored as the owner's; sync checks who may write it, the table says which fields only
+ * the owner (or the server) sets.
+ */
+export interface SyncSharedRows {
+  /** The wallet a pushed or stored row lives in, or null when it names none. */
+  walletOf(row: Record<string, unknown>): string | null
+  /** The version to store when an editor writes it: owner-only fields come from `stored`. */
+  forEditor(row: SyncRowInput, stored: SyncRow | null, editorId: string): SyncRowInput
+  /** The version to store when the owner writes it: keeps what the server set (`addedBy`). */
+  forOwner(row: SyncRowInput, stored: SyncRow | null): SyncRowInput
+}
+
 /** The handler half that accepts pushes. A pull-only table (master data) has none. */
 export interface SyncPushHandler {
   /** The feature's own validation of a pushed row (pure, no database). */
@@ -65,6 +79,8 @@ export interface SyncPushHandler {
     row: SyncRow,
     takeSeqs: (count: number) => Promise<number>
   ): Promise<void>
+  /** Optional (#16.2): the table's rows may be written by editors of a shared wallet. */
+  shared?: SyncSharedRows
   /** Deletes tombstones deleted before `before`; the count and the highest `changeSeq` removed. */
   purge(executor: Executor, before: number): Promise<{ removed: number; maxSeq: number }>
 }

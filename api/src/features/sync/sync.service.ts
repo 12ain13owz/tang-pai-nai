@@ -5,6 +5,7 @@ import type {
   SyncRow,
   SyncRowInput,
   SyncRowWrite,
+  SyncSharedRows,
 } from '@/core/sync'
 import { SYNC_LIMITS, SYNC_MESSAGE, SyncErrorCode, SyncRejectCode } from './sync.const'
 import type { OpResult, PullChange, PullResult, PushOp, SyncNotice } from './sync.entity'
@@ -24,6 +25,31 @@ export interface PullQuery {
 }
 
 type Stored = { ownerId: string; row: SyncRow }
+
+type PushHandler = Pick<SyncPushHandler, 'validate' | 'keepsStored' | 'sameChange' | 'shared'>
+
+/**
+ * Whose row an op writes: the caller's own (`editor` false), or an owner's shared wallet's
+ * (docs/features/sharing.md rules 11–13), or a refusal.
+ */
+type Acting = { ownerId: string; editor: boolean } | { code: SyncRejectCode; message: string }
+
+/** One op's write: the caller, the row's owner and whether the caller writes as an editor. */
+interface Write {
+  tx: SyncRepository
+  userId: string
+  ownerId: string
+  editor: boolean
+  deviceId: string
+  now: number
+}
+
+/** The stored version was written by someone other than the owner (an editor). */
+const byEditor = (existing: Stored, ownerId: string) =>
+  existing.row.updatedBy !== undefined && existing.row.updatedBy !== ownerId
+
+const OWN = (userId: string): Acting => ({ ownerId: userId, editor: false })
+const NOT_SHARED: Acting = { code: SyncRejectCode.NOT_SHARED, message: SYNC_MESSAGE.NOT_SHARED }
 
 const rejected = (
   opId: string,
@@ -76,63 +102,155 @@ export const createSyncService = ({
     userId: string,
     deviceId: string,
     op: PushOp,
-    pushHandler: Pick<SyncPushHandler, 'validate' | 'keepsStored' | 'sameChange'>
+    pushHandler: PushHandler
   ): Promise<OpResult> => {
     const now = clock()
     const existing = await tx.find(op.table, op.row.id)
-    if (existing && existing.ownerId !== userId) {
-      return rejected(op.opId, SyncRejectCode.ID_TAKEN, SYNC_MESSAGE.ID_TAKEN)
+    const acting = await actingAs(tx, userId, op, existing, pushHandler.shared)
+    if ('code' in acting) {
+      // Someone else's row is shown only to an editor of its wallet (a stale write).
+      const shown = acting.code === SyncRejectCode.STALE ? (existing?.row ?? null) : null
+      return rejected(op.opId, acting.code, acting.message, shown)
     }
+    // An editor's write carries the current `baseSeq` (checked above), so it never conflicts.
     const conflict =
-      existing !== null && (op.baseSeq === null || op.baseSeq < existing.row.changeSeq)
+      !acting.editor &&
+      existing !== null &&
+      (op.baseSeq === null || op.baseSeq < existing.row.changeSeq)
+    const write: Write = {
+      tx,
+      userId,
+      ownerId: acting.ownerId,
+      editor: acting.editor,
+      deviceId,
+      now,
+    }
 
     if (op.op === 'delete') {
-      return remove(tx, userId, deviceId, op, existing, conflict, now)
+      return remove(write, op, existing, conflict)
     }
-    return upsert(tx, userId, deviceId, op, existing, conflict, pushHandler, now)
+    return upsert(write, op, existing, conflict, pushHandler)
+  }
+
+  /** Sharing rules 11–13: who the op writes for, or why it is refused. */
+  const actingAs = async (
+    tx: SyncRepository,
+    userId: string,
+    op: PushOp,
+    existing: Stored | null,
+    shared: SyncSharedRows | undefined
+  ): Promise<Acting> => {
+    if (existing?.ownerId === userId) {
+      return OWN(userId)
+    }
+    if (!shared) {
+      return existing
+        ? { code: SyncRejectCode.ID_TAKEN, message: SYNC_MESSAGE.ID_TAKEN }
+        : OWN(userId)
+    }
+    return existing
+      ? editorOfStored(tx, userId, op, existing, shared)
+      : editorOfNew(tx, userId, op, shared)
+  }
+
+  /** A new row: the caller's own, unless its wallet is someone else's. */
+  const editorOfNew = async (
+    tx: SyncRepository,
+    userId: string,
+    op: PushOp,
+    shared: SyncSharedRows
+  ): Promise<Acting> => {
+    const walletId = shared.walletOf(op.row)
+    const access = walletId ? await tx.walletAccess(userId, walletId) : null
+    if (!access || access.role === 'owner') {
+      // Unknown wallets are the feature's own check to refuse.
+      return OWN(userId)
+    }
+    return access.role === 'editor' ? { ownerId: access.ownerId, editor: true } : NOT_SHARED
+  }
+
+  /** Someone else's row: an editor of its wallet (before and after), with the current `baseSeq`. */
+  const editorOfStored = async (
+    tx: SyncRepository,
+    userId: string,
+    op: PushOp,
+    existing: Stored,
+    shared: SyncSharedRows
+  ): Promise<Acting> => {
+    const walletIds = new Set(
+      [shared.walletOf(existing.row), op.op === 'upsert' ? shared.walletOf(op.row) : null].filter(
+        (id): id is string => id !== null
+      )
+    )
+    if (walletIds.size === 0) {
+      return NOT_SHARED
+    }
+    for (const walletId of walletIds) {
+      const access = await tx.walletAccess(userId, walletId)
+      if (access?.role !== 'editor' || access.ownerId !== existing.ownerId) {
+        return NOT_SHARED
+      }
+    }
+    if (op.baseSeq !== existing.row.changeSeq) {
+      return { code: SyncRejectCode.STALE, message: SYNC_MESSAGE.STALE }
+    }
+    return { ownerId: existing.ownerId, editor: true }
   }
 
   const upsert = async (
-    tx: SyncRepository,
-    userId: string,
-    deviceId: string,
+    write: Write,
     op: PushOp,
     existing: Stored | null,
     conflict: boolean,
-    pushHandler: Pick<SyncPushHandler, 'validate' | 'keepsStored' | 'sameChange'>,
-    now: number
+    pushHandler: PushHandler
   ): Promise<OpResult> => {
+    const { tx, ownerId, now } = write
     const validation = pushHandler.validate(op.row)
     if (!validation.ok) {
       return rejected(op.opId, SyncRejectCode.VALIDATION, validation.message, existing?.row)
     }
+    const prepared = prepare(write, validation.row, existing, pushHandler.shared)
     // A second create of one recurring occurrence keeps the server's row, silently (recurring
     // rule 9).
-    if (existing && op.baseSeq === null && pushHandler.keepsStored?.(validation.row) === true) {
+    if (existing && op.baseSeq === null && pushHandler.keepsStored?.(prepared) === true) {
       return keptQuietly(op, existing)
     }
     // A live row the feature adjusts first (a transaction on a merged category, category rule 15).
-    const candidate = await tx.resolve(op.table, userId, clampTimes(validation.row, now))
+    const candidate = await tx.resolve(op.table, ownerId, clampTimes(prepared, now))
     const same = (a: Record<string, unknown>, b: Record<string, unknown>) =>
       pushHandler.sameChange?.(a, b) === true
 
     if (existing && conflict) {
-      const lost = await settleConflict(tx, userId, deviceId, op, existing, candidate, now, same)
+      const lost = await settleConflict(write, op, existing, candidate, same)
       if (lost) {
         return lost
       }
     }
 
-    const broken = await tx.check(op.table, userId, candidate)
+    const broken = await tx.check(op.table, ownerId, candidate)
     if (broken) {
       return rejected(op.opId, SyncRejectCode.CONFLICT, broken, existing?.row)
     }
-    const row = await stamp(tx, op.table, userId, candidate)
-    await tx.followUp(op.table, userId, row)
+    const row = await stamp(write, op.table, candidate)
+    await tx.followUp(op.table, ownerId, row)
     if (existing && conflict && !same(existing.row, row)) {
-      await record(tx, op.table, lostLater(existing, userId, deviceId, row.changeSeq, now))
+      await recordLoss(write, op.table, existing, row.changeSeq)
     }
     return { opId: op.opId, status: 'applied', row, changeSeq: row.changeSeq }
+  }
+
+  /** Fields only the owner or the server sets (sharing rule 12). */
+  const prepare = (
+    write: Write,
+    row: SyncRowInput,
+    existing: Stored | null,
+    shared: SyncSharedRows | undefined
+  ): SyncRowInput => {
+    if (!shared) {
+      return row
+    }
+    const stored = existing?.row ?? null
+    return write.editor ? shared.forEditor(row, stored, write.userId) : shared.forOwner(row, stored)
   }
 
   /** The server's row wins with no conflict notice (recurring rule 9). */
@@ -143,22 +261,24 @@ export const createSyncService = ({
     changeSeq: existing.row.changeSeq,
   })
 
-  /** Rule 12 between one user's devices: `overridden` when the pushed version loses, else null. */
+  /**
+   * Rule 12: `overridden` when the pushed version loses, else null. Between one user's devices
+   * the later edit wins; over an editor's version the owner always wins (sharing rule 14).
+   */
   const settleConflict = async (
-    tx: SyncRepository,
-    userId: string,
-    deviceId: string,
+    write: Write,
     op: PushOp,
     existing: Stored,
     candidate: SyncRowInput,
-    now: number,
     same: (a: Record<string, unknown>, b: Record<string, unknown>) => boolean
   ): Promise<OpResult | null> => {
+    const { tx, userId, deviceId, now } = write
     const existingDeleted = (existing.row.deletedAt ?? null) !== null
     // Delete beats edit; otherwise the later edit wins, and a tie goes to the server's row.
     const candidateWins =
-      !existingDeleted &&
-      (candidate.deletedAt !== null || candidate.updatedAt > existing.row.updatedAt)
+      byEditor(existing, write.ownerId) ||
+      (!existingDeleted &&
+        (candidate.deletedAt !== null || candidate.updatedAt > existing.row.updatedAt))
     if (candidateWins) {
       return null
     }
@@ -185,14 +305,12 @@ export const createSyncService = ({
   }
 
   const remove = async (
-    tx: SyncRepository,
-    userId: string,
-    deviceId: string,
+    write: Write,
     op: PushOp,
     existing: Stored | null,
-    conflict: boolean,
-    now: number
+    conflict: boolean
   ): Promise<OpResult> => {
+    const { tx, ownerId, now } = write
     // Deleting what the server doesn't have, or has deleted already, changes nothing.
     if (!existing || (existing.row.deletedAt ?? null) !== null) {
       return {
@@ -210,40 +328,40 @@ export const createSyncService = ({
       updatedAt: deletedAt,
       deletedAt,
     }
-    const row = await stamp(tx, op.table, userId, tombstone)
-    await tx.followUp(op.table, userId, row)
+    const row = await stamp(write, op.table, tombstone)
+    await tx.followUp(op.table, ownerId, row)
     if (conflict) {
-      await record(tx, op.table, lostLater(existing, userId, deviceId, row.changeSeq, now))
+      await recordLoss(write, op.table, existing, row.changeSeq)
     }
     return { opId: op.opId, status: 'applied', row, changeSeq: row.changeSeq }
   }
 
-  const stamp = async (
-    tx: SyncRepository,
-    table: string,
-    userId: string,
-    row: SyncRowInput
-  ): Promise<SyncRow> => {
-    const write: SyncRowWrite = { ...row, changeSeq: await tx.nextSeq(), updatedBy: userId }
-    return tx.write(table, userId, write)
+  /** The row is the owner's; `updatedBy` is whoever wrote it (an editor, sharing rule 12). */
+  const stamp = async (write: Write, table: string, row: SyncRowInput): Promise<SyncRow> => {
+    const stored: SyncRowWrite = {
+      ...row,
+      changeSeq: await write.tx.nextSeq(),
+      updatedBy: write.userId,
+    }
+    return write.tx.write(table, write.ownerId, stored)
   }
 
-  // An applied version lost to a later push: pull tells the loser's other devices (rule 12).
-  const lostLater = (
-    existing: Stored,
-    userId: string,
-    deviceId: string,
-    changeSeq: number,
-    now: number
-  ) => ({
-    previous: existing.row,
-    overwrittenBy: userId,
-    overwrittenByDevice: deviceId,
-    loserUserId: existing.row.updatedBy ?? existing.ownerId,
-    loserDeviceId: null,
-    changeSeq,
-    now,
-  })
+  // An applied version lost to a later push: pull tells the loser's other devices (rule 12). An
+  // editor who lost to the owner gets no notice (sharing rule 14).
+  const recordLoss = async (write: Write, table: string, existing: Stored, changeSeq: number) => {
+    if (byEditor(existing, write.ownerId)) {
+      return
+    }
+    await record(write.tx, table, {
+      previous: existing.row,
+      overwrittenBy: write.userId,
+      overwrittenByDevice: write.deviceId,
+      loserUserId: existing.row.updatedBy ?? existing.ownerId,
+      loserDeviceId: null,
+      changeSeq,
+      now: write.now,
+    })
+  }
 
   const record = async (
     tx: SyncRepository,

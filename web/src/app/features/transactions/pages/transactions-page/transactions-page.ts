@@ -22,12 +22,16 @@ import {
   lucidePlane,
   lucideReceiptText,
   lucideRepeat,
+  lucideUsers,
 } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { CATEGORY_DEFAULT_ICON } from '@/core/category'
 import { LanguageService } from '@/core/i18n'
+import { NetworkStatusService } from '@/core/network'
+import { ProfileService } from '@/core/profile'
 import { RecurringService, ruleTitle, shortDate } from '@/core/recurring'
 import type { Occurrence } from '@/core/recurring'
+import { SharingService } from '@/core/sharing'
 import {
   FUTURE,
   periodLabel,
@@ -107,6 +111,7 @@ interface DayGroup {
       lucidePlane,
       lucideReceiptText,
       lucideRepeat,
+      lucideUsers,
     }),
   ],
   host: { class: 'flex flex-col' },
@@ -308,6 +313,13 @@ interface DayGroup {
                         row.item.note
                       }}</span>
                     }
+                    @if (addedBy(row.item); as name) {
+                      <!-- Added by an editor of a shared wallet (sharing rule 15). -->
+                      <span class="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                        <ng-icon name="lucideUsers" size="12" class="shrink-0" aria-hidden="true" />
+                        <span class="truncate">{{ 'sharing.addedBy' | transloco: { name } }}</span>
+                      </span>
+                    }
                     @if (row.pending) {
                       <span class="flex items-center gap-1 text-xs text-muted-foreground">
                         <ng-icon name="lucideCloud" size="12" aria-hidden="true" />
@@ -434,6 +446,11 @@ export class TransactionsPage {
     return { count: due.length, text }
   })
   private walletService = inject(WalletService)
+  private profileService = inject(ProfileService)
+  private sharingService = inject(SharingService)
+  private networkStatusService = inject(NetworkStatusService)
+  /** Profiles whose members were asked for, for "เพิ่มโดย …" (sharing rule 15). */
+  private askedPeople = new Set<string>()
   private languageService = inject(LanguageService)
   private transloco = inject(TranslocoService)
   private route = inject(ActivatedRoute)
@@ -620,6 +637,18 @@ export class TransactionsPage {
   private t = (key: string, params?: Record<string, unknown>) =>
     this.transloco.translate(key, params)
 
+  /** "เพิ่มโดย …": a name once read, else "สมาชิก" (sharing rule 15); null for the owner's own. */
+  protected addedBy(item: EntryItem): string | null {
+    if (item.kind !== 'transaction' || item.addedBy === null) {
+      return null
+    }
+    this.languageService.language()
+    return (
+      this.transactionService.people().get(item.addedBy) ??
+      this.transloco.translate('sharing.member')
+    )
+  }
+
   constructor() {
     // Draw the next page once the end of the list comes near.
     const observer =
@@ -634,6 +663,25 @@ export class TransactionsPage {
             { rootMargin: '600px' }
           )
     inject(DestroyRef).onDestroy(() => observer?.disconnect())
+    // Sharing rule 15: the owner's rows added by an editor need the members' names, read online
+    // once per profile and session.
+    effect(() => {
+      const profileId = this.profileService.currentId()
+      const online = this.networkStatusService.isOnline()
+      const people = this.transactionService.people()
+      const unknown = this.transactionService
+        .items()
+        .some((item) => item.kind === 'transaction' && item.addedBy && !people.has(item.addedBy))
+      if (!profileId || !online || !unknown || this.profileService.isShared()) {
+        return
+      }
+      if (!this.askedPeople.has(profileId)) {
+        this.askedPeople.add(profileId)
+        void this.sharingService
+          .loadOwner(profileId)
+          .catch(() => this.askedPeople.delete(profileId))
+      }
+    })
     effect(() => {
       const more = this.more()
       observer?.disconnect()

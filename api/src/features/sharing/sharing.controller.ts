@@ -2,23 +2,16 @@ import { AppError } from '@/core/error'
 import { ERRORS, ErrorSeverity, HttpStatus, SUCCESS } from '@/shared/constants'
 import { createResponse } from '@/shared/utils'
 import type {
-  EntriesQuery,
   InviteBody,
   InviteParams,
   LangBody,
   MemberBody,
   MemberParams,
   ProfileParams,
-  WalletParams,
+  RowsQuery,
 } from './sharing.schema'
 import type { SharingService } from './sharing.service'
-import type {
-  OwnerSharing,
-  SharedEntries,
-  SharedWallet,
-  SharedWithMe,
-  SharingInvite,
-} from './sharing.type'
+import type { OwnerSharing, SharedProfileRows, SharedWithMe, SharingInvite } from './sharing.type'
 import type { NextFunction, Request, Response } from 'express'
 
 /** `req.auth`, set by `authenticate` in front of every sharing route. */
@@ -111,17 +104,14 @@ export const createSharingController = (sharingService: SharingService) => {
     sharingService.leave(userId, req.params.profileId)
   )
 
-  const wallet = handle<WalletParams>(
-    SUCCESS.get('wallet'),
+  const rows = handle<ProfileParams>(
+    SUCCESS.list('rows'),
     HttpStatus.OK,
-    async (req, userId): Promise<SharedWallet> => sharingService.wallet(userId, req.params.walletId)
-  )
-
-  const entries = handle<WalletParams, unknown, EntriesQuery>(
-    SUCCESS.list('entries'),
-    HttpStatus.OK,
-    async (req, userId): Promise<SharedEntries> =>
-      sharingService.entries(userId, req.params.walletId, req.query.from, req.query.to ?? null)
+    async (req, userId): Promise<SharedProfileRows> => {
+      // Already parsed (coerced, defaults filled) by validate(); Express types it as ParsedQs.
+      const query = req.query as RowsQuery
+      return sharingService.rows(userId, req.params.profileId, query.since, query.limit)
+    }
   )
 
   return {
@@ -135,8 +125,7 @@ export const createSharingController = (sharingService: SharingService) => {
     accept,
     decline,
     leave,
-    wallet,
-    entries,
+    rows,
   }
 }
 

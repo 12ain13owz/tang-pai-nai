@@ -134,6 +134,13 @@
       "when": 1794239337690,
       "tag": "0018_wallet_invites",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1794252074018,
+      "tag": "0019_transactions_added_by",
+      "breakpoints": true
     }
   ]
 }

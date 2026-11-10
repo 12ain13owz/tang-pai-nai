@@ -90,6 +90,7 @@ export class SyncService {
   canSync = computed(
     () =>
       this.offlineService.isOpen() &&
+      !this.offlineService.sharedActive() &&
       this.networkStatusService.isOnline() &&
       this.authStore.status() === 'signedIn'
   )
@@ -167,6 +168,22 @@ export class SyncService {
       this.running = null
     })
     return this.running
+  }
+
+  /** Waits for a running round, so a shared profile's TEMP tables never meet one. */
+  async idle(): Promise<void> {
+    await this.running?.catch(() => undefined)
+  }
+
+  /**
+   * A shared profile's writes (sharing rule 11): the TEMP outbox pushed at once, results applied
+   * to the TEMP rows like any push. No pull: the shared view reads its rows itself.
+   */
+  async pushShared(): Promise<void> {
+    if (!this.offlineService.sharedActive()) {
+      return
+    }
+    await this.push()
   }
 
   /**

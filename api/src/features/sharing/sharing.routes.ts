@@ -20,8 +20,7 @@ export const createSharingRouter = (c: SharingController): Router => {
   router.delete('/with-me/:profileId', validate(s.leave), c.leave)
   router.post('/invites/:id/accept', validate(s.byInvite), c.accept)
   router.post('/invites/:id/decline', validate(s.byInvite), c.decline)
-  router.get('/wallets/:walletId', validate(s.wallet), c.wallet)
-  router.get('/wallets/:walletId/entries', validate(s.entries), c.entries)
+  router.get('/with-me/:profileId/rows', validate(s.rows), c.rows)
 
   return router
 }

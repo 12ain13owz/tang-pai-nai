@@ -19,6 +19,10 @@ export const SyncRejectCode = {
   ID_TAKEN: 'ID_TAKEN',
   UNKNOWN_TABLE: 'UNKNOWN_TABLE',
   READ_ONLY: 'READ_ONLY',
+  /** An editor's update or delete whose `baseSeq` isn't the row's current one (sharing rule 13). */
+  STALE: 'STALE',
+  /** The row's wallet isn't shared with the caller as editor (sharing rules 11, 13). */
+  NOT_SHARED: 'NOT_SHARED',
 } as const
 export type SyncRejectCode = (typeof SyncRejectCode)[keyof typeof SyncRejectCode]
 
@@ -29,4 +33,6 @@ export const SYNC_MESSAGE = {
   ID_TAKEN: 'This id belongs to another user',
   UNKNOWN_TABLE: 'This table does not sync',
   READ_ONLY: 'This table is read-only for devices',
+  STALE: 'This row changed since you read it; reload it',
+  NOT_SHARED: 'This wallet is not shared with you as an editor',
 }

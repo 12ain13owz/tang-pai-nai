@@ -57,3 +57,14 @@ export const PROFILE_CHILD_TABLES = [
 
 /** The device table of categories, which a new profile is written with (category rule 8). */
 export const DEFAULT_CATEGORY_TABLE = 'categories'
+
+/**
+ * A profile shared with the signed-in user, in use (docs/features/sharing.md rules 9–11): its rows
+ * are in the database's TEMP tables while `status` is `ready`.
+ */
+export interface SharedProfile {
+  profile: Profile
+  role: 'editor' | 'viewer'
+  owner: { id: string; displayName: string }
+  status: 'loading' | 'ready'
+}

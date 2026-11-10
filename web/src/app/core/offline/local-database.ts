@@ -249,6 +249,8 @@ const MIGRATIONS: readonly string[] = [
   CREATE INDEX events_profile ON events (profile_id);
   ALTER TABLE transactions ADD COLUMN event_id TEXT;
   CREATE INDEX transactions_event ON transactions (event_id) WHERE event_id IS NOT NULL`,
+  // #16.2: the editor of a shared wallet who added a transaction (set by the server).
+  `ALTER TABLE transactions ADD COLUMN added_by TEXT`,
 ]
 
 let sqlitePromise: Promise<Sqlite3Static> | null = null
@@ -304,6 +306,35 @@ export class LocalDatabase {
   /** The whole database as bytes, for the encrypted snapshot. */
   export(): Uint8Array<ArrayBuffer> {
     return this.sqlite3.capi.sqlite3_js_db_export(this.db)
+  }
+
+  /**
+   * TEMP copies of `tables` (same columns, keys and indexes) that shadow the saved ones for every
+   * unqualified query until `dropShadows`; `export()` (the `main` schema) never holds them.
+   * docs/features/sharing.md → Web screens: a shared profile's rows while it is in use.
+   */
+  createShadows(tables: readonly string[]): void {
+    this.dropShadows(tables)
+    for (const table of tables) {
+      const schema = this.db.selectObjects(
+        `SELECT type, sql FROM main.sqlite_master
+          WHERE tbl_name = ? AND sql IS NOT NULL ORDER BY type DESC`,
+        [table]
+      ) as { type: string; sql: string }[]
+      for (const { type, sql } of schema) {
+        this.db.exec(
+          type === 'table'
+            ? sql.replace(/^CREATE TABLE /, 'CREATE TEMP TABLE ')
+            : sql.replace(/^CREATE (UNIQUE )?INDEX (\S+) /, 'CREATE $1INDEX temp.$2 ')
+        )
+      }
+    }
+  }
+
+  dropShadows(tables: readonly string[]): void {
+    for (const table of tables) {
+      this.db.exec(`DROP TABLE IF EXISTS temp.${table}`)
+    }
   }
 
   /** Runs `work` in one transaction (rule 8: a local write is all or nothing). */

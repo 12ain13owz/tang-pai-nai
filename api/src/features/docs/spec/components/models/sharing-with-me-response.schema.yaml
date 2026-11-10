@@ -34,9 +34,10 @@ properties:
         description: Wallets shared with the caller, one group per owner's profile
         items:
           type: object
-          required: [profileId, role, owner, wallets]
+          required: [profileId, profile, role, owner, wallets]
           properties:
             profileId: { type: string, format: uuid }
+            profile: { $ref: './sharing-profile.schema.yaml' }
             role: { $ref: './sharing-role.schema.yaml' }
             owner:
               type: object

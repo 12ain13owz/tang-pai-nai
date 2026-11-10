@@ -134,8 +134,8 @@ const seed = async (db: Database) => {
     .insert(transactions)
     .values([
       tx('t1', ID.pay, 50_000, '2026-10-01'),
-      tx('t2', ID.food, 4_200, '2026-11-09', { note: 'lunch' }),
-      tx('t3', ID.food, 999, '2026-11-08', { deletedAt: 3 }),
+      tx('t2', ID.food, 4_200, '2026-11-09', { note: 'lunch', changeSeq: 6 }),
+      tx('t3', ID.food, 999, '2026-11-08', { deletedAt: 3, changeSeq: 7 }),
     ])
   await db.insert(transfers).values({
     id: 'tr1',

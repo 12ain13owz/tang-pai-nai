@@ -1,4 +1,4 @@
-import type { CategoryRef, Entry, ShareRole } from './sharing.entity'
+import type { ProfileRef, RowData, ShareRole } from './sharing.entity'
 
 // Response `data` shapes (docs/features/sharing.md → Endpoints).
 
@@ -49,22 +49,29 @@ export interface SharedWithMe {
   }[]
   shares: {
     profileId: string
+    profile: ProfileRef
     role: ShareRole
     owner: { id: string; displayName: string; email: string }
     wallets: SharedWalletView[]
   }[]
 }
 
-/** GET /sharing/wallets/:walletId */
-export interface SharedWallet {
-  wallet: SharedWalletView & { firstOn: string | null }
+/** GET /sharing/with-me/:profileId/rows (rule 9) */
+export interface SharedProfileRows {
+  profile: ProfileRef
   role: ShareRole
-  owner: { displayName: string; email: string }
-  categories: CategoryRef[]
-}
-
-/** GET /sharing/wallets/:walletId/entries */
-export interface SharedEntries {
-  entries: Entry[]
-  truncated: boolean
+  owner: { id: string; displayName: string; email: string }
+  /** The owner and the profile's members: the names behind `addedBy`. */
+  people: { id: string; displayName: string }[]
+  /** The shared wallets, transfers and debt entries folded into `initialBalance`. */
+  wallets: RowData[]
+  /** The owner's live categories of the profile (archived too). */
+  categories: RowData[]
+  /**
+   * The wallets' transactions with `changeSeq > since`, tombstones included, in order; one array
+   * per row in `columns`' order (a pull's fields, a fifth of the size as objects).
+   */
+  transactions: { columns: string[]; rows: unknown[][] }
+  cursor: number
+  hasMore: boolean
 }

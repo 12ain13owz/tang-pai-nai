@@ -1,12 +1,20 @@
-import { and, eq, lte, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, inArray, isNull, lte, sql } from 'drizzle-orm'
 import type { Database, Executor } from '@/core/database'
-import { rateLimitBuckets, users, walletInvites, walletMembers } from '@/core/database/schema'
+import {
+  categories,
+  profiles,
+  rateLimitBuckets,
+  transactions,
+  users,
+  walletInvites,
+  walletMembers,
+  wallets,
+} from '@/core/database/schema'
 import { wrapUnexpected } from '@/core/error'
 import type {
-  CategoryRef,
-  Entry,
   Invite,
   MemberRow,
+  RowData,
   ShareRole,
   ShareRow,
   UserRef,
@@ -69,51 +77,23 @@ const MOVEMENTS = (ids: string[]) => sql`
     FROM debt_entries e JOIN debts d ON d.id = e.debt_id
    WHERE e.wallet_id IN (${idList(ids)}) AND e.deleted_at IS NULL`
 
-const ENTRIES = (walletId: string, from: string, to: string | null, limit: number) => {
-  const until = to === null ? sql`` : sql` AND x.occurredOn <= ${to}`
-  return sql`
-  SELECT * FROM (
-    SELECT t.id AS id, 'transaction' AS kind, t.occurred_on AS occurredOn,
-           CASE WHEN c.type = 'income' THEN t.amount ELSE -t.amount END AS amount,
-           t.category_id AS categoryId, t.note AS note, t.exclude_from_report AS excludeFromReport,
-           t.created_at AS createdAt
-      FROM transactions t JOIN categories c ON c.id = t.category_id
-     WHERE t.wallet_id = ${walletId} AND t.deleted_at IS NULL
+// Transfer sides and debt entries per wallet: the money a member's view folds into the balance.
+const OTHER_MONEY = (ids: string[]) => sql`
+  SELECT x.wallet AS id, sum(x.amount) AS amount FROM (
+    SELECT from_wallet_id AS wallet, -amount AS amount FROM transfers
+     WHERE from_wallet_id IN (${idList(ids)}) AND deleted_at IS NULL
     UNION ALL
-    SELECT id, 'transfer', occurred_on, -amount, NULL, note, 0, created_at FROM transfers
-     WHERE from_wallet_id = ${walletId} AND deleted_at IS NULL
+    SELECT to_wallet_id, amount FROM transfers
+     WHERE to_wallet_id IN (${idList(ids)}) AND deleted_at IS NULL
     UNION ALL
-    SELECT id, 'transfer', occurred_on, amount, NULL, note, 0, created_at FROM transfers
-     WHERE to_wallet_id = ${walletId} AND deleted_at IS NULL
-    UNION ALL
-    SELECT e.id, 'debt', e.occurred_on,
-           CASE WHEN (e.kind = 'principal') = (d.direction = 'borrowed') THEN e.amount ELSE -e.amount END,
-           NULL, e.note, 0, e.created_at
+    SELECT e.wallet_id, CASE WHEN (e.kind = 'principal') = (d.direction = 'borrowed')
+                             THEN e.amount ELSE -e.amount END
       FROM debt_entries e JOIN debts d ON d.id = e.debt_id
-     WHERE e.wallet_id = ${walletId} AND e.deleted_at IS NULL
-  ) x
-  WHERE x.occurredOn >= ${from}${until}
-  ORDER BY x.occurredOn DESC, x.createdAt DESC
-  LIMIT ${limit}`
-}
+     WHERE e.wallet_id IN (${idList(ids)}) AND e.deleted_at IS NULL
+  ) x GROUP BY x.wallet`
 
-const FIRST_DAY = (walletId: string) => sql`
-  SELECT min(d) AS first FROM (
-    SELECT min(occurred_on) AS d FROM transactions WHERE wallet_id = ${walletId} AND deleted_at IS NULL
-    UNION ALL SELECT min(occurred_on) FROM transfers
-     WHERE (from_wallet_id = ${walletId} OR to_wallet_id = ${walletId}) AND deleted_at IS NULL
-    UNION ALL SELECT min(occurred_on) FROM debt_entries WHERE wallet_id = ${walletId} AND deleted_at IS NULL
-  )`
-
-const toEntry = (row: Record<string, unknown>): Entry => ({
-  id: String(row['id']),
-  kind: row['kind'] as Entry['kind'],
-  occurredOn: String(row['occurredOn']),
-  amount: Number(row['amount']),
-  categoryId: typeof row['categoryId'] === 'string' ? row['categoryId'] : null,
-  note: String(row['note']),
-  excludeFromReport: Boolean(row['excludeFromReport']),
-})
+/** A row as pull answers it: without `userId`. */
+const withoutOwner = ({ userId: _userId, ...row }: { userId: string } & RowData): RowData => row
 
 export const createDrizzleSharingRepository = (db: Database | Executor): SharingRepository => {
   const run = async <T>(operation: string, work: () => Promise<T>) =>
@@ -307,33 +287,72 @@ export const createDrizzleSharingRepository = (db: Database | Executor): Sharing
         return result
       }),
 
-    categoriesOf: async (profileId) =>
-      run('categoriesOf', async () =>
-        (
-          await all(sql`SELECT id, type, parent_id AS parentId, name, icon, color,
-              is_archived AS isArchived, sort_order AS sortOrder
-            FROM categories WHERE profile_id = ${profileId} AND deleted_at IS NULL
-            ORDER BY sort_order, created_at`)
-        ).map((row): CategoryRef => ({
-          id: String(row['id']),
-          type: row['type'] as CategoryRef['type'],
-          parentId: typeof row['parentId'] === 'string' ? row['parentId'] : null,
-          name: String(row['name']),
-          icon: String(row['icon']),
-          color: String(row['color']),
-          isArchived: Boolean(row['isArchived']),
-          sortOrder: Number(row['sortOrder']),
-        }))
+    otherMoney: async (walletIds) =>
+      run('otherMoney', async () => {
+        const result = new Map<string, number>()
+        if (walletIds.length > 0) {
+          for (const row of await all(OTHER_MONEY(walletIds))) {
+            result.set(String(row['id']), Number(row['amount']))
+          }
+        }
+        return result
+      }),
+
+    findProfile: async (profileId) =>
+      run('findProfile', async () => {
+        const row = (
+          await db
+            .select({
+              id: profiles.id,
+              name: profiles.name,
+              icon: profiles.icon,
+              color: profiles.color,
+            })
+            .from(profiles)
+            .where(and(eq(profiles.id, profileId), isNull(profiles.deletedAt)))
+        ).at(0)
+        return row ?? null
+      }),
+
+    walletRows: async (walletIds) =>
+      run('walletRows', async () =>
+        walletIds.length === 0
+          ? []
+          : (
+              await db
+                .select()
+                .from(wallets)
+                .where(inArray(wallets.id, walletIds))
+                .orderBy(asc(wallets.sortOrder), asc(wallets.createdAt))
+            ).map(withoutOwner)
       ),
 
-    entries: async (walletId, from, to, limit) =>
-      run('entries', async () => (await all(ENTRIES(walletId, from, to, limit))).map(toEntry)),
+    categoryRows: async (profileId) =>
+      run('categoryRows', async () =>
+        (
+          await db
+            .select()
+            .from(categories)
+            .where(and(eq(categories.profileId, profileId), isNull(categories.deletedAt)))
+            .orderBy(asc(categories.sortOrder), asc(categories.createdAt))
+        ).map(withoutOwner)
+      ),
 
-    firstDay: async (walletId) =>
-      run('firstDay', async () => {
-        const first = (await all(FIRST_DAY(walletId))).at(0)?.['first']
-        return typeof first === 'string' ? first : null
-      }),
+    transactionRows: async (walletIds, since, limit) =>
+      run('transactionRows', async () =>
+        walletIds.length === 0
+          ? []
+          : (
+              await db
+                .select()
+                .from(transactions)
+                .where(
+                  and(inArray(transactions.walletId, walletIds), gt(transactions.changeSeq, since))
+                )
+                .orderBy(asc(transactions.changeSeq))
+                .limit(limit)
+            ).map(withoutOwner)
+      ),
 
     hitRateLimit: async (key, windowMs, at) =>
       run('hitRateLimit', async () => {

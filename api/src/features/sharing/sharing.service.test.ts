@@ -156,6 +156,7 @@ describe('withMe / accept / decline', () => {
     expect(mine.shares).toEqual([
       {
         profileId: ID.pa,
+        profile: { id: ID.pa, name: 'Family', icon: 'lucideHouse', color: '#000' },
         role: 'editor',
         owner: { id: ID.alice, displayName: 'Alice', email: EMAIL.alice },
         wallets: [
@@ -239,48 +240,62 @@ describe('owner view and members', () => {
   })
 })
 
-describe('wallet / entries', () => {
+describe('rows of a shared profile', () => {
   beforeEach(async () => {
     const invite = await inviteBob()
     await setup.service.accept(ID.bob, invite.id)
   })
 
-  it("reads the wallet, its balance, the owner's categories and its first day", async () => {
-    const shared = await setup.service.wallet(ID.bob, ID.home)
-    expect(shared.wallet).toMatchObject({ id: ID.home, balance: 138_800, firstOn: '2026-10-01' })
-    expect(shared.role).toBe('editor')
-    expect(shared.owner).toEqual({ displayName: 'Alice', email: EMAIL.alice })
-    expect(shared.categories.map((category) => category.id).sort()).toEqual(
-      [ID.food, ID.pay].sort()
+  /** One row of the columns + rows answer, as an object. */
+  const asRows = (table: { columns: string[]; rows: unknown[][] }) =>
+    table.rows.map((values) =>
+      Object.fromEntries(table.columns.map((column, i) => [column, values.at(i)]))
     )
-  })
 
-  it('lists signed entries newest first, without the other wallet or the debt', async () => {
-    const page = await setup.service.entries(ID.bob, ID.home, '2026-11-01', '2026-11-30')
-    expect(page).toEqual({
-      truncated: false,
-      entries: [
-        expect.objectContaining({
-          id: 't2',
-          kind: 'transaction',
-          amount: -4_200,
-          categoryId: ID.food,
-          note: 'lunch',
-        }),
-        expect.objectContaining({ id: 'de1', kind: 'debt', amount: 3_000, categoryId: null }),
-        expect.objectContaining({ id: 'tr1', kind: 'transfer', amount: -10_000, categoryId: null }),
-      ],
+  it('reads the profile, role, owner, people, folded wallets, categories and transactions', async () => {
+    const data = await setup.service.rows(ID.bob, ID.pa, 0, 100)
+    expect(data).toMatchObject({
+      profile: { id: ID.pa, name: 'Family', icon: 'lucideHouse', color: '#000' },
+      role: 'editor',
+      owner: { id: ID.alice, displayName: 'Alice', email: EMAIL.alice },
+      cursor: 7,
+      hasMore: false,
     })
-    const cash = await setup.service.entries(ID.bob, ID.cash, '2026-11-01', null)
-    expect(cash.entries).toEqual([expect.objectContaining({ id: 'tr1', amount: 10_000 })])
+    expect(data.people).toEqual([
+      { id: ID.alice, displayName: 'Alice' },
+      { id: ID.bob, displayName: 'Bob' },
+    ])
+    // Transfers and debt entries are folded into the starting balance (rule 9).
+    expect(data.wallets).toEqual([
+      expect.objectContaining({ id: ID.home, initialBalance: 100_000 - 10_000 + 3_000 }),
+      expect.objectContaining({ id: ID.cash, initialBalance: 100_000 + 10_000 }),
+    ])
+    expect(data.wallets[0]).not.toHaveProperty('userId')
+    expect(data.categories.map((row) => row['id']).sort()).toEqual([ID.food, ID.pay].sort())
+    const rows = asRows(data.transactions)
+    expect(rows.map((row) => row['id'])).toEqual(['t1', 't2', 't3'])
+    expect(rows[1]).toMatchObject({ amount: 4_200, note: 'lunch', walletId: ID.home })
+    expect(rows[2]['deletedAt']).toBe(3)
+    expect(data.transactions.columns).not.toContain('userId')
   })
 
-  it('answers 404 for a wallet not shared, archived later, or after leaving', async () => {
-    expect(await failure(setup.service.wallet(ID.bob, ID.bobs))).toBe(404)
-    expect(await failure(setup.service.wallet(ID.carol, ID.home))).toBe(404)
+  it('pages transactions by changeSeq', async () => {
+    const first = await setup.service.rows(ID.bob, ID.pa, 2, 1)
+    expect(asRows(first.transactions).map((row) => row['id'])).toEqual(['t2'])
+    expect(first).toMatchObject({ cursor: 6, hasMore: true })
+    const last = await setup.service.rows(ID.bob, ID.pa, first.cursor, 1)
+    expect(last).toMatchObject({ cursor: 7, hasMore: false })
+    const none = await setup.service.rows(ID.bob, ID.pa, 7, 10)
+    expect(none).toMatchObject({ transactions: { columns: [], rows: [] }, cursor: 7 })
+  })
+
+  it('leaves out a wallet archived later, and answers 404 when nothing is shared', async () => {
     await setup.db.run(`UPDATE wallets SET is_archived = 1 WHERE id = '${ID.cash}'`)
-    expect(await failure(setup.service.entries(ID.bob, ID.cash, '2026-11-01', null))).toBe(404)
+    const data = await setup.service.rows(ID.bob, ID.pa, 0, 100)
+    expect(data.wallets.map((row) => row['id'])).toEqual([ID.home])
+    expect(await failure(setup.service.rows(ID.carol, ID.pa, 0, 100))).toBe(404)
+    expect(await failure(setup.service.rows(ID.bob, ID.pb, 0, 100))).toBe(404)
     await setup.service.leave(ID.bob, ID.pa)
-    expect(await failure(setup.service.wallet(ID.bob, ID.home))).toBe(404)
+    expect(await failure(setup.service.rows(ID.bob, ID.pa, 0, 100))).toBe(404)
   })
 })

@@ -23,6 +23,8 @@ export const setUpReports = async (providers: Provider[] = []) => {
   const changes = signal(0)
   const offline = {
     isOpen: signal(true),
+    sharedActive: signal(false),
+    leaveShared: () => undefined,
     isTrusted: signal(true),
     meta: signal(null),
     changes,

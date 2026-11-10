@@ -25,6 +25,8 @@ describe('ProfileService', () => {
 
   const offline = {
     isOpen: signal(true),
+    sharedActive: signal(false),
+    leaveShared: vi.fn(),
     isTrusted: trusted,
     meta: signal(null),
     changes,
@@ -257,6 +259,58 @@ describe('ProfileService', () => {
     expect(service.serverDown()).toBe(true)
     trusted.set(true)
     expect(service.canWrite()).toBe(true)
+  })
+
+  describe('a shared profile in use (sharing rules 10, 11)', () => {
+    const shared = (role: 'editor' | 'viewer', status: 'loading' | 'ready' = 'ready') => ({
+      profile: { ...row('pz', 'Family', 0), changeSeq: null },
+      role,
+      owner: { id: 'z', displayName: 'Dad' },
+      status,
+    })
+
+    beforeEach(() => {
+      offline.sharedActive.set(false)
+      offline.leaveShared.mockClear()
+    })
+
+    it('is the current profile while in use, never stored, and an own pick ends it', () => {
+      pulled(row('p1', 'Home', 0))
+      start()
+      service.shared.set(shared('editor'))
+      offline.sharedActive.set(true)
+      expect(service.current()?.name).toBe('Family')
+      expect(service.isShared()).toBe(true)
+      expect(localStorage.getItem('tpn-profile:u1')).toBeNull()
+      service.select('p1')
+      expect(service.shared()).toBeNull()
+      expect(offline.leaveShared).toHaveBeenCalled()
+      expect(service.current()?.name).toBe('Home')
+    })
+
+    it('writes only as an editor, online, once its rows are in', () => {
+      start()
+      offline.sharedActive.set(true)
+      service.shared.set(shared('editor', 'loading'))
+      expect(service.canWrite()).toBe(false)
+      service.shared.set(shared('editor'))
+      expect(service.canWrite()).toBe(true)
+      online.set(false)
+      expect(service.canWrite()).toBe(false)
+      online.set(true)
+      service.shared.set(shared('viewer'))
+      expect(service.canWrite()).toBe(false)
+    })
+
+    it('ends when the database closes under it (a lock)', () => {
+      start()
+      offline.sharedActive.set(true)
+      service.shared.set(shared('editor'))
+      TestBed.tick()
+      offline.sharedActive.set(false)
+      TestBed.tick()
+      expect(service.shared()).toBeNull()
+    })
   })
 
   describe('with wallets (wallet rule 11)', () => {

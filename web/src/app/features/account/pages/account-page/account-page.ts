@@ -323,7 +323,8 @@ export class AccountPage {
     // "แชร์กับ n คน" on the sharing row (sharing.md → Web screens): read online, kept in memory.
     effect(() => {
       const id = this.profileService.current()?.id
-      if (id && this.sharingService.canCall()) {
+      // A shared profile is the owner's to share (sharing rule 1).
+      if (id && !this.profileService.isShared() && this.sharingService.canCall()) {
         untracked(() => void this.sharingService.loadOwner(id).catch(() => undefined))
       }
     })

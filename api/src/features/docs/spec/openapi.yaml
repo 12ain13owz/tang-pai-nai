@@ -20,7 +20,7 @@ tags:
   - name: Sync
     description: Offline sync, push then pull (docs/features/offline-sync.md)
   - name: Sharing
-    description: Family sharing, invitations and read-only shared wallets (docs/features/sharing.md)
+    description: Family sharing, invitations and shared profiles (docs/features/sharing.md)
   - name: Todo
     description: Reference CRUD feature (in-memory, resets on restart)
 
@@ -89,10 +89,8 @@ paths:
     $ref: './paths/sharing/with-me.yaml'
   /sharing/with-me/{profileId}:
     $ref: './paths/sharing/leave.yaml'
-  /sharing/wallets/{walletId}:
-    $ref: './paths/sharing/wallet.yaml'
-  /sharing/wallets/{walletId}/entries:
-    $ref: './paths/sharing/wallet-entries.yaml'
+  /sharing/with-me/{profileId}/rows:
+    $ref: './paths/sharing/rows.yaml'
   /todos:
     $ref: './paths/todo/todos.yaml'
   /todos/{id}:

@@ -41,6 +41,10 @@ properties:
                 - $ref: './sync-notice.schema.yaml'
             code:
               type: string
-              enum: [VALIDATION, CONFLICT, ID_TAKEN, UNKNOWN_TABLE, READ_ONLY]
+              enum: [VALIDATION, CONFLICT, ID_TAKEN, UNKNOWN_TABLE, READ_ONLY, STALE, NOT_SHARED]
+              description: >-
+                STALE: an editor's update or delete whose baseSeq isn't the row's current one;
+                NOT_SHARED: the row's wallet isn't shared with the caller as editor
+                (docs/features/sharing.md rules 11–13)
             message:
               type: string

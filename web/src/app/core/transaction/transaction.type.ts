@@ -19,6 +19,8 @@ export interface Transaction {
   debtId: string | null
   /** The event / trip it is tagged to (docs/features/event.md rule 3); null otherwise. */
   eventId: string | null
+  /** The editor of a shared wallet who added it (sharing rule 12); null = the owner. */
+  addedBy: string | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null

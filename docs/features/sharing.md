@@ -1,20 +1,23 @@
 # Family sharing
 
-> Status: **Built (16.1)**; 16.2 (editors write) next — API `src/features/sharing/`, web `core/sharing`, `features/account`
-> (Account › แชร์กระเป๋า), `features/wallets` (แชร์กับฉัน, `/wallets/shared/:id`).
-> Mock-up: [mockups/sharing.html](mockups/sharing.html) (round 2).
+> Status: **Built (16.1, 16.2)** — API `src/features/sharing/`, sync push
+> (`core/database/wallet-access`); web `core/sharing`, `features/account` (Account › แชร์กระเป๋า),
+> the profile switcher and `layout/shared-profile-step`.
+> Mock-ups: [mockups/sharing.html](mockups/sharing.html) (16.1, round 2),
+> [mockups/sharing-16.2.html](mockups/sharing-16.2.html) (16.2, round 2).
 
 ## Purpose
 
 An owner shares some wallets of one profile with family members, who see them online. #16 is two
-parts: **16.1** (this doc) = invitations, members and a **read-only** view of shared wallets for
-every role; **16.2** = an editor adds offline and edits / deletes online (offline-sync rules 14,
-16: `baseSeq`, owner wins, removed member's queued adds `rejected`).
+parts: **16.1** = invitations, members and a read-only view of shared wallets; **16.2** = the
+owner's profile appears in the member's **profile switcher** and works like their own (the same
+tabs, ➕ and transaction sheet), **online only**; an editor adds, edits and deletes transactions
+there (owner's choice at the start of 16.2, mock-up round 2).
 
 ## Out of scope
 
-- Members writing anything (16.2). In 16.1 an editor sees what a viewer sees; the role is stored
-  and shown.
+- Members writing anything but **transactions** of a shared wallet: no wallets, categories,
+  transfers, debts, events or recurring rules. Nothing of a shared profile works offline.
 - Sharing a whole profile, categories, rules, debts or events. Shared wallets count in **no**
   report or total of the member (report.md: own wallets only).
 - Joining by link: an invitation is matched on the **verified email** only (auth.md).
@@ -24,6 +27,8 @@ every role; **16.2** = an editor adds offline and edits / deletes online (offlin
 Schema: `api/src/core/database/schema/sharing.ts` (invites) and `wallet.ts` (members). Both are
 **server only**, never synced; the web keeps what it reads in memory (offline-sync rule 15).
 
+- **transactions.addedBy** (16.2, nullable, no FK): the member who added the row; `null` = the
+  owner. Set by the server, never by a device; kept by every later write.
 - **wallet_members** (from #6): `walletId`, `userId`, `role` (`editor` | `viewer`), `addedAt`.
   One row per shared wallet. A **member** below is one person on one profile of the owner: the
   rows of that user on that profile's wallets, all with **one role**.
@@ -57,37 +62,57 @@ Schema: `api/src/core/database/schema/sharing.ts` (invites) and `wallet.ts` (mem
    effect on the member's next request (rule 16 of offline-sync).
 8. A member sees a shared wallet while it is live and **not archived** and its profile is live;
    otherwise it is gone for them (`404`), membership rows stay until the owner changes them.
-9. What a member reads: the wallet (name, icon, color, currency, balance computed by the server
-   like the app's: initial + transactions ± transfers ± debt entries), the owner's display name
-   and email, their own role, the owner's categories of that profile, and the wallet's entries
-   for a date range: transactions (category, amount, date, note, excludeFromReport), transfer
-   sides as "out" / "in" **without the other wallet**, and debt entries as "in" / "out"
-   **without the debt**. No events, recurring rules or other wallets.
-10. All sharing calls need the network; offline, the web shows what it already read this session
-    and disables every action.
+9. What a member reads of a shared profile (`GET /sharing/with-me/:profileId/rows`): the profile
+   (name, icon, colour), the owner, their role, the people who added rows (names), the shared
+   wallets (name, icon, colour, currency, hidden categories, archived = gone), the owner's
+   categories of that profile, and the wallets' **transactions** (tombstones included, by
+   `changeSeq` like a pull). Transfers and debt entries are **not listed**: their money is folded
+   into the wallet's `initialBalance`, so balances stay right. No events, recurring rules, debts
+   or other wallets.
+10. A shared profile is **online only**: the switcher's "แชร์กับฉัน" group is disabled offline or
+    while the server is down, and a shared profile in use shows a blocked screen until it is back
+    (no old data). Opening the app always starts on an own profile.
+11. An **editor** adds, edits and deletes transactions of the shared wallets (any income /
+    expense row, the owner's too) through `POST /sync/push`, sent at once, never queued. A
+    **viewer** reads only (➕ and the sheet's save / delete are off).
+12. On push, an editor's row is stored as the owner's (`userId` = the owner, so it syncs to the
+    owner's devices), `updatedBy` = the editor, `addedBy` = the editor on a create; fields the
+    editor can't see (`eventId`, `recurringId`, `debtId`) keep the stored values (null on a
+    create). The wallet must be shared with them as editor, before and after a move, and the
+    category must be one of the owner's of that profile (the usual check, as the owner).
+13. An editor's update or delete needs `baseSeq` = the row's current `changeSeq`; otherwise it's
+    `rejected` with `STALE` (the web reloads and says "รายการนี้เพิ่งถูกแก้ไข"). A wallet no
+    longer shared with them as editor is `rejected` with `NOT_SHARED` (the web says so and goes
+    back to an own profile).
+14. **Owner wins**: when the owner's push conflicts (older `baseSeq`) with a version an editor
+    wrote, the owner's version wins whatever the times, even over the editor's delete (the row
+    comes back); the editor gets no notice (they see it on the next load). Between the owner's
+    own devices rule 12 of offline-sync is unchanged.
+15. The owner sees "เพิ่มโดย <name>" on rows with `addedBy`, offline too; the name comes from the
+    profile's members once read online (`GET /sharing/profiles/:id`), else "สมาชิก".
 
 ## Endpoints
 
 All behind `authenticate`; anything the caller may not see is `404`.
 
-| Method | Path                                           | What                                                 |
-| ------ | ---------------------------------------------- | ---------------------------------------------------- |
-| GET    | `/sharing/profiles/:profileId`                 | Owner: members, pending invites, unshared wallets    |
-| POST   | `/sharing/profiles/:profileId/invites`         | Owner: invite `{ email, role, walletIds, lang }`     |
-| POST   | `/sharing/invites/:id/resend`                  | Owner: send the mail again `{ lang }`                |
-| DELETE | `/sharing/invites/:id`                         | Owner: cancel                                        |
-| PUT    | `/sharing/profiles/:profileId/members/:userId` | Owner: `{ role, walletIds }` (empty = remove)        |
-| DELETE | `/sharing/profiles/:profileId/members/:userId` | Owner: remove                                        |
-| GET    | `/sharing/with-me`                             | Member: invites to me + shares grouped by profile    |
-| POST   | `/sharing/invites/:id/accept`                  | Member: accept                                       |
-| POST   | `/sharing/invites/:id/decline`                 | Member: decline                                      |
-| DELETE | `/sharing/with-me/:profileId`                  | Member: leave that owner's profile                   |
-| GET    | `/sharing/wallets/:walletId`                   | Member: wallet + balance + role + owner, categories  |
-| GET    | `/sharing/wallets/:walletId/entries`           | Member: entries `?from=YYYY-MM-DD&to=` (to optional) |
+| Method | Path                                           | What                                              |
+| ------ | ---------------------------------------------- | ------------------------------------------------- |
+| GET    | `/sharing/profiles/:profileId`                 | Owner: members, pending invites, unshared wallets |
+| POST   | `/sharing/profiles/:profileId/invites`         | Owner: invite `{ email, role, walletIds, lang }`  |
+| POST   | `/sharing/invites/:id/resend`                  | Owner: send the mail again `{ lang }`             |
+| DELETE | `/sharing/invites/:id`                         | Owner: cancel                                     |
+| PUT    | `/sharing/profiles/:profileId/members/:userId` | Owner: `{ role, walletIds }` (empty = remove)     |
+| DELETE | `/sharing/profiles/:profileId/members/:userId` | Owner: remove                                     |
+| GET    | `/sharing/with-me`                             | Member: invites to me + shares grouped by profile |
+| POST   | `/sharing/invites/:id/accept`                  | Member: accept                                    |
+| POST   | `/sharing/invites/:id/decline`                 | Member: decline                                   |
+| DELETE | `/sharing/with-me/:profileId`                  | Member: leave that owner's profile                |
+| GET    | `/sharing/with-me/:profileId/rows`             | Member: a shared profile's rows `?since=&limit=`  |
 
 Error codes: `SHARE_SELF`, `SHARE_ALREADY_MEMBER`, `SHARE_INVITE_PENDING` (409),
 `SHARE_MEMBER_LIMIT` (409), `SHARE_WALLETS_INVALID` (422), `SHARE_INVITE_EMPTY` (409),
 `SHARE_DAILY_LIMIT` / `SHARE_RESEND_COOLDOWN` / `RATE_LIMITED` (429 with `Retry-After`).
+Push results for editors (16.2): `rejected` with `STALE` or `NOT_SHARED`.
 
 ## Web screens
 
@@ -97,25 +122,28 @@ Error codes: `SHARE_SELF`, `SHARE_ALREADY_MEMBER`, `SHARE_INVITE_PENDING` (409),
   (⋮ leave), and "เชิญสมาชิก". Sheets: invite (email, role, wallet checklist) and member /
   pending invite (role, wallets, save; ⋮ remove, or resend / cancel). A badge on the row and a
   dot on the Account tab while invites to me are pending.
-- **Wallets tab**: a "แชร์กับฉัน · ของ <owner>" section under the own wallets, not in the total.
-- **Shared wallet** (`/wallets/shared/:id`): balance, month tabs, summary card, entries by day
-  with the owner's categories; ⋮ reload. Read-only.
+- **Profile switcher** (16.2): the own profiles, then "แชร์กับฉัน": one row per owner's profile
+  (name · ของ <owner> · how many wallets · role). Picking one makes every tab show it:
+  Transactions (the shared wallets), Wallets (their balances, no wallet actions or debts),
+  Reports ("รายงานดูได้เฉพาะโปรไฟล์ของคุณ"); ➕ and a row open the usual transaction sheet (no
+  event or repeat rows: none are shared). Offline: the group is disabled, a shared profile in use
+  shows "ใช้งานไม่ได้ขณะออฟไลน์" with a way back. 16.1's "แชร์กับฉัน" section of the Wallets tab
+  and `/wallets/shared/:id` are gone.
 - The data lives in `SharingService` (memory only), loaded after the shell's first render with a
-  dynamic `import()`; it is cleared when the user changes or signs out.
+  dynamic `import()`; it is cleared when the user changes or signs out. A shared profile's rows
+  are put in **TEMP tables** of the in-memory database that shadow the synced ones while it is
+  in use: the screens read them unchanged, and the saved snapshot (the `main` schema only) never
+  holds them (offline-sync rule 15). Own sync rounds wait while a shared profile is in use.
 
 ## Interactions
 
 - Reads `wallets`, `profiles`, `categories`, `transactions`, `transfers`, `debts`,
   `debt_entries`, `users` and `rate_limit_buckets` through `@/core/database/schema`, never other
   features.
+- Sync (16.2): who may write a wallet is `@/core/database/wallet-access` (`walletAccess`), read by
+  `features/sync`; the transactions handler's `shared` hook says which fields an editor keeps.
 - Auth: the invitee signs in the usual way; matching uses `users.email` + `emailVerifiedAt`.
 
-## Open questions (16.2)
+## Open questions
 
-- **A member's add**: `userId` stays the wallet's owner (the row syncs to the owner's devices);
-  a new nullable `addedBy` (the member's user id) shows "เพิ่มโดย …". Decided in 16.1, built in
-  16.2.
-- **Categories**: an editor picks from the owner's categories of that profile (already in
-  `GET /sharing/wallets/:id`).
-- Offline adds, online edit / delete with `baseSeq`, owner wins, removed member's queued adds
-  `rejected`: [offline-sync](offline-sync.md) rules 14 and 16.
+- None for 16.2.

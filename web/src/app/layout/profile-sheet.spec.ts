@@ -23,6 +23,8 @@ describe('ProfileSheet', () => {
 
   const offline = {
     isOpen: signal(true),
+    sharedActive: signal(false),
+    leaveShared: () => undefined,
     isTrusted: trusted,
     meta: signal(null),
     changes,
