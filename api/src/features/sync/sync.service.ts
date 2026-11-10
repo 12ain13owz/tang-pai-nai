@@ -117,7 +117,14 @@ export const createSyncService = ({
       !acting.editor &&
       existing !== null &&
       (op.baseSeq === null || op.baseSeq < existing.row.changeSeq)
-    const write: Write = { tx, userId, ownerId: acting.ownerId, editor: acting.editor, deviceId, now }
+    const write: Write = {
+      tx,
+      userId,
+      ownerId: acting.ownerId,
+      editor: acting.editor,
+      deviceId,
+      now,
+    }
 
     if (op.op === 'delete') {
       return remove(write, op, existing, conflict)

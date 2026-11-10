@@ -89,18 +89,12 @@
       "indexes": {
         "otp_challenges_destination_idx": {
           "name": "otp_challenges_destination_idx",
-          "columns": [
-            "channel",
-            "destination",
-            "created_at"
-          ],
+          "columns": ["channel", "destination", "created_at"],
           "isUnique": false
         },
         "otp_challenges_link_token_hash_idx": {
           "name": "otp_challenges_link_token_hash_idx",
-          "columns": [
-            "link_token_hash"
-          ],
+          "columns": ["link_token_hash"],
           "isUnique": true
         }
       },
@@ -109,12 +103,8 @@
           "name": "otp_challenges_user_id_users_id_fk",
           "tableFrom": "otp_challenges",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -154,12 +144,8 @@
           "name": "password_credentials_user_id_users_id_fk",
           "tableFrom": "password_credentials",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -297,23 +283,17 @@
       "indexes": {
         "sessions_tokenHash_unique": {
           "name": "sessions_tokenHash_unique",
-          "columns": [
-            "token_hash"
-          ],
+          "columns": ["token_hash"],
           "isUnique": true
         },
         "sessions_family_idx": {
           "name": "sessions_family_idx",
-          "columns": [
-            "family_id"
-          ],
+          "columns": ["family_id"],
           "isUnique": false
         },
         "sessions_user_idx": {
           "name": "sessions_user_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         }
       },
@@ -322,12 +302,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -392,17 +368,12 @@
       "indexes": {
         "user_identities_provider_subject_idx": {
           "name": "user_identities_provider_subject_idx",
-          "columns": [
-            "provider",
-            "provider_subject"
-          ],
+          "columns": ["provider", "provider_subject"],
           "isUnique": true
         },
         "user_identities_user_idx": {
           "name": "user_identities_user_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         }
       },
@@ -411,12 +382,8 @@
           "name": "user_identities_user_id_users_id_fk",
           "tableFrom": "user_identities",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -511,16 +478,12 @@
       "indexes": {
         "users_email_unique": {
           "name": "users_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         },
         "users_phone_unique": {
           "name": "users_phone_unique",
-          "columns": [
-            "phone"
-          ],
+          "columns": ["phone"],
           "isUnique": true
         }
       },
@@ -587,9 +550,7 @@
       "indexes": {
         "currencies_change_seq_idx": {
           "name": "currencies_change_seq_idx",
-          "columns": [
-            "change_seq"
-          ],
+          "columns": ["change_seq"],
           "isUnique": true
         }
       },
@@ -682,17 +643,12 @@
       "indexes": {
         "profiles_user_seq_idx": {
           "name": "profiles_user_seq_idx",
-          "columns": [
-            "user_id",
-            "change_seq"
-          ],
+          "columns": ["user_id", "change_seq"],
           "isUnique": false
         },
         "profiles_change_seq_idx": {
           "name": "profiles_change_seq_idx",
-          "columns": [
-            "change_seq"
-          ],
+          "columns": ["change_seq"],
           "isUnique": false
         }
       },
@@ -701,12 +657,8 @@
           "name": "profiles_user_id_users_id_fk",
           "tableFrom": "profiles",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -799,10 +751,7 @@
       "indexes": {
         "change_history_loser_seq_idx": {
           "name": "change_history_loser_seq_idx",
-          "columns": [
-            "loser_user_id",
-            "change_seq"
-          ],
+          "columns": ["loser_user_id", "change_seq"],
           "isUnique": false
         }
       },
@@ -811,12 +760,8 @@
           "name": "change_history_loser_user_id_users_id_fk",
           "tableFrom": "change_history",
           "tableTo": "users",
-          "columnsFrom": [
-            "loser_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["loser_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -867,9 +812,7 @@
       "indexes": {
         "sync_ops_applied_at_idx": {
           "name": "sync_ops_applied_at_idx",
-          "columns": [
-            "applied_at"
-          ],
+          "columns": ["applied_at"],
           "isUnique": false
         }
       },
@@ -878,12 +821,8 @@
           "name": "sync_ops_user_id_users_id_fk",
           "tableFrom": "sync_ops",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -965,9 +904,7 @@
       "indexes": {
         "wallet_members_user_idx": {
           "name": "wallet_members_user_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         }
       },
@@ -976,12 +913,8 @@
           "name": "wallet_members_wallet_id_wallets_id_fk",
           "tableFrom": "wallet_members",
           "tableTo": "wallets",
-          "columnsFrom": [
-            "wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -989,22 +922,15 @@
           "name": "wallet_members_user_id_users_id_fk",
           "tableFrom": "wallet_members",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "wallet_members_wallet_id_user_id_pk": {
-          "columns": [
-            "wallet_id",
-            "user_id"
-          ],
+          "columns": ["wallet_id", "user_id"],
           "name": "wallet_members_wallet_id_user_id_pk"
         }
       },
@@ -1138,24 +1064,17 @@
       "indexes": {
         "wallets_user_seq_idx": {
           "name": "wallets_user_seq_idx",
-          "columns": [
-            "user_id",
-            "change_seq"
-          ],
+          "columns": ["user_id", "change_seq"],
           "isUnique": false
         },
         "wallets_change_seq_idx": {
           "name": "wallets_change_seq_idx",
-          "columns": [
-            "change_seq"
-          ],
+          "columns": ["change_seq"],
           "isUnique": false
         },
         "wallets_profile_idx": {
           "name": "wallets_profile_idx",
-          "columns": [
-            "profile_id"
-          ],
+          "columns": ["profile_id"],
           "isUnique": false
         }
       },
@@ -1164,12 +1083,8 @@
           "name": "wallets_user_id_users_id_fk",
           "tableFrom": "wallets",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1177,12 +1092,8 @@
           "name": "wallets_profile_id_profiles_id_fk",
           "tableFrom": "wallets",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1190,12 +1101,8 @@
           "name": "wallets_currency_code_currencies_code_fk",
           "tableFrom": "wallets",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currency_code"
-          ],
-          "columnsTo": [
-            "code"
-          ],
+          "columnsFrom": ["currency_code"],
+          "columnsTo": ["code"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1323,31 +1230,22 @@
       "indexes": {
         "categories_user_seq_idx": {
           "name": "categories_user_seq_idx",
-          "columns": [
-            "user_id",
-            "change_seq"
-          ],
+          "columns": ["user_id", "change_seq"],
           "isUnique": false
         },
         "categories_change_seq_idx": {
           "name": "categories_change_seq_idx",
-          "columns": [
-            "change_seq"
-          ],
+          "columns": ["change_seq"],
           "isUnique": false
         },
         "categories_profile_idx": {
           "name": "categories_profile_idx",
-          "columns": [
-            "profile_id"
-          ],
+          "columns": ["profile_id"],
           "isUnique": false
         },
         "categories_parent_idx": {
           "name": "categories_parent_idx",
-          "columns": [
-            "parent_id"
-          ],
+          "columns": ["parent_id"],
           "isUnique": false
         }
       },
@@ -1356,12 +1254,8 @@
           "name": "categories_user_id_users_id_fk",
           "tableFrom": "categories",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1369,12 +1263,8 @@
           "name": "categories_profile_id_profiles_id_fk",
           "tableFrom": "categories",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1382,12 +1272,8 @@
           "name": "categories_parent_id_categories_id_fk",
           "tableFrom": "categories",
           "tableTo": "categories",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1529,52 +1415,37 @@
       "indexes": {
         "transactions_user_seq_idx": {
           "name": "transactions_user_seq_idx",
-          "columns": [
-            "user_id",
-            "change_seq"
-          ],
+          "columns": ["user_id", "change_seq"],
           "isUnique": false
         },
         "transactions_change_seq_idx": {
           "name": "transactions_change_seq_idx",
-          "columns": [
-            "change_seq"
-          ],
+          "columns": ["change_seq"],
           "isUnique": false
         },
         "transactions_profile_idx": {
           "name": "transactions_profile_idx",
-          "columns": [
-            "profile_id"
-          ],
+          "columns": ["profile_id"],
           "isUnique": false
         },
         "transactions_wallet_idx": {
           "name": "transactions_wallet_idx",
-          "columns": [
-            "wallet_id"
-          ],
+          "columns": ["wallet_id"],
           "isUnique": false
         },
         "transactions_category_idx": {
           "name": "transactions_category_idx",
-          "columns": [
-            "category_id"
-          ],
+          "columns": ["category_id"],
           "isUnique": false
         },
         "transactions_debt_idx": {
           "name": "transactions_debt_idx",
-          "columns": [
-            "debt_id"
-          ],
+          "columns": ["debt_id"],
           "isUnique": false
         },
         "transactions_event_idx": {
           "name": "transactions_event_idx",
-          "columns": [
-            "event_id"
-          ],
+          "columns": ["event_id"],
           "isUnique": false
         }
       },
@@ -1583,12 +1454,8 @@
           "name": "transactions_user_id_users_id_fk",
           "tableFrom": "transactions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1596,12 +1463,8 @@
           "name": "transactions_profile_id_profiles_id_fk",
           "tableFrom": "transactions",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1609,12 +1472,8 @@
           "name": "transactions_wallet_id_wallets_id_fk",
           "tableFrom": "transactions",
           "tableTo": "wallets",
-          "columnsFrom": [
-            "wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1622,12 +1481,8 @@
           "name": "transactions_category_id_categories_id_fk",
           "tableFrom": "transactions",
           "tableTo": "categories",
-          "columnsFrom": [
-            "category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["category_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1741,38 +1596,27 @@
       "indexes": {
         "transfers_user_seq_idx": {
           "name": "transfers_user_seq_idx",
-          "columns": [
-            "user_id",
-            "change_seq"
-          ],
+          "columns": ["user_id", "change_seq"],
           "isUnique": false
         },
         "transfers_change_seq_idx": {
           "name": "transfers_change_seq_idx",
-          "columns": [
-            "change_seq"
-          ],
+          "columns": ["change_seq"],
           "isUnique": false
         },
         "transfers_profile_idx": {
           "name": "transfers_profile_idx",
-          "columns": [
-            "profile_id"
-          ],
+          "columns": ["profile_id"],
           "isUnique": false
         },
         "transfers_from_wallet_idx": {
           "name": "transfers_from_wallet_idx",
-          "columns": [
-            "from_wallet_id"
-          ],
+          "columns": ["from_wallet_id"],
           "isUnique": false
         },
         "transfers_to_wallet_idx": {
           "name": "transfers_to_wallet_idx",
-          "columns": [
-            "to_wallet_id"
-          ],
+          "columns": ["to_wallet_id"],
           "isUnique": false
         }
       },
@@ -1781,12 +1625,8 @@
           "name": "transfers_user_id_users_id_fk",
           "tableFrom": "transfers",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1794,12 +1634,8 @@
           "name": "transfers_profile_id_profiles_id_fk",
           "tableFrom": "transfers",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1807,12 +1643,8 @@
           "name": "transfers_from_wallet_id_wallets_id_fk",
           "tableFrom": "transfers",
           "tableTo": "wallets",
-          "columnsFrom": [
-            "from_wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["from_wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1820,12 +1652,8 @@
           "name": "transfers_to_wallet_id_wallets_id_fk",
           "tableFrom": "transfers",
           "tableTo": "wallets",
-          "columnsFrom": [
-            "to_wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["to_wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2009,52 +1837,37 @@
       "indexes": {
         "recurring_rules_user_seq_idx": {
           "name": "recurring_rules_user_seq_idx",
-          "columns": [
-            "user_id",
-            "change_seq"
-          ],
+          "columns": ["user_id", "change_seq"],
           "isUnique": false
         },
         "recurring_rules_change_seq_idx": {
           "name": "recurring_rules_change_seq_idx",
-          "columns": [
-            "change_seq"
-          ],
+          "columns": ["change_seq"],
           "isUnique": false
         },
         "recurring_rules_profile_idx": {
           "name": "recurring_rules_profile_idx",
-          "columns": [
-            "profile_id"
-          ],
+          "columns": ["profile_id"],
           "isUnique": false
         },
         "recurring_rules_wallet_idx": {
           "name": "recurring_rules_wallet_idx",
-          "columns": [
-            "wallet_id"
-          ],
+          "columns": ["wallet_id"],
           "isUnique": false
         },
         "recurring_rules_category_idx": {
           "name": "recurring_rules_category_idx",
-          "columns": [
-            "category_id"
-          ],
+          "columns": ["category_id"],
           "isUnique": false
         },
         "recurring_rules_to_wallet_idx": {
           "name": "recurring_rules_to_wallet_idx",
-          "columns": [
-            "to_wallet_id"
-          ],
+          "columns": ["to_wallet_id"],
           "isUnique": false
         },
         "recurring_rules_debt_idx": {
           "name": "recurring_rules_debt_idx",
-          "columns": [
-            "debt_id"
-          ],
+          "columns": ["debt_id"],
           "isUnique": false
         }
       },
@@ -2063,12 +1876,8 @@
           "name": "recurring_rules_user_id_users_id_fk",
           "tableFrom": "recurring_rules",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2076,12 +1885,8 @@
           "name": "recurring_rules_profile_id_profiles_id_fk",
           "tableFrom": "recurring_rules",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2089,12 +1894,8 @@
           "name": "recurring_rules_wallet_id_wallets_id_fk",
           "tableFrom": "recurring_rules",
           "tableTo": "wallets",
-          "columnsFrom": [
-            "wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2102,12 +1903,8 @@
           "name": "recurring_rules_category_id_categories_id_fk",
           "tableFrom": "recurring_rules",
           "tableTo": "categories",
-          "columnsFrom": [
-            "category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["category_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2115,12 +1912,8 @@
           "name": "recurring_rules_to_wallet_id_wallets_id_fk",
           "tableFrom": "recurring_rules",
           "tableTo": "wallets",
-          "columnsFrom": [
-            "to_wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["to_wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2241,38 +2034,27 @@
       "indexes": {
         "debt_entries_user_seq_idx": {
           "name": "debt_entries_user_seq_idx",
-          "columns": [
-            "user_id",
-            "change_seq"
-          ],
+          "columns": ["user_id", "change_seq"],
           "isUnique": false
         },
         "debt_entries_change_seq_idx": {
           "name": "debt_entries_change_seq_idx",
-          "columns": [
-            "change_seq"
-          ],
+          "columns": ["change_seq"],
           "isUnique": false
         },
         "debt_entries_profile_idx": {
           "name": "debt_entries_profile_idx",
-          "columns": [
-            "profile_id"
-          ],
+          "columns": ["profile_id"],
           "isUnique": false
         },
         "debt_entries_debt_idx": {
           "name": "debt_entries_debt_idx",
-          "columns": [
-            "debt_id"
-          ],
+          "columns": ["debt_id"],
           "isUnique": false
         },
         "debt_entries_wallet_idx": {
           "name": "debt_entries_wallet_idx",
-          "columns": [
-            "wallet_id"
-          ],
+          "columns": ["wallet_id"],
           "isUnique": false
         }
       },
@@ -2281,12 +2063,8 @@
           "name": "debt_entries_user_id_users_id_fk",
           "tableFrom": "debt_entries",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2294,12 +2072,8 @@
           "name": "debt_entries_profile_id_profiles_id_fk",
           "tableFrom": "debt_entries",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2307,12 +2081,8 @@
           "name": "debt_entries_debt_id_debts_id_fk",
           "tableFrom": "debt_entries",
           "tableTo": "debts",
-          "columnsFrom": [
-            "debt_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["debt_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2320,12 +2090,8 @@
           "name": "debt_entries_wallet_id_wallets_id_fk",
           "tableFrom": "debt_entries",
           "tableTo": "wallets",
-          "columnsFrom": [
-            "wallet_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["wallet_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2446,31 +2212,22 @@
       "indexes": {
         "debts_user_seq_idx": {
           "name": "debts_user_seq_idx",
-          "columns": [
-            "user_id",
-            "change_seq"
-          ],
+          "columns": ["user_id", "change_seq"],
           "isUnique": false
         },
         "debts_change_seq_idx": {
           "name": "debts_change_seq_idx",
-          "columns": [
-            "change_seq"
-          ],
+          "columns": ["change_seq"],
           "isUnique": false
         },
         "debts_profile_idx": {
           "name": "debts_profile_idx",
-          "columns": [
-            "profile_id"
-          ],
+          "columns": ["profile_id"],
           "isUnique": false
         },
         "debts_category_idx": {
           "name": "debts_category_idx",
-          "columns": [
-            "category_id"
-          ],
+          "columns": ["category_id"],
           "isUnique": false
         }
       },
@@ -2479,12 +2236,8 @@
           "name": "debts_user_id_users_id_fk",
           "tableFrom": "debts",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2492,12 +2245,8 @@
           "name": "debts_profile_id_profiles_id_fk",
           "tableFrom": "debts",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2505,12 +2254,8 @@
           "name": "debts_currency_code_currencies_code_fk",
           "tableFrom": "debts",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currency_code"
-          ],
-          "columnsTo": [
-            "code"
-          ],
+          "columnsFrom": ["currency_code"],
+          "columnsTo": ["code"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2518,12 +2263,8 @@
           "name": "debts_category_id_categories_id_fk",
           "tableFrom": "debts",
           "tableTo": "categories",
-          "columnsFrom": [
-            "category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["category_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2637,24 +2378,17 @@
       "indexes": {
         "events_user_seq_idx": {
           "name": "events_user_seq_idx",
-          "columns": [
-            "user_id",
-            "change_seq"
-          ],
+          "columns": ["user_id", "change_seq"],
           "isUnique": false
         },
         "events_change_seq_idx": {
           "name": "events_change_seq_idx",
-          "columns": [
-            "change_seq"
-          ],
+          "columns": ["change_seq"],
           "isUnique": false
         },
         "events_profile_idx": {
           "name": "events_profile_idx",
-          "columns": [
-            "profile_id"
-          ],
+          "columns": ["profile_id"],
           "isUnique": false
         }
       },
@@ -2663,12 +2397,8 @@
           "name": "events_user_id_users_id_fk",
           "tableFrom": "events",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2676,12 +2406,8 @@
           "name": "events_profile_id_profiles_id_fk",
           "tableFrom": "events",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2760,24 +2486,17 @@
       "indexes": {
         "wallet_invites_profile_email_idx": {
           "name": "wallet_invites_profile_email_idx",
-          "columns": [
-            "profile_id",
-            "email"
-          ],
+          "columns": ["profile_id", "email"],
           "isUnique": true
         },
         "wallet_invites_email_idx": {
           "name": "wallet_invites_email_idx",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": false
         },
         "wallet_invites_expires_idx": {
           "name": "wallet_invites_expires_idx",
-          "columns": [
-            "expires_at"
-          ],
+          "columns": ["expires_at"],
           "isUnique": false
         }
       },
@@ -2786,12 +2505,8 @@
           "name": "wallet_invites_profile_id_profiles_id_fk",
           "tableFrom": "wallet_invites",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2799,12 +2514,8 @@
           "name": "wallet_invites_owner_id_users_id_fk",
           "tableFrom": "wallet_invites",
           "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }

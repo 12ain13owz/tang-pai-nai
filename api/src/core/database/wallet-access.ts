@@ -51,4 +51,3 @@ export const walletAccess = async (
     : undefined
   return { ownerId: wallet.ownerId, role: member?.role ?? null }
 }
-

@@ -8,7 +8,7 @@ import type { AppResponse } from '@/shared/types'
 import { createSharingController } from './sharing.controller'
 import { EMAIL, ID, setUpSharing } from './sharing.fixture'
 import { createSharingRouter } from './sharing.routes'
-import type { SharedEntries, SharedWithMe, SharingInvite } from './sharing.type'
+import type { SharedProfileRows, SharedWithMe, SharingInvite } from './sharing.type'
 
 // The HTTP side of /sharing (auth, validation, envelopes, codes). The rules are in
 // sharing.service.test.ts.
@@ -73,7 +73,7 @@ describe('/sharing', () => {
     expect(Number(res.headers['retry-after'])).toBeGreaterThan(0)
   })
 
-  it('lets the invitee accept, then read the entries of a range', async () => {
+  it("lets the invitee accept, then read the shared profile's rows", async () => {
     const created = (await invite({ email: EMAIL.bob, role: 'editor', walletIds: [ID.home] }))
       .body as AppResponse<SharingInvite>
     const auth = await bearer(ID.bob)
@@ -86,21 +86,24 @@ describe('/sharing', () => {
       .body as AppResponse<SharedWithMe>
     expect(mine.data?.shares[0].wallets.map((wallet) => wallet.id)).toEqual([ID.home])
 
-    const entries = await request(app)
-      .get(`/sharing/wallets/${ID.home}/entries?from=2026-11-01&to=2026-11-30`)
+    const rows = await request(app)
+      .get(`/sharing/with-me/${ID.pa}/rows?since=2&limit=1`)
       .set('Authorization', auth)
-    expect(entries.status).toBe(HttpStatus.OK)
-    expect((entries.body as AppResponse<SharedEntries>).data?.entries).toHaveLength(3)
+    expect(rows.status).toBe(HttpStatus.OK)
+    expect((rows.body as AppResponse<SharedProfileRows>).data).toMatchObject({
+      cursor: 6,
+      hasMore: true,
+    })
 
     const bad = await request(app)
-      .get(`/sharing/wallets/${ID.home}/entries?from=nope`)
+      .get(`/sharing/with-me/${ID.pa}/rows?limit=0`)
       .set('Authorization', auth)
     expect(bad.status).toBe(HttpStatus.UNPROCESSABLE_ENTITY)
   })
 
-  it('answers 404 for a wallet that is not shared with the caller', async () => {
+  it('answers 404 for a profile that shares nothing with the caller', async () => {
     const res = await request(app)
-      .get(`/sharing/wallets/${ID.home}`)
+      .get(`/sharing/with-me/${ID.pa}/rows`)
       .set('Authorization', await bearer(ID.carol))
     expect(res.status).toBe(HttpStatus.NOT_FOUND)
   })

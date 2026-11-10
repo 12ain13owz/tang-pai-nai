@@ -503,3 +503,210 @@ describe('createSyncService › cleanup', () => {
     expect(await memory.repo.purgedSeq()).toBe(2)
   })
 })
+
+// Docs/features/sharing.md rules 11–14: a table whose rows live in a wallet, which Alice owns and
+// shares with Bob (editor) and Carol (viewer); Dave's wallet is Dave's.
+const CAROL = 'user-carol'
+const DAVE = 'user-dave'
+
+const validateEntry = (input: unknown): SyncValidation => {
+  const row = input as Record<string, unknown>
+  return {
+    ok: true,
+    row: {
+      id: String(row.id),
+      walletId: String(row.walletId),
+      title: String(row.title),
+      link: typeof row.link === 'string' ? row.link : null,
+      createdAt: Number(row.createdAt),
+      updatedAt: Number(row.updatedAt),
+      deletedAt: typeof row.deletedAt === 'number' ? row.deletedAt : null,
+    },
+  }
+}
+
+/** The `changeSeq` an applied or overridden result answered. */
+const seq = (result: OpResult): number | null =>
+  result.status === 'rejected' ? null : result.changeSeq
+
+const setupShared = () => {
+  let now = NOW
+  let ids = 0
+  const roles = new Map<string, 'editor' | 'viewer'>([
+    [BOB, 'editor'],
+    [CAROL, 'viewer'],
+  ])
+  const owners: Record<string, string> = { home: ALICE, cash: ALICE, daves: DAVE }
+  const registry = createSyncRegistry()
+  const noop = async () => Promise.reject(new Error('not used by the memory repository'))
+  registry.register({
+    table: 'entries',
+    pull: noop,
+    push: {
+      validate: validateEntry,
+      find: noop,
+      check: noop,
+      write: noop,
+      purge: noop,
+      shared: {
+        walletOf: (row) => (typeof row.walletId === 'string' ? row.walletId : null),
+        forEditor: (row, stored, editorId) => ({
+          ...row,
+          link: stored?.link ?? null,
+          addedBy: stored ? (stored.addedBy ?? null) : editorId,
+        }),
+        forOwner: (row, stored) => ({ ...row, addedBy: stored?.addedBy ?? null }),
+      },
+    },
+  })
+  const memory = createMemorySyncRepository({
+    walletAccess: (userId, walletId) => {
+      const ownerId = new Map(Object.entries(owners)).get(walletId)
+      if (!ownerId) {
+        return null
+      }
+      if (ownerId === userId) {
+        return { ownerId, role: 'owner' }
+      }
+      return { ownerId, role: walletId === 'daves' ? null : (roles.get(userId) ?? null) }
+    },
+  })
+  const service = createSyncService({
+    syncRepo: memory.repo,
+    registry,
+    clock: () => now,
+    newId: () => `history-${++ids}`,
+  })
+  const push = async (userId: string, pushed: Partial<PushOp> & { row: PushOp['row'] }) =>
+    one(service, userId, userId === ALICE ? PHONE : LAPTOP, op({ table: 'entries', ...pushed }))
+  const entry = (id: string, title: string, extra: Record<string, unknown> = {}) => ({
+    id,
+    walletId: 'home',
+    title,
+    createdAt: now,
+    updatedAt: now,
+    ...extra,
+  })
+  return {
+    service,
+    memory,
+    push,
+    entry,
+    roles,
+    tick: (ms: number) => {
+      now += ms
+    },
+  }
+}
+
+describe('createSyncService › push to a shared wallet (sharing rules 11–14)', () => {
+  it("stores an editor's add as the owner's row, with addedBy and updatedBy = the editor", async () => {
+    const { push, entry, memory } = setupShared()
+    const result = await push(BOB, { row: entry('e1', 'Rice', { link: 'x', addedBy: ALICE }) })
+    expect(result).toMatchObject({
+      status: 'applied',
+      row: { id: 'e1', title: 'Rice', link: null, addedBy: BOB, updatedBy: BOB },
+    })
+    expect(memory.row('entries', 'e1')?.ownerId).toBe(ALICE)
+  })
+
+  it("lets an editor change and delete the owner's row with the current baseSeq", async () => {
+    const { push, entry, memory, tick } = setupShared()
+    const added = await push(ALICE, { row: entry('e1', 'Rice', { link: 'trip' }) })
+    tick(1_000)
+    const edited = await push(BOB, {
+      row: entry('e1', 'Rice and egg'),
+      baseSeq: seq(added),
+    })
+    expect(edited).toMatchObject({
+      status: 'applied',
+      row: { title: 'Rice and egg', link: 'trip', addedBy: null, updatedBy: BOB },
+    })
+    const removed = await push(BOB, {
+      op: 'delete',
+      row: { id: 'e1', updatedAt: NOW + 2_000 },
+      baseSeq: seq(edited),
+    })
+    expect(removed).toMatchObject({ status: 'applied', row: { updatedBy: BOB } })
+    expect(memory.row('entries', 'e1')?.row.deletedAt).not.toBeNull()
+    expect(memory.row('entries', 'e1')?.ownerId).toBe(ALICE)
+  })
+
+  it('refuses an editor write with an older baseSeq as STALE, showing the current row', async () => {
+    const { push, entry } = setupShared()
+    const added = await push(ALICE, { row: entry('e1', 'Rice') })
+    const changed = await push(ALICE, { row: entry('e1', 'Rice!'), baseSeq: seq(added) })
+    const stale = await push(BOB, { row: entry('e1', 'Mine'), baseSeq: seq(added) })
+    expect(stale).toMatchObject({
+      status: 'rejected',
+      code: 'STALE',
+      row: { title: 'Rice!', changeSeq: seq(changed) },
+    })
+    const staleDelete = await push(BOB, {
+      op: 'delete',
+      row: { id: 'e1', updatedAt: NOW },
+      baseSeq: null,
+    })
+    expect(staleDelete).toMatchObject({ status: 'rejected', code: 'STALE' })
+  })
+
+  it('refuses a viewer, a removed member and a move out of the shared wallets as NOT_SHARED', async () => {
+    const { push, entry, roles } = setupShared()
+    expect(await push(CAROL, { row: entry('e1', 'Rice') })).toMatchObject({
+      status: 'rejected',
+      code: 'NOT_SHARED',
+      row: null,
+    })
+    const added = await push(ALICE, { row: entry('e2', 'Tea') })
+    expect(
+      await push(BOB, { row: entry('e2', 'Tea', { walletId: 'daves' }), baseSeq: seq(added) })
+    ).toMatchObject({ status: 'rejected', code: 'NOT_SHARED', row: null })
+    roles.delete(BOB)
+    expect(await push(BOB, { row: entry('e2', 'Mine'), baseSeq: seq(added) })).toMatchObject({
+      status: 'rejected',
+      code: 'NOT_SHARED',
+      row: null,
+    })
+    expect(await push(BOB, { row: entry('e3', 'New') })).toMatchObject({ code: 'NOT_SHARED' })
+  })
+
+  it("lets the owner win over an editor's later edit, even a delete, with no notice", async () => {
+    const { push, entry, memory, tick } = setupShared()
+    const added = await push(ALICE, { row: entry('e1', 'Rice') })
+    tick(1_000)
+    const byBob = await push(BOB, { row: entry('e1', 'Bob'), baseSeq: seq(added) })
+    tick(1_000)
+    // Alice's offline edit, made before Bob's (an older updatedAt and baseSeq), still wins.
+    const byAlice = await push(ALICE, {
+      row: entry('e1', 'Alice', { updatedAt: NOW - 5_000 }),
+      baseSeq: seq(added),
+    })
+    expect(byAlice).toMatchObject({ status: 'applied', row: { title: 'Alice' } })
+    await push(BOB, {
+      op: 'delete',
+      row: { id: 'e1', updatedAt: NOW + 3_000 },
+      baseSeq: seq(byAlice),
+    })
+    const back = await push(ALICE, { row: entry('e1', 'Back'), baseSeq: seq(byAlice) })
+    expect(back).toMatchObject({ status: 'applied', row: { title: 'Back', deletedAt: null } })
+    expect(byBob.status).toBe('applied')
+    expect(memory.history()).toEqual([])
+  })
+
+  it('keeps addedBy when the owner writes the row afterwards', async () => {
+    const { push, entry } = setupShared()
+    const added = await push(BOB, { row: entry('e1', 'Rice') })
+    const edited = await push(ALICE, {
+      row: entry('e1', 'Rice', { addedBy: null }),
+      baseSeq: seq(added),
+    })
+    expect(edited).toMatchObject({ status: 'applied', row: { addedBy: BOB, updatedBy: ALICE } })
+  })
+
+  it("still refuses another user's row in a table without the shared hook as ID_TAKEN", async () => {
+    const { service } = setup()
+    await one(service, ALICE, PHONE, op({ row: note('n1', 'Coffee', NOW) }))
+    const result = await one(service, BOB, LAPTOP, op({ row: note('n1', 'Tea', NOW) }))
+    expect(result).toMatchObject({ status: 'rejected', code: 'ID_TAKEN', row: null })
+  })
+})
