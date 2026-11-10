@@ -1,0 +1,8 @@
+type: object
+description: A profile as the switcher shows it
+required: [id, name, icon, color]
+properties:
+  id: { type: string, format: uuid }
+  name: { type: string }
+  icon: { type: string, example: lucideHouse }
+  color: { type: string, example: '#b45309' }
