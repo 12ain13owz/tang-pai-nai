@@ -75,14 +75,18 @@ Owner's rule (after #16.1): **a component used in more than one place lives in
 - "More than one place" = two features, or a feature and `layout/`. A component used only
   inside one feature stays in that feature's `components/`.
 - Put it in `shared/components/<group>/` with **its own barrel** (`money-summary`, `period`,
-  `sheet`). A module exported from a barrel the shell imports lands in the initial bundle even
-  when only a lazy screen uses it (ROADMAP → "Known, for later"), so never add a lazy screen's
-  component to a barrel the shell already uses, and check the build's initial total after a move.
+  `sheet`, `date-row`, `wallet-pick`). A module exported from a barrel the shell imports lands
+  in the initial bundle even when only a lazy screen uses it (ROADMAP → "Known, for later"), so
+  never add a lazy screen's component to a barrel the shell already uses, and check the build's
+  initial total after a move.
 - `shared/` can't read `core/` services: pass data in through `input()` (already formatted, like
-  `MoneySummaryLine`) and send actions out through `output()`; the pages keep the services.
+  `MoneySummaryLine`, `WalletPickItem`) and send actions out through `output()`; the pages keep
+  the services. `app-date-row` takes `today` and `locale` from the sheet for the same reason.
+- Only components that do the same job are shared; ones that only partly match stay where they
+  are (16R left the debts' `category-pick`, the Reports summary card and the day cards).
 - Form controls follow the same rule as `*-field` wrappers in `shared/components/form` (§3 Forms).
 - When you find a copy, don't add a third one: move it in the same PR if it is small, or list
-  it in ROADMAP (16R lists the ones known after 16.1).
+  it in ROADMAP.
 
 ### App shell & PWA
 
@@ -351,8 +355,9 @@ values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `rem
   a transfer.
 - UI: `layout/transactions-header` (the tab's header, `@defer`red by `app-header` for the
   bundle), `layout/view-wallet-sheet`, `layout/custom-range-sheet`, `layout/transaction-sheet`
-  (views `form` / `wallet` / `category` / `note` / `confirmDiscard`; keypad state: it closes on
-  any other control of the form, `leaveAmount`; save and add, copy; the shell
+  (views `form` / `wallet` / `category` / `note` / `confirmDiscard`; the date row and the wallet
+  view are `shared/components/date-row` and `wallet-pick`, as in the transfer sheet; keypad
+  state: it closes on any other control of the form, `leaveAmount`; save and add, copy; the shell
   `@defer`s all three), `features/transactions` (the page; rows drawn 100 at a time with an
   `IntersectionObserver` sentinel; its summary card is `shared/components/money-summary`
   (`app-money-summary-card`, also used by a shared wallet's page, so the two never drift). ➕
@@ -456,7 +461,8 @@ Spec: [debt.md](../docs/features/debt.md).
   the transaction sheet shows a "หนี้" row that opens the debt.
 - UI: `features/debts` (`/wallets/debts`, mounted in `app.routes.ts` before `wallets`): the list
   and debt pages render `components/debt-sheets` (each sheet `@defer`red on its signal); the
-  sheets share `wallet-pick`, `category-pick` and `date-row`. A debt entry row on the
+  sheets share `components/category-pick` and the shared `app-wallet-pick` (rows from
+  `walletPickItems()` in `debt-view.ts`) and `app-date-row`. A debt entry row on the
   Transactions tab navigates to `/wallets/debts/<id>?entry=<entryId>`. Validators of a sheet's
   form run while the form is built, so they read the control's parent, never fields declared
   after the form.
@@ -486,9 +492,9 @@ Spec: [event.md](../docs/features/event.md).
   edit, fix and copy start from the row's live event; "ทำซ้ำ" saves none (rules carry no event).
   A create state may carry `eventId` (the event page's "เพิ่มรายการ").
 - UI: `features/events` (`/transactions/events`, mounted in `app.routes.ts` before
-  `transactions`): the list and event pages `@defer` `components/event-sheet` (with its own copy
-  of the debts' date row, to move to `shared/components` in 16R); `event-view.ts` (`eventDates`
-  with `formatRange`, `counted` for the one/many keys).
+  `transactions`): the list and event pages `@defer` `components/event-sheet` (dates in the
+  shared `app-date-row`); `event-view.ts` (`eventDates` with `formatRange`, `counted` for the
+  one/many keys).
 - Specs: `core/event/event-testing.ts` (`setUpEvents`: `setUpDebts` plus an `event` helper),
   `event.service.spec.ts`, `features/events/events.spec.ts`, the transaction sheet's
   `event / trip` block.

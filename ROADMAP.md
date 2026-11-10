@@ -90,8 +90,8 @@ merging.
 | 14  | Event / trip                   | ✅  | ✅  | events per profile, one per transaction, totals computed, default by date, close / reopen; under `/transactions/events`. [spec](docs/features/event.md)                  |
 | 15  | CSV export + move transactions | —   | ✅  | owner cut search and filters; Account › ส่งออก CSV, "ย้ายรายการ" in the category sheet, no API change. [spec](docs/features/export.md)                                   |
 | 16  | Family sharing                 | ✅  | ✅  | 16.1 invites per person, Account › แชร์กระเป๋า; 16.2 shared profiles in the switcher, online only, editors write. [spec](docs/features/sharing.md)                       |
-| 16R | **Shared components** ← next   | —   | ⬜  | after 16.2, before #17: components used in more than one place move to `shared/components` (web/AGENTS.md §2). Known: `date-row` ×2                                      |
-| 17  | Deploy (Vercel)                | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
+| 16R | Shared components              | —   | ✅  | `date-row` (4 sheets) and `wallet-pick` (3 sheets) moved to `shared/components`; same look, same initial bundle                                                          |
+| 17  | **Deploy (Vercel)** ← next     | ⬜  | ⬜  | **deferred** until the owner asks. Vercel ×2, `/api` rewrite, previews, real mail provider, API keys                                                                     |
 
 ✅ done · 🚧 in progress · ⬜ not started · ⏸ deferred to the backlog · — not applicable
 
@@ -101,16 +101,28 @@ decision "Local-first").
 
 ---
 
-## Next: Shared components refactor (16R)
+## Next: Deploy (#17)
 
-**Order** (owner, after 16.1): **16R**, then #17 (deploy) last, when the owner asks. 16R is one PR
-with no behaviour change: list every component used in more than one place (or copied), show the
-list to the owner, move what they confirm under `shared/components/<group>/` (web/AGENTS.md §2 →
-"Shared components"), and check that the initial bundle doesn't grow. Known so far:
-`features/debts/components/date-row.ts` and its copy in `features/events/components/date-row.ts`;
-also look at the debts' `wallet-pick` / `category-pick` against the transaction sheet's views, and
-`features/reports/components/summary-card` against `shared/components/money-summary` (the
-Transactions tab's card, shared since 16.1).
+Only when the owner asks: the steps are under "Later: Deploy (#17)" below.
+
+---
+
+## Done: Shared components refactor (16R)
+
+One PR, no behaviour change. The owner's rule: components that do the same job move to
+`shared/components/<group>/` (web/AGENTS.md §2); ones that only partly match stay where they are.
+
+- `shared/components/date-row` (`app-date-row`): the debt, event, transaction and transfer sheets'
+  date row (was the debts' component, a copy in events and inline markup in the two layout sheets).
+  The sheets pass `today` and `locale`; `ariaLabel` keeps the transaction form's "วันที่".
+- `shared/components/wallet-pick` (`app-wallet-pick`, `WalletPickItem`, `walletPickItem()`): the
+  debt sheets' picker, the transfer sheet's `pick` view and the transaction sheet's `wallet` view
+  (no balance or note there). The sheets format the rows; `empty` is the no-wallet line.
+- Checked and left alone (they differ): the debts' `category-pick` (one feature; the transaction
+  sheet's tree looks different), the Reports summary card (another design from `money-summary`),
+  the day cards (rows differ per page), the wallet-corner badge, `layout/repeat-row`.
+- Verified: initial total still 737.4 kB, neither component in `main`; Playwright before/after
+  (th/light, en/dark, 375×812) identical to the pixel; 648 web tests.
 
 Known, for later:
 

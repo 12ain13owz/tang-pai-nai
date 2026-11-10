@@ -204,7 +204,8 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   screen readers): wallet, amount (the currency code and the figures large, each number grouped
   in thousands as typed, `8,500+1,000`, after #12; a small "จำนวนเงิน"
   over them since it has no icon), category, note, date (‹ › a day, the middle opens the date
-  picker), and less used options folded under "เพิ่มเติม". The amount is typed on an
+  picker; `app-date-row`, the same row in the transfer, debt and event sheets), and less used
+  options folded under "เพิ่มเติม". The amount is typed on an
   **on-screen calculator keypad** (`app-calc-keypad`: C ÷ × ⌫ / digits / 000 . =) that opens by
   itself when adding and closes when any other control is used (it belongs to the amount row);
   the main button sits above it, with "บันทึกแล้วเพิ่มต่อ" as an outline icon beside it when
