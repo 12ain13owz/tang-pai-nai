@@ -58,5 +58,5 @@ export const authService = createAuthService({
 })
 const authController = createAuthController(authService, { webOrigin: env.WEB_ORIGIN })
 
-export const authRouter = createAuthRouter(authController, env.WEB_ORIGIN)
+export const authRouter = createAuthRouter(authController, env.WEB_ORIGIN, env.CRON_SECRET)
 export type { User } from './auth.entity'

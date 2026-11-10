@@ -1,5 +1,6 @@
 import { AppError, ErrorLogger } from '@/core/error'
-import { ERRORS, ErrorSeverity, HttpStatus } from '@/shared/constants'
+import { logger } from '@/core/logger'
+import { ERRORS, ErrorSeverity, HttpStatus, LOG, SUCCESS } from '@/shared/constants'
 import { createResponse } from '@/shared/utils'
 import {
   AUTH_LIMITS,
@@ -10,6 +11,7 @@ import {
 } from './auth.const'
 import type {
   Caller,
+  CleanupResult,
   ClientContext,
   SessionSummary,
   SignInResult,
@@ -575,6 +577,18 @@ export const createAuthController = (authService: AuthService, config: AuthContr
     }
   }
 
+  /** Rule 20, daily from Vercel Cron (`requireCronSecret` in front). */
+  const cleanup = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const data: CleanupResult = await authService.cleanup()
+      logger.info(LOG.AUTH.cleanedUp(data.challenges, data.sessions, data.rateLimitBuckets))
+      const response = createResponse(SUCCESS.OK, data)
+      res.status(HttpStatus.OK).json(response)
+    } catch (error) {
+      next(error)
+    }
+  }
+
   return {
     emailStart,
     emailVerify,
@@ -600,6 +614,7 @@ export const createAuthController = (authService: AuthService, config: AuthContr
     sessions,
     sessionRevoke,
     sessionsRevokeOthers,
+    cleanup,
   }
 }
 

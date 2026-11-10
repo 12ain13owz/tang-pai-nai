@@ -1,0 +1,25 @@
+get:
+  tags:
+    - Auth
+  summary: Daily auth cleanup (Vercel Cron)
+  description: >-
+    Deletes auth challenges, sessions and rate-limit buckets that ended over 7 days ago (auth rule
+    20), as `npm run auth:cleanup` does. Called daily by Vercel Cron with `CRON_SECRET`.
+  operationId: authCleanup
+  security:
+    - cronSecret: []
+  responses:
+    '200':
+      description: Cleanup done; how many rows it removed
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/auth-cleanup-response.schema.yaml'
+    '401':
+      $ref: '../../components/responses/error.response.yaml'
+    '404':
+      description: "`CRON_SECRET` is not set: the route doesn't exist"
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/models/error.schema.yaml'

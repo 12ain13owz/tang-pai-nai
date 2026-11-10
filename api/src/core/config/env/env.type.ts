@@ -15,6 +15,7 @@ export type EnvConfig = {
   LOG_LEVEL_FILE: LogLevel
   LOG_LEVEL_ERROR_FILE: LogLevel
   LOG_SILENT: boolean
+  LOG_FILE_ENABLED: boolean
   SHUTDOWN_TIMEOUT_MS: number
   EMAIL_PROVIDER: EmailProviderName
   EMAIL_FROM: string
@@ -34,4 +35,5 @@ export type EnvConfig = {
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   GOOGLE_ISSUER: string
+  CRON_SECRET?: string
 }

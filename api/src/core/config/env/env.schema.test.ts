@@ -113,4 +113,23 @@ describe('envSchema', () => {
     expect(dev.success && dev.data.GOOGLE_ISSUER).toBe('http://localhost:4400')
     expect(prod.error?.issues.map((issue) => issue.path.join('.'))).toEqual(['GOOGLE_ISSUER'])
   })
+
+  it('defaults PORT to 3000 and keeps log files on when they are not set (Vercel sets no PORT)', () => {
+    const { PORT: _port, ...rest } = validEnv
+    const result = envSchema.safeParse(rest)
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.PORT).toBe(3000)
+      expect(result.data.LOG_FILE_ENABLED).toBe(true)
+    }
+  })
+
+  it('treats an empty CRON_SECRET as unset and refuses one shorter than 32 characters', () => {
+    const empty = envSchema.safeParse({ ...validEnv, CRON_SECRET: '' })
+    const short = envSchema.safeParse({ ...validEnv, CRON_SECRET: 'x'.repeat(31) })
+
+    expect(empty.success && empty.data.CRON_SECRET).toBeUndefined()
+    expect(short.success).toBe(false)
+  })
 })

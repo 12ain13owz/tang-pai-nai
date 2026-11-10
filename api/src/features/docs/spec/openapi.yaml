@@ -47,6 +47,8 @@ paths:
     $ref: './paths/auth/phone.yaml'
   /auth/phone/confirm:
     $ref: './paths/auth/phone-confirm.yaml'
+  /auth/cleanup:
+    $ref: './paths/auth/cleanup.yaml'
   /auth/refresh:
     $ref: './paths/auth/refresh.yaml'
   /auth/sign-out:
@@ -71,6 +73,8 @@ paths:
     $ref: './paths/sync/pull.yaml'
   /sync/push:
     $ref: './paths/sync/push.yaml'
+  /sync/cleanup:
+    $ref: './paths/sync/cleanup.yaml'
   /sharing/profiles/{profileId}:
     $ref: './paths/sharing/profile.yaml'
   /sharing/profiles/{profileId}/invites:
@@ -110,6 +114,10 @@ components:
       in: cookie
       name: __Host-rt
       description: Opaque refresh token, set by the API; never readable by the web app
+    cronSecret:
+      type: http
+      scheme: bearer
+      description: '`CRON_SECRET`, sent by Vercel Cron (scheduled cleanups only)'
     googleFlowCookie:
       type: apiKey
       in: cookie

@@ -13,7 +13,8 @@ const optionalSecret = z
 
 export const envSchema: z.ZodType<EnvConfig> = z
   .object({
-    PORT: z.coerce.number().int().positive().max(65535),
+    // Vercel runs the app as a function and sets no PORT; only `npm run dev` / `start` listen.
+    PORT: z.coerce.number().int().positive().max(65535).default(3000),
     NODE_ENV: z.enum([AppEnv.DEVELOPMENT, AppEnv.PRODUCTION]),
     BASE_URL: z.string(),
     CORS_ORIGINS: z
@@ -29,6 +30,8 @@ export const envSchema: z.ZodType<EnvConfig> = z
     LOG_LEVEL_FILE: z.enum(logLevel),
     LOG_LEVEL_ERROR_FILE: z.enum(logLevel),
     LOG_SILENT: z.stringbool().default(false),
+    // The daily log files; `false` where the filesystem is read-only (Vercel), console only then.
+    LOG_FILE_ENABLED: z.stringbool().default(true),
     SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
     EMAIL_PROVIDER: z.enum(EmailProviderName).default(EmailProviderName.CONSOLE),
     EMAIL_FROM: z.string().trim().min(1).default('Tang Pai Nai <no-reply@localhost>'),
@@ -75,6 +78,13 @@ export const envSchema: z.ZodType<EnvConfig> = z
       .url({ protocol: /^https?$/ })
       .default('https://accounts.google.com')
       .transform((value) => value.replace(/\/+$/, '')),
+    // Bearer secret of the scheduled cleanups (Vercel Cron sends it); unset, they answer 404.
+    CRON_SECRET: z
+      .union([
+        z.literal('').transform(() => undefined),
+        z.string().trim().min(32, ERRORS.minLength('CRON_SECRET', 32)),
+      ])
+      .optional(),
   })
   .superRefine((env, ctx) => {
     if (env.EMAIL_PROVIDER === EmailProviderName.SMTP && !env.SMTP_URL) {

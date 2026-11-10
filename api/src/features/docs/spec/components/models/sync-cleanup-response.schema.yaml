@@ -1,0 +1,20 @@
+type: object
+required: [message, timestamp, data]
+properties:
+  message:
+    type: string
+    example: Operation successful
+  timestamp:
+    type: string
+    format: date-time
+    example: '2026-01-01T00:00:00.000Z'
+  data:
+    type: object
+    required: [tombstones, ops]
+    properties:
+      tombstones:
+        type: integer
+        example: 25
+      ops:
+        type: integer
+        example: 310
