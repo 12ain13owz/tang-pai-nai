@@ -45,3 +45,9 @@ default) the sign-in code is printed in the API's terminal instead of being emai
 
 After pulling new commits, run `npm install` and `npm run db:migrate` in `api/` again when
 `api/drizzle/` changed.
+
+## Deploy
+
+Both apps run on Vercel (two projects from this repo, Root Directory `api` / `web`), with Turso as
+the database and Resend for sign-in emails. Staging is `develop`, production is `main`. The
+dashboard steps and every environment variable are in [`docs/deploy.md`](docs/deploy.md).

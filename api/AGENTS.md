@@ -303,6 +303,10 @@ await notifier.send({ channel: NotificationChannel.SMS, to: '+66812345678', text
   service that offers SMTP needs no new code, only `EMAIL_PROVIDER=smtp` + `SMTP_URL`.
 - Features import only `notifier` (and the types), never an adapter.
 
+### Deploy (Vercel, #17)
+
+`api/api/index.js` is Vercel's function entry: it default-exports `createApp()` from `dist/` (built by `npm run build`), and `api/vercel.json` rewrites every path to it. `src/main.ts` (which listens) is for local runs only, and `PORT` defaults to 3000. Files the app reads at runtime that `tsc` doesn't emit (the OpenAPI spec) need `includeFiles` there. Scheduled jobs are `GET` routes behind `requireCronSecret` (`CRON_SECRET` as a bearer; 404 when unset), listed under `crons` in `vercel.json`: `/auth/cleanup` and `/sync/cleanup` run the same service methods as the `auth:cleanup` / `sync:cleanup` scripts. The owner's setup steps are in `docs/deploy.md`.
+
 ### Graceful shutdown
 
 On `SIGTERM`/`SIGINT` or a fatal error, `core/server` closes the HTTP server and runs every registered cleanup at the same time, all under `SHUTDOWN_TIMEOUT_MS`. Anything that holds a connection (DB pool, queue, cache client) registers its own cleanup where it is created. Don't import it into `core/server`, because that would make core depend on a specific driver:
@@ -363,6 +367,7 @@ startServer(createApp(), env.PORT)
 - Never use `console.*` for app logging — use the Winston `logger` from `@/core/logger` (`console.info`/`warn`/`error` are only tolerated inside `core/config/env/env.ts`, for bootstrap messages that run before the logger/env are ready).
 - Never read `process.env` directly outside `core/config`. Import the validated `env` from `@/core/config`.
 - `LOG_SILENT=true` turns off every transport (console and both file transports; file transports aren't even created). It's for tests and one-off scripts. Never set it in `.env.prod`.
+- `LOG_FILE_ENABLED=false` keeps the console and skips only the file transports: set on Vercel, whose filesystem is read-only (Vercel collects the console).
 - Log-only strings (bootstrap `console.*` lines and Winston `logger` messages, never sent to a client) live in the `LOG` constant (`@/shared/constants`), grouped by subsystem (`LOG.CONFIG`, `LOG.SERVER`), never in `SUCCESS`/`ERRORS` — those two are API-response message pools only. See §4.
 
 ### File naming (kebab-case + role suffix)

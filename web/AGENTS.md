@@ -818,12 +818,14 @@ are on, so don't disable them.
   [`offline-sync.md`](../docs/features/offline-sync.md) before building any data screen.
 - **All calls go through `ApiClient`** (`@/core/api`): `api.get<T>('/wallets')`,
   `api.post<T>('/auth/email/start', body)`, `api.put` / `api.delete` (a body is allowed). Paths are relative to **`/api`**. In production,
-  Vercel rewrites `/api/*` on the web project to the API project, so the browser sees one origin.
+  `web/middleware.js` (Vercel Routing Middleware, `API_ORIGIN` per environment) sends `/api/*` on
+  the web project to the API project, so the browser sees one origin.
   That keeps the refresh-token cookie first-party (`*.vercel.app` is a public suffix, so
   cross-project cookies would be third-party and blocked). In dev, `ng serve` proxies `/api` to
   `http://localhost:3000` and strips the prefix (`proxy.conf.json`), the same mapping as the prod
-  rewrite. So there is **no API base URL in an environment file**; never hardcode
-  `http://localhost:3000`, and never call `HttpClient` directly from a feature.
+  middleware. Deploy settings: `web/vercel.json`, steps in `docs/deploy.md`. So there is **no API
+  base URL in an environment file**; never hardcode `http://localhost:3000`, and never call
+  `HttpClient` directly from a feature.
 - **Response envelope**: `{ message, timestamp, data?, code? }` (`ApiResponse<T>`): read `data`.
   On failure, `toApiError(error)` gives `{ status, code?, message?, retryAfterSeconds? }`;
   `isUnreachable()` is true for no network (status 0) or a proxy answering for a dead API
