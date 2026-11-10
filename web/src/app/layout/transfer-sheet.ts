@@ -52,6 +52,8 @@ import {
 } from '@/shared/components/form'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
+import { WalletPick, walletPickItem } from '@/shared/components/wallet-pick'
+import type { WalletPickItem } from '@/shared/components/wallet-pick'
 import {
   addDays,
   addQuickAmount,
@@ -85,6 +87,7 @@ type View = 'form' | 'pick' | 'note' | 'repeat' | 'confirmDiscard'
     NgIcon,
     HlmButton,
     DateRow,
+    WalletPick,
     HlmDrawerImports,
     CalcAmountField,
     CalcKeypad,
@@ -391,7 +394,7 @@ type View = 'form' | 'pick' | 'note' | 'repeat' | 'confirmDiscard'
           }
           @case ('pick') {
             @let side = pickSide();
-            @let choices = side === 'from' ? fromChoices() : toChoices();
+            @let choices = side === 'from' ? fromItems() : toItems();
             @let chosen = side === 'from' ? f.fromWalletId.value : f.toWalletId.value;
             <app-sheet-frame
               [title]="(side === 'from' ? 'transfers.fromPick' : 'transfers.toPick') | transloco"
@@ -399,49 +402,12 @@ type View = 'form' | 'pick' | 'note' | 'repeat' | 'confirmDiscard'
               [leadingLabel]="'sheet.back' | transloco"
               (leading)="view.set('form')"
             >
-              @if (choices.length > 0) {
-                <ul class="divide-y divide-border rounded-xl border border-border bg-card">
-                  @for (item of choices; track item.id) {
-                    <li>
-                      <button
-                        type="button"
-                        class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                        [attr.aria-current]="item.id === chosen ? 'true' : null"
-                        (click)="choose(side, item.id)"
-                      >
-                        <app-icon-badge
-                          [icon]="item.icon"
-                          [color]="item.color"
-                          [fallback]="walletIcon"
-                        />
-                        <span class="flex min-w-0 flex-1 flex-col">
-                          <span class="truncate text-base">{{ item.name }}</span>
-                          @if (item.excludeFromTotal) {
-                            <span class="text-sm text-muted-foreground">{{
-                              'wallets.excluded' | transloco
-                            }}</span>
-                          }
-                        </span>
-                        <span
-                          class="shrink-0 text-sm tabular-nums"
-                          [class.text-expense]="walletService.balance(item) < 0"
-                          >{{ balanceText(item) }}</span
-                        >
-                        @if (item.id === chosen) {
-                          <ng-icon
-                            name="lucideCheck"
-                            size="20"
-                            class="text-brand"
-                            aria-hidden="true"
-                          />
-                        }
-                      </button>
-                    </li>
-                  }
-                </ul>
-              } @else {
-                <p class="text-sm text-muted-foreground">{{ 'transfers.noOther' | transloco }}</p>
-              }
+              <app-wallet-pick
+                [wallets]="choices"
+                [chosen]="chosen"
+                [empty]="'transfers.noOther' | transloco"
+                (picked)="choose(side, $event)"
+              />
               @if (side === 'to' || editingId()) {
                 <p class="mt-3 text-sm text-muted-foreground">
                   {{ 'transfers.sameCurrency' | transloco }}
@@ -696,6 +662,8 @@ export class TransferSheet {
     const from = this.fromWallet()
     return this.choices(this.toWallet(), from?.currencyCode ?? null, from?.id ?? null)
   })
+  protected fromItems = computed(() => this.pickItems(this.fromChoices()))
+  protected toItems = computed(() => this.pickItems(this.toChoices()))
 
   protected dirty = signal(false)
   protected open = signal(false)
@@ -717,6 +685,19 @@ export class TransferSheet {
         this.open.set(state !== null)
       })
     })
+  }
+
+  private pickItems(wallets: readonly Wallet[]): WalletPickItem[] {
+    const locale = this.languageService.locale()
+    const excluded = this.transloco.translate('wallets.excluded')
+    return wallets.map((wallet) =>
+      walletPickItem(wallet, {
+        balance: this.walletService.balance(wallet),
+        minorUnit: this.walletService.minorUnit(wallet.currencyCode),
+        locale,
+        excluded,
+      })
+    )
   }
 
   protected balanceText(wallet: Wallet): string {

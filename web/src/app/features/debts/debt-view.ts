@@ -1,6 +1,9 @@
 import type { DebtItem } from '@/core/debt'
 import type { Translate } from '@/core/recurring'
 import { shortDate } from '@/core/recurring'
+import type { Wallet, WalletService } from '@/core/wallet'
+import { walletPickItem } from '@/shared/components/wallet-pick'
+import type { WalletPickItem } from '@/shared/components/wallet-pick'
 import { formatAmount, formatMoney } from '@/shared/utils'
 
 /** A debt as its list row says it (debt → Web screens, mock-up frames 2 and 10). */
@@ -50,3 +53,19 @@ export const debtRow = (item: DebtItem, t: Translate, locale: string): DebtRow =
     when,
   }
 }
+
+/** The debt sheets' wallet picker rows: balance, and the note of a wallet left out. */
+export const walletPickItems = (
+  wallets: readonly Wallet[],
+  walletService: WalletService,
+  locale: string,
+  t: Translate
+): WalletPickItem[] =>
+  wallets.map((wallet) =>
+    walletPickItem(wallet, {
+      balance: walletService.balance(wallet),
+      minorUnit: walletService.minorUnit(wallet.currencyCode),
+      locale,
+      excluded: t('wallets.excluded'),
+    })
+  )
