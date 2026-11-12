@@ -490,7 +490,8 @@
     "changePhone": "Change number",
     "smsCodeHeading": "Enter the code from the SMS",
     "smsCodeSentTo": "If this number can sign in, we texted a 6-digit code to",
-    "smsHint": "The code works for 5 minutes. No SMS? Use an email code instead",
+    "smsHint": "The code works for 5 minutes. No SMS? Only a number already added and verified on an account works. If you haven't added yours, sign in with email first, then add it under Security",
+    "useEmailInstead": "Sign in with email",
     "smsResent": "New code sent. Check your messages again",
     "signInMethod": "Sign-in method",
     "methods": {

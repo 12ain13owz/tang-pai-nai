@@ -418,8 +418,12 @@ who isn't signed in can't reach the account page.
   - **อีเมล**: an email field and "Send code" (a new email gets an account, no hint needed).
   - **รหัสผ่าน** (4.2): email + password (`app-password-field`), and "Sign in" (a forgotten password: the email tab, then set a new one in
     Account).
-  - **เบอร์มือถือ** (4.4b): the phone field and "Send code", then the enter-code screen with a
-    "check your SMS" hint and no magic-link line; its "change number" goes back to this tab. The
+  - **เบอร์มือถือ** (4.4b): the phone field and "Send code", then the enter-code screen with no
+    magic-link line. Instead, a muted box says what to do when no SMS comes: only a number
+    already added and verified on an account works, so sign in with email first and add it under
+    Security, with a "Sign in with email" button (the email tab). It states the rule for every
+    number, never whether this one is on an account (rule 22). Its "change number" goes back to
+    this tab. The
     tab is left out while phone is off (`?with=phone` then shows the email tab).
     Offline, it says sign-in needs a connection and retries the silent refresh by itself once back
     online.

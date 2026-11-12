@@ -4,7 +4,7 @@ import { NonNullableFormBuilder, Validators } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideArrowLeft } from '@ng-icons/lucide'
+import { lucideArrowLeft, lucideMail } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { toApiError } from '@/core/api'
@@ -20,7 +20,7 @@ const CODE_LENGTH = 6
 @Component({
   selector: 'app-enter-code-page',
   imports: [FORM_IMPORTS, TranslocoPipe, NgIcon, OtpField, HlmButton, HlmSpinner],
-  providers: [provideIcons({ lucideArrowLeft })],
+  providers: [provideIcons({ lucideArrowLeft, lucideMail })],
   template: `
     <div class="flex flex-1 flex-col gap-6">
       <button hlmBtn variant="ghost" type="button" class="-ms-3 h-11 self-start" (click)="back()">
@@ -55,9 +55,25 @@ const CODE_LENGTH = 6
         </button>
       </form>
 
-      <p class="text-center text-sm text-muted-foreground">
-        {{ (phone() ? 'auth.smsHint' : 'auth.linkHint') | transloco }}
-      </p>
+      @if (phone()) {
+        <!-- The API answers every number the same (rule 22), so this names the rule, never the
+             number: someone whose number isn't on an account learns what to do instead. -->
+        <div class="flex flex-col gap-3 rounded-xl bg-muted px-4 py-3">
+          <p class="text-sm text-muted-foreground">{{ 'auth.smsHint' | transloco }}</p>
+          <button
+            hlmBtn
+            variant="outline"
+            type="button"
+            class="h-11 w-full text-base"
+            (click)="useEmail()"
+          >
+            <ng-icon name="lucideMail" aria-hidden="true" />
+            {{ 'auth.useEmailInstead' | transloco }}
+          </button>
+        </div>
+      } @else {
+        <p class="text-center text-sm text-muted-foreground">{{ 'auth.linkHint' | transloco }}</p>
+      }
 
       <div class="mt-auto flex flex-col items-center gap-1">
         <button
@@ -169,6 +185,14 @@ export class EnterCodePage {
     } finally {
       this.isResending.set(false)
     }
+  }
+
+  /** The sign-in page's email tab, keeping where the user was headed. */
+  protected async useEmail(): Promise<void> {
+    const { returnUrl } = this.authFlowStore.pending()
+    await this.router.navigate(['/auth/sign-in'], {
+      queryParams: { returnUrl: returnUrl === '/' ? null : returnUrl },
+    })
   }
 
   protected async back(): Promise<void> {

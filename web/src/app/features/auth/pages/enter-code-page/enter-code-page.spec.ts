@@ -91,6 +91,16 @@ describe('EnterCodePage: SMS code', () => {
     expect(TestBed.inject(AuthFlowStore).pending().phone).toBe('')
   })
 
+  it('offers the email tab for a number that gets no SMS', async () => {
+    const button = [...page().querySelectorAll('button')].find((item) =>
+      item.textContent.includes(th.auth.useEmailInstead)
+    )
+    button?.click()
+    await settle()
+
+    expect(TestBed.inject(Router).url).toBe('/auth/sign-in?returnUrl=%2Freports')
+  })
+
   it('goes back to the sign-in page’s phone tab to change the number', async () => {
     const back = [...page().querySelectorAll('button')].find((button) =>
       button.textContent.includes(th.auth.changePhone)
