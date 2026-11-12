@@ -639,6 +639,10 @@ isProcessing = signal(false)
   it. To add a primitive, run `npx ng g @spartan-ng/cli:ui <name>` (e.g. `drawer`, `sonner`,
   `tabs`). It adds `@spartan-ng/helm/<name>` to `tsconfig.json`. Delete the `.nx/` cache folder it
   leaves behind.
+- **Text in a focusable control is at least 16px** (`text-base`) on phones: iOS Safari zooms the
+  page in when a smaller `input`, `select` or `textarea` gets focus. Never fix it with
+  `maximum-scale=1` (it blocks pinch zoom, WCAG 1.4.4). Spartan primitives take a class input for
+  it (`inputClass` on the OTP, `selectClass` on the native select).
 - Icons: `@ng-icons/lucide` via `NgIcon` + `provideIcons({ ... })` in the component. Brand
   marks that must keep their own colours (Google's "G") live in `shared/components/brand`.
 - Toasts: one `<hlm-toaster>` in the app root (`app.ts`), at the top of the screen (8.2). Show one

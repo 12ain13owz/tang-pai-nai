@@ -14,12 +14,14 @@ import { fieldErrorMessage } from './field-error'
   template: `
     <div hlmField>
       <label hlmFieldLabel class="justify-center">{{ label() }}</label>
-      <!-- Centred, with 48px slots and large digits: easier to read and tap than the defaults. -->
+      <!-- Centred, with 48px slots and large digits: easier to read and tap than the defaults.
+           The hidden input underneath is 16px, or iOS Safari zooms in when it gets focus. -->
       <brn-input-otp
         hlmInputOtp
         class="justify-center"
         inputMode="numeric"
         inputAutocomplete="one-time-code"
+        inputClass="text-base"
         [length]="length()"
         [formControl]="control()"
       >

@@ -160,7 +160,7 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                       @if (!currencyLocked() && currencyOptions().length > 1) {
                         <select
                           amountSuffix
-                          class="h-9 max-w-28 shrink-0 rounded-full bg-muted px-3 text-sm font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                          class="h-9 max-w-28 shrink-0 rounded-full bg-muted px-3 text-base font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                           [formControl]="f.currencyCode"
                           [attr.aria-label]="'wallets.currency' | transloco"
                         >

@@ -17,7 +17,8 @@ import { fieldErrorMessage } from './field-error'
   template: `
     <div hlmField>
       <label hlmFieldLabel>{{ label() }}</label>
-      <hlm-native-select class="w-full" [formControl]="control()">
+      <!-- 16px text: iOS Safari zooms in on a smaller control when it gets focus. -->
+      <hlm-native-select class="w-full" selectClass="text-base" [formControl]="control()">
         @if (placeholder()) {
           <option hlmNativeSelectOption value="" disabled>{{ placeholder() }}</option>
         }
