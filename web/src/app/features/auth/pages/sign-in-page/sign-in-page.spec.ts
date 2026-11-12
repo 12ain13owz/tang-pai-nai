@@ -97,7 +97,8 @@ describe('SignInPage: Continue with Google', () => {
     await open('/auth/sign-in?returnUrl=%2Freports', { google: false, phone: true })
 
     const link = (fixture.nativeElement as HTMLElement).querySelector('a[href^="/auth/phone"]')
-    expect(link?.textContent).toContain(th.auth.usePhone)
+    expect(link?.textContent).toContain(th.auth.phoneShort)
+    expect(link?.getAttribute('aria-label')).toBe(th.auth.usePhone)
     expect(link?.getAttribute('href')).toBe('/auth/phone?returnUrl=%2Freports')
   })
 

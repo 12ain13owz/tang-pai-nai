@@ -80,18 +80,15 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
           }
           {{ 'auth.sendCode' | transloco }}
         </button>
-        <p class="text-center text-sm text-muted-foreground">
-          {{ 'auth.newAccountHint' | transloco }}
-        </p>
       </form>
 
-      @if (googleEnabled()) {
-        <div class="flex flex-col gap-4">
-          <div class="flex items-center gap-3 text-sm text-muted-foreground">
-            <span class="h-px flex-1 bg-border" aria-hidden="true"></span>
-            {{ 'auth.or' | transloco }}
-            <span class="h-px flex-1 bg-border" aria-hidden="true"></span>
-          </div>
+      <div class="flex flex-col gap-4">
+        <div class="flex items-center gap-3 text-sm text-muted-foreground">
+          <span class="h-px flex-1 bg-border" aria-hidden="true"></span>
+          {{ 'auth.or' | transloco }}
+          <span class="h-px flex-1 bg-border" aria-hidden="true"></span>
+        </div>
+        @if (googleEnabled()) {
           <button
             hlmBtn
             variant="outline"
@@ -107,32 +104,34 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
             }
             {{ 'auth.continueWithGoogle' | transloco }}
           </button>
-        </div>
-      }
-
-      <div class="mt-auto flex flex-col items-center gap-1">
-        <a
-          hlmBtn
-          variant="ghost"
-          class="h-11"
-          routerLink="/auth/password"
-          [queryParams]="passwordQueryParams()"
-        >
-          <ng-icon name="lucideKeyRound" aria-hidden="true" />
-          {{ 'auth.usePassword' | transloco }}
-        </a>
-        @if (phoneEnabled()) {
+        }
+        <!-- The other ways in, side by side: short labels, the full ones as the accessible name. -->
+        <div class="grid gap-3" [class.grid-cols-2]="phoneEnabled()">
           <a
             hlmBtn
-            variant="ghost"
-            class="h-11"
-            routerLink="/auth/phone"
-            [queryParams]="phoneQueryParams"
+            variant="outline"
+            class="h-11 text-base"
+            routerLink="/auth/password"
+            [queryParams]="passwordQueryParams()"
+            [attr.aria-label]="'auth.usePassword' | transloco"
           >
-            <ng-icon name="lucideSmartphone" aria-hidden="true" />
-            {{ 'auth.usePhone' | transloco }}
+            <ng-icon name="lucideKeyRound" aria-hidden="true" />
+            {{ 'auth.passwordShort' | transloco }}
           </a>
-        }
+          @if (phoneEnabled()) {
+            <a
+              hlmBtn
+              variant="outline"
+              class="h-11 text-base"
+              routerLink="/auth/phone"
+              [queryParams]="phoneQueryParams"
+              [attr.aria-label]="'auth.usePhone' | transloco"
+            >
+              <ng-icon name="lucideSmartphone" aria-hidden="true" />
+              {{ 'auth.phoneShort' | transloco }}
+            </a>
+          }
+        </div>
       </div>
     </div>
   `,
