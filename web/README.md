@@ -26,11 +26,33 @@ Run the API too (`cd ../api && npm run dev`). `ng serve` proxies `/api/*` to `ht
 and strips `/api` (`proxy.conf.json`), so app code calls relative `/api/...` URLs and never needs an
 API base URL. Production does the same with a Vercel rewrite.
 
+**On a phone:** `npm run dev` runs the dev server plus a Cloudflare quick tunnel and prints an
+`https://<random>.trycloudflare.com` URL that works from any network (install `cloudflared` once:
+`winget install Cloudflare.cloudflared`). HTTPS matters: session cookies are `Secure` and the
+service worker needs it. Nothing to configure per run: `angular.json` allows `*.trycloudflare.com`
+hosts, and `proxy.conf.json` sends the API `Origin: http://localhost:4200`, so the API's
+`WEB_ORIGIN` stays at its default (the API's Origin check is therefore off in dev only). The URL is
+public while the tunnel runs, and magic links in dev emails still point at `localhost`: type the
+code instead.
+
+For a fixed URL, use a named tunnel on a domain in your Cloudflare account. Once per machine:
+
+```bash
+cloudflared tunnel login                                   # pick the domain in the browser
+cloudflared tunnel create tpn-dev
+cloudflared tunnel route dns tpn-dev tang.dryst-lab.com
+cp .env.tunnel.example .env.tunnel                         # TUNNEL_NAME + TUNNEL_HOST
+```
+
+`npm run dev` then runs that tunnel instead. Another host also needs adding to `allowedHosts` in
+`angular.json` (the `ng serve` flag only takes true / false).
+
 ## Scripts
 
 | Script               | What it does                                 |
 | -------------------- | -------------------------------------------- |
 | `npm start`          | Dev server with hot reload                   |
+| `npm run dev`        | `npm start` + a Cloudflare tunnel for phones |
 | `npm run build`      | Production build to `dist/tang-pai-nai-web/` |
 | `npm test`           | Unit tests once (Vitest)                     |
 | `npm run test:watch` | Unit tests in watch mode                     |

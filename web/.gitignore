@@ -50,3 +50,6 @@ Thumbs.db
 
 # Nx cache (spartan CLI)
 .nx/
+
+# Named Cloudflare tunnel for `npm run dev` (per machine)
+.env.tunnel

@@ -68,7 +68,8 @@
           },
           "defaultConfiguration": "development",
           "options": {
-            "proxyConfig": "proxy.conf.json"
+            "proxyConfig": "proxy.conf.json",
+            "allowedHosts": [".trycloudflare.com", "tang.dryst-lab.com"]
           }
         },
         "test": {

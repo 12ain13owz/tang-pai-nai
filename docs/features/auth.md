@@ -410,9 +410,11 @@ in a response (sign-in, refresh, `/auth/me`, `PUT /auth/password`) carries `hasP
 All of these sit outside the app shell (no tab bar) and carry a language switch, because someone
 who isn't signed in can't reach the account page.
 
-- **Sign-in**: an email field with a "Send code" button, a "Continue with Google" button, a
-  "Sign in with password" link, and a "Sign in with phone number" link (phone field → the same
-  enter-code screen). Each extra way appears with its part (4.2–4.4). Offline, it says sign-in
+- **Sign-in**: an email field with a "Send code" button (a new email gets an account, no hint
+  needed), then under "or" a "Continue with Google" button and one row of two outline buttons,
+  "รหัสผ่าน" and "เบอร์มือถือ" (named "Sign in with password / phone number" for screen
+  readers; phone field → the same enter-code screen). Each extra way appears with its part
+  (4.2–4.4), and the password button fills the row while SMS is off. Offline, it says sign-in
   needs a connection and retries the silent refresh by itself once back online.
 - **Enter code**: 6 boxes (`inputmode="numeric"`, `autocomplete="one-time-code"` so the phone can
   auto-fill it), a resend timer, and a "check your email for the link" hint.
