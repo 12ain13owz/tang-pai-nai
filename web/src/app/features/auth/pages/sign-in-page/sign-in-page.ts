@@ -1,37 +1,42 @@
 import { NgOptimizedImage } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
-import { NonNullableFormBuilder, Validators } from '@angular/forms'
-import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { TranslocoPipe } from '@jsverse/transloco'
-import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideKeyRound, lucideSmartphone } from '@ng-icons/lucide'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { NonNullableFormBuilder } from '@angular/forms'
+import { ActivatedRoute, Router } from '@angular/router'
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
-import { toApiError } from '@/core/api'
-import { AuthService, AuthStore, safeReturnUrl, authErrorMessage } from '@/core/auth'
-import type { UiMessage } from '@/core/auth'
+import { AuthService, AuthStore, safeReturnUrl } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
-import type { EmailFormGroup } from '@/features/auth/auth-form.type'
+import { EmailSignIn } from '@/features/auth/components/email-sign-in'
+import { PasswordSignIn } from '@/features/auth/components/password-sign-in'
+import { PhoneSignIn } from '@/features/auth/components/phone-sign-in'
 import { GoogleLogo } from '@/shared/components/brand'
-import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
+import { SegmentedField } from '@/shared/components/form'
 
+type SignInMethod = 'email' | 'password' | 'phone'
+const METHODS: readonly SignInMethod[] = ['email', 'password', 'phone']
+
+/**
+ * The one sign-in page: email code, password and phone as tabs (`?with=password|phone`, so back
+ * and reload keep the tab), Google under "or". Each tab's form is its own component; this page
+ * only lays them out.
+ */
 @Component({
   selector: 'app-sign-in-page',
   imports: [
-    FORM_IMPORTS,
     TranslocoPipe,
     NgOptimizedImage,
-    RouterLink,
-    NgIcon,
-    InputField,
     HlmButton,
     HlmSpinner,
     GoogleLogo,
+    SegmentedField,
+    EmailSignIn,
+    PasswordSignIn,
+    PhoneSignIn,
   ],
-  providers: [provideIcons({ lucideKeyRound, lucideSmartphone })],
   // Coming back from Google with the browser's back button restores this page as it was left.
   host: { '(window:pageshow)': 'isLeaving.set(false)' },
   template: `
@@ -46,7 +51,6 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
           priority
         />
         <h1 class="text-2xl font-semibold">{{ 'auth.signInHeading' | transloco }}</h1>
-        <p class="max-w-xs text-sm text-muted-foreground">{{ 'auth.signInText' | transloco }}</p>
       </div>
 
       @if (!networkStatusService.isOnline()) {
@@ -55,40 +59,32 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
         </p>
       }
 
-      <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="onSubmit()">
-        <app-input-field
-          [control]="form.controls.email"
-          [label]="'auth.email' | transloco"
-          type="email"
-          inputmode="email"
-          autocomplete="email"
-          placeholder="name@example.com"
-        />
-        @if (error(); as message) {
-          <p role="alert" class="-mt-2 text-sm text-destructive">
-            {{ message.key | transloco: message.params }}
-          </p>
-        }
-        <button
-          hlmBtn
-          type="submit"
-          class="h-11 w-full text-base"
-          [disabled]="isProcessing() || !networkStatusService.isOnline()"
-        >
-          @if (isProcessing()) {
-            <hlm-spinner [aria-label]="'auth.sending' | transloco" />
-          }
-          {{ 'auth.sendCode' | transloco }}
-        </button>
-      </form>
-
       <div class="flex flex-col gap-4">
-        <div class="flex items-center gap-3 text-sm text-muted-foreground">
-          <span class="h-px flex-1 bg-border" aria-hidden="true"></span>
-          {{ 'auth.or' | transloco }}
-          <span class="h-px flex-1 bg-border" aria-hidden="true"></span>
-        </div>
-        @if (googleEnabled()) {
+        <app-segmented-field
+          [control]="methodControl"
+          [label]="'auth.signInMethod' | transloco"
+          [options]="methodOptions()"
+        />
+        @switch (shownMethod()) {
+          @case ('password') {
+            <app-password-sign-in [returnUrl]="returnUrl" [(email)]="email" />
+          }
+          @case ('phone') {
+            <app-phone-sign-in [returnUrl]="returnUrl" />
+          }
+          @default {
+            <app-email-sign-in [returnUrl]="returnUrl" [(email)]="email" />
+          }
+        }
+      </div>
+
+      @if (googleEnabled()) {
+        <div class="flex flex-col gap-4">
+          <div class="flex items-center gap-3 text-sm text-muted-foreground">
+            <span class="h-px flex-1 bg-border" aria-hidden="true"></span>
+            {{ 'auth.or' | transloco }}
+            <span class="h-px flex-1 bg-border" aria-hidden="true"></span>
+          </div>
           <button
             hlmBtn
             variant="outline"
@@ -104,35 +100,8 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
             }
             {{ 'auth.continueWithGoogle' | transloco }}
           </button>
-        }
-        <!-- The other ways in, side by side: short labels, the full ones as the accessible name. -->
-        <div class="grid gap-3" [class.grid-cols-2]="phoneEnabled()">
-          <a
-            hlmBtn
-            variant="outline"
-            class="h-11 text-base"
-            routerLink="/auth/password"
-            [queryParams]="passwordQueryParams()"
-            [attr.aria-label]="'auth.usePassword' | transloco"
-          >
-            <ng-icon name="lucideKeyRound" aria-hidden="true" />
-            {{ 'auth.passwordShort' | transloco }}
-          </a>
-          @if (phoneEnabled()) {
-            <a
-              hlmBtn
-              variant="outline"
-              class="h-11 text-base"
-              routerLink="/auth/phone"
-              [queryParams]="phoneQueryParams"
-              [attr.aria-label]="'auth.usePhone' | transloco"
-            >
-              <ng-icon name="lucideSmartphone" aria-hidden="true" />
-              {{ 'auth.phoneShort' | transloco }}
-            </a>
-          }
         </div>
-      </div>
+      }
     </div>
   `,
 })
@@ -140,40 +109,50 @@ export class SignInPage {
   private nnfb = inject(NonNullableFormBuilder)
   private router = inject(Router)
   private route = inject(ActivatedRoute)
+  private transloco = inject(TranslocoService)
   private authService = inject(AuthService)
   private authStore = inject(AuthStore)
   private authFlowStore = inject(AuthFlowStore)
   private languageService = inject(LanguageService)
   protected networkStatusService = inject(NetworkStatusService)
 
-  private returnUrl = safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'))
+  protected returnUrl = safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'))
 
-  isProcessing = signal(false)
-  protected error = signal<UiMessage | null>(null)
   /** Hidden until the API says Google sign-in is on (it's off without its env, rule 14). */
   protected googleEnabled = signal(false)
-  /** Hidden until the API says it can send SMS (4.4b, rule 21). */
+  /** The phone tab shows once the API says it can send SMS (4.4b, rule 21). */
   protected phoneEnabled = signal(false)
-  protected phoneQueryParams = { returnUrl: this.returnUrl === '/' ? null : this.returnUrl }
+  private providersKnown = signal(false)
   /** The browser is on its way to Google. */
   protected isLeaving = signal(false)
 
-  form: EmailFormGroup = this.nnfb.group({
-    email: [
-      // An invitation mail links here with `?email=` (sharing.md rule 4): only a prefill.
-      this.authFlowStore.pending().email || (this.route.snapshot.queryParamMap.get('email') ?? ''),
-      [withMessage(Validators.required, 'auth.emailRequired'), Validators.email],
-    ],
-  })
+  /** Typed on the email or password tab, kept when switching between them. */
+  protected email = signal(
+    // An invitation mail links here with `?email=` (sharing.md rule 4): only a prefill.
+    this.authFlowStore.pending().email || (this.route.snapshot.queryParamMap.get('email') ?? '')
+  )
 
-  private email = toSignal(this.form.controls.email.valueChanges, {
-    initialValue: this.form.controls.email.value,
+  protected methodControl = this.nnfb.control<string>(
+    this.toMethod(this.route.snapshot.queryParamMap.get('with'))
+  )
+  private method = toSignal(this.methodControl.valueChanges, {
+    initialValue: this.methodControl.value,
   })
-  // Carries the email typed so far, so it needn't be typed twice.
-  protected passwordQueryParams = computed(() => ({
-    returnUrl: this.returnUrl === '/' ? null : this.returnUrl,
-    email: this.email().trim().toLowerCase() || null,
-  }))
+  /** `?with=phone` while SMS turns out to be off falls back to the email tab. */
+  protected shownMethod = computed(() => {
+    const method = this.toMethod(this.method())
+    return method === 'phone' && this.providersKnown() && !this.phoneEnabled() ? 'email' : method
+  })
+  protected methodOptions = computed(() => {
+    this.languageService.language()
+    const shown = this.shownMethod()
+    return METHODS.filter(
+      (method) => method !== 'phone' || this.phoneEnabled() || shown === 'phone'
+    ).map((method) => ({
+      value: method,
+      label: this.transloco.translate(`auth.methods.${method}`),
+    }))
+  })
 
   constructor() {
     // Asked again once back online, in case the page opened offline.
@@ -182,6 +161,7 @@ export class SignInPage {
         void this.authService.providers().then((providers) => {
           this.googleEnabled.set(providers.google)
           this.phoneEnabled.set(providers.phone)
+          this.providersKnown.set(true)
         })
       }
     })
@@ -195,35 +175,24 @@ export class SignInPage {
         })
       }
     })
+    // The tab lives in the URL, replacing the entry, so back leaves the page as before.
+    this.methodControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      const method = this.toMethod(value)
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { with: method === 'email' ? null : method },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      })
+    })
   }
 
   protected continueWithGoogle(): void {
     this.isLeaving.set(true)
-    this.error.set(null)
     this.authService.startGoogle(this.returnUrl, this.languageService.language().id)
   }
 
-  protected async onSubmit(): Promise<void> {
-    if (this.form.invalid || this.isProcessing()) {
-      return
-    }
-    const email = this.form.getRawValue().email.trim().toLowerCase()
-    this.isProcessing.set(true)
-    this.error.set(null)
-    try {
-      await this.authService.startEmail(email, this.languageService.language().id)
-      this.authFlowStore.start(email, this.returnUrl)
-      await this.router.navigate(['/auth/code'])
-    } catch (error) {
-      const apiError = toApiError(error)
-      // Already sent within the last minute: the code on its way is still good.
-      if (apiError.status === 429 && this.authFlowStore.pending().email === email) {
-        await this.router.navigate(['/auth/code'])
-        return
-      }
-      this.error.set(authErrorMessage(apiError, 'auth.sendFailed'))
-    } finally {
-      this.isProcessing.set(false)
-    }
+  private toMethod(value: string | null): SignInMethod {
+    return METHODS.find((method) => method === value) ?? 'email'
   }
 }

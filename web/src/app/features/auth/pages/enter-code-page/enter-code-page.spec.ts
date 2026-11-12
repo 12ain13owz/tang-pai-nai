@@ -91,13 +91,13 @@ describe('EnterCodePage: SMS code', () => {
     expect(TestBed.inject(AuthFlowStore).pending().phone).toBe('')
   })
 
-  it('goes back to the phone page to change the number', async () => {
+  it('goes back to the sign-in page’s phone tab to change the number', async () => {
     const back = [...page().querySelectorAll('button')].find((button) =>
       button.textContent.includes(th.auth.changePhone)
     )
     back?.click()
     await settle()
 
-    expect(TestBed.inject(Router).url).toBe('/auth/phone?returnUrl=%2Freports')
+    expect(TestBed.inject(Router).url).toBe('/auth/sign-in?returnUrl=%2Freports&with=phone')
   })
 })

@@ -265,7 +265,7 @@ SMS provider prints the code, so the whole flow is testable without an SMS accou
     spaces and dashes are accepted too), and shows numbers as `081-234-5678` (decided at the start
     of 4.4).
     **SMS off**: `GET /auth/providers` answers `{ google, phone }`, `phone` being false when
-    `SMS_PROVIDER=disabled`. The web then hides "Sign in with phone number" and the "add number"
+    `SMS_PROVIDER=disabled`. The web then hides the sign-in page's phone tab and the "add number"
     action (a number already saved still shows, read-only). Every `/auth/phone*` route answers `503`
     `PHONE_DISABLED` **before** looking at the number (or the caller's session), so a disabled
     provider never tells known numbers from unknown ones.
@@ -410,12 +410,19 @@ in a response (sign-in, refresh, `/auth/me`, `PUT /auth/password`) carries `hasP
 All of these sit outside the app shell (no tab bar) and carry a language switch, because someone
 who isn't signed in can't reach the account page.
 
-- **Sign-in**: an email field with a "Send code" button (a new email gets an account, no hint
-  needed), then under "or" a "Continue with Google" button and one row of two outline buttons,
-  "รหัสผ่าน" and "เบอร์มือถือ" (named "Sign in with password / phone number" for screen
-  readers; phone field → the same enter-code screen). Each extra way appears with its part
-  (4.2–4.4), and the password button fills the row while SMS is off. Offline, it says sign-in
-  needs a connection and retries the silent refresh by itself once back online.
+- **Sign-in** `/auth/sign-in`: one page for every way in. The logo and "เข้าสู่ระบบ" (no
+  description line), then a segmented control **อีเมล | รหัสผ่าน | เบอร์มือถือ** that swaps the
+  form under it, and Google under "or". The tab is `?with=password|phone` (replacing the history
+  entry, so back and reload keep it); the old `/auth/password` and `/auth/phone` redirect there.
+  The email typed on the email tab carries over to the password tab.
+  - **อีเมล**: an email field and "Send code" (a new email gets an account, no hint needed).
+  - **รหัสผ่าน** (4.2): email + password (`app-password-field`), and "Sign in" (a forgotten password: the email tab, then set a new one in
+    Account).
+  - **เบอร์มือถือ** (4.4b): the phone field and "Send code", then the enter-code screen with a
+    "check your SMS" hint and no magic-link line; its "change number" goes back to this tab. The
+    tab is left out while phone is off (`?with=phone` then shows the email tab).
+    Offline, it says sign-in needs a connection and retries the silent refresh by itself once back
+    online.
 - **Enter code**: 6 boxes (`inputmode="numeric"`, `autocomplete="one-time-code"` so the phone can
   auto-fill it), a resend timer, and a "check your email for the link" hint.
 - **Sign-in, Google** (4.3): under the email form, a "or" divider and a full-width outline
@@ -427,8 +434,6 @@ who isn't signed in can't reach the account page.
   shows a one-time toast "Google is now linked to your account". With `error=…` it shows an error
   state like the magic-link page (icon, heading, one line, "Back to sign in"); `cancelled` goes
   straight back to sign-in instead.
-- **Sign in with password** `/auth/password`: email + password (`app-password-field`), a link back
-  to the email code. Reached from the sign-in page's "Sign in with password" link.
 - **Password** `/account/password` (4.2, inside the shell): set / change / remove. Until 4.4's
   Security page exists, the account page has a short "Security" section with one row (password ·
   set / not set) that opens it; 4.4a moves that row into Account → Security unchanged. 4.3 adds a
@@ -456,9 +461,6 @@ REAUTH_REQUIRED` opens a confirm step in place: the current password (if one is 
   code, resend timer) or remove (asks first), with the same confirm step. After a confirm the
   page stays and shows the saved number with a "saved" line, like the password page. Typing the
   saved number again is refused in the field ("This is your current number"), no SMS.
-- **Sign in with phone** `/auth/phone` (4.4b): the phone field, then the enter-code screen with an
-  "check your SMS" hint and no magic-link line. The sign-in page's link to it sits at the bottom,
-  stacked under "Sign in with password" (both ghost buttons), hidden while phone is off.
 
 ## Interactions
 

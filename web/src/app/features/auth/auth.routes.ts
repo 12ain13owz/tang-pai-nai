@@ -1,6 +1,6 @@
 import { inject } from '@angular/core'
 import { Router } from '@angular/router'
-import type { Routes } from '@angular/router'
+import type { Params, Routes } from '@angular/router'
 import { authGuard, guestGuard } from '@/core/auth'
 import { lockGuard, otherTabGuard, trustGuard } from '@/core/offline'
 import { AuthFlowStore } from './auth-flow.store'
@@ -11,6 +11,13 @@ const hasPendingSignIn = () => {
   const { email, phone } = inject(AuthFlowStore).pending()
   return email || phone ? true : inject(Router).parseUrl('/auth/sign-in')
 }
+
+const signInTab =
+  (method: string) =>
+  ({ queryParams }: { queryParams: Params }) =>
+    inject(Router).createUrlTree(['/auth/sign-in'], {
+      queryParams: { ...queryParams, with: method },
+    })
 
 export default [
   {
@@ -32,22 +39,9 @@ export default [
         loadComponent: async () =>
           import('./pages/enter-code-page/enter-code-page').then((m) => m.EnterCodePage),
       },
-      {
-        path: 'password',
-        title: 'title.passwordSignIn',
-        canActivate: [guestGuard],
-        loadComponent: async () =>
-          import('./pages/password-sign-in-page/password-sign-in-page').then(
-            (m) => m.PasswordSignInPage
-          ),
-      },
-      {
-        path: 'phone',
-        title: 'title.phoneSignIn',
-        canActivate: [guestGuard],
-        loadComponent: async () =>
-          import('./pages/phone-sign-in-page/phone-sign-in-page').then((m) => m.PhoneSignInPage),
-      },
+      // Old addresses of the password and phone tabs, now on the sign-in page.
+      { path: 'password', redirectTo: signInTab('password') },
+      { path: 'phone', redirectTo: signInTab('phone') },
       {
         // Not guest-only: a link opened while signed in signs in as that email.
         path: 'link',

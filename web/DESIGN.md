@@ -48,7 +48,7 @@ choice that isn't decided yet is marked **Proposal** until the owner confirms it
 เดือนที่แล้ว · เดือนนี้ · อนาคต`), swipeable; a sideways swipe over the list changes period.
 - **Outside the shell** (no tab bar): sign-in, enter code, trust prompt, PIN lock. These are
   full-screen flows with their own simple header: the app name on the left and the
-  **ไทย | English** switch on the right (the account page isn't reachable before sign-in), and a
+  **TH | EN** switch on the right (the account page isn't reachable before sign-in), and a
   ghost back button with a label inside the page when there's a step to go back to.
 - **Spacing**: page padding `p-4`. Sections are `gap-6` apart; items inside a section are `gap-3`.
   Use Tailwind's scale only, never arbitrary pixel values, except for safe-area `env()` values.
@@ -457,8 +457,9 @@ WCAG 2.2 AA, as in `AGENTS.md`:
 - **Keep English where Thai would sound odd.** Names and terms with no natural Thai form stay in
   English in both languages, rather than a forced translation: theme names (Midnight Gold, …),
   PWA, PIN, OTP, email. The app name stays ตังค์ไปไหน in both. Language names are shown in their
-  own language (ไทย, English), and the language label carries both ("ภาษา (Language)"), so
-  someone stuck in the wrong language can still find the switch.
+  own language (ไทย, English) in Account; the switch before sign-in shows TH | EN. The language
+  label carries both ("ภาษา (Language)"), so someone stuck in the wrong language can still find
+  the switch.
 - **Thai: short, friendly, and neutral in politeness.** No ครับ/ค่ะ (the user may be anyone in the
   family) and no stiff official register. Prefer `บันทึกแล้ว` over `ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว`.
 - **English: plain and short, sentence case** ("Add wallet", not "Add Wallet"), no exclamation

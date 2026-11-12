@@ -875,11 +875,12 @@ are on, so don't disable them.
     (`features/account/reauth-flow.ts`), calls `reauth.refused(action, error, hasPassword)` on a
     failure and sends the pending action again once confirmed. `deviceLabel()` turns a session's
     user agent into "Chrome · Android".
-  - Phone (4.4b): `providers().phone` decides whether "Sign in with phone number" and adding a
+  - Phone (4.4b): `providers().phone` decides whether the sign-in page's phone tab and adding a
     number show. Numbers travel in E.164 and show the Thai way: `normalizeThaiMobile`,
     `formatThaiMobile` (`081-234-5678`) and `thaiMobileValidator` (`@/core/auth`) on an
     `app-input-field` with `type="tel"`, `inputmode="tel"`, `autocomplete="tel-national"`.
-    Sign-in: `startPhone` / `verifyPhone`, on `/auth/phone` then the shared `/auth/code` screen
+    Sign-in: `startPhone` / `verifyPhone`, on the sign-in page's phone tab
+    (`/auth/sign-in?with=phone`, `features/auth/components/phone-sign-in`) then the shared `/auth/code` screen
     (`AuthFlowStore.pending()` holds either `email` or `phone`). Account › Phone
     (`features/account/pages/phone-page`): `changePhone` (recent auth, sends the SMS),
     `confirmPhone(code, lang)`, `removePhone(lang)`; `AuthUser.phone` is the saved number or

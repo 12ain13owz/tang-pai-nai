@@ -173,8 +173,11 @@ export class EnterCodePage {
 
   protected async back(): Promise<void> {
     const { returnUrl } = this.authFlowStore.pending()
-    await this.router.navigate([this.phone() ? '/auth/phone' : '/auth/sign-in'], {
-      queryParams: { returnUrl: returnUrl === '/' ? null : returnUrl },
+    await this.router.navigate(['/auth/sign-in'], {
+      queryParams: {
+        returnUrl: returnUrl === '/' ? null : returnUrl,
+        with: this.phone() ? 'phone' : null,
+      },
     })
   }
 }

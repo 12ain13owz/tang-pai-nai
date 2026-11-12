@@ -4,8 +4,8 @@ import { LANGUAGES, LanguageService } from '@/core/i18n'
 import type { Language } from '@/core/i18n'
 
 /**
- * ไทย | English, for screens before sign-in (the account page isn't reachable yet). Each language
- * names itself, so someone stuck in the wrong one can still find it.
+ * TH | EN, for screens before sign-in (the account page isn't reachable yet). The codes read the
+ * same in either language, so someone stuck in the wrong one can still find theirs.
  */
 @Component({
   selector: 'app-language-switch',
@@ -24,7 +24,7 @@ import type { Language } from '@/core/i18n'
           [attr.aria-pressed]="languageService.language().id === language.id"
           (click)="select(language.id)"
         >
-          {{ language.label }}
+          {{ language.id.toUpperCase() }}
         </button>
       }
     </div>
