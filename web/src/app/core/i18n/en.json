@@ -486,7 +486,6 @@
     "phone": "Mobile number",
     "phoneRequired": "Enter your mobile number",
     "phoneInvalid": "Enter a 10-digit Thai mobile number, like 081-234-5678",
-    "phoneHint": "Only works for a number confirmed on the Security page. Haven't added one? Sign in with an email code first",
     "phoneDisabled": "Text messages aren't available right now. Use an email code instead",
     "changePhone": "Change number",
     "smsCodeHeading": "Enter the code from the SMS",

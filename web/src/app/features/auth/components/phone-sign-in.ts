@@ -53,7 +53,6 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
         }
         {{ 'auth.sendCode' | transloco }}
       </button>
-      <p class="text-center text-sm text-muted-foreground">{{ 'auth.phoneHint' | transloco }}</p>
     </form>
   `,
 })
