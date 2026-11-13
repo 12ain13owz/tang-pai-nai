@@ -112,7 +112,7 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
                       variant="ghost"
                       size="icon"
                       type="button"
-                      class="size-11"
+                      class="tpn-hit size-9"
                       [disabled]="!debtService.canWrite()"
                       [attr.aria-label]="
                         (current.isPaused ? 'recurring.resume' : 'recurring.pause') | transloco
@@ -121,7 +121,7 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
                     >
                       <ng-icon
                         [name]="current.isPaused ? 'lucidePlay' : 'lucidePause'"
-                        size="20"
+                        size="18"
                         aria-hidden="true"
                       />
                     </button>
@@ -130,12 +130,12 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
                       variant="ghost"
                       size="icon"
                       type="button"
-                      class="size-11 text-destructive"
+                      class="tpn-hit size-9 text-destructive"
                       [disabled]="!debtService.canWrite()"
                       [attr.aria-label]="'recurring.delete' | transloco"
                       (click)="remove()"
                     >
-                      <ng-icon name="lucideTrash2" size="20" aria-hidden="true" />
+                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
                     </button>
                   </div>
                 } @else if (state()?.mode === 'edit') {
@@ -145,12 +145,12 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
                       variant="ghost"
                       size="icon"
                       type="button"
-                      class="size-11 text-destructive"
+                      class="tpn-hit size-9 text-destructive"
                       [disabled]="!debtService.canWrite()"
                       [attr.aria-label]="'debts.deleteEntry' | transloco"
                       (click)="remove()"
                     >
-                      <ng-icon name="lucideTrash2" size="20" aria-hidden="true" />
+                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
                     </button>
                   </div>
                 }

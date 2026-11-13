@@ -148,6 +148,10 @@ Web only, no API change. Owner's choices after trying the app on a phone.
   sheets that have it), and the picker's type tabs got 20px under them. **No sheet has a grab
   handle** any more (a global rule in `src/styles.css`): ✕ / ‹ and the swipe close them, and
   each gains 22px.
+- **Glass buttons** (iOS style): a sheet's ✕ / ‹ in a glass disc, its header icons in one glass
+  capsule, the page header's ‹ in a disc (`tpn-glass`); they were hard to tell from the title.
+  Then everywhere such a control floats: the in-page "‹ ตั้งค่า" pills, the Transactions header's
+  wallet pill and ⋮, the date row's ‹ ›. All 36px (44px tap, `tpn-hit`) with 18px icons.
 
 ---
 

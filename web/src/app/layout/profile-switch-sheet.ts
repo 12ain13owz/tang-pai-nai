@@ -42,12 +42,12 @@ import { SheetFrame } from '@/shared/components/sheet'
               hlmBtn
               variant="ghost"
               size="icon"
-              class="size-11"
+              class="tpn-hit size-9"
               routerLink="/account/profiles"
               [attr.aria-label]="'profiles.manage' | transloco"
               (click)="open.set(false)"
             >
-              <ng-icon name="lucideSettings2" size="20" aria-hidden="true" />
+              <ng-icon name="lucideSettings2" size="18" aria-hidden="true" />
             </a>
           </div>
           <ul class="flex flex-col" [attr.aria-label]="'profiles.switchHeading' | transloco">

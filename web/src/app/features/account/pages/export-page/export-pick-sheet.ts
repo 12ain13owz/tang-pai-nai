@@ -52,7 +52,7 @@ const idsOf = (row: PickRow): string[] => [row.id, ...row.children.map((child) =
             hlmBtn
             variant="ghost"
             type="button"
-            class="h-11 px-3 font-semibold text-brand"
+            class="tpn-hit h-9 rounded-full px-3 font-semibold text-brand"
             [disabled]="draft().size === 0"
             (click)="clear()"
           >

@@ -2,7 +2,7 @@ import { Component, computed, inject, signal, viewChild } from '@angular/core'
 import { ActivatedRoute, Router } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideArrowLeft } from '@ng-icons/lucide'
+import { lucideChevronLeft } from '@ng-icons/lucide'
 import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
@@ -23,18 +23,18 @@ type PinMode = 'on' | 'change' | 'off'
 @Component({
   selector: 'app-pin-page',
   imports: [TranslocoPipe, NgIcon, HlmButton, HlmSpinner, PinPad, PinSetup],
-  providers: [provideIcons({ lucideArrowLeft })],
+  providers: [provideIcons({ lucideChevronLeft })],
   template: `
     <div class="flex flex-col gap-4 p-4">
       <button
         hlmBtn
         variant="ghost"
         type="button"
-        class="-ms-3 h-11 self-start"
+        class="tpn-hit -ms-1 h-9 gap-1 self-start tpn-glass rounded-full ps-2 pe-3.5"
         [disabled]="isProcessing()"
         (click)="back()"
       >
-        <ng-icon name="lucideArrowLeft" aria-hidden="true" />
+        <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
         {{ 'title.security' | transloco }}
       </button>
 

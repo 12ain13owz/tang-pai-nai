@@ -135,7 +135,7 @@ type View = 'form' | 'pick' | 'note' | 'repeat' | 'confirmDiscard'
                       variant="ghost"
                       size="icon"
                       type="button"
-                      class="size-11"
+                      class="tpn-hit size-9"
                       [disabled]="!transferService.canWrite()"
                       [attr.aria-label]="
                         (current.isPaused ? 'recurring.resume' : 'recurring.pause') | transloco
@@ -144,7 +144,7 @@ type View = 'form' | 'pick' | 'note' | 'repeat' | 'confirmDiscard'
                     >
                       <ng-icon
                         [name]="current.isPaused ? 'lucidePlay' : 'lucidePause'"
-                        size="20"
+                        size="18"
                         aria-hidden="true"
                       />
                     </button>
@@ -153,12 +153,12 @@ type View = 'form' | 'pick' | 'note' | 'repeat' | 'confirmDiscard'
                       variant="ghost"
                       size="icon"
                       type="button"
-                      class="size-11 text-destructive"
+                      class="tpn-hit size-9 text-destructive"
                       [disabled]="!transferService.canWrite()"
                       [attr.aria-label]="'recurring.delete' | transloco"
                       (click)="remove()"
                     >
-                      <ng-icon name="lucideTrash2" size="20" aria-hidden="true" />
+                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
                     </button>
                   </div>
                 } @else if (editingId() && transferService.byId(editingId()!)) {
@@ -169,12 +169,12 @@ type View = 'form' | 'pick' | 'note' | 'repeat' | 'confirmDiscard'
                         variant="ghost"
                         size="icon"
                         type="button"
-                        class="size-11"
+                        class="tpn-hit size-9"
                         [disabled]="!transferService.canWrite()"
                         [attr.aria-label]="'transfers.copy' | transloco"
                         (click)="copy()"
                       >
-                        <ng-icon name="lucideCopy" size="20" aria-hidden="true" />
+                        <ng-icon name="lucideCopy" size="18" aria-hidden="true" />
                       </button>
                     }
                     <button
@@ -182,12 +182,12 @@ type View = 'form' | 'pick' | 'note' | 'repeat' | 'confirmDiscard'
                       variant="ghost"
                       size="icon"
                       type="button"
-                      class="size-11 text-destructive"
+                      class="tpn-hit size-9 text-destructive"
                       [disabled]="!transferService.canWrite()"
                       [attr.aria-label]="'transfers.delete' | transloco"
                       (click)="remove()"
                     >
-                      <ng-icon name="lucideTrash2" size="20" aria-hidden="true" />
+                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
                     </button>
                   </div>
                 }

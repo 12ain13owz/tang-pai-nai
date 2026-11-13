@@ -6,7 +6,7 @@ import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
 
 /**
  * The inside of every bottom sheet (DESIGN.md §6 Bottom sheet): a header with close (X) or back
- * (‹) on the left, the title in the centre and icon actions on the right (`[sheetActions]`), a
+ * (‹) on the left in a glass disc (`tpn-glass`), the right-hand icons in one glass capsule, the title in the centre and icon actions on the right (`[sheetActions]`), a
  * body that scrolls, and the main action pinned at the bottom (`[sheetFooter]`). Put it in a
  * `hlm-drawer-content class="mx-auto h-[92dvh] w-full max-w-[480px]
  * data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"`: every sheet is the same near-full height,
@@ -34,19 +34,22 @@ import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
           variant="ghost"
           size="icon"
           type="button"
-          class="size-11"
+          class="tpn-hit size-9 tpn-glass rounded-full"
           [attr.aria-label]="leadingLabel()"
           (click)="leading.emit()"
         >
           <ng-icon
             [name]="leadingIcon() === 'back' ? 'lucideChevronLeft' : 'lucideX'"
-            size="22"
+            size="18"
             aria-hidden="true"
           />
         </button>
       </div>
       <h2 hlmDrawerTitle class="truncate text-center text-lg font-semibold">{{ title() }}</h2>
-      <div class="flex justify-self-end">
+      <!-- The header icons share one glass capsule, as on iOS. -->
+      <div
+        class="flex justify-self-end rounded-full has-[button]:tpn-glass [&_button]:rounded-full"
+      >
         <ng-content select="[sheetActions]" />
       </div>
     </div>

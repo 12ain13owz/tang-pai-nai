@@ -151,7 +151,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                       variant="ghost"
                       size="icon"
                       type="button"
-                      class="size-11"
+                      class="tpn-hit size-9"
                       [disabled]="!transactionService.canWrite()"
                       [attr.aria-label]="
                         (current.isPaused ? 'recurring.resume' : 'recurring.pause') | transloco
@@ -160,7 +160,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                     >
                       <ng-icon
                         [name]="current.isPaused ? 'lucidePlay' : 'lucidePause'"
-                        size="20"
+                        size="18"
                         aria-hidden="true"
                       />
                     </button>
@@ -169,12 +169,12 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                       variant="ghost"
                       size="icon"
                       type="button"
-                      class="size-11 text-destructive"
+                      class="tpn-hit size-9 text-destructive"
                       [disabled]="!transactionService.canWrite()"
                       [attr.aria-label]="'recurring.delete' | transloco"
                       (click)="remove()"
                     >
-                      <ng-icon name="lucideTrash2" size="20" aria-hidden="true" />
+                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
                     </button>
                   </div>
                 } @else if (editingId() && transactionService.byId(editingId()!)) {
@@ -185,12 +185,12 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                         variant="ghost"
                         size="icon"
                         type="button"
-                        class="size-11"
+                        class="tpn-hit size-9"
                         [disabled]="!transactionService.canWrite()"
                         [attr.aria-label]="'transactions.copy' | transloco"
                         (click)="copy()"
                       >
-                        <ng-icon name="lucideCopy" size="20" aria-hidden="true" />
+                        <ng-icon name="lucideCopy" size="18" aria-hidden="true" />
                       </button>
                     }
                     <button
@@ -198,12 +198,12 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                       variant="ghost"
                       size="icon"
                       type="button"
-                      class="size-11 text-destructive"
+                      class="tpn-hit size-9 text-destructive"
                       [disabled]="!transactionService.canWrite()"
                       [attr.aria-label]="'transactions.delete' | transloco"
                       (click)="remove()"
                     >
-                      <ng-icon name="lucideTrash2" size="20" aria-hidden="true" />
+                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
                     </button>
                   </div>
                 }

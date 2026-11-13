@@ -88,12 +88,12 @@ const endAfterStart: ValidatorFn = (control) => {
                       variant="ghost"
                       size="icon"
                       type="button"
-                      class="size-11 text-destructive"
+                      class="tpn-hit size-9 text-destructive"
                       [disabled]="!eventService.canWrite()"
                       [attr.aria-label]="'events.delete' | transloco"
                       (click)="view.set('confirmDelete')"
                     >
-                      <ng-icon name="lucideTrash2" size="20" aria-hidden="true" />
+                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
                     </button>
                   </div>
                 }

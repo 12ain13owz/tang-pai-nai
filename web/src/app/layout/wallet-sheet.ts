@@ -99,7 +99,7 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                       variant="ghost"
                       size="icon"
                       type="button"
-                      class="size-11"
+                      class="tpn-hit size-9"
                       [disabled]="!walletService.canWrite()"
                       [attr.aria-label]="
                         (wallet.isArchived ? 'wallets.unarchive' : 'wallets.archive') | transloco
@@ -108,7 +108,7 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                     >
                       <ng-icon
                         [name]="wallet.isArchived ? 'lucideArchiveRestore' : 'lucideArchive'"
-                        size="20"
+                        size="18"
                         aria-hidden="true"
                       />
                     </button>
@@ -117,12 +117,12 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
                       variant="ghost"
                       size="icon"
                       type="button"
-                      class="size-11 text-destructive"
+                      class="tpn-hit size-9 text-destructive"
                       [disabled]="!walletService.canWrite() || currencyLocked()"
                       [attr.aria-label]="'wallets.delete' | transloco"
                       (click)="view.set('confirmDelete')"
                     >
-                      <ng-icon name="lucideTrash2" size="20" aria-hidden="true" />
+                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
                     </button>
                   </div>
                 }

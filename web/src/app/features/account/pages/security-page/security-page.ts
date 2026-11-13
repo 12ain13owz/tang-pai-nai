@@ -12,7 +12,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
-  lucideArrowLeft,
+  lucideChevronLeft,
   lucideChevronRight,
   lucideKeyRound,
   lucideLockKeyhole,
@@ -96,7 +96,7 @@ const DAY = 24 * HOUR
   ],
   providers: [
     provideIcons({
-      lucideArrowLeft,
+      lucideChevronLeft,
       lucideChevronRight,
       lucideKeyRound,
       lucideLockKeyhole,
@@ -109,8 +109,14 @@ const DAY = 24 * HOUR
   ],
   template: `
     <div class="flex flex-col gap-6 p-4">
-      <button hlmBtn variant="ghost" type="button" class="-ms-3 h-11 self-start" (click)="back()">
-        <ng-icon name="lucideArrowLeft" aria-hidden="true" />
+      <button
+        hlmBtn
+        variant="ghost"
+        type="button"
+        class="tpn-hit -ms-1 h-9 gap-1 self-start tpn-glass rounded-full ps-2 pe-3.5"
+        (click)="back()"
+      >
+        <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
         {{ 'title.account' | transloco }}
       </button>
 

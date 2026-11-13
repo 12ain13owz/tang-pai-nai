@@ -261,7 +261,10 @@ data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"` holding one `app-sheet-frame
   `aria-label`. No grab handle: `src/styles.css` hides spartan's
   (`hlm-drawer-content[data-slot='drawer-content'] > div:first-child`: Tailwind's utilities here
   are unlayered, so it needs the attribute to outrank the one that shows it; the generated file
-  stays untouched).
+  stays untouched). Glass: `app-sheet-frame` puts its ✕ / ‹ in `tpn-glass` (a Tailwind
+  `@utility` in `src/styles.css`) and wraps the `[sheetActions]` icons in one glass capsule, so a
+  sheet adds nothing; `app-header`'s ‹ uses it too. Header icons are `tpn-hit size-9` with
+  `size="18"` (a 36px disc, 44px tap): keep new ones the same.
 
 ### Wallets (`core/wallet`, #6.2)
 

@@ -71,16 +71,16 @@ import { SyncStatus } from './sync-status'
     </div>
     <button
       type="button"
-      class="flex h-11 max-w-48 min-w-0 items-center gap-2 rounded-full border border-border bg-card py-1 pr-3 pl-1.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      class="tpn-hit flex h-9 max-w-48 min-w-0 items-center gap-2 tpn-glass rounded-full py-1 pr-3 pl-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       aria-haspopup="dialog"
       [attr.aria-label]="'transactions.walletSwitch' | transloco: { name: walletName() }"
       (click)="transactionService.walletSheet.set(true)"
     >
       @if (transactionService.viewWallet(); as wallet) {
-        <app-icon-badge [icon]="wallet.icon" [color]="wallet.color" [size]="32" />
+        <app-icon-badge [icon]="wallet.icon" [color]="wallet.color" [size]="28" />
       } @else {
         <span
-          class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+          class="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
         >
           <ng-icon name="lucideWallet" size="16" aria-hidden="true" />
         </span>
@@ -98,13 +98,13 @@ import { SyncStatus } from './sync-status'
       <button
         #menuButton
         type="button"
-        class="flex size-11 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        class="tpn-hit ml-1 flex size-9 items-center justify-center tpn-glass rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         aria-haspopup="menu"
         [attr.aria-expanded]="menuOpen()"
         [attr.aria-label]="'transfers.menu' | transloco"
         (click)="toggleMenu()"
       >
-        <ng-icon name="lucideEllipsisVertical" size="22" aria-hidden="true" />
+        <ng-icon name="lucideEllipsisVertical" size="18" aria-hidden="true" />
       </button>
     </div>
     @if (menuOpen()) {

@@ -49,14 +49,14 @@ import { UpdateBanner } from './update-banner'
           <h1 class="sr-only">{{ pageTitleStrategy.pageTitle() }}</h1>
           <app-profile-switcher />
         } @else {
-          <div class="flex min-w-0 items-center gap-1">
+          <div class="flex min-w-0 items-center gap-2">
             @if (parent(); as link) {
               <a
-                class="-ml-3 flex size-11 shrink-0 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                class="tpn-hit flex size-9 shrink-0 items-center justify-center tpn-glass rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 [routerLink]="link"
                 [attr.aria-label]="'header.back' | transloco"
               >
-                <ng-icon name="lucideChevronLeft" size="24" aria-hidden="true" />
+                <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
               </a>
             }
             <h1 class="truncate text-lg font-semibold">{{ pageTitleStrategy.pageTitle() }}</h1>

@@ -116,3 +116,31 @@
 hlm-drawer-content[data-slot='drawer-content'] > div:first-child {
   display: none;
 }
+/* Glass for the controls that float over a screen's top edge (owner, 2026-11, iOS style): a sheet's
+   ✕ / ‹ and its header icons, the header's ‹, the date row's ‹ ›. A tinted, blurred disc with a
+   soft shadow, so they read as buttons. Theme tokens only, so every palette and dark mode follow.
+   The edge is transparent and the tint stays inside it, exactly as on a spartan `hlmBtn`
+   (`border-transparent bg-clip-padding`), so a plain element and a `hlmBtn` look the same. */
+@utility tpn-glass {
+  border-radius: calc(infinity* 1px);
+  /* Longhands: the build's color-mix fallback repeats this in an `@supports`, and a `background`
+     shorthand there would reset the clip. */
+  background-color: color-mix(in oklch, var(--foreground) 7%, transparent);
+  background-clip: padding-box;
+  border: 1px solid transparent;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--background) 45%, transparent),
+    0 1px 3px color-mix(in oklch, var(--foreground) 8%, transparent);
+  backdrop-filter: blur(12px) saturate(1.6);
+  -webkit-backdrop-filter: blur(12px) saturate(1.6);
+}
+/* A 36px glass control still takes a 44px tap (DESIGN.md §8): the hit area reaches 4px past each
+   edge. Pair with `size-9` (or `h-9` on a pill). */
+@utility tpn-hit {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+  }
+}

@@ -5,7 +5,7 @@ import type { ValidatorFn } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideArrowLeft } from '@ng-icons/lucide'
+import { lucideChevronLeft } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { toApiError } from '@/core/api'
@@ -35,11 +35,17 @@ const matchesNewPassword: ValidatorFn = (control) => {
 @Component({
   selector: 'app-password-page',
   imports: [FORM_IMPORTS, TranslocoPipe, NgIcon, PasswordField, ReauthStep, HlmButton, HlmSpinner],
-  providers: [provideIcons({ lucideArrowLeft }), ReauthFlow],
+  providers: [provideIcons({ lucideChevronLeft }), ReauthFlow],
   template: `
     <div class="flex flex-col gap-6 p-4">
-      <button hlmBtn variant="ghost" type="button" class="-ms-3 h-11 self-start" (click)="back()">
-        <ng-icon name="lucideArrowLeft" aria-hidden="true" />
+      <button
+        hlmBtn
+        variant="ghost"
+        type="button"
+        class="tpn-hit -ms-1 h-9 gap-1 self-start tpn-glass rounded-full ps-2 pe-3.5"
+        (click)="back()"
+      >
+        <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
         {{ 'title.account' | transloco }}
       </button>
 

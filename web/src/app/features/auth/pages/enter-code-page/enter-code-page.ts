@@ -4,7 +4,7 @@ import { NonNullableFormBuilder, Validators } from '@angular/forms'
 import { Router } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideArrowLeft, lucideMail } from '@ng-icons/lucide'
+import { lucideChevronLeft, lucideMail } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { toApiError } from '@/core/api'
@@ -20,11 +20,17 @@ const CODE_LENGTH = 6
 @Component({
   selector: 'app-enter-code-page',
   imports: [FORM_IMPORTS, TranslocoPipe, NgIcon, OtpField, HlmButton, HlmSpinner],
-  providers: [provideIcons({ lucideArrowLeft, lucideMail })],
+  providers: [provideIcons({ lucideChevronLeft, lucideMail })],
   template: `
     <div class="flex flex-1 flex-col gap-6">
-      <button hlmBtn variant="ghost" type="button" class="-ms-3 h-11 self-start" (click)="back()">
-        <ng-icon name="lucideArrowLeft" aria-hidden="true" />
+      <button
+        hlmBtn
+        variant="ghost"
+        type="button"
+        class="tpn-hit -ms-1 h-9 gap-1 self-start tpn-glass rounded-full ps-2 pe-3.5"
+        (click)="back()"
+      >
+        <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
         {{ (phone() ? 'auth.changePhone' : 'auth.changeEmail') | transloco }}
       </button>
 

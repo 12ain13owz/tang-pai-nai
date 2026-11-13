@@ -24,15 +24,15 @@ import { addDays, fromDay } from '@/shared/utils'
       </span>
       <button
         hlmBtn
-        variant="outline"
+        variant="ghost"
         size="icon"
         type="button"
-        class="size-10 shrink-0"
+        class="tpn-hit size-9 shrink-0 tpn-glass rounded-full"
         [disabled]="day() <= min()"
         [attr.aria-label]="'transactions.dayBefore' | transloco"
         (click)="move(-1)"
       >
-        <ng-icon name="lucideChevronLeft" size="20" aria-hidden="true" />
+        <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
       </button>
       <label
         class="relative flex h-10 min-w-0 flex-1 items-center justify-center rounded-md text-base font-medium has-focus-visible:ring-2 has-focus-visible:ring-ring"
@@ -54,15 +54,15 @@ import { addDays, fromDay } from '@/shared/utils'
       </label>
       <button
         hlmBtn
-        variant="outline"
+        variant="ghost"
         size="icon"
         type="button"
-        class="size-10 shrink-0"
+        class="tpn-hit size-9 shrink-0 tpn-glass rounded-full"
         [disabled]="day() >= max()"
         [attr.aria-label]="'transactions.dayAfter' | transloco"
         (click)="move(1)"
       >
-        <ng-icon name="lucideChevronRight" size="20" aria-hidden="true" />
+        <ng-icon name="lucideChevronRight" size="18" aria-hidden="true" />
       </button>
     </div>
   `,

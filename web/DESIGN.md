@@ -219,6 +219,11 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - **Create / edit / pick = bottom sheet** (spartan `drawer`), never a centred dialog. Dismiss by
   swiping down or tapping the backdrop. No grab handle (owner, 2026-11): the header's ✕ or ‹
   and the swipe are enough, and the bar took 22px (`src/styles.css` hides it for every sheet).
+  The header's ✕ / ‹ sits in a **glass disc** and its right-hand icons share one glass capsule
+  (`tpn-glass`, iOS style, owner 2026-11), as do the page header's ‹, the in-page "‹ ตั้งค่า"
+  pills, the Transactions header's wallet pill and ⋮, and the date row's ‹ ›, so they read as
+  buttons. **One size for all of them**: a 36px disc (`size-9`, a pill `h-9`) with an 18px icon,
+  its tap area still 44px (`tpn-hit`).
   If the sheet holds unsaved input, ask first (a confirm
   view in the same sheet).
 - **Delete**: act at once, then offer **undo** in a toast (spartan `sonner`). Confirm first only
