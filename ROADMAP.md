@@ -126,6 +126,30 @@ first staging deploy (docs/deploy.md step 7).
 
 ---
 
+## Done: Motion, a number keypad, the ตั้งค่า tab (UI polish, 2026-11)
+
+Web only, no API change. Owner's choices after trying the app on a phone.
+
+- **Motion** (DESIGN.md §8): on the Transactions tab the list slides in from the side of the
+  chosen period, by chip or swipe (`appSlide`, `shared/components/slide`); switching bottom
+  tabs fades the page in with an 8px rise (`appFadeIn` on the shell's `<main>`,
+  `shared/components/fade`). The Reports tab can take `appSlide` the same way (not yet).
+- **The account tab is ตั้งค่า / Settings**: not โปรไฟล์ (already a data set) nor บัญชี (a bank
+  account). Its icon is still `lucideCircleUser`.
+- **Number keypad** (transaction.md → Web screens): `app-calc-keypad` lost ÷ × − + and "=":
+  7 8 9 ⌫ / 4 5 6 C / 1 2 3 ✓ / 000 0 . in 44px rows, in every sheet that uses it
+  (transaction, transfer, debt, repayment); ✓ closes it, and it slides up and down
+  (`animate.enter` / `animate.leave` on its host, +2 kB gzip to the initial bundle). The
+  calculator covered the form, and its "=" read as the save button. A quick amount now adds into the number (`500` → `600`), and a hardware
+  keyboard types no operators.
+- **No type tabs on the transaction form** (Money Lover style): the category picker has the
+  รายจ่าย / รายรับ tabs and the chosen category sets the type; the sheet hides the drawer's grab
+  handle, and the note box has no placeholder. Together with the keypad, the form gains about
+  150px on a phone. The keypad now slides up over the save row instead of pushing it up (all four
+  sheets that have it), and the picker's type tabs got 20px under them.
+
+---
+
 ## Done: Local data on every device, optional PIN, sync failures shown (after 16.2)
 
 - **Decided** (owner, after 16.2; offline-sync rules 1–4 and 7): **every signed-in device keeps

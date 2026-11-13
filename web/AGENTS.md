@@ -367,7 +367,10 @@ values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `rem
   bundle), `layout/view-wallet-sheet`, `layout/custom-range-sheet`, `layout/transaction-sheet`
   (views `form` / `wallet` / `category` / `note` / `confirmDiscard`; the date row and the wallet
   view are `shared/components/date-row` and `wallet-pick`, as in the transfer sheet; keypad
-  state: it closes on any other control of the form, `leaveAmount`; save and add, copy; the shell
+  state: it closes on any other control of the form, `leaveAmount`; save and add, copy; no type
+  control on the form: the `category` view's tabs are `pickType` (a lone control) and
+  `chooseCategory` sets `type` from the category; the drawer's handle is hidden with
+  `[&>div:first-child]:hidden!` on its `hlm-drawer-content`; the shell
   `@defer`s all three), `features/transactions` (the page; rows drawn 100 at a time with an
   `IntersectionObserver` sentinel; the list carries `[appSlide]="tabIndex()"` from
   `shared/components/slide`, which slides it in from the side of the chosen period (Web
@@ -701,7 +704,7 @@ initialValue })`.
   | `app-amount-field`      | text + `negative` bool  | money in major units, +/− button, currency    |
   | `app-segmented-field`   | `FormControl<string>`   | two or three short options (รายจ่าย / รายรับ) |
   | `app-toggle-list-field` | `FormControl<string[]>` | rows with a switch each; holds the ids off    |
-  | `app-calc-amount-field` | `FormControl<string>`   | the keypad's expression + result (amount row) |
+  | `app-calc-amount-field` | `FormControl<string>`   | the keypad's number (amount row)              |
 
   Every field takes `[control]` (the typed control, so templates are type-checked) plus `label`,
   and optionally `hint` / `placeholder`. Labels are linked to the control automatically, so there's
@@ -796,9 +799,11 @@ are on, so don't disable them.
   using `LanguageService.locale()` (`th-TH-u-ca-gregory` / `en-GB`), the currency's minor-unit
   digits and `currencyDisplay: 'narrowSymbol'` (so English shows ฿, not "THB"). The transaction
   list shows amounts without the symbol: `formatAmount(minor, minorUnit, locale, signed)`.
-- **Calculator** (`@/shared/utils` `calc.ts`): `pressKey(expr, key, minorUnit)` keeps a keypad
-  expression well formed, `evaluate(expr, minorUnit)` works it out as exact BigInt fractions
-  (× ÷ first, rounded half away from zero to the minor unit). Never `eval` or floats.
+- **Amount keypad** (`@/shared/utils` `calc.ts`): `pressKey(expr, key, minorUnit)` keeps the
+  typed number well formed, `evaluate(expr, minorUnit)` works it out as exact BigInt fractions
+  to the minor unit, `addQuickAmount` adds a chip to it and returns the total. Never `eval` or
+  floats. The keypad has **no operators** (owner, 2026-11) and `CALC_KEYBOARD` maps none; the
+  engine still understands + − × ÷, so don't build on that.
 - Dates: the API sends ISO strings. Display them with `Intl.DateTimeFormat(locale())`: both
   languages show the **Gregorian year** (owner's choice in #8; the Thai locale pins
   `-u-ca-gregory`). Calendar days are `YYYY-MM-DD` local dates: `toDay`, `fromDay`, `addDays`,

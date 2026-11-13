@@ -70,8 +70,8 @@ never stored (ROADMAP → Money & data).
    doesn't refuse an archived one, so an expense added offline isn't bounced because another
    device archived its wallet meanwhile; it shows in the archived wallet's history.
 3. `amount` is an integer from 1 to 10¹⁵ in minor units. The form takes major units on its
-   calculator keypad and works the expression out as exact fractions to the currency's
-   `minorUnit` (`evaluate`, no floats; a division rounds half away from zero).
+   number keypad and works them out as exact fractions to the currency's `minorUnit`
+   (`evaluate`, no floats).
 4. `occurredOn` is a real calendar date (`YYYY-MM-DD`), from 2000-01-01 to at most one year after
    today. The form starts on **today** (the device's local date). Server check: the shape, a real
    date, and not after the server's today + 1 year + 1 day (time zones).
@@ -192,41 +192,50 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
   from the Money Lover screenshot and mock-ups; no debt tab, no photo / chat buttons):
   - header: X left, "เพิ่มธุรกรรม" / "แก้ไขธุรกรรม" centred, delete (red, at once with undo)
     right when editing;
-  - type tabs รายจ่าย / รายรับ (`app-segmented-field`), starting on รายจ่าย;
+  - **no type tabs on the form** (owner, 2026-11, Money Lover style, to give the rows the
+    space): the type is the category's. The category picker has the tabs รายจ่าย / รายรับ
+    (`app-segmented-field`) above its list; choosing a category of the other type switches the
+    transaction's type. The drawer's grab handle is hidden on this sheet too (a swipe down
+    still closes it);
   - then **one card of rows told apart by icons, no labels above them** (screen-reader labels
     stay): wallet (opens a picker view; starts on the wallet the tab shows, else the last one
     used here, else the first open one; editing offers only the row's currency), amount
-    (`app-calc-amount-field`: the currency code, the expression large with each number grouped
-    in thousands for display, `8,500+1,000`, while the form holds `8500+1000` (after #12), and
-    its result), category
+    (`app-calc-amount-field`: the currency code and the number large, grouped in thousands for
+    display, `8,500`, while the form holds `8500` (after #12)), category
     (opens the picker view: the chosen wallet's open, non-hidden categories of the type,
     children in their parent's tinted panel; a type with none left says so and opens the
     wallet's "หมวดหมู่ที่ใช้" over the form, category rule 13; switching type or wallet drops a
     category that no longer fits), note (opens its own view with a tall box and a 500 counter;
     ‹ keeps the text), date (‹ › a day, the middle opens the native date picker);
   - "ไม่รวมในรายงาน" folded under **เพิ่มเติม** (open by itself for a row that has it on);
-  - the **calculator keypad** (`app-calc-keypad`) belongs to the amount row: it opens by itself
-    when adding (not when editing) and on a tap on the amount, and closes on "=" or when any
-    other control of the form is used (a row, the type tabs, the date, เพิ่มเติม; 8.2), the
-    expression settling; a hardware keyboard types into it;
-  - one main button "บันทึก" (above the keypad while it shows). Errors: "ใส่จำนวนเงินที่มากกว่า 0",
-    "เลือกหมวดหมู่ก่อน". Asks before closing with unsaved input. When it can't write (a shared
+  - the **number keypad** (`app-calc-keypad`) belongs to the amount row: it opens by itself
+    when adding (not when editing) and on a tap on the amount, and closes on ✓ or when any
+    other control of the form is used (a row, the date, เพิ่มเติม; 8.2); a
+    hardware keyboard types into it (digits, `.`, Backspace, Enter / Esc to close). **Numbers
+    only** (owner, 2026-11, after trying it on a phone): 7 8 9 ⌫ / 4 5 6 C / 1 2 3 ✓ /
+    000 0 . in four 44px rows; ✓ ("เสร็จ" to a screen reader) closes it, like a phone's number
+    pad. It slides up as it opens and down as it closes (a fade under reduced motion). 8.1's calculator (÷ × − + and "=", from the Money Lover
+    screenshot) read as a calculator, took most of the sheet so only the wallet and the amount
+    showed, and its "=" beside "บันทึก" was easy to mistake for saving;
+  - one main button "บันทึก" at the bottom; the keypad slides up **over** it (owner, 2026-11:
+    one action at a time, ✓ then บันทึก, and the form never jumps), the row inert meanwhile.
+    Errors: "ใส่จำนวนเงินที่มากกว่า 0", "เลือกหมวดหมู่ก่อน". Asks before closing with unsaved input. When it can't write (a shared
     profile offline, or an in-memory database) it shows the notice and a disabled save.
   - **Quick amounts** (8.2, owner's choices from a mock-up): a row of chips `20 · 50 · 100 · 500
 · 1,000` (major units, Thai banknotes) at the top of the keypad's panel, shown only while
-    the keypad is; the keys get 4px shorter so the form loses little. A chip **adds** like
-    counting notes: an empty amount (or one ending in an operator) takes the number, otherwise
-    `+<number>` is appended, so `500` then `100` reads `500+100 = 600`. Money Lover has none, so
+    the keypad is. A chip **adds** like counting notes and the amount shows the total at once:
+    `500` then `100` reads `600` (8.2 appended `+100`, which needed the calculator). Money
+    Lover has none, so
     Account › การแสดงผล has a switch "ปุ่มจำนวนเงินด่วน" (on by default, kept per device like
-    the theme, not synced); off, the keypad is exactly 8.1's.
+    the theme, not synced); off, only the keys show.
   - **Save and add another** (8.2, only when adding): an outline icon button beside "บันทึก"
     saves, keeps the sheet open with the same type, wallet, category, date and "เพิ่มเติม",
     clears the amount and the note, and opens the keypad again (for a pile of receipts).
   - **Copy** (8.2, editing): an icon in the header opens "เพิ่มธุรกรรม" holding the form's
     values with the date set to today (the row being edited is left as it was saved); an
     archived wallet or category falls back as when adding (rule 2).
-  - The type tabs start on the type of the last transaction added in this profile on this
-    device (8.2), else รายจ่าย.
+  - The type (and so the picker's first tab) starts on the type of the last transaction added
+    in this profile on this device (8.2), else รายจ่าย; the picker opens on the form's type.
   - **Category picker**: above the tree, a row **"ใช้บ่อย"** of up to 4 categories (8.2): the
     type's categories with the most live transactions dated in the last 90 days, ties to the
     one recorded last, among those the picker offers (open, not hidden in the wallet). It is a
@@ -265,7 +274,7 @@ delete online only (offline-sync rules 13–16, [sharing](sharing.md) rules 10�
 Settled at the start of #8 (owner): the Money Lover header comes in 8.1 rather than a temporary
 month stepper (no build-then-remove); no time of day (rule 13); archived wallets and categories
 are left out of the pickers, the server doesn't refuse them (rule 2); a pulled wallet or category
-tombstone takes its live transactions (rule 10); the on-screen calculator keypad, quick amounts
+tombstone takes its live transactions (rule 10); the on-screen number keypad, quick amounts
 looked at in 8.2; "all wallets" leaves out wallets excluded from the total (rule 11);
 `excludeFromReport` in 8.1; a row opens the form (no detail screen).
 

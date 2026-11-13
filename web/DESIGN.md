@@ -199,20 +199,23 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   icon grid; picking an icon goes back). Further rows are one line each (an amount with its +/−
   button and currency, a switch). Errors still show under their row, one at a time. Long forms
   (password, phone) keep labels.
-- **Transaction form** (owner's choice in #8, from the Money Lover screenshot): the type tabs,
-  then **one card of rows told apart by their icons, no labels above them** (labels stay for
-  screen readers): wallet, amount (the currency code and the figures large, each number grouped
-  in thousands as typed, `8,500+1,000`, after #12; a small "จำนวนเงิน"
-  over them since it has no icon), category, note, date (‹ › a day, the middle opens the date
+- **Transaction form** (owner's choice in #8, from the Money Lover screenshot): **one card of
+  rows told apart by their icons, no labels above them** (labels stay for screen readers):
+  wallet, amount (the currency code and the figures large, each number grouped in thousands as
+  typed, `8,500`, after #12; a small "จำนวนเงิน" over them since it has no icon), category, note, date (‹ › a day, the middle opens the date
   picker; `app-date-row`, the same row in the transfer, debt and event sheets), and less used
   options folded under "เพิ่มเติม". The amount is typed on an
-  **on-screen calculator keypad** (`app-calc-keypad`: C ÷ × ⌫ / digits / 000 . =) that opens by
-  itself when adding and closes when any other control is used (it belongs to the amount row);
-  the main button sits above it, with "บันทึกแล้วเพิ่มต่อ" as an outline icon beside it when
+  **on-screen number keypad** (`app-calc-keypad`: digits, 000, ., ⌫, C and a ✓ that closes it
+  ("เสร็จ" to a screen reader), no operators, four 44px rows so the form stays in view) that
+  slides up by itself when adding, slides down on ✓ and closes when any other control is used
+  (it belongs to the amount row); it covers the main button while it shows (✓, then save;
+  nothing moves), with "บันทึกแล้วเพิ่มต่อ" as an outline icon beside the main button when
   adding. **Quick amounts** (8.2) are a chip row on top of the keypad's panel (`20 · 50 · 100 ·
 500 · 1,000`, a tap adds), switched off in Account › การแสดงผล. The note is its own view
-  (‹ back keeps the text), so it can be long. Editing shows copy and delete in the header. The
-  category picker starts with a "ใช้บ่อย" row (up to 4 badges with names, in a card) over the
+  (‹ back keeps the text), so it can be long. There are no type tabs on the form (2026-11): the
+  category picker holds รายจ่าย / รายรับ tabs and the category sets the type, Money Lover
+  style; the sheet hides the drawer's grab handle for the space. Editing shows copy and delete
+  in the header. The category picker starts with a "ใช้บ่อย" row (up to 4 badges with names, in a card) over the
   tree.
 - **Create / edit / pick = bottom sheet** (spartan `drawer`), never a centred dialog. Dismiss by
   swiping down or tapping the backdrop. If the sheet holds unsaved input, ask first (a confirm

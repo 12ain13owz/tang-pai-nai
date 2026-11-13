@@ -59,7 +59,7 @@ different amounts or dates, delete / undo / conflicts work exactly as for a tran
    - both wallets have the **same currency** (Q2).
 2. **Archived wallets**: as transaction rule 2: the pickers offer open wallets only (an edit may
    keep an archived wallet the row already has); the server doesn't refuse an archived one.
-3. `amount` 1 to 10¹⁵ minor units, typed on the same calculator keypad (transaction rule 3).
+3. `amount` 1 to 10¹⁵ minor units, typed on the same number keypad (transaction rule 3).
 4. `occurredOn` and `note`: as transaction rules 4 and 6.
 5. **Not income or expense.** A transfer is left out of รายรับ, รายจ่าย and สุทธิ everywhere
    (the summary card, a day's net, reports #10, budgets if they come).
