@@ -258,7 +258,10 @@ data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"` holding one `app-sheet-frame
   `(leading)`; project `[sheetActions]` icon buttons and a `[sheetFooter]` with the main button).
   A sheet with more than one step switches views inside the same drawer (`form` / `icons` /
   `confirmDelete` / `confirmDiscard`, see `layout/wallet-sheet`). Specs find icon buttons by
-  `aria-label`.
+  `aria-label`. No grab handle: `src/styles.css` hides spartan's
+  (`hlm-drawer-content[data-slot='drawer-content'] > div:first-child`: Tailwind's utilities here
+  are unlayered, so it needs the attribute to outrank the one that shows it; the generated file
+  stays untouched).
 
 ### Wallets (`core/wallet`, #6.2)
 
@@ -369,8 +372,7 @@ values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `rem
   view are `shared/components/date-row` and `wallet-pick`, as in the transfer sheet; keypad
   state: it closes on any other control of the form, `leaveAmount`; save and add, copy; no type
   control on the form: the `category` view's tabs are `pickType` (a lone control) and
-  `chooseCategory` sets `type` from the category; the drawer's handle is hidden with
-  `[&>div:first-child]:hidden!` on its `hlm-drawer-content`; the shell
+  `chooseCategory` sets `type` from the category; the shell
   `@defer`s all three), `features/transactions` (the page; rows drawn 100 at a time with an
   `IntersectionObserver` sentinel; the list carries `[appSlide]="tabIndex()"` from
   `shared/components/slide`, which slides it in from the side of the chosen period (Web

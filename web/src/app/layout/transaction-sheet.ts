@@ -132,7 +132,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="onClosed()">
       <hlm-drawer-content
         *hlmDrawerPortal
-        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh] [&>div:first-child]:hidden!"
+        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
         (keydown)="onKey($event)"
       >
         @switch (view()) {

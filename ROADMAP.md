@@ -143,10 +143,11 @@ Web only, no API change. Owner's choices after trying the app on a phone.
   calculator covered the form, and its "=" read as the save button. A quick amount now adds into the number (`500` → `600`), and a hardware
   keyboard types no operators.
 - **No type tabs on the transaction form** (Money Lover style): the category picker has the
-  รายจ่าย / รายรับ tabs and the chosen category sets the type; the sheet hides the drawer's grab
-  handle, and the note box has no placeholder. Together with the keypad, the form gains about
+  รายจ่าย / รายรับ tabs and the chosen category sets the type; the note box has no placeholder. Together with the keypad, the form gains about
   150px on a phone. The keypad now slides up over the save row instead of pushing it up (all four
-  sheets that have it), and the picker's type tabs got 20px under them.
+  sheets that have it), and the picker's type tabs got 20px under them. **No sheet has a grab
+  handle** any more (a global rule in `src/styles.css`): ✕ / ‹ and the swipe close them, and
+  each gains 22px.
 
 ---
 

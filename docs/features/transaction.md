@@ -195,8 +195,7 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
   - **no type tabs on the form** (owner, 2026-11, Money Lover style, to give the rows the
     space): the type is the category's. The category picker has the tabs รายจ่าย / รายรับ
     (`app-segmented-field`) above its list; choosing a category of the other type switches the
-    transaction's type. The drawer's grab handle is hidden on this sheet too (a swipe down
-    still closes it);
+    transaction's type;
   - then **one card of rows told apart by icons, no labels above them** (screen-reader labels
     stay): wallet (opens a picker view; starts on the wallet the tab shows, else the last one
     used here, else the first open one; editing offers only the row's currency), amount

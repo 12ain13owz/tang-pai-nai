@@ -109,3 +109,10 @@
     transition: none;
   }
 }
+/* Sheets have no grab handle (owner, 2026-11): every sheet has ✕ or ‹ in its header and a swipe
+   down still closes it, so the bar only took 22px. spartan's generated drawer content draws it as
+   its first child (shared/ui is never edited by hand). The attribute lifts this above the utility
+   that shows it (`group-data-[…]/drawer-content:block`, two classes' worth). */
+hlm-drawer-content[data-slot='drawer-content'] > div:first-child {
+  display: none;
+}

@@ -214,11 +214,12 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 500 · 1,000`, a tap adds), switched off in Account › การแสดงผล. The note is its own view
   (‹ back keeps the text), so it can be long. There are no type tabs on the form (2026-11): the
   category picker holds รายจ่าย / รายรับ tabs and the category sets the type, Money Lover
-  style; the sheet hides the drawer's grab handle for the space. Editing shows copy and delete
-  in the header. The category picker starts with a "ใช้บ่อย" row (up to 4 badges with names, in a card) over the
+  style. Editing shows copy and delete in the header. The category picker starts with a "ใช้บ่อย" row (up to 4 badges with names, in a card) over the
   tree.
 - **Create / edit / pick = bottom sheet** (spartan `drawer`), never a centred dialog. Dismiss by
-  swiping down or tapping the backdrop. If the sheet holds unsaved input, ask first (a confirm
+  swiping down or tapping the backdrop. No grab handle (owner, 2026-11): the header's ✕ or ‹
+  and the swipe are enough, and the bar took 22px (`src/styles.css` hides it for every sheet).
+  If the sheet holds unsaved input, ask first (a confirm
   view in the same sheet).
 - **Delete**: act at once, then offer **undo** in a toast (spartan `sonner`). Confirm first only
   when undo is impossible (wiping local data, removing a shared member, deleting a profile or a
