@@ -852,12 +852,8 @@
   "keypad": {
     "label": "Number pad",
     "clear": "Clear",
-    "divide": "Divide",
-    "times": "Times",
     "backspace": "Delete last",
-    "minus": "Minus",
-    "plus": "Plus",
-    "done": "Work it out",
+    "done": "Done",
     "point": "Decimal point",
     "quickLabel": "Quick amounts",
     "quickAdd": "Add {{ amount }}"

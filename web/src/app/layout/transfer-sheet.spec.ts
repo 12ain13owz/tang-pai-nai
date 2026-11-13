@@ -174,7 +174,7 @@ describe('TransferSheet', () => {
     await choose('Cash')
     await click('จำนวนเงิน ', true)
     await keys('เพิ่ม 500', 'เพิ่ม 500')
-    expect(text()).toContain('500+500')
+    expect(text()).toContain('1,000')
     await submit()
     const [op] = listOps(db, 'pending')
     expect(op.table).toBe('transfers')

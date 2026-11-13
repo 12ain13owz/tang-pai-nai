@@ -168,12 +168,11 @@ describe('TransactionSheet', () => {
     toastState.dismiss()
   })
 
-  it('adds an expense typed on the keypad: the expression settles, the category is picked', async () => {
+  it('adds an expense typed on the keypad, the category picked', async () => {
     await open({ mode: 'create' })
     expect(body().querySelector('[role="group"]')).not.toBeNull()
-    await keys('1', '2', '0', 'เครื่องหมายบวก', '6', '5')
-    expect(text()).toContain('120+65')
-    expect(text()).toContain('= 185.00')
+    await keys('1', '8', '5')
+    expect(text()).toContain('185')
     await click('หมวดหมู่ ', true)
     await click('Coffee')
     expect(text()).toContain('185')
@@ -295,8 +294,8 @@ describe('TransactionSheet', () => {
     expect(quickRow()).not.toBeNull()
     await quick('500')
     await quick('100')
-    expect(text()).toContain('500+100')
-    expect(text()).toContain('= 600.00')
+    expect(text()).toContain('600')
+    expect(text()).not.toContain('500+100')
   })
 
   it('shows the amount grouped in thousands while the form keeps the plain figures', async () => {
@@ -304,7 +303,7 @@ describe('TransactionSheet', () => {
     await keys('8', '5', '0', '0')
     expect(text()).toContain('8,500')
     await quick('1,000')
-    expect(text()).toContain('8,500+1,000')
+    expect(text()).toContain('9,500')
     await click('หมวดหมู่ ', true)
     await click('Food')
     await submit()
@@ -319,14 +318,46 @@ describe('TransactionSheet', () => {
     expect(quickRow()).toBeNull()
   })
 
+  it('has numbers only and covers the save row; ✓ closes it keeping the amount', async () => {
+    await open({ mode: 'create' })
+    const labels = [...(keypad()?.querySelectorAll('button') ?? [])].map(
+      (key) => key.getAttribute('aria-label') ?? key.textContent.trim()
+    )
+    expect(labels).toEqual([
+      '7',
+      '8',
+      '9',
+      th.keypad.backspace,
+      '4',
+      '5',
+      '6',
+      th.keypad.clear,
+      '1',
+      '2',
+      '3',
+      th.keypad.done,
+      '000',
+      '0',
+      th.keypad.point,
+    ])
+    await keys('4', '2')
+    // The keypad covers the save row: ✓ first, then save.
+    const saveRow = () =>
+      body().querySelector('button[type="submit"]')?.parentElement?.hasAttribute('inert')
+    expect(saveRow()).toBe(true)
+    await click(th.keypad.done)
+    expect(keypad()).toBeNull()
+    expect(saveRow()).toBe(false)
+    expect(text()).toContain('42')
+  })
+
   it('closes the keypad when another control is used, and opens it again on the amount row', async () => {
     await open({ mode: 'create' })
-    await keys('1', '2', '0', 'เครื่องหมายบวก', '6', '5')
+    await keys('1', '8', '5')
     button(th.transactions.dayBefore)?.dispatchEvent(new Event('pointerdown', { bubbles: true }))
     await settle()
     expect(keypad()).toBeNull()
     expect(text()).toContain('185')
-    expect(text()).not.toContain('120+65')
     await click(th.transactions.amount, true)
     expect(keypad()).not.toBeNull()
     // A tap on blank space keeps it.

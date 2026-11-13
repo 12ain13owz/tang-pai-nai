@@ -1,6 +1,7 @@
-// The amount keypad's calculator (transaction.md → Web screens): + − × ÷ on typed major-unit
-// numbers, worked as exact fractions of BigInts (never floats), the result rounded half up to
-// the currency's minor unit.
+// The amount keypad's number (transaction.md → Web screens): typed major-unit digits worked
+// out as exact fractions of BigInts (never floats), the result rounded half up to the
+// currency's minor unit. The keypad has no operator keys (owner's choice, 2026-11: it read as
+// a calculator and took the form's space); `pressKey` and `evaluate` still understand + − × ÷.
 
 export type CalcKey =
   | '0'
@@ -168,32 +169,34 @@ export const evaluate = (expr: string, minorUnit: number): CalcResult => {
 
 /**
  * `expr` after a quick amount (`major`, a whole number of major units; 8.2): it adds, like
- * counting notes. An empty amount, "0" or one ending in an operator takes the number; otherwise
- * `+<major>` is appended (`500` → `500+100`). Typed through `pressKey`, so it stays well formed.
+ * counting notes, and the amount shows the total at once (`500` → `600`). The keypad has no
+ * operators, so the amount stays a plain number. An amount that
+ * can't be worked out, or a total past `WHOLE_DIGITS`, is left as it was.
  */
 export const addQuickAmount = (expr: string, major: number, minorUnit: number): string => {
-  let next = expr === '0' ? '' : expr.replace(/\.$/, '')
-  if (next !== '' && !isOperator(next.at(-1))) {
-    next = pressKey(next, '+', minorUnit)
+  const current = evaluate(expr, minorUnit)
+  if (!current.ok) {
+    return expr
   }
-  for (const digit of String(major)) {
-    next = pressKey(next, digit as CalcKey, minorUnit)
+  const scale = 10n ** BigInt(minorUnit)
+  const total = BigInt(current.minor) + BigInt(major) * scale
+  const whole = total / scale
+  if (whole.toString().length > WHOLE_DIGITS) {
+    return expr
   }
-  return next
+  const fraction = (total % scale).toString().padStart(minorUnit, '0').replace(/0+$/, '')
+  return fraction === '' ? whole.toString() : `${whole}.${fraction}`
 }
 
-/** Keys a hardware keyboard may type into the on-screen keypad (digits map to themselves). */
+/**
+ * Keys a hardware keyboard may type into the on-screen keypad (digits map to themselves): the
+ * keypad's own keys only, so no operators.
+ */
 export const CALC_KEYBOARD: Readonly<Partial<Record<string, CalcKey | '='>>> = {
-  '+': '+',
-  '-': '-',
-  '*': '×',
-  x: '×',
-  '/': '÷',
   '.': '.',
   ',': '.',
   Backspace: '⌫',
   Delete: 'C',
   Escape: '=',
   Enter: '=',
-  '=': '=',
 }

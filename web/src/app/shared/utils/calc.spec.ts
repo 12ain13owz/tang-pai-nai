@@ -68,19 +68,21 @@ describe('hasOperator', () => {
 })
 
 describe('addQuickAmount', () => {
-  it('takes the amount when empty, "0" or after an operator', () => {
+  it('takes the amount when empty or "0"', () => {
     expect(addQuickAmount('', 500, 2)).toBe('500')
     expect(addQuickAmount('0', 100, 2)).toBe('100')
-    expect(addQuickAmount('500×', 2, 2)).toBe('500×2')
   })
 
-  it('adds otherwise, like counting notes', () => {
-    expect(addQuickAmount('500', 100, 2)).toBe('500+100')
-    expect(addQuickAmount('500+100', 1000, 2)).toBe('500+100+1000')
-    expect(addQuickAmount('12.', 20, 2)).toBe('12+20')
-    expect(evaluate(addQuickAmount(addQuickAmount('', 500, 2), 100, 2), 2)).toEqual({
-      ok: true,
-      minor: 60000,
-    })
+  it('adds to the amount and shows the total, like counting notes', () => {
+    expect(addQuickAmount('500', 100, 2)).toBe('600')
+    expect(addQuickAmount(addQuickAmount('', 500, 2), 1000, 2)).toBe('1500')
+    expect(addQuickAmount('12.', 20, 2)).toBe('32')
+    expect(addQuickAmount('12.5', 20, 2)).toBe('32.5')
+    expect(addQuickAmount('0.05', 1, 2)).toBe('1.05')
+    expect(addQuickAmount('7', 20, 0)).toBe('27')
+  })
+
+  it('leaves an amount it cannot add to as it was', () => {
+    expect(addQuickAmount('9999999999999999', 1, 2)).toBe('9999999999999999')
   })
 })

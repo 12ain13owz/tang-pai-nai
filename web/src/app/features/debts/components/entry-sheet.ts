@@ -354,13 +354,9 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
                     <p class="-mt-1 px-1 text-sm text-muted-foreground">{{ text }}</p>
                   }
                 </div>
-                <div
-                  sheetFooter
-                  class="flex flex-col pt-3"
-                  [class.-mx-4]="keypad()"
-                  [class.-mb-4]="keypad()"
-                >
-                  <div class="flex" [class.px-4]="keypad()" [class.pb-2]="keypad()">
+                <div sheetFooter class="relative flex flex-col pt-3">
+                  <!-- Under the keypad while it shows: ✓ first, then save (one action at a time). -->
+                  <div class="flex" [attr.inert]="keypad() ? '' : null">
                     <button
                       hlmBtn
                       type="submit"
@@ -372,7 +368,7 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
                   </div>
                   @if (keypad()) {
                     <app-calc-keypad
-                      class="pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+                      class="absolute -inset-x-4 -bottom-4 z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
                       [quickAmounts]="quickAmounts()"
                       [locale]="languageService.locale()"
                       (pressed)="press($event)"
