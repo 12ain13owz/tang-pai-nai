@@ -8,13 +8,13 @@
     "wallets": "Wallets",
     "add": "Add transaction",
     "reports": "Reports",
-    "account": "Account"
+    "account": "Settings"
   },
   "title": {
     "transactions": "Transactions",
     "wallets": "Wallets",
     "reports": "Reports",
-    "account": "Account",
+    "account": "Settings",
     "signIn": "Sign in",
     "enterCode": "Enter code",
     "password": "Password",

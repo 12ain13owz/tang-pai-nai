@@ -491,7 +491,7 @@ WCAG 2.2 AA, as in `AGENTS.md`:
   | Start / end bal. | ยอดเริ่มต้น / ยอดสุดท้าย             | Starting / Ending balance | #10, a period's balances (not ต้นงวด)         |
   | Report           | รายงาน                               | Report                    |                                               |
   | Recurring        | รายการซ้ำ / ทำซ้ำ (the form's row)   | Recurring / Repeat        | #12; ถึงกำหนด / Due, ข้าม / Skip              |
-  | Account (user)   | บัญชีผู้ใช้                          | Account                   | Not บัญชี alone (could mean a bank account)   |
+  | Settings tab     | ตั้งค่า (the account tab)            | Settings                  | Not โปรไฟล์ (a data set) nor บัญชี (a bank)   |
   | Online / offline | ออนไลน์ / ออฟไลน์                    | Online / Offline          |                                               |
   | Sync             | sync                                 | Sync                      | Stays English in Thai: "รอ sync", "sync แล้ว" |
   | Undo             | เลิกทำ                               | Undo                      |                                               |

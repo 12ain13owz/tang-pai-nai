@@ -8,13 +8,13 @@
     "wallets": "กระเป๋า",
     "add": "เพิ่มธุรกรรม",
     "reports": "รายงาน",
-    "account": "บัญชีผู้ใช้"
+    "account": "ตั้งค่า"
   },
   "title": {
     "transactions": "ธุรกรรม",
     "wallets": "กระเป๋าเงิน",
     "reports": "รายงาน",
-    "account": "บัญชีผู้ใช้",
+    "account": "ตั้งค่า",
     "signIn": "เข้าสู่ระบบ",
     "enterCode": "ใส่รหัส",
     "password": "รหัสผ่าน",
