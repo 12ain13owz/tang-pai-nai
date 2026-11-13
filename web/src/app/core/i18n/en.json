@@ -440,7 +440,7 @@
     "sendCode": "Send code",
     "sending": "Sending code",
     "offline": "You're offline. Sign-in needs an internet connection",
-    "unreachable": "Couldn't connect. Check your internet and try again",
+    "unreachable": "Couldn't reach the server. Check your internet and try again",
     "sendFailed": "Couldn't send the code. Try again",
     "waitSeconds": "Too many tries. Try again in {{ count }} s",
     "waitMinutes": "Too many tries. Try again in {{ count }} min",
