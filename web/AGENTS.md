@@ -690,7 +690,7 @@ initialValue })`.
   | `app-password-field`    | `FormControl<string>`   | password with show/hide                       |
   | `app-textarea-field`    | `FormControl<string>`   | multi-line note                               |
   | `app-select-field`      | `FormControl<T \| ''>`  | short fixed list (native picker on phones)    |
-  | `app-otp-field`         | `FormControl<string>`   | 6-digit email / SMS code (`one-time-code`)    |
+  | `app-otp-field`         | `FormControl<string>`   | 6-digit code (`one-time-code`; `hideLabel`)   |
   | `app-switch-field`      | `FormControl<boolean>`  | on/off setting row                            |
   | `app-icon-field`        | `FormControl<string>`   | pick a curated icon (radio grid, groups)      |
   | `app-color-field`       | `FormControl<string>`   | pick a user colour (radio swatches)           |
@@ -888,7 +888,9 @@ are on, so don't disable them.
     failure and sends the pending action again once confirmed. `deviceLabel()` turns a session's
     user agent into "Chrome · Android".
   - Phone (4.4b): `providers().phone` decides whether the sign-in page's phone tab and adding a
-    number show. Numbers travel in E.164 and show the Thai way: `normalizeThaiMobile`,
+    number show. All of it is also held back by `PHONE_FEATURE`
+    (`core/auth/phone-feature.ts`, `false` until the feature is finished: no sign-in tab, no
+    Security row, `/account/phone` redirects to Security; specs provide `true`). Numbers travel in E.164 and show the Thai way: `normalizeThaiMobile`,
     `formatThaiMobile` (`081-234-5678`) and `thaiMobileValidator` (`@/core/auth`) on an
     `app-input-field` with `type="tel"`, `inputmode="tel"`, `autocomplete="tel-national"`.
     Sign-in: `startPhone` / `verifyPhone`, on the sign-in page's phone tab

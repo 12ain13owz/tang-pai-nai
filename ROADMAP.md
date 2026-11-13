@@ -959,13 +959,13 @@ Spec: [docs/features/auth.md](docs/features/auth.md). Built in five parts (4.4 w
 its start), one PR each, API and web together. The endpoints table in the spec says which part each
 route belongs to.
 
-| Part | What                                                                                     | Status |
-| ---- | ---------------------------------------------------------------------------------------- | ------ |
-| 4.1  | Email code + magic link, open sign-up, sessions (refresh rotation), sign-out, `/auth/me` | ✅     |
-| 4.2  | Optional password (Argon2id, breach check), recent-auth rule + step-up code              | ✅     |
-| 4.3  | Google sign-in (OIDC + PKCE)                                                             | ✅     |
-| 4.4a | Account → Security: sessions, sign out others, link / unlink Google, credential mail     | ✅     |
-| 4.4b | Phone OTP: add / change / remove a number, sign in with phone (console SMS provider)     | ✅     |
+| Part | What                                                                                     | Status                                  |
+| ---- | ---------------------------------------------------------------------------------------- | --------------------------------------- |
+| 4.1  | Email code + magic link, open sign-up, sessions (refresh rotation), sign-out, `/auth/me` | ✅                                      |
+| 4.2  | Optional password (Argon2id, breach check), recent-auth rule + step-up code              | ✅                                      |
+| 4.3  | Google sign-in (OIDC + PKCE)                                                             | ✅                                      |
+| 4.4a | Account → Security: sessions, sign out others, link / unlink Google, credential mail     | ✅                                      |
+| 4.4b | Phone OTP: add / change / remove a number, sign in with phone (console SMS provider)     | ✅ (hidden in the web: `PHONE_FEATURE`) |
 
 4.1 in detail (✅ done):
 

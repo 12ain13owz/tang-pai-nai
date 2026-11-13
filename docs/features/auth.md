@@ -418,17 +418,23 @@ who isn't signed in can't reach the account page.
   - **อีเมล**: an email field and "Send code" (a new email gets an account, no hint needed).
   - **รหัสผ่าน** (4.2): email + password (`app-password-field`), and "Sign in" (a forgotten password: the email tab, then set a new one in
     Account).
-  - **เบอร์มือถือ** (4.4b): the phone field and "Send code", then the enter-code screen with no
-    magic-link line. Instead, a muted box says what to do when no SMS comes: only a number
+  - **เบอร์มือถือ** (4.4b): the phone field and "Send code", then the enter-code screen. Under
+    the code, a muted box says what to do when no SMS comes: only a number
     already added and verified on an account works, so sign in with email first and add it under
     Security, with a "Sign in with email" button (the email tab). It states the rule for every
     number, never whether this one is on an account (rule 22). Its "change number" goes back to
     this tab. The
-    tab is left out while phone is off (`?with=phone` then shows the email tab).
+    tab is left out while phone is off (`?with=phone` then shows the email tab). **Held back for
+    now**: the phone feature isn't finished, so the web hides the tab even while the API has SMS
+    on (`PHONE_FEATURE` in `core/auth/phone-feature.ts`, `false`); the code stays.
     Offline, it says sign-in needs a connection and retries the silent refresh by itself once back
     online.
-- **Enter code**: 6 boxes (`inputmode="numeric"`, `autocomplete="one-time-code"` so the phone can
-  auto-fill it), a resend timer, and a "check your email for the link" hint.
+- **Enter code**: kept short. "Change email/number", one centred line "ส่งรหัสไปที่ <email>" (the
+  heading and the field label are for screen readers only), 6 boxes (`inputmode="numeric"`,
+  `autocomplete="one-time-code"` so the phone can auto-fill it), a "Sign in" button as wide as the
+  boxes, and a resend timer. The sixth digit submits by itself; pressing "Sign in" with fewer shows
+  "ใส่รหัสให้ครบ 6 หลัก" (empty too, never a generic "required"). There is no "tap the link
+  instead" line: it read like a button, and the link in the email works without it.
 - **Sign-in, Google** (4.3): under the email form, a "or" divider and a full-width outline
   "Continue with Google" button (44px, Google's multicolour "G" per its branding guidelines). It's
   a plain navigation to `/api/auth/google/start?returnUrl=…`, hidden when `GET /auth/providers`
@@ -461,7 +467,8 @@ REAUTH_REQUIRED` opens a confirm step in place: the current password (if one is 
     the list, an outline "Sign out other devices" button (asks first, then a toast with how many).
     Hidden when this is the only session.
   - Offline: the online-only notice, actions disabled, the list from the last load.
-- **Phone** `/account/phone` (4.4b): add / change (number field → `app-otp-field` for the SMS
+- **Phone** `/account/phone` (4.4b; held back with the sign-in tab by `PHONE_FEATURE`: Security
+  shows no phone row, not even a saved number, and the route goes to Security): add / change (number field → `app-otp-field` for the SMS
   code, resend timer) or remove (asks first), with the same confirm step. After a confirm the
   page stays and shows the saved number with a "saved" line, like the password page. Typing the
   saved number again is refused in the field ("This is your current number"), no SMS.
