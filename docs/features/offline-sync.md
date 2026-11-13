@@ -20,7 +20,9 @@ and so does a reading app like Meb.
 
 - **First sign-in while offline.** Signing in needs the server (an email or SMS code), so a device
   works offline only after one online sign-in.
-- **Offline on untrusted devices** (rule 1). They work online only.
+- **A device that keeps nothing** (rule 1). Until after #16.2 a device could stay "untrusted"
+  (data in memory only, online only); every device now keeps its data. Someone else's computer is
+  covered by signing out (which wipes) or by signing that device out from another one (rule 7).
 - **Offline for wallets shared with you.** Only their owner has them offline. A member can queue
   _new_ transactions offline, and nothing else (rule 14).
 - Real-time push between devices (websockets). Devices sync when they come online, when the app
@@ -32,8 +34,8 @@ and so does a reading app like Meb.
 | Layer          | Offline?                                                    | How                                                                                                                                                                         |
 | -------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | App shell      | ✅ always                                                   | Angular service worker (`@angular/pwa`) caches HTML/JS/CSS/icons. It does **not** cache API responses, because data comes from the local DB, not the SW cache. Built in #3. |
-| Data           | ✅ on trusted devices                                       | An encrypted local database in the browser (rules 4–6), plus an outbox of pending changes (rule 8).                                                                         |
-| Auth           | Sign-in online; reopening on a trusted device works offline | The app opens on its local data, behind an optional PIN (rules 2–3). The server stays the authority whenever the device is online (rule 7).                                 |
+| Data           | ✅ on every signed-in device                                | An encrypted local database in the browser (rules 4–6), plus an outbox of pending changes (rule 8).                                                                         |
+| Auth           | Sign-in online; reopening works offline                     | The app opens on its local data, behind an optional PIN (rules 2–3). The server stays the authority whenever the device is online (rule 7).                                 |
 | Shared wallets | Owner offline; members online only                          | Rules 13–16.                                                                                                                                                                |
 
 ## Data model
@@ -106,10 +108,9 @@ its row for a second create quietly: [recurring.md](recurring.md) rule 9).
 ### Device: local database (web)
 
 - **Engine** (decided at the start of #4a after a spike, see Open questions): the official SQLite
-  WASM build (`@sqlite.org/sqlite-wasm`) running **in memory**. On a trusted device the whole
-  database is exported, encrypted (rule 4) and saved as **one snapshot in IndexedDB** (`tpn-vault`);
-  unlocking decrypts it back into memory. An untrusted device runs the same engine and never saves
-  a snapshot. The wasm file is copied to `/sqlite/` and prefetched by the service worker, so it
+  WASM build (`@sqlite.org/sqlite-wasm`) running **in memory**. The whole database is
+  exported, encrypted (rule 4) and saved as **one snapshot in IndexedDB** (`tpn-vault`); opening
+  the app decrypts it back into memory. The wasm file is copied to `/sqlite/` and prefetched by the service worker, so it
   works offline.
 - Beside the snapshot, `tpn-vault` keeps the clear-text facts the app needs before it opens:
   `userId`, the display name, the data key (rule 4: wrapped by the PIN with its PBKDF2 salt and
@@ -128,32 +129,26 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
   - **sync_notices**: conflict notices to show (`id` from `change_history`, `table`, `rowId`,
     `previous`, `createdAt`, `seenAt?`). Kept by `id`, so a notice heard twice shows once.
   - **sync_meta**: `cursor` (the last `changeSeq` pulled), `deviceId`, `userId`.
-- An **untrusted** device opens the same database in memory when the shell opens (signed in and
-  online), pulls from cursor 0, and pushes each write right away. Offline it can't write (rule 1:
-  nothing is queued), and the screen says so in place.
 - Balances, reports and month summaries are **computed locally** from transactions, never stored
   (ROADMAP → Money & data).
 
 ## Business rules
 
-**Trusted device & app lock**
+**Local data & app lock**
 
-1. Right after a successful sign-in (any method) on a device with no local database, a **trust
-   step** (`/auth/trust`, outside the shell) asks **"ใช้งานออฟไลน์บนเครื่องนี้"** (use offline on
-   this device). It defaults to **on** when the PWA is installed (`display-mode: standalone`) and
-   **off** in a normal browser tab. The choice can be changed later in Account → Security (turn
-   on: set a PIN; turn off: wipe).
-   - **Off (untrusted)**: data is kept in memory only. Nothing is written to browser storage and
-     nothing is queued offline. Closing the tab forgets everything except the refresh cookie.
-     "Online" for writing means a network **and a reachable server** (rule 11): while the last
-     round couldn't reach the API, the forms block saving as when offline, so nothing waits in
-     memory for a server that may not come back before the tab closes (decided after 7.2).
-   - **On (trusted)**: the local database is created encrypted (rule 4) and the app opens on it
-     straight away. No PIN is asked for here (decided after #16.2: the app is mostly used on
-     phones, which have their own screen lock, so a second lock is the user's choice, rule 2).
+1. **Every signed-in device keeps its data** (decided after #16.2: the app is local-first, the
+   server is where devices sync and the backup). The first time a user opens the app on a device
+   (signed in, online), the encrypted local database is created (rule 4) and filled by a pull; from
+   then on the app opens on it at once, online or not, and screens never wait for the API. There
+   is no question to answer and no switch.
+   - Until after #16.2 a trust step asked "use offline on this device", and a device that said no
+     kept its data in memory only and worked online only ("untrusted"). That mode is gone: such a
+     device creates its local database the next time it opens.
+   - Leaving someone else's computer means signing out, which pushes and then wipes (rule 7), or,
+     if forgotten, signing it out from another device (it wipes the next time it's online).
 2. **The PIN is optional and off by default** (decided after #16.2; before that, offline always
-   came with a PIN). A trusted device turns it on or off in Account → Security; turning it off
-   needs the current PIN. Devices that already had a PIN keep it.
+   came with a PIN). The user turns it on or off in Account → Security; turning it off needs the
+   current PIN. Devices that already had a PIN keep it.
    - **PIN off**: the app opens on its local data every time, with nothing to type, and never
      locks by itself.
    - **PIN on**: a **6-digit PIN**. The app **locks** every time it's opened, and after
@@ -185,8 +180,9 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
      read as plain bytes. With the PIN, a 6-digit PIN stops someone who just picks up the device.
      It doesn't stop a determined attacker who copies the browser profile and brute-forces 10⁶
      PINs offline. Passkey unlock (rule 2) is the stronger option.
-5. `navigator.storage.persist()` is requested on trusted devices. On iOS, data survives only when
-   the PWA is **installed to the home screen**. The trust prompt says so on iOS Safari.
+5. `navigator.storage.persist()` is requested when the local database is created. On iOS, data
+   survives only when the PWA is **installed to the home screen**; in Safari itself it may be
+   cleared, and what was synced comes back with the next pull.
 6. The access token stays **in memory only** (auth spec). Offline, no token is needed, because the
    app reads the local database. Online, it refreshes as usual.
 
@@ -196,21 +192,25 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
    - **Revoked session** (signed out on another device, "sign out other devices", or a disabled
      user): the device **wipes** its local database and goes to sign-in. Unsynced changes are lost.
      That's intended, because revocation is a security action.
-   - **Expired session** (idle > 30 days or past the 180-day cap): the local data is kept but stays
-     locked to sync until the **same user** signs in again online; then the outbox is pushed. If a
-     **different** user signs in, the local data is wiped first. Meanwhile the app keeps working
-     on the local data (after the PIN, when it's on), online or not (decided at the start of #4a), with a banner
-     "เข้าสู่ระบบอีกครั้งเพื่อ sync" that opens sign-in.
-   - **API unreachable** (offline, or the server down): a trusted device opens on its local data
-     (after the PIN, when it's on); an untrusted one waits on the sign-in page as before (auth spec).
+   - **Expired session** (idle > 30 days or past the 180-day cap): as soon as the server says so
+     (the app opens online, or comes back online), the app goes to **sign-in**; the local data is
+     kept (decided after #16.2; before that the app kept working with a banner). While the server
+     can't be asked (offline, or down), the app keeps working on its local data, because signing
+     in isn't possible then anyway. When the **same user** signs in, the app opens on the same data
+     and syncs at once (push, then pull from its cursor; rule 9 starts over by itself past the
+     tombstone retention, keeping the outbox). If a **different** user signs in, the local data is
+     wiped first, unsynced changes included, so the sign-in page says whose data the device holds
+     and that signing in as them keeps it.
+   - **API unreachable** (offline, or the server down): the app opens on its local data (after the
+     PIN, when it's on).
    - **Sign-out** pushes the outbox first. If that fails (offline), it warns "มีรายการที่ยังไม่ได้
      sync" before wiping.
 
 **Sync protocol**
 
 8. Every local write goes to the local database **and** the outbox in one local transaction. The UI
-   updates immediately; it never waits for the server. On a trusted device the snapshot is saved
-   right after each write transaction (writes during a save are coalesced into one more save),
+   updates immediately; it never waits for the server. The snapshot is saved right after each
+   write transaction (writes during a save are coalesced into one more save),
    and again when the app goes to the background (`visibilitychange` / `pagehide`).
 9. **Pull** (`GET /sync/pull?since=<cursor>&limit=500`) returns every row the user may sync with
    `changeSeq > cursor` (tombstones included), ordered by `changeSeq`, plus the new cursor. The
@@ -324,13 +324,13 @@ All of them except the sync status and Security sit outside the shell (DESIGN.md
 typed on an **on-screen 3×4 keypad** with six dots (like a banking app), so the phone keyboard never
 opens.
 
-- **Trust step** `/auth/trust` after sign-in on a device with no local database (4a.1): the offline
-  switch (rule 1) and the iOS "add to home screen" note (rule 5). Continue goes to `returnUrl`
-  (no PIN step since the PIN became optional, rule 2).
+- **Sign-in with local data** (after #16.2, rule 7): when the device holds a user's data and
+  nobody is signed in, the sign-in page says whose it is and that signing in as them keeps it
+  (and sends what's waiting), while another account deletes it. (The trust step `/auth/trust` of
+  4a.1 is gone with rule 1's switch.)
 - **Lock screen** `/auth/lock` (4a.1, PIN on only): the user's name, the keypad, the attempts warning from the 3rd
   wrong PIN (rule 3), and "ออกจากระบบ" (sign out, rule 7). Later "use fingerprint/face".
 - **Another tab** (4a.1): "แอปเปิดอยู่ในแท็บอื่น" with "ใช้ที่แท็บนี้" (rule 2).
-- **Expired session banner** under the header (4a.1, rule 7).
 - **Sync status** in the header (4a.2): **one pill replaces the online/offline pill**, a dot plus
   words (DESIGN.md §6 Status). In order of precedence: errors "บันทึกไม่สำเร็จ n" (red) /
   offline "ออฟไลน์" or "ออฟไลน์ · รอ n" (red) / server unreachable "เซิร์ฟเวอร์ไม่ตอบ" or
@@ -338,15 +338,15 @@ opens.
   dot). Tapping it opens a bottom sheet: the last sync time (and, while the server is
   unreachable, a line saying so and that it retries by itself), a "sync ตอนนี้" button, rejected ops
   (with the refused values and the server's message, fix or discard) and conflict notices
-  (dismiss). An untrusted device shows the same pill.
+  (dismiss).
 - **Sign-out with unsynced changes** (4a.2, rule 7): sign-out pushes first; if ops are still
   pending or rejected afterwards, the confirm sheet says how many will be lost.
 - **Sync test page** `/account/sync-test` (4a.2, dev only): removed in #6.2 with `sync_probes`;
   profiles and wallets are tried for real instead.
-- **Account → Security** (4a.1): a "This device" group with "Use offline on this device" (turn on:
-  at once, PIN off; turn off: asks, then wipes local data), and on a trusted device "Lock with a
-  PIN" (turn on: the new PIN twice; turn off: the current PIN) and, while it's on, "Change PIN"
-  (current PIN, then the new one twice), beside the devices list (auth sessions).
+- **Account → Security** (4a.1): a "This device" group with "Lock with a PIN" (turn on: the new
+  PIN twice; turn off: the current PIN) and, while it's on, "Change PIN" (current PIN, then the new
+  one twice), beside the devices list (auth sessions). (The "Use offline on this device" switch is
+  gone with rule 1's.)
 
 ## Interactions
 
