@@ -13,7 +13,9 @@ import { fieldErrorMessage } from './field-error'
   imports: [ReactiveFormsModule, HlmFieldImports, BrnInputOtp, HlmInputOtpImports],
   template: `
     <div hlmField>
-      <label hlmFieldLabel class="justify-center">{{ label() }}</label>
+      <label hlmFieldLabel class="justify-center" [class.sr-only]="hideLabel()">{{
+        label()
+      }}</label>
       <!-- Centred, with 48px slots and large digits: easier to read and tap than the defaults.
            The hidden input underneath is 16px, or iOS Safari zooms in when it gets focus. -->
       <brn-input-otp
@@ -39,6 +41,8 @@ export class OtpField {
   control = input.required<FormControl<string>>()
   label = input.required<string>()
   length = input(6)
+  /** Keeps the label for screen readers only, where the heading already says what to type. */
+  hideLabel = input(false)
 
   protected slots = computed(() => Array.from({ length: this.length() }))
 

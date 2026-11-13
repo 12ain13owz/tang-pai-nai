@@ -55,11 +55,19 @@ describe('EnterCodePage: SMS code', () => {
     sessionStorage.clear()
   })
 
-  it('names the SMS and the number the Thai way, with no magic-link hint', () => {
+  it('names the SMS and the number the Thai way', () => {
     expect(page().textContent).toContain(th.auth.smsCodeHeading)
     expect(page().textContent).toContain('081-234-5678')
     expect(page().textContent).toContain(th.auth.smsHint)
-    expect(page().textContent).not.toContain(th.auth.linkHint)
+  })
+
+  it('says to finish the code when sign-in is pressed with fewer than 6 digits', async () => {
+    fixture.componentInstance.form.setValue({ code: '555' })
+    page().querySelector<HTMLButtonElement>('button[type="submit"]')?.click()
+    await settle()
+
+    expect(page().textContent).toContain(th.auth.codeIncomplete)
+    http.expectNone('/api/auth/phone/verify')
   })
 
   it('signs in with the number and the code, then goes to the return path', async () => {

@@ -13,7 +13,7 @@ import type { UiMessage } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
 import type { CodeFormGroup } from '@/features/auth/auth-form.type'
-import { FORM_IMPORTS, OtpField } from '@/shared/components/form'
+import { FORM_IMPORTS, OtpField, withMessage } from '@/shared/components/form'
 
 const CODE_LENGTH = 6
 
@@ -28,26 +28,35 @@ const CODE_LENGTH = 6
         {{ (phone() ? 'auth.changePhone' : 'auth.changeEmail') | transloco }}
       </button>
 
-      <div class="flex flex-col gap-2">
-        <h1 class="text-2xl font-semibold">
-          {{ (phone() ? 'auth.smsCodeHeading' : 'auth.codeHeading') | transloco }}
-        </h1>
-        <p class="text-sm text-muted-foreground">
-          {{ (phone() ? 'auth.smsCodeSentTo' : 'auth.codeSentTo') | transloco }}
-          <span class="font-medium wrap-anywhere whitespace-nowrap text-foreground">
-            {{ phone() ? formattedPhone() : email() }}
-          </span>
-        </p>
-      </div>
+      <!-- The heading is for screen readers only: the line below and the six slots say it all. -->
+      <h1 class="sr-only">
+        {{ (phone() ? 'auth.smsCodeHeading' : 'auth.codeHeading') | transloco }}
+      </h1>
+      <p class="text-center text-base text-muted-foreground">
+        {{ (phone() ? 'auth.smsCodeSentTo' : 'auth.codeSentTo') | transloco }}
+        <span class="font-medium wrap-anywhere whitespace-nowrap text-foreground">
+          {{ phone() ? formattedPhone() : email() }}
+        </span>
+      </p>
 
       <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="onSubmit()">
-        <app-otp-field [control]="form.controls.code" [label]="'auth.code' | transloco" />
+        <app-otp-field
+          [control]="form.controls.code"
+          [label]="'auth.code' | transloco"
+          [hideLabel]="true"
+        />
         @if (error(); as message) {
           <p role="alert" class="-mt-2 text-center text-sm text-destructive">
             {{ message.key | transloco: message.params }}
           </p>
         }
-        <button hlmBtn type="submit" class="h-11 w-full text-base" [disabled]="isProcessing()">
+        <!-- As wide as the six 48px slots above it (w-72), so the two line up. -->
+        <button
+          hlmBtn
+          type="submit"
+          class="h-11 w-72 self-center text-base"
+          [disabled]="isProcessing()"
+        >
           @if (isProcessing()) {
             <hlm-spinner [aria-label]="'auth.signingIn' | transloco" />
           }
@@ -71,8 +80,6 @@ const CODE_LENGTH = 6
             {{ 'auth.useEmailInstead' | transloco }}
           </button>
         </div>
-      } @else {
-        <p class="text-center text-sm text-muted-foreground">{{ 'auth.linkHint' | transloco }}</p>
       }
 
       <div class="mt-auto flex flex-col items-center gap-1">
@@ -120,8 +127,15 @@ export class EnterCodePage {
   protected resent = signal(false)
   protected error = signal<UiMessage | null>(null)
 
+  // One message for an empty and an unfinished code alike.
   form: CodeFormGroup = this.nnfb.group({
-    code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
+    code: [
+      '',
+      [
+        withMessage(Validators.required, 'auth.codeIncomplete'),
+        withMessage(Validators.pattern(/^\d{6}$/), 'auth.codeIncomplete'),
+      ],
+    ],
   })
 
   constructor() {
