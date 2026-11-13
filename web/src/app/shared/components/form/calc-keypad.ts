@@ -24,7 +24,8 @@ interface Key {
   selector: 'app-calc-keypad',
   imports: [TranslocoPipe, NgIcon],
   providers: [provideIcons({ lucideDelete, lucideDivide, lucideMinus, lucidePlus, lucideX })],
-  host: { class: 'block bg-muted p-2' },
+  // Quick taps on the same key must not zoom the page (pinch zoom still works).
+  host: { class: 'block touch-manipulation bg-muted p-2' },
   template: `
     @if (quickAmounts().length > 0) {
       <div

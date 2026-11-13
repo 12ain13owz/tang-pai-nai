@@ -16,7 +16,8 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'] as const
   imports: [NgIcon],
   providers: [provideIcons({ lucideDelete })],
   host: {
-    class: 'flex flex-col items-center gap-8',
+    // "33" or "55" typed fast must not zoom the page (pinch zoom still works).
+    class: 'flex touch-manipulation flex-col items-center gap-8',
     '(document:keydown)': 'onKey($event)',
   },
   template: `
