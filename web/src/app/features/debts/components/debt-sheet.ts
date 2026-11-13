@@ -68,15 +68,7 @@ const repaidIn = (control: AbstractControl): boolean => {
   return parent?.get('direction')?.value === 'borrowed' && parent.get('countAs')?.value === 'repaid'
 }
 
-type View =
-  | 'form'
-  | 'wallet'
-  | 'category'
-  | 'note'
-  | 'plan'
-  | 'planWallet'
-  | 'confirmDelete'
-  | 'confirmDiscard'
+type View = 'form' | 'wallet' | 'category' | 'note' | 'plan' | 'planWallet' | 'confirmDelete'
 
 /**
  * The debt form (docs/features/debt.md → Web screens, mock-up frames 3–4): ยืมมา | ให้ยืม, then
@@ -120,7 +112,7 @@ type View =
   ],
   template: `
     @let f = form.controls;
-    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="onClosed()">
+    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
       <hlm-drawer-content
         *hlmDrawerPortal
         class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
@@ -132,7 +124,7 @@ type View =
               <app-sheet-frame
                 [title]="heading() | transloco"
                 [leadingLabel]="'sheet.close' | transloco"
-                (leading)="close()"
+                (leading)="finish()"
               >
                 @if (editing()) {
                   <div sheetActions class="flex">
@@ -689,29 +681,6 @@ type View =
               </div>
             </app-sheet-frame>
           }
-          @case ('confirmDiscard') {
-            <app-sheet-frame
-              [title]="'transactions.discardHeading' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'transactions.keepEditing' | transloco"
-              (leading)="view.set('form')"
-            >
-              <p class="text-sm text-muted-foreground">
-                {{ 'transactions.discardText' | transloco }}
-              </p>
-              <div sheetFooter class="pt-3">
-                <button
-                  hlmBtn
-                  variant="destructive"
-                  type="button"
-                  class="h-11 w-full text-base"
-                  (click)="finish()"
-                >
-                  {{ 'transactions.discard' | transloco }}
-                </button>
-              </div>
-            </app-sheet-frame>
-          }
         }
       </hlm-drawer-content>
     </hlm-drawer>
@@ -739,7 +708,6 @@ export class DebtSheet {
   protected keypad = signal(false)
   protected more = signal(false)
   protected open = signal(false)
-  protected dirty = signal(false)
   protected quickAmounts = computed(() => (this.quickAmountsService.enabled() ? QUICK_AMOUNTS : []))
 
   /** Rule 6 (transaction rule 3): 1 … 10¹⁵ minor units. */
@@ -897,9 +865,6 @@ export class DebtSheet {
     this.transloco.translate(key, params)
 
   constructor() {
-    this.form.valueChanges
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.dirty.set(this.form.dirty))
     this.form.controls.direction.valueChanges.pipe(takeUntilDestroyed()).subscribe((direction) => {
       if (direction === 'lent') {
         this.form.controls.countAs.setValue('spent')
@@ -959,7 +924,6 @@ export class DebtSheet {
       )
     }
     this.form.markAsDirty()
-    this.dirty.set(true)
   }
 
   protected leaveAmount(event: Event): void {
@@ -1102,28 +1066,9 @@ export class DebtSheet {
     void this.router.navigate([DEBTS_ROUTE])
   }
 
-  protected close(): void {
-    if (this.form.dirty) {
-      this.view.set('confirmDiscard')
-      return
-    }
-    this.finish()
-  }
-
-  protected onClosed(): void {
-    if (this.dirty() && this.state()) {
-      // The drawer can't refuse to close, so it comes back with the question instead.
-      this.view.set('confirmDiscard')
-      this.open.set(false)
-      setTimeout(() => this.open.set(true))
-      return
-    }
-    this.state.set(null)
-  }
-
+  /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.dirty.set(false)
     this.state.set(null)
   }
 
@@ -1144,7 +1089,6 @@ export class DebtSheet {
   private start(): void {
     const state = this.state()
     this.view.set('form')
-    this.dirty.set(false)
     this.planCount.set(0)
     this.planConfirm.set(false)
     this.planWalletId.set(null)
@@ -1194,7 +1138,6 @@ export class DebtSheet {
     if (refused) {
       this.form.markAllAsTouched()
       this.form.markAsDirty()
-      this.dirty.set(true)
     }
   }
 }

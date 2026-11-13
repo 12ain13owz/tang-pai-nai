@@ -224,8 +224,8 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   pills, the Transactions header's wallet pill and ⋮, and the date row's ‹ ›, so they read as
   buttons. **One size for all of them**: a 36px disc (`size-9`, a pill `h-9`) with an 18px icon,
   its tap area still 44px (`tpn-hit`).
-  If the sheet holds unsaved input, ask first (a confirm
-  view in the same sheet).
+  Closing never asks, even with unsaved input (owner, 2026-11): the forms are short, so typing
+  them again costs less than a question on every close.
 - **Delete**: act at once, then offer **undo** in a toast (spartan `sonner`). Confirm first only
   when undo is impossible (wiping local data, removing a shared member, deleting a profile or a
   wallet, which go as tombstones other devices act on). The confirm is a view in the same sheet

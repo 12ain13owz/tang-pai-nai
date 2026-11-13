@@ -41,7 +41,7 @@ import type { SelectOption } from '@/shared/types'
 import { parseMajor, toMajorText } from '@/shared/utils'
 import type { WalletFormGroup } from './wallet-form.type'
 
-type View = 'form' | 'icons' | 'categories' | 'confirmDelete' | 'confirmDiscard'
+type View = 'form' | 'icons' | 'categories' | 'confirmDelete'
 
 const CATEGORY_TABS: readonly CategoryType[] = ['expense', 'income']
 
@@ -79,7 +79,7 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
   ],
   template: `
     @let f = form.controls;
-    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="onClosed()">
+    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
       <hlm-drawer-content
         *hlmDrawerPortal
         class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
@@ -90,7 +90,7 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
               <app-sheet-frame
                 [title]="heading() | transloco"
                 [leadingLabel]="'sheet.close' | transloco"
-                (leading)="close()"
+                (leading)="finish()"
               >
                 @if (editing(); as wallet) {
                   <div sheetActions class="flex">
@@ -327,27 +327,6 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
               </div>
             </app-sheet-frame>
           }
-          @case ('confirmDiscard') {
-            <app-sheet-frame
-              [title]="'wallets.discardHeading' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'wallets.keepEditing' | transloco"
-              (leading)="view.set('form')"
-            >
-              <p class="text-sm text-muted-foreground">{{ 'wallets.discardText' | transloco }}</p>
-              <div sheetFooter class="pt-3">
-                <button
-                  hlmBtn
-                  variant="destructive"
-                  type="button"
-                  class="h-11 w-full text-base"
-                  (click)="finish()"
-                >
-                  {{ 'wallets.discard' | transloco }}
-                </button>
-              </div>
-            </app-sheet-frame>
-          }
         }
       </hlm-drawer-content>
     </hlm-drawer>
@@ -499,13 +478,10 @@ export class WalletSheet {
     hiddenCategoryIds: this.nnfb.control<string[]>([]),
   })
 
-  /** Unsaved input: swiping or tapping the sheet away asks first (DESIGN.md §6). */
-  protected dirty = signal(false)
   protected open = signal(false)
 
   constructor() {
     this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
-      this.dirty.set(this.form.dirty)
       this.refusal.set(null)
       this.hidden.set(this.form.controls.hiddenCategoryIds.value)
     })
@@ -609,30 +585,9 @@ export class WalletSheet {
     this.finish()
   }
 
-  /** "ปิด": asks first when the form holds unsaved input (DESIGN.md §6). */
-  protected close(): void {
-    if (this.form.dirty) {
-      this.view.set('confirmDiscard')
-      return
-    }
-    this.finish()
-  }
-
-  /** Swiped down, tapped the backdrop or pressed Escape. */
-  protected onClosed(): void {
-    if (this.dirty() && this.state()) {
-      // The drawer can't refuse to close, so it comes back with the question instead.
-      this.view.set('confirmDiscard')
-      this.open.set(false)
-      setTimeout(() => this.open.set(true))
-      return
-    }
-    this.state.set(null)
-  }
-
+  /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.dirty.set(false)
     this.state.set(null)
   }
 
@@ -659,7 +614,6 @@ export class WalletSheet {
   private start(state: WalletSheetState): void {
     this.view.set('form')
     this.categoryTab.set('expense')
-    this.dirty.set(false)
     this.refusal.set(null)
     if (state.mode === 'create') {
       this.form.reset({
@@ -678,7 +632,6 @@ export class WalletSheet {
       this.form.reset(this.toForm(state.values))
       this.form.markAllAsTouched()
       this.form.markAsDirty()
-      this.dirty.set(true)
       return
     }
     const wallet = this.walletService.byId(state.id)

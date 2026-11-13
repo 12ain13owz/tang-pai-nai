@@ -218,7 +218,7 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
     showed, and its "=" beside "บันทึก" was easy to mistake for saving;
   - one main button "บันทึก" at the bottom; the keypad slides up **over** it (owner, 2026-11:
     one action at a time, ✓ then บันทึก, and the form never jumps), the row inert meanwhile.
-    Errors: "ใส่จำนวนเงินที่มากกว่า 0", "เลือกหมวดหมู่ก่อน". Asks before closing with unsaved input. When it can't write (a shared
+    Errors: "ใส่จำนวนเงินที่มากกว่า 0", "เลือกหมวดหมู่ก่อน". Closing never asks: unsaved input goes with the sheet. When it can't write (a shared
     profile offline, or an in-memory database) it shows the notice and a disabled save.
   - **Quick amounts** (8.2, owner's choices from a mock-up): a row of chips `20 · 50 · 100 · 500
 · 1,000` (major units, Thai banknotes) at the top of the keypad's panel, shown only while

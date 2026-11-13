@@ -162,18 +162,10 @@ describe('ProfileSheet', () => {
     expect(profiles.sheet()).toBeNull()
   })
 
-  it('asks before throwing away unsaved input, and can go back to it', async () => {
+  it('closes at once with unsaved input, without asking', async () => {
     await open({ mode: 'create' })
     type('ครอบครัว')
     button(th.sheet.close)?.click()
-    await settle()
-    expect(body().textContent).toContain(th.profiles.discardHeading)
-    button(th.profiles.keepEditing)?.click()
-    await settle()
-    expect(nameInput().value).toBe('ครอบครัว')
-    button(th.sheet.close)?.click()
-    await settle()
-    button(th.profiles.discard)?.click()
     await settle()
     expect(profiles.sheet()).toBeNull()
     expect(profiles.profiles()).toHaveLength(0)

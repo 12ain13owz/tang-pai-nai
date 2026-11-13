@@ -378,16 +378,11 @@ describe('WalletSheet', () => {
     expect(listOps(db, 'pending')).toMatchObject([{ rowId: 'w1', op: 'delete' }])
   })
 
-  it('asks before throwing away unsaved input, and can go back to it', async () => {
+  it('closes at once with unsaved input, without asking', async () => {
     wallets.open({ mode: 'create' })
     await settle()
     await type(th.wallets.name, 'เงินสด')
     await click(th.sheet.close)
-    expect(text()).toContain(th.wallets.discardHeading)
-    await click(th.wallets.keepEditing)
-    expect(input(th.wallets.name).value).toBe('เงินสด')
-    await click(th.sheet.close)
-    await click(th.wallets.discard)
     expect(wallets.sheet()).toBeNull()
     expect(wallets.wallets()).toHaveLength(0)
   })

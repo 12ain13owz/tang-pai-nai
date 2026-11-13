@@ -69,7 +69,7 @@ import { RepeatRow } from './repeat-row'
 import { RepeatView } from './repeat-view'
 import type { TransferFormGroup } from './transfer-form.type'
 
-type View = 'form' | 'pick' | 'note' | 'repeat' | 'confirmDiscard'
+type View = 'form' | 'pick' | 'note' | 'repeat'
 
 /**
  * The transfer form (docs/features/transfer.md → Web screens; owner's choice Q4 in #9: a sheet
@@ -113,7 +113,7 @@ type View = 'form' | 'pick' | 'note' | 'repeat' | 'confirmDiscard'
   ],
   template: `
     @let f = form.controls;
-    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="onClosed()">
+    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
       <hlm-drawer-content
         *hlmDrawerPortal
         class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
@@ -125,7 +125,7 @@ type View = 'form' | 'pick' | 'note' | 'repeat' | 'confirmDiscard'
               <app-sheet-frame
                 [title]="heading() | transloco"
                 [leadingLabel]="'sheet.close' | transloco"
-                (leading)="close()"
+                (leading)="finish()"
               >
                 @if (rule(); as current) {
                   <!-- A recurring rule (recurring.md → Web screens): pause / resume, delete. -->
@@ -442,29 +442,6 @@ type View = 'form' | 'pick' | 'note' | 'repeat' | 'confirmDiscard'
               />
             </app-sheet-frame>
           }
-          @case ('confirmDiscard') {
-            <app-sheet-frame
-              [title]="'transactions.discardHeading' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'transactions.keepEditing' | transloco"
-              (leading)="view.set('form')"
-            >
-              <p class="text-sm text-muted-foreground">
-                {{ 'transactions.discardText' | transloco }}
-              </p>
-              <div sheetFooter class="pt-3">
-                <button
-                  hlmBtn
-                  variant="destructive"
-                  type="button"
-                  class="h-11 w-full text-base"
-                  (click)="finish()"
-                >
-                  {{ 'transactions.discard' | transloco }}
-                </button>
-              </div>
-            </app-sheet-frame>
-          }
         }
       </hlm-drawer-content>
     </hlm-drawer>
@@ -660,13 +637,9 @@ export class TransferSheet {
   protected fromItems = computed(() => this.pickItems(this.fromChoices()))
   protected toItems = computed(() => this.pickItems(this.toChoices()))
 
-  protected dirty = signal(false)
   protected open = signal(false)
 
   constructor() {
-    this.form.valueChanges
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.dirty.set(this.form.dirty))
     this.form.controls.fromWalletId.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
       this.dropUnfitTo()
       this.form.controls.amount.updateValueAndValidity()
@@ -721,7 +694,6 @@ export class TransferSheet {
   protected setRepeat(value: RepeatValues | null): void {
     this.repeat.set(value)
     this.form.markAsDirty()
-    this.dirty.set(true)
   }
 
   protected openRule(id: string): void {
@@ -775,7 +747,6 @@ export class TransferSheet {
     }
     this.form.patchValue({ fromWalletId: toWalletId, toWalletId: fromWalletId })
     this.form.markAsDirty()
-    this.dirty.set(true)
   }
 
   protected press(key: CalcKey | '='): void {
@@ -878,7 +849,6 @@ export class TransferSheet {
     toast.success(this.transloco.translate(done))
     if (addAnother && state.mode === 'create') {
       this.form.reset({ ...value, amount: '', note: '' })
-      this.dirty.set(false)
       this.keypad.set(true)
       return
     }
@@ -912,28 +882,9 @@ export class TransferSheet {
     this.finish()
   }
 
-  protected close(): void {
-    if (this.form.dirty) {
-      this.view.set('confirmDiscard')
-      return
-    }
-    this.finish()
-  }
-
-  protected onClosed(): void {
-    if (this.dirty() && this.state()) {
-      // The drawer can't refuse to close, so it comes back with the question instead.
-      this.view.set('confirmDiscard')
-      this.open.set(false)
-      setTimeout(() => this.open.set(true))
-      return
-    }
-    this.state.set(null)
-  }
-
+  /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.dirty.set(false)
     this.state.set(null)
   }
 
@@ -1001,13 +952,11 @@ export class TransferSheet {
     if (refused) {
       this.form.markAllAsTouched()
       this.form.markAsDirty()
-      this.dirty.set(true)
     }
   }
 
   private start(state: TransferSheetState): void {
     this.view.set('form')
-    this.dirty.set(false)
     this.repeat.set(state.mode === 'create' && state.repeat ? MONTHLY : null)
     if (state.mode === 'rule' || state.mode === 'fixRule') {
       this.startRule(state)
@@ -1067,7 +1016,6 @@ export class TransferSheet {
     if (state.mode === 'fix') {
       this.form.markAllAsTouched()
       this.form.markAsDirty()
-      this.dirty.set(true)
     }
     this.keypad.set(false)
   }

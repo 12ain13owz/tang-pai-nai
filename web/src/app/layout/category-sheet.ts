@@ -53,15 +53,7 @@ import { CategoryMove } from './category-move'
 import type { CategoryFormGroup } from './category-form.type'
 
 type View =
-  | 'form'
-  | 'icons'
-  | 'parent'
-  | 'wallets'
-  | 'merge'
-  | 'move'
-  | 'confirmMerge'
-  | 'confirmDelete'
-  | 'confirmDiscard'
+  'form' | 'icons' | 'parent' | 'wallets' | 'merge' | 'move' | 'confirmMerge' | 'confirmDelete'
 
 const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
   nameTaken: 'categories.unarchiveNameTaken',
@@ -109,7 +101,7 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
   ],
   template: `
     @let f = form.controls;
-    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="onClosed()">
+    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
       <hlm-drawer-content
         *hlmDrawerPortal
         class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
@@ -121,7 +113,7 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
                 [title]="heading() | transloco"
                 [leadingLabel]="'sheet.close' | transloco"
                 [actions]="editing() !== null ? 4 : 2"
-                (leading)="close()"
+                (leading)="finish()"
               >
                 @if (editing(); as category) {
                   <div sheetActions class="flex">
@@ -649,29 +641,6 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
               </div>
             </app-sheet-frame>
           }
-          @case ('confirmDiscard') {
-            <app-sheet-frame
-              [title]="'categories.discardHeading' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'categories.keepEditing' | transloco"
-              (leading)="view.set('form')"
-            >
-              <p class="text-sm text-muted-foreground">
-                {{ 'categories.discardText' | transloco }}
-              </p>
-              <div sheetFooter class="pt-3">
-                <button
-                  hlmBtn
-                  variant="destructive"
-                  type="button"
-                  class="h-11 w-full text-base"
-                  (click)="finish()"
-                >
-                  {{ 'categories.discard' | transloco }}
-                </button>
-              </div>
-            </app-sheet-frame>
-          }
         }
       </hlm-drawer-content>
     </hlm-drawer>
@@ -859,13 +828,10 @@ export class CategorySheet {
     hiddenIn: this.nnfb.control<string[]>([]),
   })
 
-  /** Unsaved input: swiping or tapping the sheet away asks first (DESIGN.md §6). */
-  protected dirty = signal(false)
   protected open = signal(false)
 
   constructor() {
     this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
-      this.dirty.set(this.form.dirty)
       this.refusal.set(null)
       const { type, parentId, hiddenIn } = this.form.getRawValue()
       this.formValue.set({ type, parentId, hiddenIn })
@@ -998,30 +964,9 @@ export class CategorySheet {
     this.finish()
   }
 
-  /** X: asks first when the form holds unsaved input (DESIGN.md §6). */
-  protected close(): void {
-    if (this.form.dirty) {
-      this.view.set('confirmDiscard')
-      return
-    }
-    this.finish()
-  }
-
-  /** Swiped down, tapped the backdrop or pressed Escape. */
-  protected onClosed(): void {
-    if (this.dirty() && this.state()) {
-      // The drawer can't refuse to close, so it comes back with the question instead.
-      this.view.set('confirmDiscard')
-      this.open.set(false)
-      setTimeout(() => this.open.set(true))
-      return
-    }
-    this.state.set(null)
-  }
-
+  /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.dirty.set(false)
     this.state.set(null)
   }
 
@@ -1049,7 +994,6 @@ export class CategorySheet {
   private start(state: CategorySheetState): void {
     this.view.set('form')
     this.mergeTargetId.set(null)
-    this.dirty.set(false)
     this.refusal.set(null)
     if (state.mode === 'create') {
       this.form.reset({
@@ -1067,7 +1011,6 @@ export class CategorySheet {
       })
       this.form.markAllAsTouched()
       this.form.markAsDirty()
-      this.dirty.set(true)
     } else {
       const category = this.categoryService.byId(state.id)
       if (!category) {

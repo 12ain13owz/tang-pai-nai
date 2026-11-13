@@ -77,7 +77,7 @@ import { RepeatRow } from './repeat-row'
 import { RepeatView } from './repeat-view'
 import type { TransactionFormGroup } from './transaction-form.type'
 
-type View = 'form' | 'wallet' | 'category' | 'note' | 'repeat' | 'event' | 'confirmDiscard'
+type View = 'form' | 'wallet' | 'category' | 'note' | 'repeat' | 'event'
 
 const TYPES: readonly CategoryType[] = ['expense', 'income']
 
@@ -129,7 +129,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
   ],
   template: `
     @let f = form.controls;
-    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="onClosed()">
+    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
       <hlm-drawer-content
         *hlmDrawerPortal
         class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
@@ -141,7 +141,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
               <app-sheet-frame
                 [title]="heading() | transloco"
                 [leadingLabel]="'sheet.close' | transloco"
-                (leading)="close()"
+                (leading)="finish()"
               >
                 @if (rule(); as current) {
                   <!-- A recurring rule (recurring.md → Web screens): pause / resume, delete. -->
@@ -786,29 +786,6 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
               />
             </app-sheet-frame>
           }
-          @case ('confirmDiscard') {
-            <app-sheet-frame
-              [title]="'transactions.discardHeading' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'transactions.keepEditing' | transloco"
-              (leading)="view.set('form')"
-            >
-              <p class="text-sm text-muted-foreground">
-                {{ 'transactions.discardText' | transloco }}
-              </p>
-              <div sheetFooter class="pt-3">
-                <button
-                  hlmBtn
-                  variant="destructive"
-                  type="button"
-                  class="h-11 w-full text-base"
-                  (click)="finish()"
-                >
-                  {{ 'transactions.discard' | transloco }}
-                </button>
-              </div>
-            </app-sheet-frame>
-          }
         }
       </hlm-drawer-content>
     </hlm-drawer>
@@ -1110,14 +1087,9 @@ export class TransactionSheet {
       .slice(0, 4)
   })
 
-  /** Unsaved input: swiping or tapping the sheet away asks first (DESIGN.md §6). */
-  protected dirty = signal(false)
   protected open = signal(false)
 
   constructor() {
-    this.form.valueChanges
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.dirty.set(this.form.dirty))
     // A category of the other type, or one the new wallet hides, no longer fits (rule 2).
     this.form.controls.type.valueChanges
       .pipe(takeUntilDestroyed())
@@ -1170,7 +1142,6 @@ export class TransactionSheet {
   protected setRepeat(value: RepeatValues | null): void {
     this.repeat.set(value)
     this.form.markAsDirty()
-    this.dirty.set(true)
   }
 
   /** "จากรายการซ้ำ": the rule in this sheet. */
@@ -1273,7 +1244,6 @@ export class TransactionSheet {
     this.eventId.set(id)
     this.eventChosen.set(true)
     this.form.markAsDirty()
-    this.dirty.set(true)
     this.view.set('form')
   }
 
@@ -1370,7 +1340,6 @@ export class TransactionSheet {
     toast.success(this.transloco.translate(done))
     if (addAnother && state.mode === 'create') {
       this.form.reset({ ...value, amount: '', note: '' })
-      this.dirty.set(false)
       this.keypad.set(true)
       return
     }
@@ -1404,30 +1373,9 @@ export class TransactionSheet {
     this.finish()
   }
 
-  /** "ปิด": asks first when the form holds unsaved input (DESIGN.md §6). */
-  protected close(): void {
-    if (this.form.dirty) {
-      this.view.set('confirmDiscard')
-      return
-    }
-    this.finish()
-  }
-
-  /** Swiped down, tapped the backdrop or pressed Escape. */
-  protected onClosed(): void {
-    if (this.dirty() && this.state()) {
-      // The drawer can't refuse to close, so it comes back with the question instead.
-      this.view.set('confirmDiscard')
-      this.open.set(false)
-      setTimeout(() => this.open.set(true))
-      return
-    }
-    this.state.set(null)
-  }
-
+  /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.dirty.set(false)
     this.state.set(null)
   }
 
@@ -1462,7 +1410,6 @@ export class TransactionSheet {
     this.eventChosen.set(startEvent !== undefined)
     this.view.set('form')
     this.more.set(state.mode !== 'create' && this.startValues(state)?.excludeFromReport === true)
-    this.dirty.set(false)
     this.repeat.set(state.mode === 'create' && state.repeat ? MONTHLY : null)
     if (state.mode === 'rule' || state.mode === 'fixRule') {
       this.startRule(state)
@@ -1513,7 +1460,6 @@ export class TransactionSheet {
       this.form.reset(this.toForm(state.values))
       this.form.markAllAsTouched()
       this.form.markAsDirty()
-      this.dirty.set(true)
       this.keypad.set(false)
       return
     }
@@ -1603,7 +1549,6 @@ export class TransactionSheet {
     if (refused) {
       this.form.markAllAsTouched()
       this.form.markAsDirty()
-      this.dirty.set(true)
     }
   }
 

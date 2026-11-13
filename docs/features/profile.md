@@ -95,7 +95,7 @@ Glossary: โปรไฟล์ / Profile (DESIGN.md §11).
   trash icon in the header leads to the delete confirm view, which says how many wallets and
   categories go with the profile (categories from 7.2). Used for create and edit; "fix" of
   a rejected profile op opens it with the refused values (`FIX_ROUTES` →
-  `/account/profiles?fix=<opId>`). Asks before closing with unsaved input.
+  `/account/profiles?fix=<opId>`). Closing never asks: unsaved input goes with the sheet.
 - **Profile switcher** (decided at the start of #6.1): on the Transactions, Wallets and Reports
   tabs the header's left side shows the current profile (24px icon circle, name, chevron) instead
   of the page title (the tab bar already says which tab it is; the document title stays the page

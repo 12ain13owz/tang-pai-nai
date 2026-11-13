@@ -232,7 +232,7 @@ Glossary: หมวดหมู่ / Category, หมวดหมู่ย่อ
   catalogue grouped by meaning). Save is the one button at the bottom. In edit mode the header
   holds **archive** (undo in the toast; coming back may be refused, rules 2 and 7), **merge**
   (7.3, rule 15) and **delete** (a confirm view; disabled with a line when it has children). "Fix" of a rejected op opens it
-  (`FIX_ROUTES` → `/account/categories?fix=<opId>`). Asks before closing with unsaved input.
+  (`FIX_ROUTES` → `/account/categories?fix=<opId>`). Closing never asks: unsaved input goes with the sheet.
 - **Category picker** (#8.1): in the transaction form, the chosen wallet's non-hidden,
   non-archived categories of the chosen type, children in their parent's tinted panel (the same
   panel in Account › หมวดหมู่ and the wallet's "หมวดหมู่ที่ใช้", owner's choice "3+4").

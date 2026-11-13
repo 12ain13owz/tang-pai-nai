@@ -520,16 +520,11 @@ describe('CategorySheet', () => {
     })
   })
 
-  it('asks before throwing away unsaved input, and can go back to it', async () => {
+  it('closes at once with unsaved input, without asking', async () => {
     categories.open({ mode: 'create', type: 'expense', parentId: null })
     await settle()
     await type(th.categories.name, 'Tea')
     await click(th.sheet.close)
-    expect(text()).toContain(th.categories.discardHeading)
-    await click(th.categories.keepEditing)
-    expect(input(th.categories.name).value).toBe('Tea')
-    await click(th.sheet.close)
-    await click(th.categories.discard)
     expect(categories.sheet()).toBeNull()
     expect(categories.categories()).toHaveLength(0)
   })

@@ -250,14 +250,14 @@ reports) shows the **current profile's** data.
   the sheet's icon-and-colour view with `app-icon-field` (flat `icons` or titled `groups`) and
   `app-color-field`. A `tpn` icon is an SVG string in `tpn-icons.ts` drawn in lucide's style
   (24 × 24, `stroke-width="2"`, round caps, `fill="none"`); `user-icons.spec.ts` checks that.
-- Sheets with unsaved input: spartan's `disableClose` is read only when the drawer opens, so a
-  dirty sheet re-opens on `(closed)` with its "discard?" question (`layout/profile-sheet`).
+- Closing a sheet never asks (DESIGN.md §6): ✕ and `(closed)` both call `finish()`, and unsaved
+  input goes with it. Don't add a "discard?" view.
 - **Sheets** (DESIGN.md §6): `hlm-drawer-content class="mx-auto h-[92dvh] w-full max-w-[480px]
 data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"` holding one `app-sheet-frame`
   (`@/shared/components/sheet`: `title`, `leadingIcon` `close` | `back`, `leadingLabel`,
   `(leading)`; project `[sheetActions]` icon buttons and a `[sheetFooter]` with the main button).
   A sheet with more than one step switches views inside the same drawer (`form` / `icons` /
-  `confirmDelete` / `confirmDiscard`, see `layout/wallet-sheet`). Specs find icon buttons by
+  `confirmDelete`, see `layout/wallet-sheet`). Specs find icon buttons by
   `aria-label`. No grab handle: `src/styles.css` hides spartan's
   (`hlm-drawer-content[data-slot='drawer-content'] > div:first-child`: Tailwind's utilities here
   are unlayered, so it needs the attribute to outrank the one that shows it; the generated file
@@ -322,7 +322,7 @@ fixOpId?, profileId?, hiddenIn?)` (a row that changes siblings goes last among t
   after it calls `moveOpLast()` (`core/offline/outbox.ts`) so the parent is pushed first, and
   unarchiving a parent moves its children's ops after its own.
 - `layout/category-sheet` (views `form` / `icons` / `parent` / `wallets` / `move` / `merge` /
-  `confirmMerge` / `confirmDelete` / `confirmDiscard`; four header icons in edit mode (move,
+  `confirmMerge` / `confirmDelete`; four header icons in edit mode (move,
   archive, merge, delete), so it passes `[actions]="4"` to `app-sheet-frame`; `app-segmented-field` for the type, disabled
   while it follows a parent or the row has children) is `@defer`red by the shell; `features/account/pages/categories-page`
   is Account › หมวดหมู่ with a two-level order mode (an inner `cdkDropList` per parent).
@@ -371,7 +371,7 @@ values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `rem
   a transfer.
 - UI: `layout/transactions-header` (the tab's header, `@defer`red by `app-header` for the
   bundle), `layout/view-wallet-sheet`, `layout/custom-range-sheet`, `layout/transaction-sheet`
-  (views `form` / `wallet` / `category` / `note` / `confirmDiscard`; the date row and the wallet
+  (views `form` / `wallet` / `category` / `note`; the date row and the wallet
   view are `shared/components/date-row` and `wallet-pick`, as in the transfer sheet; keypad
   state: it closes on any other control of the form, `leaveAmount`; save and add, copy; no type
   control on the form: the `category` view's tabs are `pickType` (a lone control) and
@@ -383,7 +383,7 @@ values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `rem
   (`app-money-summary-card`, also used by a shared wallet's page, so the two never drift). ➕
   opens the sheet (`BottomTabBar.add()`); "fix" goes to
   `/transactions?fix=<opId>` (the page asks both services; each opens only its own table's op).
-  `layout/transfer-sheet` (views `form` / `pick` (from or to) / `note` / `confirmDiscard`) is
+  `layout/transfer-sheet` (views `form` / `pick` (from or to) / `note`) is
   `@defer`red by the shell and opened by the header's two-level ⋮ menu and the Wallets tab.
 - Specs: `transaction.service.spec.ts`, `transfer.service.spec.ts`, `transaction-sheet.spec.ts`,
   `transfer-sheet.spec.ts`, `transactions-page.spec.ts` put their rows with `putRow` like the

@@ -855,9 +855,9 @@ Decided with the owner (don't re-ask):
   ones (both server checks, `CONFLICT`); the current profile lives in `localStorage` on a trusted
   device and `sessionStorage` on an untrusted one, and a wipe forgets it; reorder = an order mode
   with **one grip handle per row** (press and hold ~0.3 s on touch, ↑ / ↓ for keyboards; owner's
-  choice over up / down buttons); a fixed refused create becomes current again; swiping or
-  tapping away a sheet with unsaved input brings it back asking "ทิ้งที่แก้ไว้ใช่ไหม" (spartan's
-  `disableClose` is read only when the drawer opens); the **tab bar shows the active tab by
+  choice over up / down buttons); a fixed refused create becomes current again; closing a sheet
+  never asks, even with unsaved input (it once asked "ทิ้งที่แก้ไว้ใช่ไหม"; dropped by the owner
+  in 2026-11 as more annoying than useful); the **tab bar shows the active tab by
   colour alone** (no pill; owner picked option B of four mock-ups).
 - **API**: `profiles` (migration `0006_profiles`), `features/profile` registers a pushable sync
   handler (validate / find / check / write / purge, like `sync-probe`), no REST routes; OpenAPI

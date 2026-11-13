@@ -32,7 +32,7 @@ import { USER_COLORS } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
 import { addDays } from '@/shared/utils'
 
-type View = 'form' | 'icons' | 'confirmDelete' | 'confirmDiscard'
+type View = 'form' | 'icons' | 'confirmDelete'
 
 /** Event rule 2: an end, when set, not before the start (reads the sibling: runs while built). */
 const endAfterStart: ValidatorFn = (control) => {
@@ -68,7 +68,7 @@ const endAfterStart: ValidatorFn = (control) => {
   providers: [provideIcons({ lucideCalendarCheck, lucidePlus, lucideTrash2, lucideX })],
   template: `
     @let f = form.controls;
-    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="onClosed()">
+    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
       <hlm-drawer-content
         *hlmDrawerPortal
         class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
@@ -79,7 +79,7 @@ const endAfterStart: ValidatorFn = (control) => {
               <app-sheet-frame
                 [title]="heading() | transloco"
                 [leadingLabel]="'sheet.close' | transloco"
-                (leading)="close()"
+                (leading)="finish()"
               >
                 @if (editing()) {
                   <div sheetActions class="flex">
@@ -251,29 +251,6 @@ const endAfterStart: ValidatorFn = (control) => {
               </div>
             </app-sheet-frame>
           }
-          @case ('confirmDiscard') {
-            <app-sheet-frame
-              [title]="'transactions.discardHeading' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'transactions.keepEditing' | transloco"
-              (leading)="view.set('form')"
-            >
-              <p class="text-sm text-muted-foreground">
-                {{ 'transactions.discardText' | transloco }}
-              </p>
-              <div sheetFooter class="pt-3">
-                <button
-                  hlmBtn
-                  variant="destructive"
-                  type="button"
-                  class="h-11 w-full text-base"
-                  (click)="finish()"
-                >
-                  {{ 'transactions.discard' | transloco }}
-                </button>
-              </div>
-            </app-sheet-frame>
-          }
         }
       </hlm-drawer-content>
     </hlm-drawer>
@@ -294,7 +271,6 @@ export class EventSheet {
   protected state = this.eventService.sheet
   protected view = signal<View>('form')
   protected open = signal(false)
-  protected dirty = signal(false)
 
   form = this.nnfb.group({
     name: [
@@ -334,9 +310,6 @@ export class EventSheet {
   })
 
   constructor() {
-    this.form.valueChanges
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.dirty.set(this.form.dirty))
     this.form.controls.startOn.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.form.controls.endOn.updateValueAndValidity({ emitEvent: false }))
@@ -398,35 +371,15 @@ export class EventSheet {
     void this.router.navigate([EVENTS_ROUTE])
   }
 
-  protected close(): void {
-    if (this.form.dirty) {
-      this.view.set('confirmDiscard')
-      return
-    }
-    this.finish()
-  }
-
-  protected onClosed(): void {
-    if (this.dirty() && this.state()) {
-      // The drawer can't refuse to close, so it comes back with the question instead.
-      this.view.set('confirmDiscard')
-      this.open.set(false)
-      setTimeout(() => this.open.set(true))
-      return
-    }
-    this.state.set(null)
-  }
-
+  /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.dirty.set(false)
     this.state.set(null)
   }
 
   private start(): void {
     const state = this.state()
     this.view.set('form')
-    this.dirty.set(false)
     if (!state) {
       return
     }
@@ -457,7 +410,6 @@ export class EventSheet {
     if (refused) {
       this.form.markAllAsTouched()
       this.form.markAsDirty()
-      this.dirty.set(true)
     }
   }
 }

@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import type { ValidatorFn } from '@angular/forms'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
@@ -50,7 +50,7 @@ import {
 import type { CalcKey } from '@/shared/utils'
 import { DebtCategoryPick } from './category-pick'
 
-type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
+type View = 'form' | 'wallet' | 'category' | 'note'
 
 /**
  * A debt's money that isn't income or expense (debt rule 3; mock-up frame 6): repay / receive
@@ -91,7 +91,7 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
   ],
   template: `
     @let f = form.controls;
-    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="onClosed()">
+    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
       <hlm-drawer-content
         *hlmDrawerPortal
         class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
@@ -103,7 +103,7 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
               <app-sheet-frame
                 [title]="heading()"
                 [leadingLabel]="'sheet.close' | transloco"
-                (leading)="close()"
+                (leading)="finish()"
               >
                 @if (rule(); as current) {
                   <div sheetActions class="flex">
@@ -426,29 +426,6 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
               />
             </app-sheet-frame>
           }
-          @case ('confirmDiscard') {
-            <app-sheet-frame
-              [title]="'transactions.discardHeading' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'transactions.keepEditing' | transloco"
-              (leading)="view.set('form')"
-            >
-              <p class="text-sm text-muted-foreground">
-                {{ 'transactions.discardText' | transloco }}
-              </p>
-              <div sheetFooter class="pt-3">
-                <button
-                  hlmBtn
-                  variant="destructive"
-                  type="button"
-                  class="h-11 w-full text-base"
-                  (click)="finish()"
-                >
-                  {{ 'transactions.discard' | transloco }}
-                </button>
-              </div>
-            </app-sheet-frame>
-          }
         }
       </hlm-drawer-content>
     </hlm-drawer>
@@ -472,7 +449,6 @@ export class DebtEntrySheet {
   protected view = signal<View>('form')
   protected keypad = signal(false)
   protected open = signal(false)
-  protected dirty = signal(false)
   protected interestCategoryId = signal<string | null>(null)
   protected quickAmounts = computed(() => (this.quickAmountsService.enabled() ? QUICK_AMOUNTS : []))
 
@@ -614,9 +590,6 @@ export class DebtEntrySheet {
     this.transloco.translate(key, params)
 
   constructor() {
-    this.form.valueChanges
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.dirty.set(this.form.dirty))
     effect(() => {
       const state = this.state()
       untracked(() => {
@@ -788,27 +761,9 @@ export class DebtEntrySheet {
     this.finish()
   }
 
-  protected close(): void {
-    if (this.form.dirty) {
-      this.view.set('confirmDiscard')
-      return
-    }
-    this.finish()
-  }
-
-  protected onClosed(): void {
-    if (this.dirty() && this.state()) {
-      this.view.set('confirmDiscard')
-      this.open.set(false)
-      setTimeout(() => this.open.set(true))
-      return
-    }
-    this.state.set(null)
-  }
-
+  /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */
   protected finish(): void {
     this.form.markAsPristine()
-    this.dirty.set(false)
     this.state.set(null)
   }
 
@@ -833,7 +788,6 @@ export class DebtEntrySheet {
 
   private start(state: EntrySheetState): void {
     this.view.set('form')
-    this.dirty.set(false)
     this.interestAmount.reset('')
     this.interestMissing.set(false)
     if (state.mode === 'rule') {
@@ -904,7 +858,6 @@ export class DebtEntrySheet {
     if (refused) {
       this.form.markAllAsTouched()
       this.form.markAsDirty()
-      this.dirty.set(true)
     }
   }
 }
