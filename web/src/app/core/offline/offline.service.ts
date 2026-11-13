@@ -19,7 +19,8 @@ import type { VaultMeta, VaultStorage } from './vault-storage'
 /**
  * - `unknown`: the vault hasn't been read yet
  * - `none`: an untrusted device (no local data is stored, rule 1)
- * - `locked` / `unlocked`: a trusted device, before / after the PIN (rule 2)
+ * - `locked` / `unlocked`: a trusted device, its database closed / open (rule 2: opened with the
+ *   PIN when it's on, else by `open()` at once)
  * - `elsewhere`: another tab runs the app (rule 2, one tab at a time)
  */
 export type OfflineState = 'unknown' | 'none' | 'locked' | 'unlocked' | 'elsewhere'
@@ -55,7 +56,7 @@ const DEVICE_PREF_PREFIX = 'tpn-profile:'
 export const MAX_PIN_ATTEMPTS = 5
 /** The warning shows from this wrong attempt on (rule 3). */
 export const WARN_FROM_ATTEMPT = 3
-/** Background or idle time before the app locks again (rule 2). */
+/** Background or idle time before the app locks again, with the PIN on (rule 2). */
 export const LOCK_AFTER_MS = 5 * 60_000
 
 /** Where the vault lives (IndexedDB); a spec swaps it for memory. */
@@ -74,7 +75,7 @@ const IDLE_CHECK_MS = 15_000
 
 /**
  * The trusted device (docs/features/offline-sync.md rules 1–7): its encrypted local database,
- * the PIN that unlocks it, auto-lock, one tab at a time, and the wipes.
+ * the optional PIN that unlocks it and its auto-lock, one tab at a time, and the wipes.
  */
 @Service()
 export class OfflineService {
@@ -90,6 +91,8 @@ export class OfflineService {
   /** The clear-text part of the vault, `null` on an untrusted device. */
   meta = signal<VaultMeta | null>(null)
   isTrusted = computed(() => this.meta() !== null)
+  /** The app asks for a PIN to open (rule 2); off on a trusted device until turned on. */
+  hasPin = computed(() => (this.meta()?.key ?? null) !== null)
   /** The local database is open: unlocked, or in memory on an untrusted device (rule 1). */
   isOpen = signal(false)
   /** Bumped after every local write, so screens re-read the database (rule 8). */
@@ -230,10 +233,11 @@ export class OfflineService {
   }
 
   /**
-   * Rule 1: trust this device for the signed-in user. Creates the data key, wraps it with `pin`,
-   * and saves an empty encrypted database; the app stays unlocked.
+   * Rule 1: trust this device for the signed-in user. Creates the data key, keeps it wrapped by
+   * `pin` or (no PIN, the default) as it is, and saves an empty encrypted database; the app stays
+   * open.
    */
-  async enable(pin: string): Promise<void> {
+  async enable(pin?: string): Promise<void> {
     const user = this.authStore.user()
     if (!user) {
       throw new Error('Trusting a device needs a signed-in user')
@@ -252,7 +256,7 @@ export class OfflineService {
     const meta: VaultMeta = {
       userId: user.id,
       displayName: user.displayName,
-      key: await wrapDataKey(dataKey, pin),
+      ...(await keyFields(dataKey, pin)),
       failedAttempts: 0,
     }
     await this.vaultStorage.create(meta, await seal(dataKey, database.export()))
@@ -273,15 +277,38 @@ export class OfflineService {
     if (result.check !== 'ok') {
       return result.check
     }
+    await this.openWith(result.dataKey)
+    return 'ok'
+  }
+
+  /**
+   * Rule 2, PIN off: opens the local database with the stored key, nothing to type. `false` when
+   * there is nothing it can open (the PIN is on, or the vault can't be read).
+   */
+  async open(): Promise<boolean> {
+    if (this.state() === 'unlocked') {
+      return true
+    }
+    const dataKey = (this.meta() ?? (await this.ready()))?.deviceKey ?? null
+    if (this.hasPin() || !dataKey) {
+      return false
+    }
+    try {
+      await this.openWith(dataKey)
+      return true
+    } catch (error) {
+      console.error('Opening the local database failed', error)
+      return false
+    }
+  }
+
+  private async openWith(dataKey: CryptoKey): Promise<void> {
     const snapshot = await this.vaultStorage.readSnapshot()
-    this.database = await this.openDatabase(
-      snapshot ? await unseal(result.dataKey, snapshot) : undefined
-    )
-    this.dataKey = result.dataKey
+    this.database = await this.openDatabase(snapshot ? await unseal(dataKey, snapshot) : undefined)
+    this.dataKey = dataKey
     this.isOpen.set(true)
     this.unlocked()
     void this.recheckSession()
-    return 'ok'
   }
 
   /** Checks the PIN of the unlocked device (before changing it); a wrong one counts (rule 3). */
@@ -289,13 +316,25 @@ export class OfflineService {
     return (await this.checkPin(pin)).check
   }
 
-  /** Rule 4: the unlocked data key, wrapped by the new PIN (with a new salt). */
+  /**
+   * Rules 2 and 4: turns the PIN on, or changes it: the open data key, wrapped by the new PIN
+   * (with a new salt), and no longer stored as it is.
+   */
   async changePin(newPin: string): Promise<void> {
     const meta = this.meta()
     if (!meta || !this.dataKey) {
       throw new Error('Changing the PIN needs an unlocked device')
     }
-    await this.storeMeta({ ...meta, key: await wrapDataKey(this.dataKey, newPin) })
+    await this.storeMeta({ ...meta, ...(await keyFields(this.dataKey, newPin)), failedAttempts: 0 })
+  }
+
+  /** Rule 2: turns the PIN off (the caller checked the current one): the key is stored as it is. */
+  async removePin(): Promise<void> {
+    const meta = this.meta()
+    if (!meta || !this.dataKey) {
+      throw new Error('Turning the PIN off needs an unlocked device')
+    }
+    await this.storeMeta({ ...meta, ...(await keyFields(this.dataKey)), failedAttempts: 0 })
   }
 
   /** Rule 2: saves, then forgets the key and the decrypted database. */
@@ -427,6 +466,9 @@ export class OfflineService {
     if (!meta) {
       return { check: 'wiped' }
     }
+    if (!meta.key) {
+      throw new Error('There is no PIN to check')
+    }
     const dataKey = await unwrapDataKey(meta.key, pin)
     if (dataKey) {
       if (meta.failedAttempts > 0) {
@@ -516,8 +558,9 @@ export class OfflineService {
     }, IDLE_CHECK_MS)
   }
 
+  /** Rule 2: only with the PIN on; without it the app stays open. */
   private async lockAndShow(): Promise<void> {
-    if (this.state() !== 'unlocked') {
+    if (this.state() !== 'unlocked' || !this.hasPin()) {
       return
     }
     const returnUrl = this.returnUrl()
@@ -530,3 +573,12 @@ export class OfflineService {
     return url === '/' || url.startsWith('/auth/') ? undefined : url
   }
 }
+
+/** Rule 4: how the vault keeps the data key, wrapped by the PIN or (no PIN) as it is. */
+const keyFields = async (
+  dataKey: CryptoKey,
+  pin?: string
+): Promise<Pick<VaultMeta, 'key' | 'deviceKey'>> =>
+  pin === undefined
+    ? { key: null, deviceKey: dataKey }
+    : { key: await wrapDataKey(dataKey, pin), deviceKey: null }

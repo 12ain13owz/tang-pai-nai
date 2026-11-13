@@ -65,7 +65,7 @@ export default [
     loadComponent: async () => import('./pages/device-page/device-page').then((m) => m.DevicePage),
   },
   {
-    // Turn offline on (choose a PIN) or change the PIN (offline-sync rules 1 and 4).
+    // Turn the PIN on, change it, or (`?off=1`) turn it off (offline-sync rules 2 and 4).
     path: 'pin',
     title: 'title.pin',
     loadComponent: async () => import('./pages/pin-page/pin-page').then((m) => m.PinPage),

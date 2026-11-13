@@ -11,8 +11,8 @@ export const TRUST_URL = '/auth/trust'
  * with its PIN (docs/features/offline-sync.md rules 1–3 and 7).
  *
  * - Trusted device: wiped first when the session was revoked or someone else signed in;
- *   otherwise it opens once this tab holds the app and the PIN was entered, even offline or
- *   with an expired session.
+ *   otherwise it opens once this tab holds the app (and, with the PIN on, the PIN was entered),
+ *   even offline or with an expired session.
  * - Untrusted device: signed in, and right after a sign-in the trust step comes first.
  */
 export const shellGuard: CanActivateFn = async (_route, state) => {
@@ -29,9 +29,16 @@ export const shellGuard: CanActivateFn = async (_route, state) => {
     if (!(await offlineService.claimTab())) {
       return router.createUrlTree([OTHER_TAB_URL], { queryParams })
     }
-    return offlineService.state() === 'unlocked'
-      ? true
-      : router.createUrlTree([LOCK_URL], { queryParams })
+    if (offlineService.hasPin()) {
+      return offlineService.state() === 'unlocked'
+        ? true
+        : router.createUrlTree([LOCK_URL], { queryParams })
+    }
+    // PIN off (rule 2): open at once. A vault it can't open is no use to anyone: start afresh.
+    if (await offlineService.open()) {
+      return true
+    }
+    await offlineService.wipe()
   }
 
   if (status !== 'signedIn') {
@@ -52,12 +59,14 @@ export const trustGuard: CanActivateFn = async () => {
   return meta ? router.parseUrl('/') : true
 }
 
-/** The lock screen: only while a trusted device is locked. */
+/** The lock screen: only while a trusted device with a PIN is locked. */
 export const lockGuard: CanActivateFn = async () => {
   const router = inject(Router)
   const offlineService = inject(OfflineService)
   const meta = await offlineService.ready()
-  return meta && offlineService.state() === 'locked' ? true : router.parseUrl('/')
+  return meta && offlineService.hasPin() && offlineService.state() === 'locked'
+    ? true
+    : router.parseUrl('/')
 }
 
 /** "Open in another tab": only while another tab holds the app. */

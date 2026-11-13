@@ -534,8 +534,12 @@
     "signOutFailed": "Couldn't sign the device out. Try again",
     "deviceHeading": "This device",
     "offlineMode": "Use offline",
-    "offlineOn": "On · locked with a PIN",
+    "offlineOn": "On · works without internet",
     "offlineOff": "Off · online only",
+    "offlineOnDone": "Offline is on for this device",
+    "pinLock": "Lock with a PIN",
+    "pinOn": "On · asks for the PIN each time the app opens",
+    "pinOff": "Off · the app opens straight away, your device's own lock protects it",
     "turnOn": "Turn on",
     "turnOff": "Turn off",
     "changePin": "Change PIN",
@@ -582,13 +586,12 @@
   },
   "trust": {
     "heading": "Use offline on this device?",
-    "intro": "If you turn it on, your data is kept encrypted on this device, works without internet, and is locked with a 6-digit PIN",
+    "intro": "If you turn it on, your data is kept encrypted on this device and works without internet. You can also lock the app with a PIN in Account › Security",
     "switch": "Use offline on this device",
     "onHint": "Only on a device that is yours",
     "offHint": "Online only, nothing is kept on this device",
     "iosNote": "On iPhone and iPad the data only stays when the app is added to the home screen (Share → Add to Home Screen)",
     "continue": "Continue",
-    "back": "Back",
     "saving": "Setting up",
     "failed": "Couldn't set it up. Try again"
   },
@@ -603,8 +606,10 @@
     "filled": "PIN, {{count}} of 6 digits entered",
     "delete": "Delete digit",
     "changed": "PIN changed",
-    "offlineOn": "Offline is on for this device",
-    "changeHeading": "Choose a new PIN"
+    "changeHeading": "Choose a new PIN",
+    "offHint": "Before you turn the PIN lock off",
+    "turnedOn": "PIN lock is on",
+    "turnedOff": "PIN lock is off"
   },
   "lock": {
     "heading": "Enter your PIN to unlock",

@@ -15,13 +15,14 @@ class Blank {}
 describe('PinPage', () => {
   let fixture: ComponentFixture<PinPage>
   const offline = {
-    isTrusted: signal(false),
+    isTrusted: signal(true),
+    hasPin: signal(true),
     meta: signal(null),
     attemptsLeft: computed(() => 5),
     check: 'ok' as PinCheck,
-    enable: vi.fn(async (_pin: string) => Promise.resolve()),
     verifyPin: vi.fn(async (_pin: string): Promise<PinCheck> => Promise.resolve(offline.check)),
     changePin: vi.fn(async (_pin: string) => Promise.resolve()),
+    removePin: vi.fn(async () => Promise.resolve()),
   }
 
   const text = () => (fixture.nativeElement as HTMLElement).textContent
@@ -36,8 +37,9 @@ describe('PinPage', () => {
     await fixture.whenStable()
     fixture.detectChanges()
   }
-  const open = (trusted: boolean) => {
-    offline.isTrusted.set(trusted)
+  const open = async (hasPin: boolean, url = '/account/pin') => {
+    offline.hasPin.set(hasPin)
+    await TestBed.inject(Router).navigateByUrl(url)
     fixture = TestBed.createComponent(PinPage)
     fixture.detectChanges()
   }
@@ -61,20 +63,20 @@ describe('PinPage', () => {
     })
   })
 
-  it('turns offline on with a new PIN on an untrusted device', async () => {
-    open(false)
+  it('turns the PIN on with a new PIN on a trusted device without one', async () => {
+    await open(false)
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl')
     expect(text()).toContain(th.pin.newHeading)
 
     await enter('112233')
     await enter('112233')
-    expect(offline.enable).toHaveBeenCalledWith('112233')
-    expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.pin.offlineOn])
+    expect(offline.changePin).toHaveBeenCalledWith('112233')
+    expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.pin.turnedOn])
     expect(navigate).toHaveBeenCalledWith('/account/security')
   })
 
   it('asks for the current PIN first and says at once when it is wrong', async () => {
-    open(true)
+    await open(true)
     expect(text()).toContain(th.pin.currentHeading)
 
     offline.check = 'wrong'
@@ -85,7 +87,7 @@ describe('PinPage', () => {
   })
 
   it('changes the PIN once the current one is right', async () => {
-    open(true)
+    await open(true)
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl')
 
     await enter('123456')
@@ -94,13 +96,29 @@ describe('PinPage', () => {
     await enter('654321')
 
     expect(offline.changePin).toHaveBeenCalledWith('654321')
-    expect(offline.enable).not.toHaveBeenCalled()
     expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.pin.changed])
     expect(navigate).toHaveBeenCalledWith('/account/security')
   })
 
+  it('turns the PIN off once the current one is right, with no new PIN', async () => {
+    await open(true, '/account/pin?off=1')
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl')
+    expect(text()).toContain(th.pin.offHint)
+
+    offline.check = 'wrong'
+    await enter('999999')
+    expect(offline.removePin).not.toHaveBeenCalled()
+
+    offline.check = 'ok'
+    await enter('123456')
+    expect(offline.removePin).toHaveBeenCalled()
+    expect(offline.changePin).not.toHaveBeenCalled()
+    expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.pin.turnedOff])
+    expect(navigate).toHaveBeenCalledWith('/account/security')
+  })
+
   it('goes to sign-in when the 5th wrong current PIN wiped the device', async () => {
-    open(true)
+    await open(true)
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl')
 
     offline.check = 'wiped'

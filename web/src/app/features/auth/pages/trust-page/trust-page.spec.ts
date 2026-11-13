@@ -14,7 +14,7 @@ class Blank {}
 
 describe('TrustPage', () => {
   let fixture: ComponentFixture<TrustPage>
-  const enable = vi.fn(async (_pin: string) => Promise.resolve())
+  const enable = vi.fn(async (_pin?: string) => Promise.resolve())
   const installed = signal(false)
 
   const text = () => (fixture.nativeElement as HTMLElement).textContent
@@ -22,12 +22,6 @@ describe('TrustPage', () => {
     [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].find(
       (b) => b.textContent.trim() === name
     ) as HTMLButtonElement
-  const enter = (pin: string) => {
-    for (const digit of pin) {
-      button(digit).click()
-    }
-    fixture.detectChanges()
-  }
   const open = async () => {
     await TestBed.inject(Router).navigateByUrl('/auth/trust?returnUrl=%2Freports')
     TestBed.inject(AuthStore).freshSignIn.set(true)
@@ -79,35 +73,31 @@ describe('TrustPage', () => {
     expect(TestBed.inject(AuthStore).freshSignIn()).toBe(false)
   })
 
-  it('trusts the device with the PIN typed twice, then goes on', async () => {
+  it('trusts the device with no PIN step, then goes on (rule 2: the PIN is optional)', async () => {
     await open()
     fixture.componentInstance.form.controls.offline.setValue(true)
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl')
 
     button(th.trust.continue).click()
-    fixture.detectChanges()
-    expect(text()).toContain(th.pin.newHeading)
-    enter('135790')
-    enter('135790')
     await fixture.whenStable()
+    fixture.detectChanges()
 
-    expect(enable).toHaveBeenCalledWith('135790')
+    expect(enable).toHaveBeenCalledWith()
+    expect(text()).not.toContain(th.pin.newHeading)
     await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith('/reports', { replaceUrl: true }))
   })
 
-  it('says so and asks for the PIN again when trusting fails', async () => {
+  it('says so and stays when trusting fails', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     enable.mockRejectedValueOnce(new Error('quota'))
     await open()
     fixture.componentInstance.form.controls.offline.setValue(true)
-    button(th.trust.continue).click()
-    fixture.detectChanges()
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl')
 
-    enter('135790')
-    enter('135790')
+    button(th.trust.continue).click()
     await fixture.whenStable()
     fixture.detectChanges()
     expect(text()).toContain(th.trust.failed)
-    expect(text()).toContain(th.pin.newHeading)
+    expect(navigate).not.toHaveBeenCalled()
   })
 })

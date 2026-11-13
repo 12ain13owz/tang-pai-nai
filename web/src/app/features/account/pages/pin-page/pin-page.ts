@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal, viewChild } from '@angular/core'
-import { Router } from '@angular/router'
+import { ActivatedRoute, Router } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideArrowLeft } from '@ng-icons/lucide'
@@ -12,9 +12,13 @@ import { PinPad, PinSetup } from '@/shared/components/pin'
 
 const SECURITY_URL = '/account/security'
 
+/** `on`: choose a PIN; `change`: the current one, then a new one; `off`: the current one. */
+type PinMode = 'on' | 'change' | 'off'
+
 /**
- * Account › Security › this device (offline-sync rules 1 and 4): turn offline on (choose a PIN)
- * or change the PIN (the current one first; a wrong one counts toward rule 3).
+ * Account › Security › this device (offline-sync rules 2–4): the optional PIN of a trusted device.
+ * Turn it on (choose one), change it, or turn it off (`?off=1`); the current PIN comes first and a
+ * wrong one counts toward rule 3.
  */
 @Component({
   selector: 'app-pin-page',
@@ -38,7 +42,9 @@ const SECURITY_URL = '/account/security'
         <div class="flex flex-col items-center gap-6">
           <div class="flex flex-col items-center gap-2 text-center">
             <h2 class="text-xl font-semibold">{{ 'pin.currentHeading' | transloco }}</h2>
-            <p class="text-sm text-muted-foreground">{{ 'pin.currentHint' | transloco }}</p>
+            <p class="text-sm text-muted-foreground">
+              {{ (mode === 'off' ? 'pin.offHint' : 'pin.currentHint') | transloco }}
+            </p>
           </div>
           <div role="alert" class="flex min-h-5 flex-col items-center text-center text-sm">
             @if (wrong()) {
@@ -58,10 +64,10 @@ const SECURITY_URL = '/account/security'
             (completed)="checkCurrent($event)"
           />
         </div>
-      } @else {
+      } @else if (mode !== 'off') {
         <app-pin-setup
           [isProcessing]="isProcessing()"
-          [newHeading]="isChange ? 'pin.changeHeading' : 'pin.newHeading'"
+          [newHeading]="mode === 'change' ? 'pin.changeHeading' : 'pin.newHeading'"
           (chosen)="save($event)"
         />
       }
@@ -83,11 +89,11 @@ export class PinPage {
   protected offlineService = inject(OfflineService)
 
   private pinSetup = viewChild(PinSetup)
-  /** Trusted already: this changes the PIN; otherwise it turns offline on. */
-  protected isChange = this.offlineService.isTrusted()
   private pad = viewChild(PinPad)
+  private wantsOff = inject(ActivatedRoute).snapshot.queryParamMap.get('off') === '1'
+  protected mode: PinMode = !this.offlineService.hasPin() ? 'on' : this.wantsOff ? 'off' : 'change'
   protected currentChecked = signal(false)
-  protected needsCurrent = computed(() => this.isChange && !this.currentChecked())
+  protected needsCurrent = computed(() => this.mode !== 'on' && !this.currentChecked())
   protected isProcessing = signal(false)
   protected wrong = signal(false)
   protected failed = signal(false)
@@ -95,19 +101,20 @@ export class PinPage {
     () => (this.offlineService.meta()?.failedAttempts ?? 0) >= WARN_FROM_ATTEMPT
   )
 
+  constructor() {
+    // The PIN belongs to a trusted device; offline itself is turned on in Security (rule 1).
+    if (!this.offlineService.isTrusted()) {
+      void this.back()
+    }
+  }
+
   protected async save(pin: string): Promise<void> {
     this.isProcessing.set(true)
     this.failed.set(false)
     try {
-      if (!this.isChange) {
-        await this.offlineService.enable(pin)
-        toast.success(this.transloco.translate('pin.offlineOn'))
-        await this.router.navigateByUrl(SECURITY_URL)
-        return
-      }
       await this.offlineService.changePin(pin)
-      toast.success(this.transloco.translate('pin.changed'))
-      await this.router.navigateByUrl(SECURITY_URL)
+      toast.success(this.transloco.translate(this.mode === 'on' ? 'pin.turnedOn' : 'pin.changed'))
+      await this.back()
     } catch (error) {
       console.error('Saving the PIN failed', error)
       this.failed.set(true)
@@ -117,20 +124,28 @@ export class PinPage {
     }
   }
 
-  /** The current PIN first (a wrong one counts toward rule 3's wipe). */
+  /** The current PIN first (a wrong one counts toward rule 3's wipe); turning off ends there. */
   protected async checkCurrent(pin: string): Promise<void> {
     this.isProcessing.set(true)
     this.wrong.set(false)
+    this.failed.set(false)
     try {
       const check = await this.offlineService.verifyPin(pin)
-      if (check === 'ok') {
-        this.currentChecked.set(true)
-      } else if (check === 'wiped') {
+      if (check === 'wiped') {
         toast.error(this.transloco.translate('lock.wiped'))
         await this.router.navigateByUrl(SIGN_IN_URL, { replaceUrl: true })
-      } else {
+      } else if (check === 'wrong') {
         this.wrong.set(true)
+      } else if (this.mode === 'off') {
+        await this.offlineService.removePin()
+        toast.success(this.transloco.translate('pin.turnedOff'))
+        await this.back()
+      } else {
+        this.currentChecked.set(true)
       }
+    } catch (error) {
+      console.error('Turning the PIN off failed', error)
+      this.failed.set(true)
     } finally {
       this.isProcessing.set(false)
       this.pad()?.clear()

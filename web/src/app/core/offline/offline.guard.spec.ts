@@ -29,6 +29,15 @@ describe('offline guards', () => {
     meta: null as VaultMeta | null,
     state: signal<OfflineState>('none'),
     tabFree: true,
+    pin: true,
+    hasPin: () => offline.pin,
+    opens: true,
+    open: vi.fn(async () => {
+      if (offline.opens) {
+        offline.state.set('unlocked')
+      }
+      return Promise.resolve(offline.opens)
+    }),
     ready: vi.fn(async () => Promise.resolve(offline.meta)),
     wipe: vi.fn(async () => {
       offline.meta = null
@@ -58,6 +67,8 @@ describe('offline guards', () => {
     offline.meta = null
     offline.state.set('none')
     offline.tabFree = true
+    offline.pin = true
+    offline.opens = true
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -132,6 +143,23 @@ describe('offline guards', () => {
       offline.tabFree = false
       expect(await run(shellGuard)).toBe('/auth/tab?returnUrl=%2Fwallets')
     })
+
+    it('opens at once with the PIN off, even offline or with an expired session (rule 2)', async () => {
+      offline.pin = false
+      status = 'signedOut'
+      authStore.clear('expired')
+      expect(await run(shellGuard)).toBe(true)
+      expect(offline.open).toHaveBeenCalledOnce()
+      expect(offline.wipe).not.toHaveBeenCalled()
+    })
+
+    it('starts afresh when the PIN is off but the vault cannot be opened', async () => {
+      offline.pin = false
+      offline.opens = false
+      expect(await run(shellGuard)).toBe(true)
+      expect(offline.wipe).toHaveBeenCalledOnce()
+      expect(offline.openUntrusted).toHaveBeenCalledOnce()
+    })
   })
 
   it('opens the trust step only on an untrusted device', async () => {
@@ -140,12 +168,15 @@ describe('offline guards', () => {
     expect(await run(trustGuard)).toBe('/')
   })
 
-  it('opens the lock screen only while a trusted device is locked', async () => {
+  it('opens the lock screen only while a trusted device with a PIN is locked', async () => {
     expect(await run(lockGuard)).toBe('/')
     offline.meta = meta()
     offline.state.set('locked')
     expect(await run(lockGuard)).toBe(true)
     offline.state.set('unlocked')
+    expect(await run(lockGuard)).toBe('/')
+    offline.state.set('locked')
+    offline.pin = false
     expect(await run(lockGuard)).toBe('/')
   })
 

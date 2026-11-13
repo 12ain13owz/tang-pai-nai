@@ -99,7 +99,8 @@ Owner's rule (after #16.1): **a component used in more than one place lives in
   `AuthLayout` (app name + language switch); so are the trusted-device screens `/auth/trust`,
   `/auth/lock` and `/auth/tab` (offline-sync rules 1–3). The shell route carries `shellGuard`
   (`core/offline`, `canActivate` + `canActivateChild`): a signed-in user, or a trusted device
-  unlocked with its PIN (even offline or with an expired session). See "Trusted device" below.
+  opened (with its PIN, when it has one) even offline or with an expired session. See "Trusted
+  device" below.
 - App-wide device state lives in `core/` as signal services: `ThemeService` (`core/theme`),
   `LanguageService` (`core/i18n`), `NetworkStatusService` (`core/network`), `KeyboardService`
   (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`), `OfflineService`
@@ -127,14 +128,17 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 1–7.
   changes are appended to `MIGRATIONS` in `local-database.ts` (applied by `PRAGMA user_version`);
   never edit a step that shipped. Write through `OfflineService.write(db => …)`: one SQLite
   transaction, then the snapshot is saved (calls during a save are coalesced).
-- The vault (IndexedDB `tpn-vault`, `vault-storage.ts`) holds the clear meta the lock screen needs
-  (user id + name, salt, wrapped key, wrong-PIN count) and **one** AES-GCM snapshot of the whole
-  database (`vault-crypto.ts`). The data key lives in memory only while unlocked.
+- The vault (IndexedDB `tpn-vault`, `vault-storage.ts`) holds the clear meta (user id + name, the
+  data key, wrong-PIN count) and **one** AES-GCM snapshot of the whole database
+  (`vault-crypto.ts`). **The PIN is optional, off by default** (rule 2, after 16.2): with it on,
+  `meta.key` is the key wrapped by the PIN and the key lives in memory only while unlocked; with
+  it off, `meta.key` is `null` and `meta.deviceKey` holds the `CryptoKey` itself.
 - `OfflineService.state()`: `none` (untrusted) / `locked` / `unlocked` / `elsewhere` (another
-  tab holds the `tpn-local-db` Web Lock). `enable(pin)`, `unlock(pin)` and `verifyPin(pin)`
-  answer `ok` / `wrong` / `wiped` (the 5th wrong PIN wipes and signs out); `changePin`, `lock`,
-  `wipe`. It locks by itself after 5 minutes idle or in the background and wipes on a revoked
-  session.
+  tab holds the `tpn-local-db` Web Lock). `hasPin()`; `enable(pin?)` (no PIN by default);
+  `open()` (PIN off: opens at once, `shellGuard` calls it); `unlock(pin)` and `verifyPin(pin)`
+  answer `ok` / `wrong` / `wiped` (the 5th wrong PIN wipes and signs out); `changePin` (turns the
+  PIN on too), `removePin`, `lock`, `wipe`. With the PIN on it locks by itself after 5 minutes
+  idle or in the background; it wipes on a revoked session either way.
 - A trusted device keeps working after its session **expires** (`AuthStore.keepsLocalSession`
   stops the interceptor's redirect; `layout/session-banner` offers sign-in). Anything that ends
   a user's time on the device (sign-out, turning offline off) calls `OfflineService.wipe()`.

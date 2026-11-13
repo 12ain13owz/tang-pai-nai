@@ -11,7 +11,7 @@ import { toastState } from '@spartan-ng/brain/sonner'
 import { AuthStore } from '@/core/auth'
 import type { AuthDeviceSession, AuthUser } from '@/core/auth'
 import th from '@/core/i18n/th.json'
-import { OfflineService } from '@/core/offline'
+import { OfflineService, SyncService } from '@/core/offline'
 import { ReauthStep } from '@/features/account/components/reauth-step'
 import { SecurityPage } from './security-page'
 
@@ -57,13 +57,20 @@ const refused = (code: string, status: number) => ({
   init: { status, statusText: code },
 })
 
-/** Just what the page reads of this device's offline mode (offline-sync rules 1 and 4). */
+/** Just what the page reads of this device's offline mode and PIN (offline-sync rules 1–4). */
 const fakeOffline = () => {
   const isTrusted = signal(false)
+  const hasPin = signal(false)
   return {
     isTrusted,
+    hasPin,
+    enable: vi.fn(async () => {
+      isTrusted.set(true)
+      return Promise.resolve()
+    }),
     wipe: vi.fn(async () => {
       isTrusted.set(false)
+      hasPin.set(false)
       return Promise.resolve()
     }),
   }
@@ -73,6 +80,7 @@ describe('SecurityPage', () => {
   let fixture: ComponentFixture<SecurityPage>
   let http: HttpTestingController
   let offline: ReturnType<typeof fakeOffline>
+  const sync = { sync: vi.fn(async () => Promise.resolve()) }
 
   const page = () => fixture.nativeElement as HTMLElement
   const alerts = () =>
@@ -126,6 +134,7 @@ describe('SecurityPage', () => {
         provideHttpClientTesting(),
         provideRouter([{ path: '**', component: Blank }]),
         { provide: OfflineService, useFactory: () => (offline = fakeOffline()) },
+        { provide: SyncService, useValue: sync },
       ],
     }).compileComponents()
     http = TestBed.inject(HttpTestingController)
@@ -248,15 +257,38 @@ describe('SecurityPage', () => {
     expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.security.googleLinked])
     expect(page().textContent).toContain('mom@gmail.com')
   })
-  it('offers to turn offline on with a PIN on an untrusted device', async () => {
+  it('turns offline on at once on an untrusted device, with the PIN off (rules 1–2)', async () => {
     await open()
-
-    const turnOn = [...page().querySelectorAll('a')].find(
-      (link) => link.textContent.trim() === th.security.turnOn
-    )
-    expect(turnOn?.getAttribute('href')).toBe('/account/pin')
     expect(page().textContent).toContain(th.security.offlineOff)
+    expect(page().textContent).not.toContain(th.security.pinLock)
+
+    buttonNamed(th.security.turnOn)[0].click()
+    await settle()
+    expect(offline.enable).toHaveBeenCalledWith()
+    expect(sync.sync).toHaveBeenCalled()
+    expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.security.offlineOnDone])
+    expect(page().textContent).toContain(th.security.offlineOn)
+    expect(page().textContent).toContain(th.security.pinOff)
     expect(page().textContent).not.toContain(th.security.changePin)
+  })
+
+  it('links the PIN row to turning it on, or off and changing it while it is on', async () => {
+    await open()
+    offline.isTrusted.set(true)
+    fixture.detectChanges()
+    const pinLink = () =>
+      [...page().querySelectorAll('a')].find((link) =>
+        link.getAttribute('href')?.startsWith('/account/pin')
+      )
+    expect(pinLink()?.getAttribute('href')).toBe('/account/pin')
+    expect(pinLink()?.textContent.trim()).toBe(th.security.turnOn)
+
+    offline.hasPin.set(true)
+    fixture.detectChanges()
+    expect(page().textContent).toContain(th.security.pinOn)
+    expect(pinLink()?.getAttribute('href')).toBe('/account/pin?off=1')
+    expect(pinLink()?.textContent.trim()).toBe(th.security.turnOff)
+    expect(page().textContent).toContain(th.security.changePin)
   })
 
   it('asks before turning offline off, then wipes this device', async () => {
@@ -264,7 +296,6 @@ describe('SecurityPage', () => {
     offline.isTrusted.set(true)
     fixture.detectChanges()
     expect(page().textContent).toContain(th.security.offlineOn)
-    expect(page().textContent).toContain(th.security.changePin)
 
     buttonNamed(th.security.turnOff)[0].click()
     fixture.detectChanges()

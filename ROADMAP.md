@@ -126,6 +126,33 @@ first staging deploy (docs/deploy.md step 7).
 
 ---
 
+## Done: Optional PIN, sync failures shown (after 16.2)
+
+- **Decided** (owner, after 16.2; offline-sync rules 1–4): **the PIN is optional and off by
+  default**, separate from offline. The app is mostly used on phones, which have their own screen
+  lock, and a PIN on every open was a nuisance. Offline on (trust step or Account › Security)
+  needs no PIN; a trusted device turns "ล็อกด้วย PIN" on or off in Security (off needs the current
+  PIN). PIN off = the data key is kept in `tpn-vault` as a `CryptoKey`, the app opens at once and
+  never auto-locks; PIN on = as before (wrapped key, lock on open and after 5 min, 5 wrong PINs
+  wipe). Devices that already had a PIN keep it. The trust step's default stays: on in the
+  installed app, off in a browser tab (it may be someone else's computer).
+- **Web**: `VaultMeta.key` is `null` with the PIN off and `deviceKey` holds the key;
+  `OfflineService.hasPin()`, `enable(pin?)`, `open()` (PIN off), `changePin()` (also turns it
+  on), `removePin()`; `shellGuard` opens a PIN-off vault itself (one it can't open is wiped);
+  `lockGuard` needs the PIN on; the trust page has no PIN step; `/account/pin` turns the PIN on,
+  changes it, or (`?off=1`) turns it off. The PIN pad and the amount keypad no longer zoom on a
+  fast double tap (`touch-action: manipulation`).
+- **Sync failures shown**: a round the API answers with an error (a 500, e.g. a local database
+  missing a migration) sets `SyncService.failed()`: the pill shows "sync ไม่สำเร็จ" (red), a toast
+  says so once per streak, the sheet explains, and it retries like an unreachable server. Before,
+  it only logged to the console and looked synced.
+- **Known**: two `sync.service.spec.ts` retry tests ("while the server is unreachable") fail now
+  and then, on `develop` before this change too (timer timing); not fixed yet.
+- **Left for later**: the auto-lock time with the PIN on (at once / 1 / 5 / 15 min), passkey
+  unlock (Backlog).
+
+---
+
 ## Done: Shared components refactor (16R)
 
 One PR, no behaviour change. The owner's rule: components that do the same job move to

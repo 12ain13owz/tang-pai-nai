@@ -260,8 +260,10 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   of 64px round `bg-muted` keys, so the phone keyboard never opens; Backspace bottom right, a
   hardware keyboard works too. The sixth digit submits. Choosing a PIN is `app-pin-setup` (type,
   then type again; a mismatch starts over with one error line). Errors and the attempts warning
-  sit in one `role="alert"` line between the heading and the dots. Used by the trust step, the
-  lock screen and Account › PIN.
+  sit in one `role="alert"` line between the heading and the dots. Used by the lock screen and
+  Account › PIN (the PIN is optional since after 16.2, so the trust step has none). Keypads take
+  `touch-manipulation`, so tapping one key twice fast ("33") never zooms the page; pinch zoom
+  still works.
 - **Tab bar**: the active tab is shown by colour alone: icon and label in `text-brand`, the label
   `font-semibold` and the icon stroke 2.4 (so it doesn't rely on colour only), no pill, fill or
   border (owner's choice in #6.1, so the gold ➕ stays the bar's one strong shape). Inactive tabs

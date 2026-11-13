@@ -30,7 +30,7 @@ import { authErrorMessage, AuthService, AuthStore, formatThaiMobile } from '@/co
 import type { AuthDeviceSession, GoogleLinkFailure, UiMessage } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
-import { OfflineService } from '@/core/offline'
+import { OfflineService, SyncService } from '@/core/offline'
 import { ReauthStep } from '@/features/account/components/reauth-step'
 import { deviceLabel } from '@/features/account/device-label'
 import type { DeviceLabel } from '@/features/account/device-label'
@@ -327,18 +327,49 @@ const DAY = 24 * HOUR
                 </button>
               }
             } @else {
+              <button
+                hlmBtn
+                variant="outline"
+                size="sm"
+                type="button"
+                class="h-10 shrink-0 px-3"
+                [disabled]="isBusy()"
+                (click)="turnOfflineOn()"
+              >
+                @if (busyWith() === 'offlineOn') {
+                  <hlm-spinner [aria-label]="'trust.saving' | transloco" />
+                }
+                {{ 'security.turnOn' | transloco }}
+              </button>
+            }
+          </div>
+          @if (offlineService.isTrusted()) {
+            <div class="flex min-h-14 items-center gap-3 px-4 py-3">
+              <span
+                class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
+                aria-hidden="true"
+              >
+                <ng-icon name="lucideLockKeyhole" />
+              </span>
+              <span class="flex min-w-0 flex-1 flex-col">
+                <span class="text-base">{{ 'security.pinLock' | transloco }}</span>
+                <span class="text-sm text-muted-foreground">
+                  {{ (offlineService.hasPin() ? 'security.pinOn' : 'security.pinOff') | transloco }}
+                </span>
+              </span>
               <a
                 hlmBtn
                 variant="outline"
                 size="sm"
                 routerLink="/account/pin"
+                [queryParams]="offlineService.hasPin() ? { off: 1 } : {}"
                 class="h-10 shrink-0 px-3"
               >
-                {{ 'security.turnOn' | transloco }}
+                {{ (offlineService.hasPin() ? 'security.turnOff' : 'security.turnOn') | transloco }}
               </a>
-            }
-          </div>
-          @if (offlineService.isTrusted()) {
+            </div>
+          }
+          @if (offlineService.hasPin()) {
             <a routerLink="/account/pin" class="flex min-h-14 items-center gap-3 px-4 py-3">
               <span
                 class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
@@ -576,6 +607,7 @@ export class SecurityPage {
   protected authStore = inject(AuthStore)
   protected networkStatusService = inject(NetworkStatusService)
   protected offlineService = inject(OfflineService)
+  private syncService = inject(SyncService)
   protected reauth = inject(ReauthFlow<GoogleAction>)
 
   protected googleEnabled = signal(false)
@@ -600,7 +632,7 @@ export class SecurityPage {
 
   protected confirming = signal<Confirming | null>(null)
   /** The action in flight, for its spinner; every button waits while one runs. */
-  protected busyWith = signal<GoogleAction | 'revoke' | 'revokeOthers' | null>(null)
+  protected busyWith = signal<GoogleAction | 'revoke' | 'revokeOthers' | 'offlineOn' | null>(null)
   protected isBusy = computed(() => this.busyWith() !== null || this.reauth.isBusy())
 
   constructor() {
@@ -728,6 +760,21 @@ export class SecurityPage {
       this.confirming.set(null)
     }
     await this.loadDevices()
+    this.busyWith.set(null)
+  }
+
+  /** Rules 1–2: trust this device, with no PIN (it's turned on in its own row). */
+  protected async turnOfflineOn(): Promise<void> {
+    this.busyWith.set('offlineOn')
+    try {
+      await this.offlineService.enable()
+      // A new, empty local database: fill it now rather than at the next trigger.
+      void this.syncService.sync()
+      toast.success(this.transloco.translate('security.offlineOnDone'))
+    } catch (error) {
+      console.error('Trusting this device failed', error)
+      toast.error(this.transloco.translate('trust.failed'))
+    }
     this.busyWith.set(null)
   }
 

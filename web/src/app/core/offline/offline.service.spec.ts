@@ -134,7 +134,7 @@ describe('OfflineService', () => {
 
     const { meta, snapshot } = vault.store
     expect(meta).toMatchObject({ userId: 'u1', displayName: 'mom', failedAttempts: 0 })
-    expect(meta?.key.iterations).toBe(600_000)
+    expect(meta?.key?.iterations).toBe(600_000)
     expect(new TextDecoder().decode(snapshot?.data)).not.toContain('userId')
     expect(service.state()).toBe('unlocked')
     expect(authStore.keepsLocalSession()).toBe(true)
@@ -285,6 +285,55 @@ describe('OfflineService', () => {
 
     authStore.setSession({ accessToken: 't', expiresIn: 600, user: user('u2') })
     expect(service.belongsToSomeoneElse()).toBe(true)
+  })
+
+  it('trusts the device with no PIN by default: the key is kept as it is (rules 2 and 4)', async () => {
+    setUp()
+    await service.enable()
+    service.write((db) => db.exec('INSERT', ['note', 'rent']))
+    await service.save()
+
+    const { meta, snapshot } = vault.store
+    expect(meta?.key).toBeNull()
+    expect(meta?.deviceKey).toBeInstanceOf(CryptoKey)
+    expect(new TextDecoder().decode(snapshot?.data)).not.toContain('rent')
+    expect(service.hasPin()).toBe(false)
+
+    // Another tab took over, then came back: it opens again with nothing to type.
+    await service.lock()
+    expect(() => service.db()).toThrow()
+    expect(await service.open()).toBe(true)
+    expect(service.state()).toBe('unlocked')
+    expect(service.db().selectValue('SELECT', ['note'])).toBe('rent')
+  })
+
+  it('turns the PIN on and off without touching the data (rules 2 and 4)', async () => {
+    setUp()
+    await service.enable()
+    service.write((db) => db.exec('INSERT', ['note', 'rent']))
+
+    await service.changePin(PIN)
+    expect(service.hasPin()).toBe(true)
+    expect(vault.store.meta?.deviceKey).toBeNull()
+    await service.lock()
+    expect(await service.open()).toBe(false)
+    expect(await service.unlock(PIN)).toBe('ok')
+
+    await service.removePin()
+    expect(service.hasPin()).toBe(false)
+    expect(vault.store.meta?.key).toBeNull()
+    await service.lock()
+    expect(await service.open()).toBe(true)
+    expect(service.db().selectValue('SELECT', ['note'])).toBe('rent')
+  })
+
+  it('never locks by itself with the PIN off (rule 2)', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'Date'] })
+    setUp()
+    await service.enable()
+
+    await vi.advanceTimersByTimeAsync(LOCK_AFTER_MS * 3)
+    expect(service.state()).toBe('unlocked')
   })
 
   it('locks after 5 minutes without a tap or key press (rule 2)', async () => {

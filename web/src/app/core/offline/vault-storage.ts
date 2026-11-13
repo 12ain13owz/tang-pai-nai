@@ -1,13 +1,16 @@
 import type { Sealed, WrappedKey } from './vault-crypto'
 
 /**
- * What the lock screen needs before the PIN, kept in clear (offline-sync → Data model → Device).
+ * What the app needs before it opens, kept in clear (offline-sync → Data model → Device).
  * Nothing in it is user data except the name the lock screen greets.
  */
 export interface VaultMeta {
   userId: string
   displayName: string
-  key: WrappedKey
+  /** The data key wrapped by the PIN, while the PIN is on (rule 4); `null` when it's off. */
+  key: WrappedKey | null
+  /** The data key itself, while the PIN is off (rule 4). Absent on vaults from before #16.2. */
+  deviceKey?: CryptoKey | null
   /** Wrong PINs in a row (rule 3); a right one resets it. */
   failedAttempts: number
 }
