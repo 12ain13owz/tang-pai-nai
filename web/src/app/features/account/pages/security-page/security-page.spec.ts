@@ -8,7 +8,7 @@ import { By } from '@angular/platform-browser'
 import { provideRouter, Router } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { toastState } from '@spartan-ng/brain/sonner'
-import { AuthStore } from '@/core/auth'
+import { AuthStore, PHONE_FEATURE } from '@/core/auth'
 import type { AuthDeviceSession, AuthUser } from '@/core/auth'
 import th from '@/core/i18n/th.json'
 import { OfflineService } from '@/core/offline'
@@ -71,6 +71,8 @@ describe('SecurityPage', () => {
   let fixture: ComponentFixture<SecurityPage>
   let http: HttpTestingController
   let offline: ReturnType<typeof fakeOffline>
+  /** Phone is built but held back (`PHONE_FEATURE`); these specs turn it on. */
+  let phoneFeature = true
 
   const page = () => fixture.nativeElement as HTMLElement
   const alerts = () =>
@@ -108,6 +110,7 @@ describe('SecurityPage', () => {
   }
 
   beforeEach(async () => {
+    phoneFeature = true
     // Toasts are module state: a spec file run before this one in the same worker may leave some.
     toastState.dismiss()
     await TestBed.configureTestingModule({
@@ -124,6 +127,7 @@ describe('SecurityPage', () => {
         provideHttpClientTesting(),
         provideRouter([{ path: '**', component: Blank }]),
         { provide: OfflineService, useFactory: () => (offline = fakeOffline()) },
+        { provide: PHONE_FEATURE, useFactory: () => phoneFeature },
       ],
     }).compileComponents()
     http = TestBed.inject(HttpTestingController)
@@ -155,6 +159,15 @@ describe('SecurityPage', () => {
 
     expect(page().querySelector('a[href="/account/phone"]')).toBeNull()
     expect(page().textContent).toContain('081-234-5678')
+  })
+
+  it('hides the phone row, even a saved number, while phone is held back', async () => {
+    phoneFeature = false
+    await open('', false, { phone: '+66812345678' })
+
+    expect(page().querySelector('a[href="/account/phone"]')).toBeNull()
+    expect(page().textContent).not.toContain(th.account.phone)
+    expect(page().textContent).not.toContain('081-234-5678')
   })
 
   it('hides the phone row while SMS is off and no number is saved', async () => {

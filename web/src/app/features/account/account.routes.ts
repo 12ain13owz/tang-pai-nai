@@ -1,4 +1,7 @@
+import { inject } from '@angular/core'
+import { Router } from '@angular/router'
 import type { Routes } from '@angular/router'
+import { PHONE_FEATURE } from '@/core/auth'
 
 export default [
   {
@@ -16,6 +19,10 @@ export default [
   {
     path: 'phone',
     title: 'title.phone',
+    // Held back with the rest of phone (`PHONE_FEATURE`): an old link lands on Security.
+    canActivate: [
+      () => inject(PHONE_FEATURE) || inject(Router).createUrlTree(['/account/security']),
+    ],
     loadComponent: async () => import('./pages/phone-page/phone-page').then((m) => m.PhonePage),
   },
   {

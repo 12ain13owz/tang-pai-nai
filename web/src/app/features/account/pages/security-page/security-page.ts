@@ -25,7 +25,13 @@ import { toast } from '@spartan-ng/brain/sonner'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { toApiError } from '@/core/api'
-import { authErrorMessage, AuthService, AuthStore, formatThaiMobile } from '@/core/auth'
+import {
+  authErrorMessage,
+  AuthService,
+  AuthStore,
+  formatThaiMobile,
+  PHONE_FEATURE,
+} from '@/core/auth'
 import type { AuthDeviceSession, GoogleLinkFailure, UiMessage } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
@@ -155,7 +161,7 @@ const DAY = 24 * HOUR
                   aria-hidden="true"
                 />
               </a>
-            } @else if (phone()) {
+            } @else if (phoneFeature && phone()) {
               <!-- SMS is off: a saved number still shows, read-only (rule 21). -->
               <div class="flex min-h-14 items-center gap-3 px-4 py-3">
                 <ng-container [ngTemplateOutlet]="phoneRow" />
@@ -529,6 +535,8 @@ export class SecurityPage {
   protected reauth = inject(ReauthFlow<GoogleAction>)
 
   protected googleEnabled = signal(false)
+  /** Off until the phone feature is finished (`PHONE_FEATURE`): no phone row at all. */
+  protected phoneFeature = inject(PHONE_FEATURE)
   protected phoneEnabled = signal(false)
   protected phone = computed(() => {
     const phone = this.authStore.user()?.phone
@@ -574,7 +582,7 @@ export class SecurityPage {
     this.authService.loadMe().catch(() => undefined)
     void this.authService.providers().then((providers) => {
       this.googleEnabled.set(providers.google)
-      this.phoneEnabled.set(providers.phone)
+      this.phoneEnabled.set(this.phoneFeature && providers.phone)
     })
     void this.loadDevices()
   }

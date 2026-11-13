@@ -6,7 +6,7 @@ import { ActivatedRoute, Router } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
-import { AuthService, AuthStore, safeReturnUrl } from '@/core/auth'
+import { AuthService, AuthStore, PHONE_FEATURE, safeReturnUrl } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
 import { OfflineService } from '@/core/offline'
@@ -133,6 +133,8 @@ export class SignInPage {
    */
   protected localOwner = computed(() => this.offlineService.meta()?.displayName ?? null)
   protected googleEnabled = signal(false)
+  /** Off until phone sign-in is finished (`PHONE_FEATURE`). */
+  private phoneFeature = inject(PHONE_FEATURE)
   /** The phone tab shows once the API says it can send SMS (4.4b, rule 21). */
   protected phoneEnabled = signal(false)
   private providersKnown = signal(false)
@@ -174,7 +176,7 @@ export class SignInPage {
       if (this.networkStatusService.isOnline()) {
         void this.authService.providers().then((providers) => {
           this.googleEnabled.set(providers.google)
-          this.phoneEnabled.set(providers.phone)
+          this.phoneEnabled.set(this.phoneFeature && providers.phone)
           this.providersKnown.set(true)
         })
       }
@@ -207,6 +209,7 @@ export class SignInPage {
   }
 
   private toMethod(value: string | null): SignInMethod {
-    return METHODS.find((method) => method === value) ?? 'email'
+    const method = METHODS.find((item) => item === value) ?? 'email'
+    return method === 'phone' && !this.phoneFeature ? 'email' : method
   }
 }

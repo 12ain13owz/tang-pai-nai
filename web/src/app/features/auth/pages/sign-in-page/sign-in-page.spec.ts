@@ -5,7 +5,7 @@ import { TestBed } from '@angular/core/testing'
 import type { ComponentFixture } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
-import { AuthService } from '@/core/auth'
+import { AuthService, PHONE_FEATURE } from '@/core/auth'
 import th from '@/core/i18n/th.json'
 import { OfflineService } from '@/core/offline'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
@@ -24,6 +24,8 @@ describe('SignInPage', () => {
     meta: signal<{ userId: string; displayName: string } | null>(null),
     ready: async () => Promise.resolve(offline.meta()),
   }
+  /** The phone tab is built but held back (`PHONE_FEATURE`); these specs turn it on. */
+  let phoneFeature = true
 
   const page = () => fixture.nativeElement as HTMLElement
   const googleButton = () =>
@@ -76,6 +78,7 @@ describe('SignInPage', () => {
   beforeEach(async () => {
     sessionStorage.clear()
     offline.meta.set(null)
+    phoneFeature = true
     await TestBed.configureTestingModule({
       imports: [
         SignInPage,
@@ -89,6 +92,7 @@ describe('SignInPage', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: OfflineService, useValue: offline },
+        { provide: PHONE_FEATURE, useFactory: () => phoneFeature },
         provideRouter([
           { path: 'auth/sign-in', component: SignInPage },
           { path: '**', component: Blank },
@@ -175,6 +179,15 @@ describe('SignInPage', () => {
       expect(TestBed.inject(Router).url).toBe('/auth/sign-in?returnUrl=%2Freports&with=password')
       expect(page().querySelector('input[type="password"]')).not.toBeNull()
       expect(page().querySelector<HTMLInputElement>('input[type="email"]')?.value).toBe('a@b.co')
+    })
+
+    it('hides the phone tab while phone sign-in is held back, even with SMS on', async () => {
+      phoneFeature = false
+      await open('/auth/sign-in?with=phone', { google: false, phone: true })
+
+      expect(tab(th.auth.methods.phone)).toBeUndefined()
+      expect(page().querySelector('input[type="tel"]')).toBeNull()
+      expect(page().querySelector('input[type="email"]')).not.toBeNull()
     })
 
     it('falls back to email when ?with=phone but SMS is off', async () => {
