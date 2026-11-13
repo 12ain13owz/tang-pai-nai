@@ -9,6 +9,7 @@ import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { AuthService, AuthStore, safeReturnUrl } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
+import { OfflineService } from '@/core/offline'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
 import { EmailSignIn } from '@/features/auth/components/email-sign-in'
 import { PasswordSignIn } from '@/features/auth/components/password-sign-in'
@@ -56,6 +57,12 @@ const METHODS: readonly SignInMethod[] = ['email', 'password', 'phone']
       @if (!networkStatusService.isOnline()) {
         <p role="status" class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {{ 'auth.offline' | transloco }}
+        </p>
+      }
+
+      @if (localOwner(); as name) {
+        <p class="rounded-xl bg-muted px-4 py-3 text-sm">
+          {{ 'auth.localData' | transloco: { name } }}
         </p>
       }
 
@@ -115,10 +122,16 @@ export class SignInPage {
   private authFlowStore = inject(AuthFlowStore)
   private languageService = inject(LanguageService)
   protected networkStatusService = inject(NetworkStatusService)
+  private offlineService = inject(OfflineService)
 
   protected returnUrl = safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'))
 
   /** Hidden until the API says Google sign-in is on (it's off without its env, rule 14). */
+  /**
+   * Whose data this device holds while nobody is signed in (an expired session): signing in as
+   * them keeps it, another account wipes it (offline-sync rule 7).
+   */
+  protected localOwner = computed(() => this.offlineService.meta()?.displayName ?? null)
   protected googleEnabled = signal(false)
   /** The phone tab shows once the API says it can send SMS (4.4b, rule 21). */
   protected phoneEnabled = signal(false)
@@ -155,6 +168,7 @@ export class SignInPage {
   })
 
   constructor() {
+    void this.offlineService.ready()
     // Asked again once back online, in case the page opened offline.
     effect(() => {
       if (this.networkStatusService.isOnline()) {

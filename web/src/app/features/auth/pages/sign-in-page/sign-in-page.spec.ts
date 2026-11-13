@@ -1,12 +1,13 @@
 import { provideHttpClient } from '@angular/common/http'
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
-import { Component } from '@angular/core'
+import { Component, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import type { ComponentFixture } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
 import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthService } from '@/core/auth'
 import th from '@/core/i18n/th.json'
+import { OfflineService } from '@/core/offline'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
 import { SignInPage } from './sign-in-page'
 
@@ -18,6 +19,11 @@ const envelope = (data?: unknown) => ({ message: 'ok', timestamp: '', data })
 describe('SignInPage', () => {
   let fixture: ComponentFixture<SignInPage>
   let http: HttpTestingController
+  /** Whose local data the device holds (offline-sync rule 7); none by default. */
+  const offline = {
+    meta: signal<{ userId: string; displayName: string } | null>(null),
+    ready: async () => Promise.resolve(offline.meta()),
+  }
 
   const page = () => fixture.nativeElement as HTMLElement
   const googleButton = () =>
@@ -69,6 +75,7 @@ describe('SignInPage', () => {
 
   beforeEach(async () => {
     sessionStorage.clear()
+    offline.meta.set(null)
     await TestBed.configureTestingModule({
       imports: [
         SignInPage,
@@ -81,6 +88,7 @@ describe('SignInPage', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        { provide: OfflineService, useValue: offline },
         provideRouter([
           { path: 'auth/sign-in', component: SignInPage },
           { path: '**', component: Blank },
@@ -93,6 +101,15 @@ describe('SignInPage', () => {
   afterEach(() => {
     http.verify()
     sessionStorage.clear()
+  })
+
+  it('says whose data the device holds, and that another account deletes it (rule 7)', async () => {
+    await open('/auth/sign-in', { google: false })
+    expect(page().textContent).not.toContain(th.auth.localData.slice(0, 12))
+
+    offline.meta.set({ userId: 'u1', displayName: 'mom' })
+    fixture.detectChanges()
+    expect(page().textContent).toContain(th.auth.localData.replace('{{name}}', 'mom'))
   })
 
   describe('Continue with Google', () => {

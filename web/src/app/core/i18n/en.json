@@ -20,7 +20,6 @@
     "password": "Password",
     "security": "Security",
     "phone": "Phone number",
-    "trust": "Use offline",
     "lock": "Locked",
     "otherTab": "Open in another tab",
     "pin": "PIN",
@@ -96,7 +95,7 @@
     "undo": "Undo",
     "created": "Transaction saved",
     "saved": "Changes saved",
-    "needsOnline": "This device isn’t set up for offline use. Go online to save transactions.",
+    "needsOnline": "Go online to save transactions.",
     "type": "Type",
     "wallet": "Wallet",
     "amount": "Amount",
@@ -175,7 +174,7 @@
     "discardHeading": "Discard your changes?",
     "discard": "Discard",
     "keepEditing": "Keep editing",
-    "needsOnline": "This device isn’t set up for offline use. Go online to change wallets.",
+    "needsOnline": "Go online to change wallets.",
     "total": "Total",
     "listHeading": "In use ({{count}})",
     "archivedHeading": "Archived ({{count}})",
@@ -248,7 +247,7 @@
     "discardText": "What you changed in this form will be lost.",
     "discard": "Discard",
     "keepEditing": "Keep editing",
-    "needsOnline": "This device isn't set up for offline use. Connect to the internet to edit categories.",
+    "needsOnline": "Connect to the internet to edit categories.",
     "archivedHeading": "Archived ({{count}})",
     "pending": "Waiting to sync",
     "order": "Reorder",
@@ -441,6 +440,7 @@
     "sending": "Sending code",
     "offline": "You're offline. Sign-in needs an internet connection",
     "unreachable": "Couldn't reach the server. Check your internet and try again",
+    "localData": "This device holds {{name}}'s data. Sign in with that account to keep using it and send what's waiting. Signing in with another account deletes it.",
     "sendFailed": "Couldn't send the code. Try again",
     "waitSeconds": "Too many tries. Try again in {{ count }} s",
     "waitMinutes": "Too many tries. Try again in {{ count }} min",
@@ -533,19 +533,12 @@
     "signedOutOthers": "Signed out other devices: {{count}}",
     "signOutFailed": "Couldn't sign the device out. Try again",
     "deviceHeading": "This device",
-    "offlineMode": "Use offline",
-    "offlineOn": "On · works without internet",
-    "offlineOff": "Off · online only",
-    "offlineOnDone": "Offline is on for this device",
     "pinLock": "Lock with a PIN",
     "pinOn": "On · asks for the PIN each time the app opens",
     "pinOff": "Off · the app opens straight away, your device's own lock protects it",
     "turnOn": "Turn on",
     "turnOff": "Turn off",
-    "changePin": "Change PIN",
-    "offlineOffConfirmText": "Turning it off deletes the data on this device. Anything not synced yet is lost, and the app works online only",
-    "offlineOffConfirm": "Turn off and delete data",
-    "offlineOffDone": "Offline is off and this device's data is deleted"
+    "changePin": "Change PIN"
   },
   "form": {
     "invalid": "This value isn't valid",
@@ -584,17 +577,6 @@
     "inUse": "This number can't be used. Try another one",
     "saveFailed": "Couldn't save the number. Try again"
   },
-  "trust": {
-    "heading": "Use offline on this device?",
-    "intro": "If you turn it on, your data is kept encrypted on this device and works without internet. You can also lock the app with a PIN in Account › Security",
-    "switch": "Use offline on this device",
-    "onHint": "Only on a device that is yours",
-    "offHint": "Online only, nothing is kept on this device",
-    "iosNote": "On iPhone and iPad the data only stays when the app is added to the home screen (Share → Add to Home Screen)",
-    "continue": "Continue",
-    "saving": "Setting up",
-    "failed": "Couldn't set it up. Try again"
-  },
   "pin": {
     "newHeading": "Choose a 6-digit PIN",
     "newHint": "You unlock the app on this device with it",
@@ -609,7 +591,9 @@
     "changeHeading": "Choose a new PIN",
     "offHint": "Before you turn the PIN lock off",
     "turnedOn": "PIN lock is on",
-    "turnedOff": "PIN lock is off"
+    "turnedOff": "PIN lock is off",
+    "saving": "Saving",
+    "failed": "Couldn't save it. Try again"
   },
   "lock": {
     "heading": "Enter your PIN to unlock",
@@ -626,10 +610,6 @@
     "heading": "The app is open in another tab",
     "text": "It runs in one tab at a time, so the data on this device stays in step",
     "useHere": "Use here"
-  },
-  "session": {
-    "expired": "Sign in again to sync",
-    "signIn": "Sign in"
   },
   "sync": {
     "synced": "Synced",
@@ -676,7 +656,7 @@
     "failedText": "The server had a problem, so sync didn't go through. Your data is still on this device, and it will try again by itself",
     "failedToast": "Sync failed: the server had a problem. Your data is still on this device",
     "unreachableText": "Can’t reach the server. It will try again by itself.",
-    "serverDownWrite": "Can’t reach the server. This device isn’t set up for offline use, so saving waits until the server is back.",
+    "serverDownWrite": "Can’t reach the server, so saving waits until it’s back.",
     "withTransactions": "{{count}} transactions",
     "tabletransactions": "Transaction",
     "tabletransfers": "Transfer",
@@ -713,7 +693,7 @@
     "discardHeading": "Discard your changes?",
     "discard": "Discard",
     "keepEditing": "Keep editing",
-    "needsOnline": "This device isn’t set up for offline use. Go online to change profiles.",
+    "needsOnline": "Go online to change profiles.",
     "switchHeading": "Profiles",
     "switchLabel": "Profile {{name}}, switch profile",
     "add": "Add profile",
@@ -907,7 +887,7 @@
     "created": "Transfer saved",
     "saved": "Changes saved",
     "copy": "Copy as a new transfer",
-    "needsOnline": "This device isn't set up for offline use. Go online to save a transfer."
+    "needsOnline": "Go online to save a transfer."
   },
   "recurring": {
     "title": "Recurring",
@@ -1024,7 +1004,7 @@
     "created": "Debt added",
     "saved": "Saved",
     "entrySaved": "Saved",
-    "needsOnline": "This device isn’t set up for offline use, so saving needs the internet.",
+    "needsOnline": "Saving needs the internet.",
     "person": {
       "borrowed": "Borrowed from",
       "lent": "Lent to"
@@ -1250,7 +1230,7 @@
     "goneText": "It may have been deleted on another device",
     "closed": "Trip finished",
     "reopened": "Event reopened",
-    "needsOnline": "This device isn't set up for offline use. Connect to the internet to edit events",
+    "needsOnline": "Connect to the internet to edit events",
     "name": "Event name",
     "nameRequired": "Enter the event's name",
     "changeIcon": "Change icon and colour",

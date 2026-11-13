@@ -46,7 +46,7 @@ choice that isn't decided yet is marked **Proposal** until the owner confirms it
   by "‹ ดูตาม" to go back; ← / → move between the levels. Under it
   the balance (ยอดรวม / ยอดเงิน) large and centred, then the period tabs as chips (`09/2026 ·
 เดือนที่แล้ว · เดือนนี้ · อนาคต`), swipeable; a sideways swipe over the list changes period.
-- **Outside the shell** (no tab bar): sign-in, enter code, trust prompt, PIN lock. These are
+- **Outside the shell** (no tab bar): sign-in, enter code, PIN lock. These are
   full-screen flows with their own simple header: the app name on the left and the
   **TH | EN** switch on the right (the account page isn't reachable before sign-in), and a
   ghost back button with a label inside the page when there's a step to go back to.
@@ -261,16 +261,16 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   hardware keyboard works too. The sixth digit submits. Choosing a PIN is `app-pin-setup` (type,
   then type again; a mismatch starts over with one error line). Errors and the attempts warning
   sit in one `role="alert"` line between the heading and the dots. Used by the lock screen and
-  Account › PIN (the PIN is optional since after 16.2, so the trust step has none). Keypads take
+  Account › PIN (the PIN is optional since after 16.2). Keypads take
   `touch-manipulation`, so tapping one key twice fast ("33") never zooms the page; pinch zoom
   still works.
 - **Tab bar**: the active tab is shown by colour alone: icon and label in `text-brand`, the label
   `font-semibold` and the icon stroke 2.4 (so it doesn't rely on colour only), no pill, fill or
   border (owner's choice in #6.1, so the gold ➕ stays the bar's one strong shape). Inactive tabs
   are `text-muted-foreground`. Focus shows a ring around the icon.
-- **Strip under the header**: the update banner and the expired-session banner
-  (`layout/session-banner`) share one look: `bg-muted px-4 py-2 text-sm`, the text left and one
-  44px button right.
+- **Strip under the header**: the update banner: `bg-muted px-4 py-2 text-sm`, the text left
+  and one 44px button right. (The expired-session banner went after 16.2: an expired session
+  goes to sign-in.)
 - **Status**: the header's right side holds the **sync status** (`layout/sync-status`, #4a.2),
   the same 44px icon on **every tab** (owner's choice in #8 for the Transactions tab, every tab
   since #9): a green cloud with a tick (synced), a cloud with the waiting count, a red crossed

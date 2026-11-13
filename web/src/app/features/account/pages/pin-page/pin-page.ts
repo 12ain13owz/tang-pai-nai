@@ -74,10 +74,10 @@ type PinMode = 'on' | 'change' | 'off'
 
       <p role="status" class="flex min-h-5 items-center justify-center gap-2 text-sm">
         @if (isProcessing()) {
-          <hlm-spinner [aria-label]="'trust.saving' | transloco" />
-          <span class="text-muted-foreground">{{ 'trust.saving' | transloco }}</span>
+          <hlm-spinner [aria-label]="'pin.saving' | transloco" />
+          <span class="text-muted-foreground">{{ 'pin.saving' | transloco }}</span>
         } @else if (failed()) {
-          <span role="alert" class="text-destructive">{{ 'trust.failed' | transloco }}</span>
+          <span role="alert" class="text-destructive">{{ 'pin.failed' | transloco }}</span>
         }
       </p>
     </div>
@@ -102,7 +102,7 @@ export class PinPage {
   )
 
   constructor() {
-    // The PIN belongs to a trusted device; offline itself is turned on in Security (rule 1).
+    // The PIN locks the local database; none here (browser storage refused, rule 1).
     if (!this.offlineService.isTrusted()) {
       void this.back()
     }

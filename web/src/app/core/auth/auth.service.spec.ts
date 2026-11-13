@@ -133,24 +133,11 @@ describe('AuthService', () => {
     expect(store.endedBy()).toBe(endedBy)
   })
 
-  it('marks a sign-in as fresh, but not a refresh', async () => {
-    const refreshed = service.refresh()
-    http.expectOne('/api/auth/refresh').flush(envelope(session()))
-    await refreshed
-    expect(store.freshSignIn()).toBe(false)
-
-    const verified = service.verifyCode('mom@example.com', '123456')
-    http.expectOne('/api/auth/email/verify').flush(envelope(session()))
-    await verified
-    expect(store.freshSignIn()).toBe(true)
-  })
-
-  it('counts the refresh after Google as a sign-in', async () => {
+  it('signs in with the refresh after Google', async () => {
     const done = service.finishGoogleSignIn()
     http.expectOne('/api/auth/refresh').flush(envelope(session()))
     await done
     expect(store.status()).toBe('signedIn')
-    expect(store.freshSignIn()).toBe(true)
   })
 
   it('signs out later when the API cannot be reached, and sends it before the next refresh', async () => {

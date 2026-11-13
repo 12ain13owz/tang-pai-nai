@@ -14,7 +14,6 @@ import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
   lucideArrowLeft,
   lucideChevronRight,
-  lucideCloudOff,
   lucideKeyRound,
   lucideLockKeyhole,
   lucidePhone,
@@ -30,7 +29,7 @@ import { authErrorMessage, AuthService, AuthStore, formatThaiMobile } from '@/co
 import type { AuthDeviceSession, GoogleLinkFailure, UiMessage } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
-import { OfflineService, SyncService } from '@/core/offline'
+import { OfflineService } from '@/core/offline'
 import { ReauthStep } from '@/features/account/components/reauth-step'
 import { deviceLabel } from '@/features/account/device-label'
 import type { DeviceLabel } from '@/features/account/device-label'
@@ -41,11 +40,7 @@ import { GoogleLogo } from '@/shared/components/brand'
 type GoogleAction = 'link' | 'unlink'
 
 /** What the user is asked to confirm before it happens (none of these can be undone). */
-type Confirming =
-  | { kind: 'unlink' }
-  | { kind: 'revoke'; id: string }
-  | { kind: 'revokeOthers' }
-  | { kind: 'offlineOff' }
+type Confirming = { kind: 'unlink' } | { kind: 'revoke'; id: string } | { kind: 'revokeOthers' }
 
 interface DeviceRow {
   session: AuthDeviceSession
@@ -78,8 +73,8 @@ const DAY = 24 * HOUR
 
 /**
  * Account › Security (auth spec rules 28–30, 4.4a): the ways to sign in (password, Google) and
- * the signed-in devices, both online only, and this device's offline mode and PIN (offline-sync
- * rules 1 and 4, 4a.1), which work offline too.
+ * the signed-in devices, both online only, and this device's optional PIN (offline-sync rules 2
+ * and 4), which works offline too.
  */
 @Component({
   selector: 'app-security-page',
@@ -97,7 +92,6 @@ const DAY = 24 * HOUR
     provideIcons({
       lucideArrowLeft,
       lucideChevronRight,
-      lucideCloudOff,
       lucideKeyRound,
       lucideLockKeyhole,
       lucidePhone,
@@ -289,61 +283,14 @@ const DAY = 24 * HOUR
         </section>
       }
 
-      <section class="flex flex-col gap-3" aria-labelledby="device-heading">
-        <h2 id="device-heading" class="text-sm font-medium text-muted-foreground">
-          {{ 'security.deviceHeading' | transloco }}
-        </h2>
-        <div
-          class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
-        >
-          <div class="flex min-h-14 items-center gap-3 px-4 py-3">
-            <span
-              class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
-              aria-hidden="true"
-            >
-              <ng-icon name="lucideCloudOff" />
-            </span>
-            <span class="flex min-w-0 flex-1 flex-col">
-              <span class="text-base">{{ 'security.offlineMode' | transloco }}</span>
-              <span class="text-sm text-muted-foreground">
-                {{
-                  (offlineService.isTrusted() ? 'security.offlineOn' : 'security.offlineOff')
-                    | transloco
-                }}
-              </span>
-            </span>
-            @if (offlineService.isTrusted()) {
-              @if (confirming()?.kind !== 'offlineOff') {
-                <button
-                  hlmBtn
-                  variant="outline"
-                  size="sm"
-                  type="button"
-                  class="h-10 shrink-0 px-3"
-                  [disabled]="isBusy()"
-                  (click)="ask({ kind: 'offlineOff' })"
-                >
-                  {{ 'security.turnOff' | transloco }}
-                </button>
-              }
-            } @else {
-              <button
-                hlmBtn
-                variant="outline"
-                size="sm"
-                type="button"
-                class="h-10 shrink-0 px-3"
-                [disabled]="isBusy()"
-                (click)="turnOfflineOn()"
-              >
-                @if (busyWith() === 'offlineOn') {
-                  <hlm-spinner [aria-label]="'trust.saving' | transloco" />
-                }
-                {{ 'security.turnOn' | transloco }}
-              </button>
-            }
-          </div>
-          @if (offlineService.isTrusted()) {
+      @if (offlineService.isTrusted()) {
+        <section class="flex flex-col gap-3" aria-labelledby="device-heading">
+          <h2 id="device-heading" class="text-sm font-medium text-muted-foreground">
+            {{ 'security.deviceHeading' | transloco }}
+          </h2>
+          <div
+            class="divide-y divide-border rounded-xl border border-border bg-card text-card-foreground"
+          >
             <div class="flex min-h-14 items-center gap-3 px-4 py-3">
               <span
                 class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
@@ -368,54 +315,26 @@ const DAY = 24 * HOUR
                 {{ (offlineService.hasPin() ? 'security.turnOff' : 'security.turnOn') | transloco }}
               </a>
             </div>
-          }
-          @if (offlineService.hasPin()) {
-            <a routerLink="/account/pin" class="flex min-h-14 items-center gap-3 px-4 py-3">
-              <span
-                class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
-                aria-hidden="true"
-              >
-                <ng-icon name="lucideLockKeyhole" />
-              </span>
-              <span class="flex-1 text-base">{{ 'security.changePin' | transloco }}</span>
-              <ng-icon
-                name="lucideChevronRight"
-                size="20"
-                class="text-muted-foreground"
-                aria-hidden="true"
-              />
-            </a>
-          }
-        </div>
-
-        @if (confirming()?.kind === 'offlineOff') {
-          <div
-            class="flex scroll-mb-24 flex-col gap-3 rounded-xl border border-border bg-card p-4 text-card-foreground"
-            data-confirm
-          >
-            <p class="text-sm">{{ 'security.offlineOffConfirmText' | transloco }}</p>
-            <button
-              hlmBtn
-              variant="destructive"
-              type="button"
-              class="h-11 w-full text-base"
-              [disabled]="isBusy()"
-              (click)="turnOfflineOff()"
-            >
-              {{ 'security.offlineOffConfirm' | transloco }}
-            </button>
-            <button
-              hlmBtn
-              variant="outline"
-              type="button"
-              class="h-11 w-full"
-              (click)="confirming.set(null)"
-            >
-              {{ 'account.cancel' | transloco }}
-            </button>
+            @if (offlineService.hasPin()) {
+              <a routerLink="/account/pin" class="flex min-h-14 items-center gap-3 px-4 py-3">
+                <span
+                  class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl text-muted-foreground"
+                  aria-hidden="true"
+                >
+                  <ng-icon name="lucideKeyRound" />
+                </span>
+                <span class="flex-1 text-base">{{ 'security.changePin' | transloco }}</span>
+                <ng-icon
+                  name="lucideChevronRight"
+                  size="20"
+                  class="text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </a>
+            }
           </div>
-        }
-      </section>
+        </section>
+      }
 
       <section class="flex flex-col gap-3" aria-labelledby="devices-heading">
         <h2 id="devices-heading" class="text-sm font-medium text-muted-foreground">
@@ -607,7 +526,6 @@ export class SecurityPage {
   protected authStore = inject(AuthStore)
   protected networkStatusService = inject(NetworkStatusService)
   protected offlineService = inject(OfflineService)
-  private syncService = inject(SyncService)
   protected reauth = inject(ReauthFlow<GoogleAction>)
 
   protected googleEnabled = signal(false)
@@ -632,7 +550,7 @@ export class SecurityPage {
 
   protected confirming = signal<Confirming | null>(null)
   /** The action in flight, for its spinner; every button waits while one runs. */
-  protected busyWith = signal<GoogleAction | 'revoke' | 'revokeOthers' | 'offlineOn' | null>(null)
+  protected busyWith = signal<GoogleAction | 'revoke' | 'revokeOthers' | null>(null)
   protected isBusy = computed(() => this.busyWith() !== null || this.reauth.isBusy())
 
   constructor() {
@@ -761,28 +679,6 @@ export class SecurityPage {
     }
     await this.loadDevices()
     this.busyWith.set(null)
-  }
-
-  /** Rules 1–2: trust this device, with no PIN (it's turned on in its own row). */
-  protected async turnOfflineOn(): Promise<void> {
-    this.busyWith.set('offlineOn')
-    try {
-      await this.offlineService.enable()
-      // A new, empty local database: fill it now rather than at the next trigger.
-      void this.syncService.sync()
-      toast.success(this.transloco.translate('security.offlineOnDone'))
-    } catch (error) {
-      console.error('Trusting this device failed', error)
-      toast.error(this.transloco.translate('trust.failed'))
-    }
-    this.busyWith.set(null)
-  }
-
-  /** Rule 1: this device stops being trusted, and its local data goes with it. */
-  protected async turnOfflineOff(): Promise<void> {
-    await this.offlineService.wipe()
-    this.confirming.set(null)
-    toast.success(this.transloco.translate('security.offlineOffDone'))
   }
 
   protected deviceIcon(label: DeviceLabel): string {

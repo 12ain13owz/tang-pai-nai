@@ -126,22 +126,33 @@ first staging deploy (docs/deploy.md step 7).
 
 ---
 
-## Done: Optional PIN, sync failures shown (after 16.2)
+## Done: Local data on every device, optional PIN, sync failures shown (after 16.2)
 
-- **Decided** (owner, after 16.2; offline-sync rules 1–4): **the PIN is optional and off by
-  default**, separate from offline. The app is mostly used on phones, which have their own screen
-  lock, and a PIN on every open was a nuisance. Offline on (trust step or Account › Security)
-  needs no PIN; a trusted device turns "ล็อกด้วย PIN" on or off in Security (off needs the current
-  PIN). PIN off = the data key is kept in `tpn-vault` as a `CryptoKey`, the app opens at once and
-  never auto-locks; PIN on = as before (wrapped key, lock on open and after 5 min, 5 wrong PINs
-  wipe). Devices that already had a PIN keep it. The trust step's default stays: on in the
-  installed app, off in a browser tab (it may be someone else's computer).
+- **Decided** (owner, after 16.2; offline-sync rules 1–4 and 7): **every signed-in device keeps
+  its data** (local-first, the server is where devices sync and the backup), and **the PIN is
+  optional and off by default**. No trust step, no "ใช้งานออฟไลน์" switch, no in-memory
+  "untrusted" mode (a device that had it makes its local database at its next open). The app is
+  mostly used on phones, which have their own screen lock. Someone else's computer: sign out
+  (wipes), or sign it out from another device. PIN off = the data key is kept in `tpn-vault` as a
+  `CryptoKey`, the app opens at once and never auto-locks; PIN on = as before (wrapped key, lock
+  on open and after 5 min, 5 wrong PINs wipe). Devices that already had a PIN keep it.
+- **Decided** (owner, after 16.2; rule 7): an **expired session** goes to sign-in as soon as the
+  server says so, the local data kept; offline (or the server down) the app keeps working, since
+  signing in isn't possible then. The same user signing in opens the same data and syncs at once
+  (push, then pull); another account wipes it first, so the sign-in page says whose data the
+  device holds (`auth.localData`). Not wiping on expiry keeps changes made during a long time
+  offline. The expired-session banner is gone.
 - **Web**: `VaultMeta.key` is `null` with the PIN off and `deviceKey` holds the key;
-  `OfflineService.hasPin()`, `enable(pin?)`, `open()` (PIN off), `changePin()` (also turns it
-  on), `removePin()`; `shellGuard` opens a PIN-off vault itself (one it can't open is wiped);
-  `lockGuard` needs the PIN on; the trust page has no PIN step; `/account/pin` turns the PIN on,
-  changes it, or (`?off=1`) turns it off. The PIN pad and the amount keypad no longer zoom on a
-  fast double tap (`touch-action: manipulation`).
+  `OfflineService.hasPin()`, `enable(pin?)` (one vault however many callers), `open()` (PIN off),
+  `changePin()` (also turns it on), `removePin()`, `openInMemory()` (only when browser storage
+  refuses the vault), an effect that sends a refused session to sign-in; `shellGuard` makes the
+  vault on a first open and opens a PIN-off one itself (one it can't open is wiped); `lockGuard`
+  needs the PIN on; the interceptor goes to sign-in on any refused refresh. Removed: the trust
+  page and `trustGuard`, `layout/session-banner`, `AuthStore.freshSignIn` / `keepsLocalSession`,
+  `openUntrusted()`, Security's offline row. `/account/pin` turns the PIN on, changes it, or
+  (`?off=1`) turns it off. "Needs online" notices (now only a shared profile's) no longer
+  mention offline mode. The PIN pad and the amount keypad no longer zoom on a fast double tap
+  (`touch-action: manipulation`).
 - **Sync failures shown**: a round the API answers with an error (a 500, e.g. a local database
   missing a migration) sets `SyncService.failed()`: the pill shows "sync ไม่สำเร็จ" (red), a toast
   says so once per streak, the sheet explains, and it retries like an unreachable server. Before,
@@ -149,7 +160,7 @@ first staging deploy (docs/deploy.md step 7).
 - **Known**: two `sync.service.spec.ts` retry tests ("while the server is unreachable") fail now
   and then, on `develop` before this change too (timer timing); not fixed yet.
 - **Left for later**: the auto-lock time with the PIN on (at once / 1 / 5 / 15 min), passkey
-  unlock (Backlog).
+  unlock (Backlog). The 180-day session cap stays (a sign-in every 6 months, data kept).
 
 ---
 

@@ -18,8 +18,8 @@ import type { VaultMeta, VaultStorage } from './vault-storage'
 
 /**
  * - `unknown`: the vault hasn't been read yet
- * - `none`: an untrusted device (no local data is stored, rule 1)
- * - `locked` / `unlocked`: a trusted device, its database closed / open (rule 2: opened with the
+ * - `none`: no local database on this device yet (made at the first open, rule 1)
+ * - `locked` / `unlocked`: the local database closed / open (rule 2: opened with the
  *   PIN when it's on, else by `open()` at once)
  * - `elsewhere`: another tab runs the app (rule 2, one tab at a time)
  */
@@ -88,12 +88,12 @@ export class OfflineService {
   private openDatabase = inject(OPEN_LOCAL_DATABASE)
 
   state = signal<OfflineState>('unknown')
-  /** The clear-text part of the vault, `null` on an untrusted device. */
+  /** The clear-text part of the vault, `null` before the local database is made. */
   meta = signal<VaultMeta | null>(null)
   isTrusted = computed(() => this.meta() !== null)
-  /** The app asks for a PIN to open (rule 2); off on a trusted device until turned on. */
+  /** The app asks for a PIN to open (rule 2); off until the user turns it on. */
   hasPin = computed(() => (this.meta()?.key ?? null) !== null)
-  /** The local database is open: unlocked, or in memory on an untrusted device (rule 1). */
+  /** The local database is open (rule 2: after the PIN, when it is on). */
   isOpen = signal(false)
   /** Bumped after every local write, so screens re-read the database (rule 8). */
   changes = signal(0)
@@ -105,6 +105,7 @@ export class OfflineService {
   attemptsLeft = computed(() => MAX_PIN_ATTEMPTS - (this.meta()?.failedAttempts ?? 0))
 
   private reading: Promise<VaultMeta | null> | null = null
+  private creating: Promise<void> | null = null
   private dataKey: CryptoKey | null = null
   private database: LocalDatabase | null = null
   private saving: Promise<void> | null = null
@@ -122,6 +123,15 @@ export class OfflineService {
         untracked(() => void this.wipeAndSignIn())
       }
     })
+    // Expired (or otherwise refused) while the app is open: the server said so, so sign in again;
+    // the local data stays for the same user (rule 7). Offline the status is `unreachable` instead.
+    effect(() => {
+      const refused =
+        this.authStore.status() === 'signedOut' && this.authStore.endedBy() !== 'revoked'
+      if (refused && this.state() === 'unlocked') {
+        untracked(() => void this.signInAgain())
+      }
+    })
     this.channel?.addEventListener('message', (event: MessageEvent) => {
       if (event.data === 'takeover') {
         void this.handOver()
@@ -130,7 +140,7 @@ export class OfflineService {
     this.watchActivity()
   }
 
-  /** Reads the vault's meta once; `null` means an untrusted device. */
+  /** Reads the vault's meta once; `null` means no local database yet. */
   async ready(): Promise<VaultMeta | null> {
     this.reading ??= this.vaultStorage
       .readMeta()
@@ -201,10 +211,10 @@ export class OfflineService {
   }
 
   /**
-   * Rule 1, untrusted device: the same database in memory only, for the signed-in user while the
-   * tab is open. Nothing is ever saved; the next start pulls everything again.
+   * Only when browser storage refuses the local database (rule 1): the same database in memory,
+   * for this tab's life. Nothing is saved; writes need the server (`ProfileService.canWrite`).
    */
-  async openUntrusted(): Promise<void> {
+  async openInMemory(): Promise<void> {
     const user = this.authStore.user()
     if (this.database || this.meta() || !user) {
       return
@@ -233,14 +243,25 @@ export class OfflineService {
   }
 
   /**
-   * Rule 1: trust this device for the signed-in user. Creates the data key, keeps it wrapped by
-   * `pin` or (no PIN, the default) as it is, and saves an empty encrypted database; the app stays
-   * open.
+   * Rule 1: the signed-in user's local database on this device, made the first time the app opens
+   * here. Creates the data key, keeps it wrapped by `pin` or (no PIN, the default) as it is, and
+   * saves an empty encrypted database (the first pull fills it); the app stays open. Calls made
+   * while one runs share it.
    */
   async enable(pin?: string): Promise<void> {
+    this.creating ??= this.create(pin).finally(() => {
+      this.creating = null
+    })
+    return this.creating
+  }
+
+  private async create(pin?: string): Promise<void> {
     const user = this.authStore.user()
     if (!user) {
-      throw new Error('Trusting a device needs a signed-in user')
+      throw new Error('A local database needs a signed-in user')
+    }
+    if (this.meta()?.userId === user.id) {
+      return
     }
     await this.claimTab()
     const dataKey = await createDataKey()
@@ -260,7 +281,7 @@ export class OfflineService {
       failedAttempts: 0,
     }
     await this.vaultStorage.create(meta, await seal(dataKey, database.export()))
-    this.closeDatabase() // an untrusted in-memory copy, if any
+    this.closeDatabase()
     this.dataKey = dataKey
     this.database = database
     this.isOpen.set(true)
@@ -494,7 +515,6 @@ export class OfflineService {
 
   private unlocked(): void {
     this.state.set('unlocked')
-    this.authStore.keepsLocalSession.set(true)
     this.lastActivity = Date.now()
   }
 
@@ -504,7 +524,13 @@ export class OfflineService {
     this.database = null
     this.isOpen.set(false)
     this.dataKey = null
-    this.authStore.keepsLocalSession.set(false)
+  }
+
+  private async signInAgain(): Promise<void> {
+    if (this.router.url.startsWith('/auth/')) {
+      return
+    }
+    await this.router.navigate([SIGN_IN_URL], { queryParams: { returnUrl: this.returnUrl() } })
   }
 
   private async wipeAndSignIn(): Promise<void> {

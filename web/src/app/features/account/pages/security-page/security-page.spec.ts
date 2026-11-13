@@ -11,7 +11,7 @@ import { toastState } from '@spartan-ng/brain/sonner'
 import { AuthStore } from '@/core/auth'
 import type { AuthDeviceSession, AuthUser } from '@/core/auth'
 import th from '@/core/i18n/th.json'
-import { OfflineService, SyncService } from '@/core/offline'
+import { OfflineService } from '@/core/offline'
 import { ReauthStep } from '@/features/account/components/reauth-step'
 import { SecurityPage } from './security-page'
 
@@ -64,15 +64,6 @@ const fakeOffline = () => {
   return {
     isTrusted,
     hasPin,
-    enable: vi.fn(async () => {
-      isTrusted.set(true)
-      return Promise.resolve()
-    }),
-    wipe: vi.fn(async () => {
-      isTrusted.set(false)
-      hasPin.set(false)
-      return Promise.resolve()
-    }),
   }
 }
 
@@ -80,7 +71,6 @@ describe('SecurityPage', () => {
   let fixture: ComponentFixture<SecurityPage>
   let http: HttpTestingController
   let offline: ReturnType<typeof fakeOffline>
-  const sync = { sync: vi.fn(async () => Promise.resolve()) }
 
   const page = () => fixture.nativeElement as HTMLElement
   const alerts = () =>
@@ -134,7 +124,6 @@ describe('SecurityPage', () => {
         provideHttpClientTesting(),
         provideRouter([{ path: '**', component: Blank }]),
         { provide: OfflineService, useFactory: () => (offline = fakeOffline()) },
-        { provide: SyncService, useValue: sync },
       ],
     }).compileComponents()
     http = TestBed.inject(HttpTestingController)
@@ -257,17 +246,13 @@ describe('SecurityPage', () => {
     expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.security.googleLinked])
     expect(page().textContent).toContain('mom@gmail.com')
   })
-  it('turns offline on at once on an untrusted device, with the PIN off (rules 1–2)', async () => {
+  it('shows the PIN lock row only with a local database (rule 2)', async () => {
     await open()
-    expect(page().textContent).toContain(th.security.offlineOff)
     expect(page().textContent).not.toContain(th.security.pinLock)
 
-    buttonNamed(th.security.turnOn)[0].click()
-    await settle()
-    expect(offline.enable).toHaveBeenCalledWith()
-    expect(sync.sync).toHaveBeenCalled()
-    expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.security.offlineOnDone])
-    expect(page().textContent).toContain(th.security.offlineOn)
+    offline.isTrusted.set(true)
+    fixture.detectChanges()
+    expect(page().textContent).toContain(th.security.pinLock)
     expect(page().textContent).toContain(th.security.pinOff)
     expect(page().textContent).not.toContain(th.security.changePin)
   })
@@ -289,23 +274,5 @@ describe('SecurityPage', () => {
     expect(pinLink()?.getAttribute('href')).toBe('/account/pin?off=1')
     expect(pinLink()?.textContent.trim()).toBe(th.security.turnOff)
     expect(page().textContent).toContain(th.security.changePin)
-  })
-
-  it('asks before turning offline off, then wipes this device', async () => {
-    await open()
-    offline.isTrusted.set(true)
-    fixture.detectChanges()
-    expect(page().textContent).toContain(th.security.offlineOn)
-
-    buttonNamed(th.security.turnOff)[0].click()
-    fixture.detectChanges()
-    expect(page().textContent).toContain(th.security.offlineOffConfirmText)
-    expect(offline.wipe).not.toHaveBeenCalled()
-
-    buttonNamed(th.security.offlineOffConfirm)[0].click()
-    await settle()
-    expect(offline.wipe).toHaveBeenCalledTimes(1)
-    expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.security.offlineOffDone])
-    expect(page().textContent).toContain(th.security.offlineOff)
   })
 })

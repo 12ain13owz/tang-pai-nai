@@ -96,11 +96,11 @@ Owner's rule (after #16.1): **a component used in more than one place lives in
   `PageTitleStrategy` (`core/routing`) translates it for the header and the document title.
   Full-screen flows that shouldn't show the bar (sign-in, PIN) go outside it.
 - The sign-in flow (`features/auth`, under `/auth/*`) is mounted before the shell with its own
-  `AuthLayout` (app name + language switch); so are the trusted-device screens `/auth/trust`,
-  `/auth/lock` and `/auth/tab` (offline-sync rules 1–3). The shell route carries `shellGuard`
-  (`core/offline`, `canActivate` + `canActivateChild`): a signed-in user, or a trusted device
-  opened (with its PIN, when it has one) even offline or with an expired session. See "Trusted
-  device" below.
+  `AuthLayout` (app name + language switch); so are the device screens `/auth/lock` (PIN on)
+  and `/auth/tab` (offline-sync rules 2–3). The shell route carries `shellGuard` (`core/offline`,
+  `canActivate` + `canActivateChild`): it makes the local database on a device's first open and
+  opens it (with its PIN, when it has one) even offline; a session the server refused goes to
+  sign-in. See "Trusted device" below.
 - App-wide device state lives in `core/` as signal services: `ThemeService` (`core/theme`),
   `LanguageService` (`core/i18n`), `NetworkStatusService` (`core/network`), `KeyboardService`
   (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`), `OfflineService`
@@ -133,18 +133,22 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 1–7.
   (`vault-crypto.ts`). **The PIN is optional, off by default** (rule 2, after 16.2): with it on,
   `meta.key` is the key wrapped by the PIN and the key lives in memory only while unlocked; with
   it off, `meta.key` is `null` and `meta.deviceKey` holds the `CryptoKey` itself.
-- `OfflineService.state()`: `none` (untrusted) / `locked` / `unlocked` / `elsewhere` (another
+- `OfflineService.state()`: `none` (no local database yet) / `locked` / `unlocked` / `elsewhere` (another
   tab holds the `tpn-local-db` Web Lock). `hasPin()`; `enable(pin?)` (no PIN by default);
   `open()` (PIN off: opens at once, `shellGuard` calls it); `unlock(pin)` and `verifyPin(pin)`
   answer `ok` / `wrong` / `wiped` (the 5th wrong PIN wipes and signs out); `changePin` (turns the
   PIN on too), `removePin`, `lock`, `wipe`. With the PIN on it locks by itself after 5 minutes
   idle or in the background; it wipes on a revoked session either way.
-- A trusted device keeps working after its session **expires** (`AuthStore.keepsLocalSession`
-  stops the interceptor's redirect; `layout/session-banner` offers sign-in). Anything that ends
-  a user's time on the device (sign-out, turning offline off) calls `OfflineService.wipe()`.
-- An **untrusted** device opens the same database in memory (`openUntrusted()`, called by
-  `shellGuard`): it syncs while online and can't write offline (rule 1). `isOpen()` says whether a
-  database is open at all; `changes()` is bumped by every `write()`, so a screen's `computed()`
+- **Every signed-in device keeps its data** (rule 1, after 16.2): no trust step, no offline
+  switch. `shellGuard` calls `enable()` (no PIN) on the first open; `isTrusted()` now means "the
+  vault exists". Only when browser storage refuses it does `openInMemory()` open a database for
+  the tab's life (writes then need the server, `ProfileService.canWrite`).
+- **Expired session** (rule 7): offline or with the server down the app keeps working; once the
+  server refuses the session, the interceptor, `shellGuard` and an `OfflineService` effect send
+  the user to sign-in, the data kept. The sign-in page says whose data the device holds
+  (`auth.localData`). Anything that ends a user's time on the device (sign-out, revoked, someone
+  else signing in) calls `OfflineService.wipe()`.
+- `isOpen()` says whether a database is open at all; `changes()` is bumped by every `write()`, so a screen's `computed()`
   reads re-run (read it, then `isOpen()`, then query `db()`).
 - Specs: jsdom has no IndexedDB or `matchMedia`, and no `/sqlite/`. A drawer renders into
   `document.body` (query there), and a radio's `[value]` is a property, so find it by its
@@ -189,8 +193,9 @@ Spec: [offline-sync.md](../docs/features/offline-sync.md) rules 8–12.
 - **Server unreachable** (rule 11): a round, or the session check at open, that can't reach the
   API sets `NetworkStatusService.serverReachable` false and retries after `RETRY_DELAYS_MS`
   (5 s … then every 5 min); a round that gets through sets it back, and offline / locked /
-  signed out stops the retries. An untrusted device's `ProfileService.canWrite()` needs it too;
-  its "needs online" notices switch to `sync.serverDownWrite` while `serverDown()`. Specs that
+  signed out stops the retries. A shared profile's (or an in-memory database's)
+  `ProfileService.canWrite()` needs it too; its "needs online" notices switch to
+  `sync.serverDownWrite` while `serverDown()`. Specs that
   stub `NetworkStatusService` give it both `isOnline` and `serverReachable` signals.
 - `SyncService.rounds()` counts finished (or failed) rounds since the app loaded: work that
   should follow the first pull waits for it (the recurring pass, #12). An `overridden` result
@@ -215,10 +220,10 @@ reports) shows the **current profile's** data.
 
 - `ProfileService`: `profiles()` (live, in order), `current()` (a shared profile in use, else the
   device's choice, else the first; `shared()` / `isShared()`, #16.2), `ready()` (false only
-  while a new device waits for its first pull), `canWrite()` (untrusted = online and the server
-  answering; a shared profile = an editor, online, ready), `serverDown()`, `atLimit()`, `nameTaken()`, `save(id | null, values, fixOpId?)`,
+  while a new device waits for its first pull), `canWrite()` (own data: always; a shared profile =
+  an editor, online, ready; an in-memory database = online and the server answering), `serverDown()`, `atLimit()`, `nameTaken()`, `save(id | null, values, fixOpId?)`,
   `remove(id)`, `moveTo(id, index)`, `select(id)`. The current id is `tpn-profile:<userId>` in
-  `localStorage` (trusted) or `sessionStorage` (untrusted); `OfflineService.wipe()` removes it.
+  `localStorage` (`sessionStorage` for an in-memory database); `OfflineService.wipe()` removes it.
   `save()` of a new profile writes the default category set in the same write
   (`default-categories.ts`, in `LanguageService`'s language); `switchSheet` opens the switch
   sheet the shell renders (the header and Account › หมวดหมู่ use it).
@@ -854,10 +859,9 @@ are on, so don't disable them.
     sending a sign-out made offline, if one is pending). A reload therefore costs one
     `/auth/refresh`. When the API is unreachable the status is `unreachable` (not signed out),
     and the sign-in page retries once the network is back.
-  - `AuthStore.endedBy()` says why a refresh was refused (`revoked`, `expired`, or `null`), and
-    `freshSignIn()` marks a sign-in (not a refresh) until the trust step has run. Every sign-in
-    path goes through `AuthService` (`verifyCode`, `verifyLink`, `signInWithPassword`,
-    `verifyPhone`, `finishGoogleSignIn`), which sets it.
+  - `AuthStore.endedBy()` says why a refresh was refused (`revoked`, `expired`, or `null`).
+    Every sign-in path goes through `AuthService` (`verifyCode`, `verifyLink`,
+    `signInWithPassword`, `verifyPhone`, `finishGoogleSignIn`).
   - Sign-out: `SyncService.flush()` (push; if ops would be lost, ask first), then
     `AuthService.signOut()`, then `OfflineService.wipe()`, then navigate to sign-in
     ([offline-sync](../docs/features/offline-sync.md) rule 7).

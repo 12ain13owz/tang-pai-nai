@@ -4,7 +4,7 @@ import { provideRouter, Router } from '@angular/router'
 import type { ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router'
 import { AuthService, AuthStore } from '@/core/auth'
 import type { AuthStatus, AuthUser } from '@/core/auth'
-import { lockGuard, otherTabGuard, shellGuard, trustGuard } from './offline.guard'
+import { lockGuard, otherTabGuard, shellGuard } from './offline.guard'
 import { OfflineService } from './offline.service'
 import type { OfflineState } from './offline.service'
 import type { VaultMeta } from './vault-storage'
@@ -44,7 +44,12 @@ describe('offline guards', () => {
       return Promise.resolve()
     }),
     claimTab: vi.fn(async () => Promise.resolve(offline.tabFree)),
-    openUntrusted: vi.fn(async () => Promise.resolve()),
+    isOpen: () => offline.state() === 'unlocked',
+    enable: vi.fn(async () => {
+      offline.state.set('unlocked')
+      return Promise.resolve()
+    }),
+    openInMemory: vi.fn(async () => Promise.resolve()),
     // As the real one: nobody signed in (an expired session) is not someone else.
     belongsToSomeoneElse: () => {
       const signedIn = authStore.user()
@@ -80,25 +85,28 @@ describe('offline guards', () => {
     authStore.setSession({ accessToken: 't', expiresIn: 600, user: user() })
   })
 
-  describe('shellGuard on an untrusted device', () => {
-    it('lets a signed-in user in, with the database open in memory (rule 1)', async () => {
+  describe('shellGuard with no local data yet', () => {
+    it('makes the local database for a signed-in user, with no PIN (rule 1)', async () => {
       expect(await run(shellGuard)).toBe(true)
-      expect(offline.openUntrusted).toHaveBeenCalledOnce()
+      expect(offline.enable).toHaveBeenCalledWith()
+      expect(offline.openInMemory).not.toHaveBeenCalled()
     })
 
-    it('sends a fresh sign-in to the trust step first (rule 1)', async () => {
-      authStore.freshSignIn.set(true)
-      expect(await run(shellGuard)).toBe('/auth/trust?returnUrl=%2Fwallets')
-      expect(offline.openUntrusted).not.toHaveBeenCalled()
+    it('works in memory when browser storage refuses the local database', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      offline.enable.mockRejectedValueOnce(new Error('blocked'))
+      expect(await run(shellGuard)).toBe(true)
+      expect(offline.openInMemory).toHaveBeenCalledOnce()
     })
 
     it('sends someone signed out to sign-in', async () => {
       status = 'signedOut'
       expect(await run(shellGuard)).toBe('/auth/sign-in?returnUrl=%2Fwallets')
+      expect(offline.enable).not.toHaveBeenCalled()
     })
   })
 
-  describe('shellGuard on a trusted device', () => {
+  describe('shellGuard with local data', () => {
     beforeEach(() => {
       offline.meta = meta()
       offline.state.set('locked')
@@ -108,22 +116,21 @@ describe('offline guards', () => {
       expect(await run(shellGuard)).toBe('/auth/lock?returnUrl=%2Fwallets')
     })
 
-    it('opens once unlocked, even offline or with an expired session (rule 7)', async () => {
+    it('opens once unlocked, even offline or with the server down (rule 7)', async () => {
       offline.state.set('unlocked')
       expect(await run(shellGuard)).toBe(true)
       status = 'unreachable'
       expect(await run(shellGuard)).toBe(true)
-      status = 'signedOut'
-      authStore.clear('expired')
-      expect(await run(shellGuard)).toBe(true)
       expect(offline.wipe).not.toHaveBeenCalled()
+      expect(offline.enable).not.toHaveBeenCalled()
     })
 
-    it('skips the trust step for the same user signing in again', async () => {
+    it('sends an expired session to sign-in once the server said so, the data kept (rule 7)', async () => {
       offline.state.set('unlocked')
-      authStore.freshSignIn.set(true)
-      expect(await run(shellGuard)).toBe(true)
-      expect(authStore.freshSignIn()).toBe(false)
+      status = 'signedOut'
+      authStore.clear('expired')
+      expect(await run(shellGuard)).toBe('/auth/sign-in?returnUrl=%2Fwallets')
+      expect(offline.wipe).not.toHaveBeenCalled()
     })
 
     it('wipes first when the session was revoked (rule 7)', async () => {
@@ -133,10 +140,11 @@ describe('offline guards', () => {
       expect(offline.wipe).toHaveBeenCalledTimes(1)
     })
 
-    it('wipes first when someone else signed in, then asks them to trust (rule 7)', async () => {
-      authStore.setSession({ accessToken: 't', expiresIn: 600, user: user('u2') }, true)
-      expect(await run(shellGuard)).toBe('/auth/trust?returnUrl=%2Fwallets')
+    it('wipes first when someone else signed in, then makes theirs (rule 7)', async () => {
+      authStore.setSession({ accessToken: 't', expiresIn: 600, user: user('u2') })
+      expect(await run(shellGuard)).toBe(true)
       expect(offline.wipe).toHaveBeenCalledTimes(1)
+      expect(offline.enable).toHaveBeenCalledOnce()
     })
 
     it('says the app is open in another tab (rule 2)', async () => {
@@ -144,10 +152,9 @@ describe('offline guards', () => {
       expect(await run(shellGuard)).toBe('/auth/tab?returnUrl=%2Fwallets')
     })
 
-    it('opens at once with the PIN off, even offline or with an expired session (rule 2)', async () => {
+    it('opens at once with the PIN off, even offline (rule 2)', async () => {
       offline.pin = false
-      status = 'signedOut'
-      authStore.clear('expired')
+      status = 'unreachable'
       expect(await run(shellGuard)).toBe(true)
       expect(offline.open).toHaveBeenCalledOnce()
       expect(offline.wipe).not.toHaveBeenCalled()
@@ -158,17 +165,11 @@ describe('offline guards', () => {
       offline.opens = false
       expect(await run(shellGuard)).toBe(true)
       expect(offline.wipe).toHaveBeenCalledOnce()
-      expect(offline.openUntrusted).toHaveBeenCalledOnce()
+      expect(offline.enable).toHaveBeenCalledOnce()
     })
   })
 
-  it('opens the trust step only on an untrusted device', async () => {
-    expect(await run(trustGuard)).toBe(true)
-    offline.meta = meta()
-    expect(await run(trustGuard)).toBe('/')
-  })
-
-  it('opens the lock screen only while a trusted device with a PIN is locked', async () => {
+  it('opens the lock screen only while a device with a PIN is locked', async () => {
     expect(await run(lockGuard)).toBe('/')
     offline.meta = meta()
     offline.state.set('locked')

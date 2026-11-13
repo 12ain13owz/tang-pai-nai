@@ -87,29 +87,16 @@ describe('authInterceptor', () => {
     expect(store.status()).toBe('signedOut')
   })
 
-  it('keeps an unlocked trusted device in the app when the session only expired', async () => {
+  it('goes to sign-in when the session only expired too, the local data kept (offline-sync rule 7)', async () => {
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true)
-    store.keepsLocalSession.set(true)
     const result = firstValueFrom(client.get('/api/wallets'))
 
     http.expectOne('/api/wallets').flush({}, unauthorized)
     http.expectOne('/api/auth/refresh').flush({ code: 'SESSION_EXPIRED' }, unauthorized)
 
     await expect(result).rejects.toMatchObject({ status: 401 })
-    expect(navigate).not.toHaveBeenCalled()
-    expect(store.endedBy()).toBe('expired')
-  })
-
-  it('still goes to sign-in from an unlocked trusted device when the session was revoked', async () => {
-    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true)
-    store.keepsLocalSession.set(true)
-    const result = firstValueFrom(client.get('/api/wallets'))
-
-    http.expectOne('/api/wallets').flush({}, unauthorized)
-    http.expectOne('/api/auth/refresh').flush({ code: 'SESSION_REVOKED' }, unauthorized)
-
-    await expect(result).rejects.toMatchObject({ status: 401 })
     expect(navigate).toHaveBeenCalledWith(['/auth/sign-in'], { queryParams: { returnUrl: '/' } })
+    expect(store.endedBy()).toBe('expired')
   })
 
   it('leaves a request marked skipAuthRefresh alone on a 401', async () => {

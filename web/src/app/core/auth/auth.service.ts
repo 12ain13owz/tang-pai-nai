@@ -111,7 +111,7 @@ export class AuthService {
       { context: skipAuthRefresh() }
     )
     if (response.data) {
-      this.authStore.setSession(response.data, true)
+      this.authStore.setSession(response.data)
     }
   }
 
@@ -148,7 +148,7 @@ export class AuthService {
       { context: skipAuthRefresh() }
     )
     if (response.data) {
-      this.authStore.setSession(response.data, true)
+      this.authStore.setSession(response.data)
     }
   }
 
@@ -239,11 +239,10 @@ export class AuthService {
 
   /**
    * Rule 14: back from Google the API has set the refresh cookie, so one refresh gets the
-   * session. Unlike a start-up refresh it is a sign-in (the trust step follows, offline-sync rule 1).
+   * session.
    */
   async finishGoogleSignIn(): Promise<void> {
     await this.refresh()
-    this.authStore.freshSignIn.set(true)
   }
 
   /** The start-up check: one silent refresh, answered from memory once it's settled. */
@@ -316,7 +315,7 @@ export class AuthService {
       context: skipAuthRefresh(),
     })
     if (response.data) {
-      this.authStore.setSession(response.data, true)
+      this.authStore.setSession(response.data)
     }
   }
 

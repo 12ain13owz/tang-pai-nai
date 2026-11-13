@@ -4,16 +4,15 @@ import type { CanActivateFn } from '@angular/router'
 import { AuthService, AuthStore, SIGN_IN_URL } from '@/core/auth'
 import { LOCK_URL, OfflineService, OTHER_TAB_URL } from './offline.service'
 
-export const TRUST_URL = '/auth/trust'
-
 /**
- * The app shell (replaces `authGuard` there): a signed-in user, or a trusted device unlocked
- * with its PIN (docs/features/offline-sync.md rules 1–3 and 7).
+ * The app shell (replaces `authGuard` there): the device's local data, opened (docs/features/
+ * offline-sync.md rules 1–3 and 7).
  *
- * - Trusted device: wiped first when the session was revoked or someone else signed in;
- *   otherwise it opens once this tab holds the app (and, with the PIN on, the PIN was entered),
- *   even offline or with an expired session.
- * - Untrusted device: signed in, and right after a sign-in the trust step comes first.
+ * - Local data here: wiped first when the session was revoked or someone else signed in. A session
+ *   the server refused (expired) goes to sign-in, the data kept; offline or with the server down
+ *   it opens anyway. It opens once this tab holds the app (and, with the PIN on, the PIN was
+ *   entered).
+ * - None yet: signed in, and the local database is made now (rule 1).
  */
 export const shellGuard: CanActivateFn = async (_route, state) => {
   const router = inject(Router)
@@ -25,7 +24,9 @@ export const shellGuard: CanActivateFn = async (_route, state) => {
   if (meta && (authStore.endedBy() === 'revoked' || offlineService.belongsToSomeoneElse())) {
     await offlineService.wipe()
   } else if (meta) {
-    authStore.freshSignIn.set(false) // the same user again: this device is already trusted
+    if (status === 'signedOut') {
+      return router.createUrlTree([SIGN_IN_URL], { queryParams })
+    }
     if (!(await offlineService.claimTab())) {
       return router.createUrlTree([OTHER_TAB_URL], { queryParams })
     }
@@ -44,22 +45,21 @@ export const shellGuard: CanActivateFn = async (_route, state) => {
   if (status !== 'signedIn') {
     return router.createUrlTree([SIGN_IN_URL], { queryParams })
   }
-  if (authStore.freshSignIn()) {
-    return router.createUrlTree([TRUST_URL], { queryParams })
+  if (offlineService.isOpen()) {
+    return true
   }
-  // Rule 1: an untrusted device reads the same database, in memory only.
-  await offlineService.openUntrusted()
+  // Rule 1: the first open on this device makes its local database; the first pull fills it.
+  try {
+    await offlineService.enable()
+  } catch (error) {
+    // Browser storage refused (a locked-down private window): work in memory for this tab.
+    console.error('Making the local database failed', error)
+    await offlineService.openInMemory()
+  }
   return true
 }
 
-/** The trust step: only for a device that isn't trusted yet (`authGuard` runs first). */
-export const trustGuard: CanActivateFn = async () => {
-  const router = inject(Router) // before any await: `inject` only works synchronously
-  const meta = await inject(OfflineService).ready()
-  return meta ? router.parseUrl('/') : true
-}
-
-/** The lock screen: only while a trusted device with a PIN is locked. */
+/** The lock screen: only while a device with a PIN is locked. */
 export const lockGuard: CanActivateFn = async () => {
   const router = inject(Router)
   const offlineService = inject(OfflineService)

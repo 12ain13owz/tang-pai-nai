@@ -1,8 +1,8 @@
 import { inject } from '@angular/core'
 import { Router } from '@angular/router'
 import type { Params, Routes } from '@angular/router'
-import { authGuard, guestGuard } from '@/core/auth'
-import { lockGuard, otherTabGuard, trustGuard } from '@/core/offline'
+import { guestGuard } from '@/core/auth'
+import { lockGuard, otherTabGuard } from '@/core/offline'
 import { AuthFlowStore } from './auth-flow.store'
 import { AuthLayout } from './components/auth-layout'
 
@@ -59,14 +59,7 @@ export default [
           ),
       },
       {
-        // Right after a sign-in on an untrusted device (offline-sync rule 1).
-        path: 'trust',
-        title: 'title.trust',
-        canActivate: [authGuard, trustGuard],
-        loadComponent: async () => import('./pages/trust-page/trust-page').then((m) => m.TrustPage),
-      },
-      {
-        // A trusted device before its PIN (offline-sync rules 2–3).
+        // A device with the PIN on, before it (offline-sync rules 2–3).
         path: 'lock',
         title: 'title.lock',
         canActivate: [lockGuard],

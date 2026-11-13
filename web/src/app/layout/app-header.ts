@@ -14,7 +14,6 @@ import {
   parentOf,
 } from './profile-routes'
 import { ProfileSwitcher } from './profile-switcher'
-import { SessionBanner } from './session-banner'
 import { SyncStatus } from './sync-status'
 import { TransactionsHeader } from './transactions-header'
 import { UpdateBanner } from './update-banner'
@@ -26,7 +25,6 @@ import { UpdateBanner } from './update-banner'
     TranslocoPipe,
     NgIcon,
     SyncStatus,
-    SessionBanner,
     UpdateBanner,
     ProfileSwitcher,
     TransactionsHeader,
@@ -67,7 +65,6 @@ import { UpdateBanner } from './update-banner'
         <app-sync-status class="-mr-3 shrink-0" />
       </div>
     }
-    <app-session-banner />
     <app-update-banner />
   `,
 })

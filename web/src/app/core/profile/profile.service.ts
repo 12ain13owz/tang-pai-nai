@@ -103,8 +103,9 @@ export class ProfileService {
         !this.syncService.canSync())
   )
   /**
-   * Rule 10: an untrusted device writes only online (offline-sync rule 1), and only while the
-   * server answers (rule 11): its rows live in memory until they're pushed.
+   * Rule 10: the device's own data is always writable, offline too (offline-sync rule 1). Only a
+   * database kept in memory (browser storage refused) writes online and while the server answers
+   * (rule 11), since its rows live in memory until they're pushed.
    */
   canWrite = computed(() => {
     const online =
@@ -122,7 +123,7 @@ export class ProfileService {
     return this.offlineService.isOpen() && (this.offlineService.isTrusted() || online)
   })
   /**
-   * Why an untrusted device can't write right now: the network is up but the server isn't
+   * Why a shared profile (or an in-memory database) can't write right now: the network is up but the server isn't
    * answering (rule 11), rather than no network. Picks the notice's wording.
    */
   serverDown = computed(

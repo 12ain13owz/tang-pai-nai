@@ -128,7 +128,7 @@ describe('OfflineService', () => {
     expect(service.isTrusted()).toBe(false)
   })
 
-  it('trusts the device: wraps a new key with the PIN and saves an encrypted database', async () => {
+  it('makes the local database with a PIN: wraps a new key and saves it encrypted', async () => {
     setUp()
     await service.enable(PIN)
 
@@ -137,15 +137,14 @@ describe('OfflineService', () => {
     expect(meta?.key?.iterations).toBe(600_000)
     expect(new TextDecoder().decode(snapshot?.data)).not.toContain('userId')
     expect(service.state()).toBe('unlocked')
-    expect(authStore.keepsLocalSession()).toBe(true)
     expect(service.db().selectValue('SELECT', ['userId'])).toBe('u1')
     expect(persist).toHaveBeenCalled()
   })
 
-  it('opens an untrusted device in memory only: nothing reaches the vault (rule 1)', async () => {
+  it('opens in memory only when browser storage refused the vault (rule 1)', async () => {
     setUp()
     await service.ready()
-    await service.openUntrusted()
+    await service.openInMemory()
     expect(service.isOpen()).toBe(true)
     expect(service.state()).toBe('none')
     expect(service.db().selectValue('SELECT', ['userId'])).toBe('u1')
@@ -153,7 +152,7 @@ describe('OfflineService', () => {
     service.write((db) => db.exec('INSERT', ['note', 'x']))
     await service.save()
     expect(vault.store).toEqual({ meta: null, snapshot: null })
-    await service.openUntrusted() // a second call keeps the same database
+    await service.openInMemory() // a second call keeps the same database
     expect(service.db().selectValue('SELECT', ['note'])).toBe('x')
   })
 
@@ -165,10 +164,10 @@ describe('OfflineService', () => {
     expect(service.changes()).toBe(before + 1)
   })
 
-  it('replaces the in-memory copy when the device becomes trusted, and closes it on wipe', async () => {
+  it('replaces an in-memory copy with the local database, and closes it on wipe', async () => {
     setUp()
     await service.ready()
-    await service.openUntrusted()
+    await service.openInMemory()
     service.write((db) => db.exec('INSERT', ['note', 'memory only']))
     await service.enable(PIN)
     expect(service.db().selectValue('SELECT', ['note'])).toBeNull()
@@ -195,7 +194,6 @@ describe('OfflineService', () => {
     await trustedAndLocked()
 
     expect(service.state()).toBe('locked')
-    expect(authStore.keepsLocalSession()).toBe(false)
     expect(() => service.db()).toThrow()
 
     expect(await service.unlock(PIN)).toBe('ok')
@@ -270,6 +268,7 @@ describe('OfflineService', () => {
 
   it('keeps the data when the session only expired (rule 7)', async () => {
     setUp()
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true)
     await service.enable(PIN)
 
     authStore.clear('expired')
@@ -325,6 +324,29 @@ describe('OfflineService', () => {
     await service.lock()
     expect(await service.open()).toBe(true)
     expect(service.db().selectValue('SELECT', ['note'])).toBe('rent')
+  })
+
+  it('makes one local database however many times the first open asks (rule 1)', async () => {
+    setUp()
+    await Promise.all([service.enable(), service.enable()])
+    await service.enable()
+    expect(vault.create).toHaveBeenCalledTimes(1)
+  })
+
+  it('goes to sign-in, the data kept, when the server says the session expired (rule 7)', async () => {
+    setUp()
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true)
+    await service.enable()
+
+    authStore.clear('expired')
+    TestBed.tick()
+    await vi.waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith(['/auth/sign-in'], {
+        queryParams: { returnUrl: undefined },
+      })
+    )
+    expect(vault.store.meta).not.toBeNull()
+    expect(vault.wipe).not.toHaveBeenCalled()
   })
 
   it('never locks by itself with the PIN off (rule 2)', async () => {
