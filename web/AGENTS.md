@@ -92,7 +92,8 @@ Owner's rule (after #16.1): **a component used in more than one place lives in
 
 - `app.routes.ts` mounts `AppShell` (`layout/`) as the layout route for the tab pages: header (page
   title from the route's `title`, sync status pill, update banner), the page, and the fixed
-  bottom tab bar. Give every routed page a `title` that is a **translation key** (`title.wallets`);
+  bottom tab bar. `<main>` carries `[appFadeIn]="tab()"` (`shared/components/fade`, kept apart
+  from the lazy pages' `slide` so the shell's bundle doesn't carry it): a new tab fades in. Give every routed page a `title` that is a **translation key** (`title.wallets`);
   `PageTitleStrategy` (`core/routing`) translates it for the header and the document title.
   Full-screen flows that shouldn't show the bar (sign-in, PIN) go outside it.
 - The sign-in flow (`features/auth`, under `/auth/*`) is mounted before the shell with its own
@@ -368,7 +369,9 @@ values, fixOpId?, profileId?)` (remembers the wallet: `defaultWalletId()`), `rem
   view are `shared/components/date-row` and `wallet-pick`, as in the transfer sheet; keypad
   state: it closes on any other control of the form, `leaveAmount`; save and add, copy; the shell
   `@defer`s all three), `features/transactions` (the page; rows drawn 100 at a time with an
-  `IntersectionObserver` sentinel; its summary card is `shared/components/money-summary`
+  `IntersectionObserver` sentinel; the list carries `[appSlide]="tabIndex()"` from
+  `shared/components/slide`, which slides it in from the side of the chosen period (Web
+  Animations, a fade only under reduced motion; the page host has `overflow-x-clip` for it); its summary card is `shared/components/money-summary`
   (`app-money-summary-card`, also used by a shared wallet's page, so the two never drift). ➕
   opens the sheet (`BottomTabBar.add()`); "fix" goes to
   `/transactions?fix=<opId>` (the page asks both services; each opens only its own table's op).

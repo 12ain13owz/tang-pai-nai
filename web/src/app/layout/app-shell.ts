@@ -17,6 +17,7 @@ import type { SharingService } from '@/core/sharing'
 import { TransactionService, TransferService } from '@/core/transaction'
 import { KeyboardService } from '@/core/viewport'
 import { WalletService } from '@/core/wallet'
+import { FadeIn } from '@/shared/components/fade'
 import { CustomRangeSheet } from '@/shared/components/period'
 import { AppHeader } from './app-header'
 import { BottomTabBar } from './bottom-tab-bar'
@@ -65,11 +66,12 @@ const OWN_ONLY = [
     CustomRangeSheet,
     TransactionSheet,
     TransferSheet,
+    FadeIn,
   ],
   template: `
     <div class="mx-auto flex min-h-dvh max-w-[480px] flex-col">
       <app-header />
-      <main class="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))]">
+      <main class="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))]" [appFadeIn]="tab()">
         @switch (gate()) {
           @case ('loading') {
             <div class="flex justify-center py-16">
@@ -169,6 +171,9 @@ export class AppShell {
       })
     })
   }
+
+  /** The bottom tab in view (the URL's first segment): a new one fades in (DESIGN.md §8). */
+  protected tab = computed(() => this.url().split(/[/?#]/)[1] ?? '')
 
   /**
    * Profile rule 5: the data tabs need a profile (wait for a new device's first pull); wallet

@@ -48,6 +48,7 @@ import type { UserIcon } from '@/shared/components/icon-badge'
 import { MoneySummaryCard } from '@/shared/components/money-summary'
 import type { MoneySummaryLine } from '@/shared/components/money-summary'
 import { PeriodStrip, Swipe } from '@/shared/components/period'
+import { Slide } from '@/shared/components/slide'
 import { addDays, formatAmount, formatMoney, fromDay } from '@/shared/utils'
 
 /** One day's card: the big date, its words, the day's net and its rows (rule 13's order). */
@@ -99,6 +100,7 @@ interface DayGroup {
     MoneySummaryCard,
     PeriodStrip,
     Swipe,
+    Slide,
     DueSheet,
   ],
   providers: [
@@ -114,7 +116,7 @@ interface DayGroup {
       lucideUsers,
     }),
   ],
-  host: { class: 'flex flex-col' },
+  host: { class: 'flex flex-col overflow-x-clip' },
   template: `
     <div class="flex flex-col items-center px-4 pt-1 pb-2 text-center">
       <span class="text-sm text-muted-foreground">
@@ -138,7 +140,12 @@ interface DayGroup {
       [label]="'transactions.periods' | transloco"
       (chosen)="choose($event)"
     />
-    <div class="flex flex-col gap-3 px-4 pt-1 pb-4" appSwipe (swiped)="move($event)">
+    <div
+      class="flex flex-col gap-3 px-4 pt-1 pb-4"
+      appSwipe
+      [appSlide]="tabIndex()"
+      (swiped)="move($event)"
+    >
       @if (due(); as due) {
         <!-- Ask-first recurring rules that are due (recurring rule 10), in every period. -->
         <button
@@ -728,6 +735,11 @@ export class TransactionsPage {
       }
     })
   })
+
+  /** The chosen tab's place, oldest first: the list slides in from that side (`appSlide`). */
+  protected tabIndex = computed(() =>
+    this.transactionService.tabs().indexOf(this.transactionService.tab())
+  )
 
   protected choose(id: number | string): void {
     this.transactionService.tab.set(id as PeriodTab)

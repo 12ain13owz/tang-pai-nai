@@ -79,6 +79,41 @@ describe('App', () => {
     expect(compiled.querySelector('h1')?.textContent).toContain('ธุรกรรม')
   })
 
+  it('fades the page in when the bottom tab changes, not inside a tab', async () => {
+    signIn()
+    const animate = vi.fn(() => ({ cancel: vi.fn() }) as unknown as Animation)
+    HTMLElement.prototype.animate = animate
+    window.matchMedia = vi.fn(
+      () =>
+        ({
+          matches: false,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        }) as unknown as MediaQueryList
+    )
+    const fixture = TestBed.createComponent(App)
+    try {
+      const router = TestBed.inject(Router)
+      const go = async (url: string) => {
+        await router.navigateByUrl(url)
+        await fixture.whenStable()
+      }
+      await go('/reports')
+      const main = (fixture.nativeElement as HTMLElement).querySelector('main')
+      const onMain = () => animate.mock.contexts.filter((element) => element === main).length
+      expect(onMain()).toBe(0)
+      await go('/account')
+      expect(onMain()).toBe(1)
+      await go('/account/security')
+      expect(onMain()).toBe(1)
+    } finally {
+      // The theme stops listening to `matchMedia` on destroy, so it goes before the stub.
+      fixture.destroy()
+      Reflect.deleteProperty(HTMLElement.prototype, 'animate')
+      Reflect.deleteProperty(window, 'matchMedia')
+    }
+  })
+
   it('keeps the toaster beside <body>, so an open sheet neither hides it nor closes on its taps', async () => {
     const fixture = TestBed.createComponent(App)
     await fixture.whenStable()
