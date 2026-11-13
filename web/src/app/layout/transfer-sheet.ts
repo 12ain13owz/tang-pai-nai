@@ -424,7 +424,6 @@ type View = 'form' | 'pick' | 'note' | 'repeat' | 'confirmDiscard'
                 [hideLabel]="true"
                 [rows]="10"
                 [maxLength]="noteMax"
-                [placeholder]="'transactions.notePlaceholder' | transloco"
                 [hint]="note().length + ' / ' + noteMax"
               />
             </app-sheet-frame>

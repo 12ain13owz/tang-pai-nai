@@ -422,7 +422,6 @@ type View = 'form' | 'wallet' | 'category' | 'note' | 'confirmDiscard'
                 [hideLabel]="true"
                 [rows]="10"
                 [maxLength]="noteMax"
-                [placeholder]="'transactions.notePlaceholder' | transloco"
                 [hint]="note().length + ' / ' + noteMax"
               />
             </app-sheet-frame>

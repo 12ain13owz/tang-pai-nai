@@ -103,7 +103,6 @@
     "pickCategory": "Choose category",
     "categoryRequired": "Choose a category first",
     "note": "Note",
-    "notePlaceholder": "e.g. Lunch with friends, split three ways",
     "date": "Date",
     "dayBefore": "Previous day",
     "dayAfter": "Next day",
@@ -112,10 +111,6 @@
     "save": "Save",
     "walletPick": "Choose wallet",
     "sameCurrency": "Only wallets in the same currency",
-    "categoryPick": {
-      "expense": "Expense categories",
-      "income": "Income categories"
-    },
     "categoryMissing": "Missing a category?",
     "walletCategories": "Categories used in {{name}}",
     "noCategories": {

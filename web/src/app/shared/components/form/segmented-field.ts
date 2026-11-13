@@ -12,6 +12,8 @@ let nextId = 0
 @Component({
   selector: 'app-segmented-field',
   imports: [ReactiveFormsModule],
+  // A block, so a margin given by the page applies.
+  host: { class: 'block' },
   template: `
     <fieldset class="flex flex-col" [disabled]="control().disabled">
       <legend class="sr-only">{{ label() }}</legend>

@@ -103,7 +103,6 @@
     "pickCategory": "เลือกหมวดหมู่",
     "categoryRequired": "เลือกหมวดหมู่ก่อน",
     "note": "บันทึกช่วยจำ",
-    "notePlaceholder": "เช่น ข้าวกับเพื่อน หารกัน 3 คน",
     "date": "วันที่",
     "dayBefore": "วันก่อนหน้า",
     "dayAfter": "วันถัดไป",
@@ -112,10 +111,6 @@
     "save": "บันทึก",
     "walletPick": "เลือกกระเป๋าเงิน",
     "sameCurrency": "ย้ายได้เฉพาะกระเป๋าที่ใช้สกุลเงินเดียวกัน",
-    "categoryPick": {
-      "expense": "หมวดหมู่รายจ่าย",
-      "income": "หมวดหมู่รายรับ"
-    },
     "categoryMissing": "ไม่เห็นหมวดที่ต้องการ?",
     "walletCategories": "หมวดหมู่ที่ใช้ของ {{name}}",
     "noCategories": {

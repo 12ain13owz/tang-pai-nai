@@ -132,7 +132,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="onClosed()">
       <hlm-drawer-content
         *hlmDrawerPortal
-        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh] [&>div:first-child]:hidden!"
         (keydown)="onKey($event)"
       >
         @switch (view()) {
@@ -218,11 +218,6 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                       {{ readOnlyKey() | transloco }}
                     </p>
                   }
-                  <app-segmented-field
-                    [control]="f.type"
-                    [label]="'transactions.type' | transloco"
-                    [options]="typeOptions()"
-                  />
                   <div
                     class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
                   >
@@ -527,11 +522,18 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
           }
           @case ('category') {
             <app-sheet-frame
-              [title]="'transactions.categoryPick.' + f.type.value | transloco"
+              [title]="'transactions.pickCategory' | transloco"
               leadingIcon="back"
               [leadingLabel]="'sheet.back' | transloco"
               (leading)="view.set('form')"
             >
+              <!-- The type is the category's (Money Lover style): picking one sets it. -->
+              <app-segmented-field
+                class="mb-5"
+                [control]="pickType"
+                [label]="'transactions.type' | transloco"
+                [options]="typeOptions()"
+              />
               @if (tree().length > 0) {
                 <div class="flex flex-col gap-3">
                   @if (frequent().length > 0) {
@@ -663,7 +665,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                   </span>
                   <p class="text-base font-semibold">
                     {{
-                      'transactions.noCategories.' + f.type.value
+                      'transactions.noCategories.' + pickTypeValue()
                         | transloco: { name: wallet()?.name ?? '' }
                     }}
                   </p>
@@ -766,7 +768,6 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                 [hideLabel]="true"
                 [rows]="10"
                 [maxLength]="noteMax"
-                [placeholder]="'transactions.notePlaceholder' | transloco"
                 [hint]="note().length + ' / ' + noteMax"
               />
             </app-sheet-frame>
@@ -1066,10 +1067,18 @@ export class TransactionSheet {
   protected walletItems = computed(() =>
     this.walletChoices().map((wallet) => walletPickItem(wallet))
   )
-  /** Category rule 13: the type's open categories the wallet doesn't hide. */
+  /**
+   * The picker's tab: the form's type when it opens, then the user's. The form has no type
+   * control of its own (Money Lover style): choosing a category sets the type.
+   */
+  protected pickType = this.nnfb.control<string>('expense')
+  protected pickTypeValue = toSignal(this.pickType.valueChanges, {
+    initialValue: this.pickType.value,
+  })
+  /** Category rule 13: the picker tab's open categories the wallet doesn't hide. */
   protected tree = computed<CategoryNode[]>(() => {
     const wallet = this.wallet()
-    const type = (this.values().type ?? 'expense') as CategoryType
+    const type = this.pickTypeValue() as CategoryType
     const hidden = wallet?.hiddenCategoryIds ?? []
     return this.categoryService
       .treeOf(this.profileId(), type)
@@ -1094,7 +1103,7 @@ export class TransactionSheet {
         offered.set(child.id, child)
       }
     }
-    const type = (this.values().type ?? 'expense') as CategoryType
+    const type = this.pickTypeValue() as CategoryType
     return this.transactionService
       .frequentCategoryIds(this.profileId(), type)
       .flatMap((id) => offered.get(id) ?? [])
@@ -1186,6 +1195,9 @@ export class TransactionSheet {
   protected pick(view: 'wallet' | 'category' | 'note' | 'repeat' | 'event'): void {
     this.settleAmount()
     this.keypad.set(false)
+    if (view === 'category') {
+      this.pickType.setValue(this.form.controls.type.value)
+    }
     this.view.set(view)
   }
 
@@ -1196,6 +1208,12 @@ export class TransactionSheet {
   }
 
   protected chooseCategory(id: string): void {
+    const type = this.categoryService.byId(id)?.type
+    if (type && type !== this.form.controls.type.value) {
+      // Before the category, so the type's change doesn't drop it (`dropUnfit`).
+      this.form.controls.type.setValue(type)
+      this.form.controls.type.markAsDirty()
+    }
     this.form.controls.categoryId.setValue(id)
     this.form.controls.categoryId.markAsDirty()
     this.view.set('form')

@@ -217,15 +217,24 @@ describe('TransactionSheet', () => {
     expect(text()).toContain(th.transactions.pickCategory)
   })
 
-  it('drops a category of the other type when the type changes', async () => {
+  it('takes the type from the category, picked under the picker tabs (Money Lover style)', async () => {
     await open({ mode: 'create' })
+    const typeTab = (label: string) =>
+      [...body().querySelectorAll('label')].find((item) => item.textContent.trim() === label)
+    // The form has no type tabs of its own.
+    expect(typeTab(th.categories.income)).toBeUndefined()
     await click('หมวดหมู่ ', true)
-    await click('Food')
-    ;[...body().querySelectorAll('label')]
-      .find((label) => label.textContent.trim() === th.categories.income)
-      ?.click()
+    expect(text()).toContain('Food')
+    expect(text()).not.toContain('Salary')
+    typeTab(th.categories.income)?.click()
     await settle()
-    expect(text()).toContain(th.transactions.pickCategory)
+    expect(text()).toContain('Salary')
+    expect(text()).not.toContain('Food')
+    await click('Salary')
+    expect(typeTab(th.categories.income)).toBeUndefined()
+    // Opened again, the picker starts on the chosen category's type.
+    await click('หมวดหมู่ ', true)
+    expect(typeTab(th.categories.income)?.querySelector('input')?.checked).toBe(true)
   })
 
   it('edits a row with the keypad closed, and deletes it at once with undo in the toast', async () => {

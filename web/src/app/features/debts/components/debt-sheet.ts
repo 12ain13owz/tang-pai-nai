@@ -540,7 +540,6 @@ type View =
                 [hideLabel]="true"
                 [rows]="10"
                 [maxLength]="noteMax"
-                [placeholder]="'transactions.notePlaceholder' | transloco"
                 [hint]="note().length + ' / ' + noteMax"
               />
             </app-sheet-frame>
