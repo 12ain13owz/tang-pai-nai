@@ -30,6 +30,7 @@ import {
 } from '@/shared/components/form'
 import { USER_COLORS } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
+import { Slide } from '@/shared/components/slide'
 import { addDays } from '@/shared/utils'
 
 type View = 'form' | 'icons' | 'confirmDelete'
@@ -63,6 +64,7 @@ const endAfterStart: ValidatorFn = (control) => {
     IconField,
     ColorField,
     SheetFrame,
+    Slide,
     DateRow,
   ],
   providers: [provideIcons({ lucideCalendarCheck, lucidePlus, lucideTrash2, lucideX })],
@@ -71,187 +73,191 @@ const endAfterStart: ValidatorFn = (control) => {
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
       <hlm-drawer-content
         *hlmDrawerPortal
-        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+        class="mx-auto h-[92dvh] w-full max-w-[480px] overflow-x-clip data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
       >
-        @switch (view()) {
-          @case ('form') {
-            <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
-              <app-sheet-frame
-                [title]="heading() | transloco"
-                [leadingLabel]="'sheet.close' | transloco"
-                (leading)="finish()"
-              >
-                @if (editing()) {
-                  <div sheetActions class="flex">
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="tpn-hit size-9 text-destructive"
-                      [disabled]="!eventService.canWrite()"
-                      [attr.aria-label]="'events.delete' | transloco"
-                      (click)="view.set('confirmDelete')"
-                    >
-                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
-                    </button>
-                  </div>
-                }
-                <div class="flex flex-col gap-4">
-                  @if (!eventService.canWrite()) {
-                    <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                      {{
-                        (eventService.serverDown() ? 'sync.serverDownWrite' : 'events.needsOnline')
-                          | transloco
-                      }}
-                    </p>
+        <div class="flex min-h-0 flex-1 flex-col" [appSlide]="depth()">
+          @switch (view()) {
+            @case ('form') {
+              <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
+                <app-sheet-frame
+                  [title]="heading() | transloco"
+                  [leadingLabel]="'sheet.close' | transloco"
+                  (leading)="finish()"
+                >
+                  @if (editing()) {
+                    <div sheetActions class="flex">
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        class="tpn-hit size-9 text-destructive"
+                        [disabled]="!eventService.canWrite()"
+                        [attr.aria-label]="'events.delete' | transloco"
+                        (click)="view.set('confirmDelete')"
+                      >
+                        <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
+                      </button>
+                    </div>
                   }
-                  <app-name-icon-field
-                    [control]="f.name"
-                    [label]="'events.name' | transloco"
-                    [icon]="f.icon.value"
-                    [color]="f.color.value"
-                    [fallback]="defaultIcon"
-                    [iconLabel]="'events.changeIcon' | transloco"
-                    (iconClick)="view.set('icons')"
-                  />
-                  <div
-                    class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
-                  >
-                    <app-date-row
-                      [today]="transactionService.today()"
-                      [locale]="languageService.locale()"
-                      [control]="f.startOn"
-                      [value]="values().startOn ?? ''"
-                      [label]="'events.start' | transloco"
-                      [min]="firstDay"
-                      [max]="lastDay()"
+                  <div class="flex flex-col gap-4">
+                    @if (!eventService.canWrite()) {
+                      <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                        {{
+                          (eventService.serverDown()
+                            ? 'sync.serverDownWrite'
+                            : 'events.needsOnline'
+                          ) | transloco
+                        }}
+                      </p>
+                    }
+                    <app-name-icon-field
+                      [control]="f.name"
+                      [label]="'events.name' | transloco"
+                      [icon]="f.icon.value"
+                      [color]="f.color.value"
+                      [fallback]="defaultIcon"
+                      [iconLabel]="'events.changeIcon' | transloco"
+                      (iconClick)="view.set('icons')"
                     />
-                    @if (values().endOn) {
+                    <div
+                      class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
+                    >
                       <app-date-row
                         [today]="transactionService.today()"
                         [locale]="languageService.locale()"
-                        [control]="f.endOn"
-                        [value]="values().endOn ?? ''"
-                        [label]="'events.end' | transloco"
-                        [min]="values().startOn ?? firstDay"
+                        [control]="f.startOn"
+                        [value]="values().startOn ?? ''"
+                        [label]="'events.start' | transloco"
+                        [min]="firstDay"
+                        [max]="lastDay()"
                       />
-                    } @else {
-                      <button
-                        type="button"
-                        class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                        (click)="setEnd(values().startOn ?? '')"
-                      >
-                        <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                          <ng-icon name="lucideCalendarCheck" size="22" aria-hidden="true" />
-                        </span>
-                        <span class="flex min-w-0 flex-1 flex-col">
-                          <span class="text-base">{{ 'events.end' | transloco }}</span>
-                          <span class="text-sm text-muted-foreground">{{
-                            'events.noEnd' | transloco
-                          }}</span>
-                        </span>
-                        <ng-icon
-                          name="lucidePlus"
-                          size="20"
-                          class="text-muted-foreground"
-                          aria-hidden="true"
+                      @if (values().endOn) {
+                        <app-date-row
+                          [today]="transactionService.today()"
+                          [locale]="languageService.locale()"
+                          [control]="f.endOn"
+                          [value]="values().endOn ?? ''"
+                          [label]="'events.end' | transloco"
+                          [min]="values().startOn ?? firstDay"
                         />
+                      } @else {
+                        <button
+                          type="button"
+                          class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                          (click)="setEnd(values().startOn ?? '')"
+                        >
+                          <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
+                            <ng-icon name="lucideCalendarCheck" size="22" aria-hidden="true" />
+                          </span>
+                          <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-base">{{ 'events.end' | transloco }}</span>
+                            <span class="text-sm text-muted-foreground">{{
+                              'events.noEnd' | transloco
+                            }}</span>
+                          </span>
+                          <ng-icon
+                            name="lucidePlus"
+                            size="20"
+                            class="text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                        </button>
+                      }
+                    </div>
+                    @if (values().endOn) {
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        type="button"
+                        class="-mt-2 h-11 self-start px-2 text-sm text-muted-foreground"
+                        (click)="setEnd('')"
+                      >
+                        <ng-icon name="lucideX" size="16" aria-hidden="true" />
+                        {{ 'events.clearEnd' | transloco }}
                       </button>
                     }
+                    @if (f.endOn.invalid) {
+                      <p role="alert" class="-mt-2 px-1 text-sm text-destructive">
+                        {{ 'events.endBeforeStart' | transloco }}
+                      </p>
+                    }
+                    <p class="-mt-2 px-1 text-sm text-muted-foreground">
+                      {{ 'events.defaultHint' | transloco }}
+                    </p>
+                    @if (atLimit()) {
+                      <p class="px-1 text-sm text-destructive">{{ 'events.limit' | transloco }}</p>
+                    }
                   </div>
-                  @if (values().endOn) {
+                  <div sheetFooter class="pt-3">
                     <button
                       hlmBtn
-                      variant="ghost"
-                      type="button"
-                      class="-mt-2 h-11 self-start px-2 text-sm text-muted-foreground"
-                      (click)="setEnd('')"
+                      type="submit"
+                      class="h-11 w-full text-base"
+                      [disabled]="!eventService.canWrite() || atLimit()"
                     >
-                      <ng-icon name="lucideX" size="16" aria-hidden="true" />
-                      {{ 'events.clearEnd' | transloco }}
+                      {{ 'events.save' | transloco }}
                     </button>
-                  }
-                  @if (f.endOn.invalid) {
-                    <p role="alert" class="-mt-2 px-1 text-sm text-destructive">
-                      {{ 'events.endBeforeStart' | transloco }}
-                    </p>
-                  }
-                  <p class="-mt-2 px-1 text-sm text-muted-foreground">
-                    {{ 'events.defaultHint' | transloco }}
+                  </div>
+                </app-sheet-frame>
+              </form>
+            }
+            @case ('icons') {
+              <app-sheet-frame
+                [title]="'events.iconHeading' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <div class="flex flex-col gap-4">
+                  <app-color-field
+                    [control]="f.color"
+                    [label]="'events.color' | transloco"
+                    [colors]="colors"
+                  />
+                  <app-icon-field
+                    [control]="f.icon"
+                    [label]="'events.icon' | transloco"
+                    [icons]="icons"
+                    [color]="f.color.value"
+                  />
+                </div>
+              </app-sheet-frame>
+            }
+            @case ('confirmDelete') {
+              <app-sheet-frame
+                [title]="'events.deleteHeading' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <div class="flex flex-col gap-3 text-sm text-muted-foreground">
+                  <p class="text-base font-semibold text-foreground">
+                    {{ 'events.deleteQuestion' | transloco: { name: f.name.value } }}
                   </p>
-                  @if (atLimit()) {
-                    <p class="px-1 text-sm text-destructive">{{ 'events.limit' | transloco }}</p>
-                  }
+                  <p>
+                    {{
+                      (rowCount() === 1 ? 'events.deleteTextOne' : 'events.deleteText')
+                        | transloco: { count: rowCount() }
+                    }}
+                  </p>
                 </div>
                 <div sheetFooter class="pt-3">
                   <button
                     hlmBtn
-                    type="submit"
+                    variant="destructive"
+                    type="button"
                     class="h-11 w-full text-base"
-                    [disabled]="!eventService.canWrite() || atLimit()"
+                    [disabled]="!eventService.canWrite()"
+                    (click)="remove()"
                   >
-                    {{ 'events.save' | transloco }}
+                    {{ 'events.delete' | transloco }}
                   </button>
                 </div>
               </app-sheet-frame>
-            </form>
+            }
           }
-          @case ('icons') {
-            <app-sheet-frame
-              [title]="'events.iconHeading' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <div class="flex flex-col gap-4">
-                <app-color-field
-                  [control]="f.color"
-                  [label]="'events.color' | transloco"
-                  [colors]="colors"
-                />
-                <app-icon-field
-                  [control]="f.icon"
-                  [label]="'events.icon' | transloco"
-                  [icons]="icons"
-                  [color]="f.color.value"
-                />
-              </div>
-            </app-sheet-frame>
-          }
-          @case ('confirmDelete') {
-            <app-sheet-frame
-              [title]="'events.deleteHeading' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <div class="flex flex-col gap-3 text-sm text-muted-foreground">
-                <p class="text-base font-semibold text-foreground">
-                  {{ 'events.deleteQuestion' | transloco: { name: f.name.value } }}
-                </p>
-                <p>
-                  {{
-                    (rowCount() === 1 ? 'events.deleteTextOne' : 'events.deleteText')
-                      | transloco: { count: rowCount() }
-                  }}
-                </p>
-              </div>
-              <div sheetFooter class="pt-3">
-                <button
-                  hlmBtn
-                  variant="destructive"
-                  type="button"
-                  class="h-11 w-full text-base"
-                  [disabled]="!eventService.canWrite()"
-                  (click)="remove()"
-                >
-                  {{ 'events.delete' | transloco }}
-                </button>
-              </div>
-            </app-sheet-frame>
-          }
-        }
+        </div>
       </hlm-drawer-content>
     </hlm-drawer>
   `,
@@ -270,6 +276,8 @@ export class EventSheet {
   protected firstDay = EVENT_LIMITS.FIRST_DAY
   protected state = this.eventService.sheet
   protected view = signal<View>('form')
+  /** How deep the view is: a deeper one slides in from the right, going back from the left. */
+  protected depth = computed(() => (this.view() === 'form' ? 0 : 1))
   protected open = signal(false)
 
   form = this.nnfb.group({

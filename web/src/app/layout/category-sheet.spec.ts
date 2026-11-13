@@ -382,6 +382,35 @@ describe('CategorySheet', () => {
       expect([categoryOf('t1'), categoryOf('t2')]).toEqual(['Cafe', 'Cafe'])
     })
 
+    it('slides each step deeper in from the right, and back from the left', async () => {
+      const animate = vi.fn(() => ({ cancel: vi.fn() }) as unknown as Animation)
+      HTMLElement.prototype.animate = animate
+      const sides = () =>
+        animate.mock.calls.map((call: unknown[]) => {
+          const [from] = call[0] as { transform?: string }[]
+          return from.transform
+        })
+      try {
+        category('Home')
+        category('Shop', { sortOrder: 1 })
+        categories.open({ mode: 'edit', id: 'Home' })
+        await settle()
+        await click(th.categories.mergeAction)
+        row('Shop')?.click()
+        await settle()
+        await click(th.sheet.back)
+        await click(th.sheet.back)
+        expect(sides()).toEqual([
+          'translateX(48px)',
+          'translateX(48px)',
+          'translateX(-48px)',
+          'translateX(-48px)',
+        ])
+      } finally {
+        Reflect.deleteProperty(HTMLElement.prototype, 'animate')
+      }
+    })
+
     it("chooses what a parent's sub-categories do, from the header", async () => {
       category('Home')
       category('Rent', { parentId: 'Home' })

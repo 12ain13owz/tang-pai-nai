@@ -48,6 +48,7 @@ import {
 } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
+import { Slide } from '@/shared/components/slide'
 import type { SelectOption } from '@/shared/types'
 import { CategoryMove } from './category-move'
 import type { CategoryFormGroup } from './category-form.type'
@@ -85,6 +86,7 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
     HlmButton,
     HlmDrawerImports,
     SheetFrame,
+    Slide,
     CategoryMove,
   ],
   providers: [
@@ -104,146 +106,124 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
       <hlm-drawer-content
         *hlmDrawerPortal
-        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+        class="mx-auto h-[92dvh] w-full max-w-[480px] overflow-x-clip data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
       >
-        @switch (view()) {
-          @case ('form') {
-            <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
-              <app-sheet-frame
-                [title]="heading() | transloco"
-                [leadingLabel]="'sheet.close' | transloco"
-                [actions]="editing() !== null ? 4 : 2"
-                (leading)="finish()"
-              >
-                @if (editing(); as category) {
-                  <div sheetActions class="flex">
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="tpn-hit size-9"
-                      [disabled]="!categoryService.canWrite() || !used()"
-                      [attr.aria-label]="'categories.moveAction' | transloco"
-                      (click)="view.set('move')"
-                    >
-                      <ng-icon name="lucideFolderInput" size="18" aria-hidden="true" />
-                    </button>
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="tpn-hit size-9"
-                      [disabled]="!categoryService.canWrite()"
-                      [attr.aria-label]="
-                        (category.isArchived ? 'categories.unarchive' : 'categories.archive')
-                          | transloco
-                      "
-                      (click)="toggleArchive()"
-                    >
-                      <ng-icon
-                        [name]="category.isArchived ? 'lucideArchiveRestore' : 'lucideArchive'"
-                        size="18"
-                        aria-hidden="true"
-                      />
-                    </button>
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="tpn-hit size-9"
-                      [disabled]="!categoryService.canWrite() || mergeTargets().length === 0"
-                      [attr.aria-label]="'categories.mergeAction' | transloco"
-                      (click)="view.set('merge')"
-                    >
-                      <ng-icon name="lucideMerge" size="18" aria-hidden="true" />
-                    </button>
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="tpn-hit size-9 text-destructive"
-                      [disabled]="!categoryService.canWrite() || childCount() > 0 || used()"
-                      [attr.aria-label]="'categories.delete' | transloco"
-                      (click)="view.set('confirmDelete')"
-                    >
-                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
-                    </button>
-                  </div>
-                }
-                <div class="flex flex-col gap-5">
-                  @if (!categoryService.canWrite()) {
-                    <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                      {{
-                        (categoryService.serverDown()
-                          ? 'sync.serverDownWrite'
-                          : 'categories.needsOnline'
-                        ) | transloco
-                      }}
-                    </p>
+        <div class="flex min-h-0 flex-1 flex-col" [appSlide]="depth()">
+          @switch (view()) {
+            @case ('form') {
+              <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
+                <app-sheet-frame
+                  [title]="heading() | transloco"
+                  [leadingLabel]="'sheet.close' | transloco"
+                  [actions]="editing() !== null ? 4 : 2"
+                  (leading)="finish()"
+                >
+                  @if (editing(); as category) {
+                    <div sheetActions class="flex">
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        class="tpn-hit size-9"
+                        [disabled]="!categoryService.canWrite() || !used()"
+                        [attr.aria-label]="'categories.moveAction' | transloco"
+                        (click)="view.set('move')"
+                      >
+                        <ng-icon name="lucideFolderInput" size="18" aria-hidden="true" />
+                      </button>
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        class="tpn-hit size-9"
+                        [disabled]="!categoryService.canWrite()"
+                        [attr.aria-label]="
+                          (category.isArchived ? 'categories.unarchive' : 'categories.archive')
+                            | transloco
+                        "
+                        (click)="toggleArchive()"
+                      >
+                        <ng-icon
+                          [name]="category.isArchived ? 'lucideArchiveRestore' : 'lucideArchive'"
+                          size="18"
+                          aria-hidden="true"
+                        />
+                      </button>
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        class="tpn-hit size-9"
+                        [disabled]="!categoryService.canWrite() || mergeTargets().length === 0"
+                        [attr.aria-label]="'categories.mergeAction' | transloco"
+                        (click)="view.set('merge')"
+                      >
+                        <ng-icon name="lucideMerge" size="18" aria-hidden="true" />
+                      </button>
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        class="tpn-hit size-9 text-destructive"
+                        [disabled]="!categoryService.canWrite() || childCount() > 0 || used()"
+                        [attr.aria-label]="'categories.delete' | transloco"
+                        (click)="view.set('confirmDelete')"
+                      >
+                        <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
+                      </button>
+                    </div>
                   }
-                  @if (refusal()) {
-                    <p role="alert" class="text-sm text-destructive">
-                      {{ refusal() | transloco }}
-                    </p>
-                  }
-                  <app-name-icon-field
-                    [control]="f.name"
-                    [label]="'categories.name' | transloco"
-                    [icon]="f.icon.value"
-                    [color]="f.color.value"
-                    [fallback]="defaultIcon"
-                    [iconLabel]="'categories.changeIcon' | transloco"
-                    (iconClick)="view.set('icons')"
-                  />
-                  <div class="flex flex-col gap-1">
-                    <app-segmented-field
-                      [control]="f.type"
-                      [label]="'categories.typeLabel' | transloco"
-                      [options]="typeOptions()"
-                    />
-                    @if (typeNote(); as note) {
-                      <p class="text-sm text-muted-foreground">{{ note | transloco }}</p>
+                  <div class="flex flex-col gap-5">
+                    @if (!categoryService.canWrite()) {
+                      <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                        {{
+                          (categoryService.serverDown()
+                            ? 'sync.serverDownWrite'
+                            : 'categories.needsOnline'
+                          ) | transloco
+                        }}
+                      </p>
                     }
-                  </div>
-                  <div class="-mx-4 flex flex-col border-y border-border">
-                    <button
-                      type="button"
-                      class="flex min-h-12 items-center gap-3 px-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-60"
-                      [disabled]="childCount() > 0"
-                      (click)="view.set('parent')"
-                    >
-                      <span class="text-muted-foreground">{{
-                        'categories.parent' | transloco
-                      }}</span>
-                      <span class="min-w-0 flex-1 truncate text-right">
-                        {{ parentName() ?? ('categories.parentNone' | transloco) }}
-                      </span>
-                      <ng-icon
-                        name="lucideChevronRight"
-                        size="20"
-                        class="text-muted-foreground"
-                        aria-hidden="true"
+                    @if (refusal()) {
+                      <p role="alert" class="text-sm text-destructive">
+                        {{ refusal() | transloco }}
+                      </p>
+                    }
+                    <app-name-icon-field
+                      [control]="f.name"
+                      [label]="'categories.name' | transloco"
+                      [icon]="f.icon.value"
+                      [color]="f.color.value"
+                      [fallback]="defaultIcon"
+                      [iconLabel]="'categories.changeIcon' | transloco"
+                      (iconClick)="view.set('icons')"
+                    />
+                    <div class="flex flex-col gap-1">
+                      <app-segmented-field
+                        [control]="f.type"
+                        [label]="'categories.typeLabel' | transloco"
+                        [options]="typeOptions()"
                       />
-                    </button>
-                    @if (walletItems().length > 0) {
+                      @if (typeNote(); as note) {
+                        <p class="text-sm text-muted-foreground">{{ note | transloco }}</p>
+                      }
+                    </div>
+                    <div class="-mx-4 flex flex-col border-y border-border">
                       <button
                         type="button"
-                        class="flex min-h-12 items-center gap-3 border-t border-border px-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                        (click)="view.set('wallets')"
+                        class="flex min-h-12 items-center gap-3 px-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-60"
+                        [disabled]="childCount() > 0"
+                        (click)="view.set('parent')"
                       >
                         <span class="text-muted-foreground">{{
-                          'categories.usedIn' | transloco
+                          'categories.parent' | transloco
                         }}</span>
                         <span class="min-w-0 flex-1 truncate text-right">
-                          @if (usedIn().used === usedIn().total) {
-                            {{ 'categories.usedInAll' | transloco }}
-                          } @else {
-                            {{ 'categories.usedInSome' | transloco: usedIn() }}
-                          }
+                          {{ parentName() ?? ('categories.parentNone' | transloco) }}
                         </span>
                         <ng-icon
                           name="lucideChevronRight"
@@ -252,137 +232,135 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
                           aria-hidden="true"
                         />
                       </button>
+                      @if (walletItems().length > 0) {
+                        <button
+                          type="button"
+                          class="flex min-h-12 items-center gap-3 border-t border-border px-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                          (click)="view.set('wallets')"
+                        >
+                          <span class="text-muted-foreground">{{
+                            'categories.usedIn' | transloco
+                          }}</span>
+                          <span class="min-w-0 flex-1 truncate text-right">
+                            @if (usedIn().used === usedIn().total) {
+                              {{ 'categories.usedInAll' | transloco }}
+                            } @else {
+                              {{ 'categories.usedInSome' | transloco: usedIn() }}
+                            }
+                          </span>
+                          <ng-icon
+                            name="lucideChevronRight"
+                            size="20"
+                            class="text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                        </button>
+                      }
+                    </div>
+                    @if (childCount() > 0) {
+                      <p class="rounded-xl bg-muted px-4 py-3 text-sm">
+                        {{ 'categories.deleteHasChildren' | transloco: { count: childCount() } }}
+                      </p>
+                    } @else if (used()) {
+                      <p class="rounded-xl bg-muted px-4 py-3 text-sm">
+                        {{ 'categories.deleteUsed' | transloco: { count: usedCount() } }}
+                        @if (mergeTargets().length > 0 && categoryService.canWrite()) {
+                          <button
+                            type="button"
+                            class="block min-h-11 font-semibold text-brand underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            (click)="view.set('merge')"
+                          >
+                            {{ 'categories.mergeLink' | transloco }}
+                          </button>
+                        }
+                        @if (categoryService.canWrite()) {
+                          <button
+                            type="button"
+                            class="block min-h-11 font-semibold text-brand underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            (click)="view.set('move')"
+                          >
+                            {{ 'categories.moveLink' | transloco }}
+                          </button>
+                        }
+                      </p>
                     }
                   </div>
-                  @if (childCount() > 0) {
-                    <p class="rounded-xl bg-muted px-4 py-3 text-sm">
-                      {{ 'categories.deleteHasChildren' | transloco: { count: childCount() } }}
-                    </p>
-                  } @else if (used()) {
-                    <p class="rounded-xl bg-muted px-4 py-3 text-sm">
-                      {{ 'categories.deleteUsed' | transloco: { count: usedCount() } }}
-                      @if (mergeTargets().length > 0 && categoryService.canWrite()) {
-                        <button
-                          type="button"
-                          class="block min-h-11 font-semibold text-brand underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                          (click)="view.set('merge')"
-                        >
-                          {{ 'categories.mergeLink' | transloco }}
-                        </button>
-                      }
-                      @if (categoryService.canWrite()) {
-                        <button
-                          type="button"
-                          class="block min-h-11 font-semibold text-brand underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                          (click)="view.set('move')"
-                        >
-                          {{ 'categories.moveLink' | transloco }}
-                        </button>
-                      }
-                    </p>
-                  }
-                </div>
-                <div sheetFooter class="pt-3">
-                  <button
-                    hlmBtn
-                    type="submit"
-                    class="h-11 w-full text-base"
-                    [disabled]="!categoryService.canWrite()"
-                  >
-                    {{ 'categories.save' | transloco }}
-                  </button>
+                  <div sheetFooter class="pt-3">
+                    <button
+                      hlmBtn
+                      type="submit"
+                      class="h-11 w-full text-base"
+                      [disabled]="!categoryService.canWrite()"
+                    >
+                      {{ 'categories.save' | transloco }}
+                    </button>
+                  </div>
+                </app-sheet-frame>
+              </form>
+            }
+            @case ('icons') {
+              <app-sheet-frame
+                [title]="'categories.iconHeading' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <div class="flex flex-col gap-6">
+                  <app-color-field
+                    [control]="f.color"
+                    [label]="'categories.color' | transloco"
+                    [colors]="colors"
+                  />
+                  <app-icon-field
+                    [control]="f.icon"
+                    [label]="'categories.icon' | transloco"
+                    [groups]="iconGroups"
+                    [color]="f.color.value"
+                  />
                 </div>
               </app-sheet-frame>
-            </form>
-          }
-          @case ('icons') {
-            <app-sheet-frame
-              [title]="'categories.iconHeading' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <div class="flex flex-col gap-6">
-                <app-color-field
-                  [control]="f.color"
-                  [label]="'categories.color' | transloco"
-                  [colors]="colors"
+            }
+            @case ('wallets') {
+              <app-sheet-frame
+                [title]="'categories.usedInHeading' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <app-toggle-list-field
+                  [control]="f.hiddenIn"
+                  [label]="'categories.usedInHeading' | transloco"
+                  [items]="walletItems()"
                 />
-                <app-icon-field
-                  [control]="f.icon"
-                  [label]="'categories.icon' | transloco"
-                  [groups]="iconGroups"
-                  [color]="f.color.value"
-                />
-              </div>
-            </app-sheet-frame>
-          }
-          @case ('wallets') {
-            <app-sheet-frame
-              [title]="'categories.usedInHeading' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <app-toggle-list-field
-                [control]="f.hiddenIn"
-                [label]="'categories.usedInHeading' | transloco"
-                [items]="walletItems()"
-              />
-            </app-sheet-frame>
-          }
-          @case ('parent') {
-            <app-sheet-frame
-              [title]="'categories.parent' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <div class="flex flex-col gap-3">
-                <p class="text-sm text-muted-foreground">
-                  {{ 'categories.parentHint' | transloco }}
-                </p>
-                <ul
-                  class="divide-y divide-border rounded-xl border border-border bg-card"
-                  role="listbox"
-                  [attr.aria-label]="'categories.parent' | transloco"
-                >
-                  <li>
-                    <button
-                      type="button"
-                      role="option"
-                      class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                      [attr.aria-selected]="f.parentId.value === ''"
-                      (click)="pickParent('')"
-                    >
-                      <app-icon-badge [icon]="defaultIcon" color="#475569" />
-                      <span class="flex-1">{{ 'categories.parentNoneOption' | transloco }}</span>
-                      @if (f.parentId.value === '') {
-                        <ng-icon
-                          name="lucideCheck"
-                          size="20"
-                          class="text-brand"
-                          aria-hidden="true"
-                        />
-                      }
-                    </button>
-                  </li>
-                  @for (parent of parentOptions(); track parent.id) {
+              </app-sheet-frame>
+            }
+            @case ('parent') {
+              <app-sheet-frame
+                [title]="'categories.parent' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <div class="flex flex-col gap-3">
+                  <p class="text-sm text-muted-foreground">
+                    {{ 'categories.parentHint' | transloco }}
+                  </p>
+                  <ul
+                    class="divide-y divide-border rounded-xl border border-border bg-card"
+                    role="listbox"
+                    [attr.aria-label]="'categories.parent' | transloco"
+                  >
                     <li>
                       <button
                         type="button"
                         role="option"
                         class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                        [attr.aria-selected]="f.parentId.value === parent.id"
-                        (click)="pickParent(parent.id)"
+                        [attr.aria-selected]="f.parentId.value === ''"
+                        (click)="pickParent('')"
                       >
-                        <app-icon-badge
-                          [icon]="parent.icon"
-                          [color]="parent.color"
-                          [fallback]="defaultIcon"
-                        />
-                        <span class="min-w-0 flex-1 truncate">{{ parent.name }}</span>
-                        @if (f.parentId.value === parent.id) {
+                        <app-icon-badge [icon]="defaultIcon" color="#475569" />
+                        <span class="flex-1">{{ 'categories.parentNoneOption' | transloco }}</span>
+                        @if (f.parentId.value === '') {
                           <ng-icon
                             name="lucideCheck"
                             size="20"
@@ -392,256 +370,283 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
                         }
                       </button>
                     </li>
+                    @for (parent of parentOptions(); track parent.id) {
+                      <li>
+                        <button
+                          type="button"
+                          role="option"
+                          class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                          [attr.aria-selected]="f.parentId.value === parent.id"
+                          (click)="pickParent(parent.id)"
+                        >
+                          <app-icon-badge
+                            [icon]="parent.icon"
+                            [color]="parent.color"
+                            [fallback]="defaultIcon"
+                          />
+                          <span class="min-w-0 flex-1 truncate">{{ parent.name }}</span>
+                          @if (f.parentId.value === parent.id) {
+                            <ng-icon
+                              name="lucideCheck"
+                              size="20"
+                              class="text-brand"
+                              aria-hidden="true"
+                            />
+                          }
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              </app-sheet-frame>
+            }
+            @case ('move') {
+              @if (editing(); as category) {
+                <app-category-move
+                  [category]="category"
+                  (back)="view.set('form')"
+                  (moved)="finish()"
+                />
+              }
+            }
+            @case ('merge') {
+              <app-sheet-frame
+                [title]="'categories.mergeInto' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <ul
+                  class="divide-y divide-border rounded-xl border border-border bg-card"
+                  [attr.aria-label]="'categories.mergeInto' | transloco"
+                >
+                  @for (node of mergeTargets(); track node.category.id) {
+                    <li>
+                      <button
+                        type="button"
+                        class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                        (click)="pickMergeTarget(node.category.id)"
+                      >
+                        <app-icon-badge
+                          [icon]="node.category.icon"
+                          [color]="node.category.color"
+                          [fallback]="defaultIcon"
+                        />
+                        <span class="flex min-w-0 flex-1 flex-col">
+                          <span class="truncate text-base">{{ node.category.name }}</span>
+                          @if (node.category.id === editing()?.parentId) {
+                            <span class="text-xs text-muted-foreground">{{
+                              'categories.mergeOwnParent' | transloco
+                            }}</span>
+                          }
+                        </span>
+                        <ng-icon
+                          name="lucideChevronRight"
+                          size="20"
+                          class="text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      </button>
+                      @if (node.children.length > 0) {
+                        <ul
+                          class="tpn-tree"
+                          [style.--tree-color]="treeColor(node.category.color)"
+                          [attr.aria-label]="node.category.name"
+                        >
+                          @for (child of node.children; track child.id) {
+                            <li>
+                              <button
+                                type="button"
+                                class="flex min-h-12 w-full items-center gap-3 py-2 pr-4 pl-7 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                                (click)="pickMergeTarget(child.id)"
+                              >
+                                <app-icon-badge
+                                  [icon]="child.icon"
+                                  [color]="child.color"
+                                  [fallback]="defaultIcon"
+                                  [size]="32"
+                                />
+                                <span class="min-w-0 flex-1 truncate text-base">{{
+                                  child.name
+                                }}</span>
+                                <ng-icon
+                                  name="lucideChevronRight"
+                                  size="20"
+                                  class="text-muted-foreground"
+                                  aria-hidden="true"
+                                />
+                              </button>
+                            </li>
+                          }
+                        </ul>
+                      }
+                    </li>
                   }
                 </ul>
-              </div>
-            </app-sheet-frame>
-          }
-          @case ('move') {
-            @if (editing(); as category) {
-              <app-category-move
-                [category]="category"
-                (back)="view.set('form')"
-                (moved)="finish()"
-              />
+              </app-sheet-frame>
             }
-          }
-          @case ('merge') {
-            <app-sheet-frame
-              [title]="'categories.mergeInto' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <ul
-                class="divide-y divide-border rounded-xl border border-border bg-card"
-                [attr.aria-label]="'categories.mergeInto' | transloco"
+            @case ('confirmMerge') {
+              <app-sheet-frame
+                [title]="'categories.mergeAction' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('merge')"
               >
-                @for (node of mergeTargets(); track node.category.id) {
-                  <li>
-                    <button
-                      type="button"
-                      class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                      (click)="pickMergeTarget(node.category.id)"
-                    >
+                @if (mergeTarget(); as target) {
+                  <div class="flex flex-col gap-4">
+                    <div class="flex items-center gap-2 pt-2" aria-hidden="true">
                       <app-icon-badge
-                        [icon]="node.category.icon"
-                        [color]="node.category.color"
+                        [icon]="f.icon.value"
+                        [color]="f.color.value"
                         [fallback]="defaultIcon"
                       />
-                      <span class="flex min-w-0 flex-1 flex-col">
-                        <span class="truncate text-base">{{ node.category.name }}</span>
-                        @if (node.category.id === editing()?.parentId) {
-                          <span class="text-xs text-muted-foreground">{{
-                            'categories.mergeOwnParent' | transloco
-                          }}</span>
-                        }
-                      </span>
-                      <ng-icon
-                        name="lucideChevronRight"
-                        size="20"
-                        class="text-muted-foreground"
-                        aria-hidden="true"
+                      <ng-icon name="lucideChevronRight" size="20" class="text-muted-foreground" />
+                      <app-icon-badge
+                        [icon]="target.icon"
+                        [color]="target.color"
+                        [fallback]="defaultIcon"
                       />
-                    </button>
-                    @if (node.children.length > 0) {
-                      <ul
-                        class="tpn-tree"
-                        [style.--tree-color]="treeColor(node.category.color)"
-                        [attr.aria-label]="node.category.name"
-                      >
-                        @for (child of node.children; track child.id) {
-                          <li>
-                            <button
-                              type="button"
-                              class="flex min-h-12 w-full items-center gap-3 py-2 pr-4 pl-7 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                              (click)="pickMergeTarget(child.id)"
-                            >
-                              <app-icon-badge
-                                [icon]="child.icon"
-                                [color]="child.color"
-                                [fallback]="defaultIcon"
-                                [size]="32"
-                              />
-                              <span class="min-w-0 flex-1 truncate text-base">{{
-                                child.name
-                              }}</span>
-                              <ng-icon
-                                name="lucideChevronRight"
-                                size="20"
-                                class="text-muted-foreground"
-                                aria-hidden="true"
-                              />
-                            </button>
+                    </div>
+                    <p class="text-base font-semibold">
+                      {{
+                        'categories.mergeQuestion'
+                          | transloco: { from: editingName(), to: target.name }
+                      }}
+                    </p>
+                    @if (childCount() > 0) {
+                      <app-segmented-field
+                        [control]="mergeMode"
+                        [label]="'categories.mergeChildren' | transloco: { count: childCount() }"
+                        [options]="mergeModeOptions()"
+                      />
+                    }
+                    @if (mergePlan(); as plan) {
+                      <ul class="flex flex-col gap-2 text-sm">
+                        <li class="flex gap-2">
+                          <ng-icon
+                            name="lucideCheck"
+                            size="18"
+                            class="mt-0.5 shrink-0 text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                          <span>{{
+                            (plan.transactions > 0
+                              ? 'categories.mergeTransactions'
+                              : 'categories.mergeNoTransactions'
+                            ) | transloco: { count: plan.transactions, name: target.name }
+                          }}</span>
+                        </li>
+                        @if (plan.moved > 0) {
+                          <li class="flex gap-2">
+                            <ng-icon
+                              name="lucideCheck"
+                              size="18"
+                              class="mt-0.5 shrink-0 text-muted-foreground"
+                              aria-hidden="true"
+                            />
+                            <span>{{
+                              (plan.clashes > 0
+                                ? 'categories.mergeMovedClash'
+                                : 'categories.mergeMoved'
+                              )
+                                | transloco
+                                  : {
+                                      count: plan.moved,
+                                      clashes: plan.clashes,
+                                      name: mergeParentName(),
+                                    }
+                            }}</span>
                           </li>
                         }
+                        @if (plan.merged > 0) {
+                          <li class="flex gap-2">
+                            <ng-icon
+                              name="lucideCheck"
+                              size="18"
+                              class="mt-0.5 shrink-0 text-muted-foreground"
+                              aria-hidden="true"
+                            />
+                            <span>{{
+                              'categories.mergeMerged'
+                                | transloco: { count: plan.merged, name: target.name }
+                            }}</span>
+                          </li>
+                        }
+                        <li class="flex gap-2 text-destructive">
+                          <ng-icon
+                            name="lucideTriangleAlert"
+                            size="18"
+                            class="mt-0.5 shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span>{{
+                            'categories.mergeWarning' | transloco: { name: editingName() }
+                          }}</span>
+                        </li>
                       </ul>
                     }
-                  </li>
-                }
-              </ul>
-            </app-sheet-frame>
-          }
-          @case ('confirmMerge') {
-            <app-sheet-frame
-              [title]="'categories.mergeAction' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('merge')"
-            >
-              @if (mergeTarget(); as target) {
-                <div class="flex flex-col gap-4">
-                  <div class="flex items-center gap-2 pt-2" aria-hidden="true">
-                    <app-icon-badge
-                      [icon]="f.icon.value"
-                      [color]="f.color.value"
-                      [fallback]="defaultIcon"
-                    />
-                    <ng-icon name="lucideChevronRight" size="20" class="text-muted-foreground" />
-                    <app-icon-badge
-                      [icon]="target.icon"
-                      [color]="target.color"
-                      [fallback]="defaultIcon"
-                    />
                   </div>
+                }
+                <div sheetFooter class="pt-3">
+                  <button
+                    hlmBtn
+                    variant="destructive"
+                    type="button"
+                    class="h-11 w-full text-base"
+                    [disabled]="!mergePlan() || !categoryService.canWrite()"
+                    (click)="merge()"
+                  >
+                    {{ 'categories.mergeConfirm' | transloco }}
+                  </button>
+                </div>
+              </app-sheet-frame>
+            }
+            @case ('confirmDelete') {
+              <app-sheet-frame
+                [title]="'categories.delete' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <div class="flex flex-col items-center gap-2 pt-6 text-center">
+                  <app-icon-badge
+                    [icon]="f.icon.value"
+                    [color]="f.color.value"
+                    [size]="52"
+                    [fallback]="defaultIcon"
+                  />
                   <p class="text-base font-semibold">
-                    {{
-                      'categories.mergeQuestion'
-                        | transloco: { from: editingName(), to: target.name }
-                    }}
+                    {{ 'categories.deleteHeading' | transloco: { name: editingName() } }}
                   </p>
-                  @if (childCount() > 0) {
-                    <app-segmented-field
-                      [control]="mergeMode"
-                      [label]="'categories.mergeChildren' | transloco: { count: childCount() }"
-                      [options]="mergeModeOptions()"
-                    />
-                  }
-                  @if (mergePlan(); as plan) {
-                    <ul class="flex flex-col gap-2 text-sm">
-                      <li class="flex gap-2">
-                        <ng-icon
-                          name="lucideCheck"
-                          size="18"
-                          class="mt-0.5 shrink-0 text-muted-foreground"
-                          aria-hidden="true"
-                        />
-                        <span>{{
-                          (plan.transactions > 0
-                            ? 'categories.mergeTransactions'
-                            : 'categories.mergeNoTransactions'
-                          ) | transloco: { count: plan.transactions, name: target.name }
-                        }}</span>
-                      </li>
-                      @if (plan.moved > 0) {
-                        <li class="flex gap-2">
-                          <ng-icon
-                            name="lucideCheck"
-                            size="18"
-                            class="mt-0.5 shrink-0 text-muted-foreground"
-                            aria-hidden="true"
-                          />
-                          <span>{{
-                            (plan.clashes > 0
-                              ? 'categories.mergeMovedClash'
-                              : 'categories.mergeMoved'
-                            )
-                              | transloco
-                                : {
-                                    count: plan.moved,
-                                    clashes: plan.clashes,
-                                    name: mergeParentName(),
-                                  }
-                          }}</span>
-                        </li>
-                      }
-                      @if (plan.merged > 0) {
-                        <li class="flex gap-2">
-                          <ng-icon
-                            name="lucideCheck"
-                            size="18"
-                            class="mt-0.5 shrink-0 text-muted-foreground"
-                            aria-hidden="true"
-                          />
-                          <span>{{
-                            'categories.mergeMerged'
-                              | transloco: { count: plan.merged, name: target.name }
-                          }}</span>
-                        </li>
-                      }
-                      <li class="flex gap-2 text-destructive">
-                        <ng-icon
-                          name="lucideTriangleAlert"
-                          size="18"
-                          class="mt-0.5 shrink-0"
-                          aria-hidden="true"
-                        />
-                        <span>{{
-                          'categories.mergeWarning' | transloco: { name: editingName() }
-                        }}</span>
-                      </li>
-                    </ul>
+                  <p class="text-sm text-muted-foreground">
+                    {{ 'categories.deleteText' | transloco }}
+                  </p>
+                  @if (categoryService.ruleCount(editingId()); as count) {
+                    <!-- Recurring rule 14: its rules go with it. -->
+                    <p class="text-sm text-muted-foreground">
+                      {{
+                        'recurring.deleteLine'
+                          | transloco
+                            : { count: count, what: ('recurring.whatCategory' | transloco) }
+                      }}
+                    </p>
                   }
                 </div>
-              }
-              <div sheetFooter class="pt-3">
-                <button
-                  hlmBtn
-                  variant="destructive"
-                  type="button"
-                  class="h-11 w-full text-base"
-                  [disabled]="!mergePlan() || !categoryService.canWrite()"
-                  (click)="merge()"
-                >
-                  {{ 'categories.mergeConfirm' | transloco }}
-                </button>
-              </div>
-            </app-sheet-frame>
+                <div sheetFooter class="pt-3">
+                  <button
+                    hlmBtn
+                    variant="destructive"
+                    type="button"
+                    class="h-11 w-full text-base"
+                    (click)="remove()"
+                  >
+                    {{ 'categories.deleteConfirm' | transloco }}
+                  </button>
+                </div>
+              </app-sheet-frame>
+            }
           }
-          @case ('confirmDelete') {
-            <app-sheet-frame
-              [title]="'categories.delete' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <div class="flex flex-col items-center gap-2 pt-6 text-center">
-                <app-icon-badge
-                  [icon]="f.icon.value"
-                  [color]="f.color.value"
-                  [size]="52"
-                  [fallback]="defaultIcon"
-                />
-                <p class="text-base font-semibold">
-                  {{ 'categories.deleteHeading' | transloco: { name: editingName() } }}
-                </p>
-                <p class="text-sm text-muted-foreground">
-                  {{ 'categories.deleteText' | transloco }}
-                </p>
-                @if (categoryService.ruleCount(editingId()); as count) {
-                  <!-- Recurring rule 14: its rules go with it. -->
-                  <p class="text-sm text-muted-foreground">
-                    {{
-                      'recurring.deleteLine'
-                        | transloco: { count: count, what: ('recurring.whatCategory' | transloco) }
-                    }}
-                  </p>
-                }
-              </div>
-              <div sheetFooter class="pt-3">
-                <button
-                  hlmBtn
-                  variant="destructive"
-                  type="button"
-                  class="h-11 w-full text-base"
-                  (click)="remove()"
-                >
-                  {{ 'categories.deleteConfirm' | transloco }}
-                </button>
-              </div>
-            </app-sheet-frame>
-          }
-        }
+        </div>
       </hlm-drawer-content>
     </hlm-drawer>
   `,
@@ -659,6 +664,11 @@ export class CategorySheet {
   protected colors = USER_COLORS
   protected state = this.categoryService.sheet
   protected view = signal<View>('form')
+  /** How deep the view is: a deeper one slides in from the right, going back from the left. */
+  protected depth = computed(() => {
+    const view = this.view()
+    return view === 'form' ? 0 : view === 'confirmMerge' ? 2 : 1
+  })
   /** Why the category can't come back from the archive (a translation key). */
   protected refusal = signal<string | null>(null)
 

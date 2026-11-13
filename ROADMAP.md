@@ -133,7 +133,10 @@ Web only, no API change. Owner's choices after trying the app on a phone.
 - **Motion** (DESIGN.md §8): on the Transactions tab the list slides in from the side of the
   chosen period, by chip or swipe (`appSlide`, `shared/components/slide`); switching bottom
   tabs fades the page in with an 8px rise (`appFadeIn` on the shell's `<main>`,
-  `shared/components/fade`). The Reports tab can take `appSlide` the same way (not yet).
+  `shared/components/fade`). The Reports tab can take `appSlide` the same way (not yet). Inside
+  every sheet with views, `appSlide` keyed on the view's depth makes a navigation stack: a
+  picker or step slides in from the right, ‹ brings the earlier view back from the left. Sheets
+  never ask before closing any more (owner: the forms are short, the question was a nuisance).
 - **The account tab is ตั้งค่า / Settings**: not โปรไฟล์ (already a data set) nor บัญชี (a bank
   account). Its icon is still `lucideCircleUser`.
 - **Number keypad** (transaction.md → Web screens): `app-calc-keypad` lost ÷ × − + and "=":

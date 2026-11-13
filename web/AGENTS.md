@@ -257,7 +257,10 @@ data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"` holding one `app-sheet-frame
   (`@/shared/components/sheet`: `title`, `leadingIcon` `close` | `back`, `leadingLabel`,
   `(leading)`; project `[sheetActions]` icon buttons and a `[sheetFooter]` with the main button).
   A sheet with more than one step switches views inside the same drawer (`form` / `icons` /
-  `confirmDelete`, see `layout/wallet-sheet`). Specs find icon buttons by
+  `confirmDelete`, see `layout/wallet-sheet`). The `@switch (view())` sits in one
+  `<div class="flex min-h-0 flex-1 flex-col" [appSlide]="depth()">` (`form` 0, a view opened
+  from it 1, a view opened from that 2), and the drawer content carries `overflow-x-clip`, so a
+  new view slides in like a navigation stack (DESIGN.md §8). Specs find icon buttons by
   `aria-label`. No grab handle: `src/styles.css` hides spartan's
   (`hlm-drawer-content[data-slot='drawer-content'] > div:first-child`: Tailwind's utilities here
   are unlayered, so it needs the attribute to outrank the one that shows it; the generated file

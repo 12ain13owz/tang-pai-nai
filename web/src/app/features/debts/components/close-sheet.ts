@@ -17,6 +17,7 @@ import { DateRow } from '@/shared/components/date-row'
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
+import { Slide } from '@/shared/components/slide'
 import { WalletPick } from '@/shared/components/wallet-pick'
 import { addDays, formatMoney } from '@/shared/utils'
 import { DebtCategoryPick } from './category-pick'
@@ -37,6 +38,7 @@ type View = 'form' | 'wallet' | 'category'
     HlmDrawerImports,
     IconBadge,
     SheetFrame,
+    Slide,
     DebtCategoryPick,
     DateRow,
     WalletPick,
@@ -46,190 +48,192 @@ type View = 'form' | 'wallet' | 'category'
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="debtService.closeSheet.set(null)">
       <hlm-drawer-content
         *hlmDrawerPortal
-        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+        class="mx-auto h-[92dvh] w-full max-w-[480px] overflow-x-clip data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
       >
-        @switch (view()) {
-          @case ('form') {
-            <app-sheet-frame
-              [title]="'debts.close' | transloco"
-              [leadingLabel]="'sheet.close' | transloco"
-              (leading)="debtService.closeSheet.set(null)"
-            >
-              @if (item(); as current) {
-                <div class="flex flex-col gap-4">
-                  <p class="px-1 text-base">
-                    {{
-                      'debts.closeLeft.' + current.debt.direction
-                        | transloco: { name: current.debt.person, amount: leftText() }
-                    }}
-                  </p>
-                  <div
-                    class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
-                    role="radiogroup"
-                    [attr.aria-label]="'debts.close' | transloco"
-                  >
-                    @for (option of options; track option) {
-                      <button
-                        type="button"
-                        role="radio"
-                        class="flex min-h-15 w-full items-center gap-3 px-4 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                        [attr.aria-checked]="how() === option"
-                        (click)="how.set(option)"
-                      >
-                        <span class="flex min-w-0 flex-1 flex-col">
-                          <span class="text-base">{{
-                            'debts.closeHow.' + option + '.' + current.debt.direction | transloco
-                          }}</span>
-                          <span class="text-sm text-muted-foreground">{{ hintOf(option) }}</span>
-                        </span>
-                        <span
-                          class="size-5 shrink-0 rounded-full border-2 border-border"
-                          [class.border-6]="how() === option"
-                          [class.border-brand]="how() === option"
-                          aria-hidden="true"
-                        ></span>
-                      </button>
-                    }
-                  </div>
-                  <div
-                    class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
-                  >
-                    @if (how() === 'rest') {
-                      <button
-                        type="button"
-                        class="flex min-h-15 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                        (click)="view.set('wallet')"
-                      >
-                        <span class="flex w-10 shrink-0 justify-center">
-                          @if (wallet(); as w) {
-                            <app-icon-badge
-                              [icon]="w.icon"
-                              [color]="w.color"
-                              [fallback]="walletIcon"
-                              [size]="32"
-                            />
-                          } @else {
-                            <ng-icon
-                              name="lucideWallet"
-                              size="22"
-                              class="text-muted-foreground"
-                              aria-hidden="true"
-                            />
-                          }
-                        </span>
-                        <span class="flex min-w-0 flex-1 flex-col">
-                          <span class="text-xs text-muted-foreground">{{
-                            'debts.walletOf.' + current.debt.direction + '.repayment' | transloco
-                          }}</span>
-                          <span class="truncate text-base">{{ wallet()?.name ?? '' }}</span>
-                        </span>
-                        <ng-icon
-                          name="lucideChevronRight"
-                          size="20"
-                          class="text-muted-foreground"
-                          aria-hidden="true"
-                        />
-                      </button>
-                    } @else if (counts()) {
-                      <button
-                        type="button"
-                        class="flex min-h-15 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                        (click)="view.set('category')"
-                      >
-                        <span class="flex w-10 shrink-0 justify-center">
-                          <app-icon-badge
-                            [icon]="category()?.icon ?? ''"
-                            [color]="category()?.color ?? ''"
-                            [fallback]="categoryIcon"
-                            [size]="32"
-                          />
-                        </span>
-                        <span class="flex min-w-0 flex-1 flex-col">
-                          <span class="text-xs text-muted-foreground">{{
-                            (current.debt.direction === 'lent'
-                              ? 'debts.forgiveExpense'
-                              : 'debts.forgiveIncome'
-                            ) | transloco
-                          }}</span>
-                          <span
-                            class="truncate text-base"
-                            [class.text-muted-foreground]="!category()"
-                            >{{ category()?.name ?? ('debts.pickCategory' | transloco) }}</span
-                          >
-                        </span>
-                        <ng-icon
-                          name="lucideChevronRight"
-                          size="20"
-                          class="text-muted-foreground"
-                          aria-hidden="true"
-                        />
-                      </button>
-                    }
-                    <app-date-row
-                      [today]="transactionService.today()"
-                      [locale]="languageService.locale()"
-                      [control]="day"
-                      [value]="dayValue()"
-                      [max]="lastDay()"
-                    />
-                  </div>
-                  @if (missing()) {
-                    <p role="alert" class="-mt-2 px-1 text-sm text-destructive">
+        <div class="flex min-h-0 flex-1 flex-col" [appSlide]="depth()">
+          @switch (view()) {
+            @case ('form') {
+              <app-sheet-frame
+                [title]="'debts.close' | transloco"
+                [leadingLabel]="'sheet.close' | transloco"
+                (leading)="debtService.closeSheet.set(null)"
+              >
+                @if (item(); as current) {
+                  <div class="flex flex-col gap-4">
+                    <p class="px-1 text-base">
                       {{
-                        (how() === 'rest' ? 'debts.walletRequired' : 'debts.categoryRequired')
-                          | transloco
+                        'debts.closeLeft.' + current.debt.direction
+                          | transloco: { name: current.debt.person, amount: leftText() }
                       }}
                     </p>
-                  }
-                  <p class="px-1 text-sm text-muted-foreground">
-                    {{ 'debts.closeNote' | transloco }}
-                  </p>
+                    <div
+                      class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
+                      role="radiogroup"
+                      [attr.aria-label]="'debts.close' | transloco"
+                    >
+                      @for (option of options; track option) {
+                        <button
+                          type="button"
+                          role="radio"
+                          class="flex min-h-15 w-full items-center gap-3 px-4 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                          [attr.aria-checked]="how() === option"
+                          (click)="how.set(option)"
+                        >
+                          <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-base">{{
+                              'debts.closeHow.' + option + '.' + current.debt.direction | transloco
+                            }}</span>
+                            <span class="text-sm text-muted-foreground">{{ hintOf(option) }}</span>
+                          </span>
+                          <span
+                            class="size-5 shrink-0 rounded-full border-2 border-border"
+                            [class.border-6]="how() === option"
+                            [class.border-brand]="how() === option"
+                            aria-hidden="true"
+                          ></span>
+                        </button>
+                      }
+                    </div>
+                    <div
+                      class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
+                    >
+                      @if (how() === 'rest') {
+                        <button
+                          type="button"
+                          class="flex min-h-15 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                          (click)="view.set('wallet')"
+                        >
+                          <span class="flex w-10 shrink-0 justify-center">
+                            @if (wallet(); as w) {
+                              <app-icon-badge
+                                [icon]="w.icon"
+                                [color]="w.color"
+                                [fallback]="walletIcon"
+                                [size]="32"
+                              />
+                            } @else {
+                              <ng-icon
+                                name="lucideWallet"
+                                size="22"
+                                class="text-muted-foreground"
+                                aria-hidden="true"
+                              />
+                            }
+                          </span>
+                          <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-xs text-muted-foreground">{{
+                              'debts.walletOf.' + current.debt.direction + '.repayment' | transloco
+                            }}</span>
+                            <span class="truncate text-base">{{ wallet()?.name ?? '' }}</span>
+                          </span>
+                          <ng-icon
+                            name="lucideChevronRight"
+                            size="20"
+                            class="text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                        </button>
+                      } @else if (counts()) {
+                        <button
+                          type="button"
+                          class="flex min-h-15 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                          (click)="view.set('category')"
+                        >
+                          <span class="flex w-10 shrink-0 justify-center">
+                            <app-icon-badge
+                              [icon]="category()?.icon ?? ''"
+                              [color]="category()?.color ?? ''"
+                              [fallback]="categoryIcon"
+                              [size]="32"
+                            />
+                          </span>
+                          <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-xs text-muted-foreground">{{
+                              (current.debt.direction === 'lent'
+                                ? 'debts.forgiveExpense'
+                                : 'debts.forgiveIncome'
+                              ) | transloco
+                            }}</span>
+                            <span
+                              class="truncate text-base"
+                              [class.text-muted-foreground]="!category()"
+                              >{{ category()?.name ?? ('debts.pickCategory' | transloco) }}</span
+                            >
+                          </span>
+                          <ng-icon
+                            name="lucideChevronRight"
+                            size="20"
+                            class="text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                        </button>
+                      }
+                      <app-date-row
+                        [today]="transactionService.today()"
+                        [locale]="languageService.locale()"
+                        [control]="day"
+                        [value]="dayValue()"
+                        [max]="lastDay()"
+                      />
+                    </div>
+                    @if (missing()) {
+                      <p role="alert" class="-mt-2 px-1 text-sm text-destructive">
+                        {{
+                          (how() === 'rest' ? 'debts.walletRequired' : 'debts.categoryRequired')
+                            | transloco
+                        }}
+                      </p>
+                    }
+                    <p class="px-1 text-sm text-muted-foreground">
+                      {{ 'debts.closeNote' | transloco }}
+                    </p>
+                  </div>
+                }
+                <div sheetFooter class="pt-3">
+                  <button
+                    hlmBtn
+                    type="button"
+                    class="h-11 w-full text-base"
+                    [disabled]="!debtService.canWrite()"
+                    (click)="confirm()"
+                  >
+                    {{ 'debts.close' | transloco }}
+                  </button>
                 </div>
-              }
-              <div sheetFooter class="pt-3">
-                <button
-                  hlmBtn
-                  type="button"
-                  class="h-11 w-full text-base"
-                  [disabled]="!debtService.canWrite()"
-                  (click)="confirm()"
-                >
-                  {{ 'debts.close' | transloco }}
-                </button>
-              </div>
-            </app-sheet-frame>
+              </app-sheet-frame>
+            }
+            @case ('wallet') {
+              <app-sheet-frame
+                [title]="'debts.walletOf.' + item()?.debt?.direction + '.repayment' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <app-wallet-pick
+                  [wallets]="walletItems()"
+                  [empty]="'debts.noWallet' | transloco"
+                  [chosen]="walletId()"
+                  (picked)="walletId.set($event); view.set('form')"
+                />
+              </app-sheet-frame>
+            }
+            @case ('category') {
+              <app-sheet-frame
+                [title]="'debts.pickCategory' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <app-debt-category-pick
+                  [profileId]="item()?.debt?.profileId ?? ''"
+                  [type]="item()?.debt?.direction === 'lent' ? 'expense' : 'income'"
+                  [chosen]="categoryId()"
+                  (picked)="categoryId.set($event); view.set('form')"
+                />
+              </app-sheet-frame>
+            }
           }
-          @case ('wallet') {
-            <app-sheet-frame
-              [title]="'debts.walletOf.' + item()?.debt?.direction + '.repayment' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <app-wallet-pick
-                [wallets]="walletItems()"
-                [empty]="'debts.noWallet' | transloco"
-                [chosen]="walletId()"
-                (picked)="walletId.set($event); view.set('form')"
-              />
-            </app-sheet-frame>
-          }
-          @case ('category') {
-            <app-sheet-frame
-              [title]="'debts.pickCategory' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <app-debt-category-pick
-                [profileId]="item()?.debt?.profileId ?? ''"
-                [type]="item()?.debt?.direction === 'lent' ? 'expense' : 'income'"
-                [chosen]="categoryId()"
-                (picked)="categoryId.set($event); view.set('form')"
-              />
-            </app-sheet-frame>
-          }
-        }
+        </div>
       </hlm-drawer-content>
     </hlm-drawer>
   `,
@@ -247,6 +251,8 @@ export class DebtCloseSheet {
   protected categoryIcon = CATEGORY_DEFAULT_ICON as UserIcon
   protected readonly options = ['rest', 'forgive'] as const
   protected view = signal<View>('form')
+  /** How deep the view is: a deeper one slides in from the right, going back from the left. */
+  protected depth = computed(() => (this.view() === 'form' ? 0 : 1))
   protected how = signal<'rest' | 'forgive'>('rest')
   protected walletId = signal<string | null>(null)
   protected categoryId = signal<string | null>(null)

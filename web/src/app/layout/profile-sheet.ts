@@ -20,6 +20,7 @@ import {
 } from '@/shared/components/form'
 import { PROFILE_ICON_NAMES, USER_COLORS, userColor } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
+import { Slide } from '@/shared/components/slide'
 import type { ProfileFormGroup } from './profile-form.type'
 
 type View = 'form' | 'icons' | 'confirmDelete'
@@ -42,6 +43,7 @@ type View = 'form' | 'icons' | 'confirmDelete'
     HlmButton,
     HlmDrawerImports,
     SheetFrame,
+    Slide,
   ],
   providers: [provideIcons({ lucideTrash2 })],
   template: `
@@ -49,116 +51,118 @@ type View = 'form' | 'icons' | 'confirmDelete'
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
       <hlm-drawer-content
         *hlmDrawerPortal
-        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+        class="mx-auto h-[92dvh] w-full max-w-[480px] overflow-x-clip data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
       >
-        @switch (view()) {
-          @case ('form') {
-            <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
-              <app-sheet-frame
-                [title]="heading() | transloco"
-                [leadingLabel]="'sheet.close' | transloco"
-                (leading)="finish()"
-              >
-                @if (editingId()) {
-                  <div sheetActions class="flex">
+        <div class="flex min-h-0 flex-1 flex-col" [appSlide]="depth()">
+          @switch (view()) {
+            @case ('form') {
+              <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
+                <app-sheet-frame
+                  [title]="heading() | transloco"
+                  [leadingLabel]="'sheet.close' | transloco"
+                  (leading)="finish()"
+                >
+                  @if (editingId()) {
+                    <div sheetActions class="flex">
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        class="tpn-hit size-9 text-destructive"
+                        [disabled]="!profileService.canWrite()"
+                        [attr.aria-label]="'profiles.delete' | transloco"
+                        (click)="view.set('confirmDelete')"
+                      >
+                        <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
+                      </button>
+                    </div>
+                  }
+                  <div class="flex flex-col gap-5">
+                    @if (!profileService.canWrite()) {
+                      <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                        {{
+                          (profileService.serverDown()
+                            ? 'sync.serverDownWrite'
+                            : 'profiles.needsOnline'
+                          ) | transloco
+                        }}
+                      </p>
+                    }
+                    <app-name-icon-field
+                      [control]="f.name"
+                      [label]="'profiles.name' | transloco"
+                      [icon]="f.icon.value"
+                      [color]="f.color.value"
+                      [iconLabel]="'profiles.changeIcon' | transloco"
+                      (iconClick)="view.set('icons')"
+                    />
+                  </div>
+                  <div sheetFooter class="pt-3">
                     <button
                       hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="tpn-hit size-9 text-destructive"
+                      type="submit"
+                      class="h-11 w-full text-base"
                       [disabled]="!profileService.canWrite()"
-                      [attr.aria-label]="'profiles.delete' | transloco"
-                      (click)="view.set('confirmDelete')"
                     >
-                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
+                      {{ 'profiles.save' | transloco }}
                     </button>
                   </div>
-                }
-                <div class="flex flex-col gap-5">
-                  @if (!profileService.canWrite()) {
-                    <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                      {{
-                        (profileService.serverDown()
-                          ? 'sync.serverDownWrite'
-                          : 'profiles.needsOnline'
-                        ) | transloco
-                      }}
-                    </p>
-                  }
-                  <app-name-icon-field
-                    [control]="f.name"
-                    [label]="'profiles.name' | transloco"
-                    [icon]="f.icon.value"
-                    [color]="f.color.value"
-                    [iconLabel]="'profiles.changeIcon' | transloco"
-                    (iconClick)="view.set('icons')"
+                </app-sheet-frame>
+              </form>
+            }
+            @case ('icons') {
+              <app-sheet-frame
+                [title]="'profiles.iconHeading' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <div class="flex flex-col gap-6">
+                  <app-color-field
+                    [control]="f.color"
+                    [label]="'profiles.color' | transloco"
+                    [colors]="colors"
                   />
+                  <app-icon-field
+                    [control]="f.icon"
+                    [label]="'profiles.icon' | transloco"
+                    [icons]="icons"
+                    [color]="f.color.value"
+                  />
+                </div>
+              </app-sheet-frame>
+            }
+            @case ('confirmDelete') {
+              <app-sheet-frame
+                [title]="'profiles.delete' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <div class="flex flex-col gap-2">
+                  <p class="text-base font-semibold">
+                    {{ 'profiles.deleteHeading' | transloco: { name: editingName() } }}
+                  </p>
+                  <p class="text-sm text-muted-foreground">
+                    {{ deleteText() }}
+                  </p>
                 </div>
                 <div sheetFooter class="pt-3">
                   <button
                     hlmBtn
-                    type="submit"
+                    variant="destructive"
+                    type="button"
                     class="h-11 w-full text-base"
-                    [disabled]="!profileService.canWrite()"
+                    (click)="remove()"
                   >
-                    {{ 'profiles.save' | transloco }}
+                    {{ 'profiles.deleteConfirm' | transloco }}
                   </button>
                 </div>
               </app-sheet-frame>
-            </form>
+            }
           }
-          @case ('icons') {
-            <app-sheet-frame
-              [title]="'profiles.iconHeading' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <div class="flex flex-col gap-6">
-                <app-color-field
-                  [control]="f.color"
-                  [label]="'profiles.color' | transloco"
-                  [colors]="colors"
-                />
-                <app-icon-field
-                  [control]="f.icon"
-                  [label]="'profiles.icon' | transloco"
-                  [icons]="icons"
-                  [color]="f.color.value"
-                />
-              </div>
-            </app-sheet-frame>
-          }
-          @case ('confirmDelete') {
-            <app-sheet-frame
-              [title]="'profiles.delete' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <div class="flex flex-col gap-2">
-                <p class="text-base font-semibold">
-                  {{ 'profiles.deleteHeading' | transloco: { name: editingName() } }}
-                </p>
-                <p class="text-sm text-muted-foreground">
-                  {{ deleteText() }}
-                </p>
-              </div>
-              <div sheetFooter class="pt-3">
-                <button
-                  hlmBtn
-                  variant="destructive"
-                  type="button"
-                  class="h-11 w-full text-base"
-                  (click)="remove()"
-                >
-                  {{ 'profiles.deleteConfirm' | transloco }}
-                </button>
-              </div>
-            </app-sheet-frame>
-          }
-        }
+        </div>
       </hlm-drawer-content>
     </hlm-drawer>
   `,
@@ -173,6 +177,8 @@ export class ProfileSheet {
   protected colors = USER_COLORS
   protected state = this.profileService.sheet
   protected view = signal<View>('form')
+  /** How deep the view is: a deeper one slides in from the right, going back from the left. */
+  protected depth = computed(() => (this.view() === 'form' ? 0 : 1))
 
   /** The profile being edited (edit and fix), null when creating. */
   protected editingId = computed(() => {

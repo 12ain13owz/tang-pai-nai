@@ -433,7 +433,10 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   loops. Honour `prefers-reduced-motion` by dropping the movement and keeping a fade.
   Content that changes along an ordered row (period tabs) slides in from the side it moved to,
   like a carousel page: a later period from the right, an earlier one from the left
-  (`appSlide`, `shared/components/slide`; the Transactions tab first). Switching bottom tabs has
+  (`appSlide`, `shared/components/slide`; the Transactions tab first). The views inside a sheet
+  do the same by depth, like a navigation stack (owner, 2026-11): opening a picker or a step
+  (wallet, category, note, a confirm) slides it in from the right, and ‹ or a pick that goes
+  back slides the earlier view in from the left. Switching bottom tabs has
   no order to show, so the page fades in with an 8px rise, 250 ms, CSS `ease-out` (`appFadeIn`
   on the shell's `<main>`, keyed on the tab; pages inside a tab don't fade).
 - **Keyboard**: numeric fields use `inputmode="decimal"` or `"numeric"`. Keep the focused field

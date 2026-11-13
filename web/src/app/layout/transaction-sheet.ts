@@ -60,6 +60,7 @@ import {
 import { IconBadge, userColor, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
+import { Slide } from '@/shared/components/slide'
 import { WalletPick, walletPickItem } from '@/shared/components/wallet-pick'
 import type { SelectOption } from '@/shared/types'
 import {
@@ -107,6 +108,7 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
     TextareaField,
     IconBadge,
     SheetFrame,
+    Slide,
     RepeatRow,
     RepeatView,
   ],
@@ -132,54 +134,21 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
       <hlm-drawer-content
         *hlmDrawerPortal
-        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+        class="mx-auto h-[92dvh] w-full max-w-[480px] overflow-x-clip data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
         (keydown)="onKey($event)"
       >
-        @switch (view()) {
-          @case ('form') {
-            <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
-              <app-sheet-frame
-                [title]="heading() | transloco"
-                [leadingLabel]="'sheet.close' | transloco"
-                (leading)="finish()"
-              >
-                @if (rule(); as current) {
-                  <!-- A recurring rule (recurring.md → Web screens): pause / resume, delete. -->
-                  <div sheetActions class="flex">
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="tpn-hit size-9"
-                      [disabled]="!transactionService.canWrite()"
-                      [attr.aria-label]="
-                        (current.isPaused ? 'recurring.resume' : 'recurring.pause') | transloco
-                      "
-                      (click)="togglePause()"
-                    >
-                      <ng-icon
-                        [name]="current.isPaused ? 'lucidePlay' : 'lucidePause'"
-                        size="18"
-                        aria-hidden="true"
-                      />
-                    </button>
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="tpn-hit size-9 text-destructive"
-                      [disabled]="!transactionService.canWrite()"
-                      [attr.aria-label]="'recurring.delete' | transloco"
-                      (click)="remove()"
-                    >
-                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
-                    </button>
-                  </div>
-                } @else if (editingId() && transactionService.byId(editingId()!)) {
-                  <div sheetActions class="flex">
-                    @if (state()?.mode === 'edit') {
+        <div class="flex min-h-0 flex-1 flex-col" [appSlide]="depth()">
+          @switch (view()) {
+            @case ('form') {
+              <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
+                <app-sheet-frame
+                  [title]="heading() | transloco"
+                  [leadingLabel]="'sheet.close' | transloco"
+                  (leading)="finish()"
+                >
+                  @if (rule(); as current) {
+                    <!-- A recurring rule (recurring.md → Web screens): pause / resume, delete. -->
+                    <div sheetActions class="flex">
                       <button
                         hlmBtn
                         variant="ghost"
@@ -187,106 +156,93 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                         type="button"
                         class="tpn-hit size-9"
                         [disabled]="!transactionService.canWrite()"
-                        [attr.aria-label]="'transactions.copy' | transloco"
-                        (click)="copy()"
+                        [attr.aria-label]="
+                          (current.isPaused ? 'recurring.resume' : 'recurring.pause') | transloco
+                        "
+                        (click)="togglePause()"
                       >
-                        <ng-icon name="lucideCopy" size="18" aria-hidden="true" />
+                        <ng-icon
+                          [name]="current.isPaused ? 'lucidePlay' : 'lucidePause'"
+                          size="18"
+                          aria-hidden="true"
+                        />
                       </button>
-                    }
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="tpn-hit size-9 text-destructive"
-                      [disabled]="!transactionService.canWrite()"
-                      [attr.aria-label]="'transactions.delete' | transloco"
-                      (click)="remove()"
-                    >
-                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
-                    </button>
-                  </div>
-                }
-                <!-- The keypad belongs to the amount row: any other control closes it (8.2). -->
-                <div
-                  class="flex flex-col gap-4"
-                  (pointerdown)="leaveAmount($event)"
-                  (focusin)="leaveAmount($event)"
-                >
-                  @if (!transactionService.canWrite()) {
-                    <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                      {{ readOnlyKey() | transloco }}
-                    </p>
-                  }
-                  <div
-                    class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
-                  >
-                    <button
-                      type="button"
-                      class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                      [attr.aria-label]="
-                        ('transactions.wallet' | transloco) + ' ' + (wallet()?.name ?? '')
-                      "
-                      (click)="pick('wallet')"
-                    >
-                      <span class="flex w-10 shrink-0 justify-center">
-                        @if (wallet(); as current) {
-                          <app-icon-badge
-                            [icon]="current.icon"
-                            [color]="current.color"
-                            [fallback]="walletIcon"
-                            [size]="32"
-                          />
-                        }
-                      </span>
-                      <span class="min-w-0 flex-1 truncate text-base">{{ wallet()?.name }}</span>
-                      <ng-icon
-                        name="lucideChevronRight"
-                        size="20"
-                        class="text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                    </button>
-                    <div class="px-4">
-                      <app-calc-amount-field
-                        [control]="f.amount"
-                        [label]="'transactions.amount' | transloco"
-                        [currencyCode]="wallet()?.currencyCode ?? ''"
-                        [minorUnit]="minorUnit()"
-                        [locale]="languageService.locale()"
-                        [active]="keypad()"
-                        (activate)="keypad.set(true)"
-                      />
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        class="tpn-hit size-9 text-destructive"
+                        [disabled]="!transactionService.canWrite()"
+                        [attr.aria-label]="'recurring.delete' | transloco"
+                        (click)="remove()"
+                      >
+                        <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
+                      </button>
                     </div>
-                    <div>
+                  } @else if (editingId() && transactionService.byId(editingId()!)) {
+                    <div sheetActions class="flex">
+                      @if (state()?.mode === 'edit') {
+                        <button
+                          hlmBtn
+                          variant="ghost"
+                          size="icon"
+                          type="button"
+                          class="tpn-hit size-9"
+                          [disabled]="!transactionService.canWrite()"
+                          [attr.aria-label]="'transactions.copy' | transloco"
+                          (click)="copy()"
+                        >
+                          <ng-icon name="lucideCopy" size="18" aria-hidden="true" />
+                        </button>
+                      }
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        class="tpn-hit size-9 text-destructive"
+                        [disabled]="!transactionService.canWrite()"
+                        [attr.aria-label]="'transactions.delete' | transloco"
+                        (click)="remove()"
+                      >
+                        <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
+                      </button>
+                    </div>
+                  }
+                  <!-- The keypad belongs to the amount row: any other control closes it (8.2). -->
+                  <div
+                    class="flex flex-col gap-4"
+                    (pointerdown)="leaveAmount($event)"
+                    (focusin)="leaveAmount($event)"
+                  >
+                    @if (!transactionService.canWrite()) {
+                      <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                        {{ readOnlyKey() | transloco }}
+                      </p>
+                    }
+                    <div
+                      class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
+                    >
                       <button
                         type="button"
                         class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
                         [attr.aria-label]="
-                          ('transactions.category' | transloco) +
-                          ' ' +
-                          (category()?.name ?? ('transactions.pickCategory' | transloco))
+                          ('transactions.wallet' | transloco) + ' ' + (wallet()?.name ?? '')
                         "
-                        (click)="pick('category')"
+                        (click)="pick('wallet')"
                       >
                         <span class="flex w-10 shrink-0 justify-center">
-                          @if (category(); as current) {
+                          @if (wallet(); as current) {
                             <app-icon-badge
                               [icon]="current.icon"
                               [color]="current.color"
-                              [fallback]="categoryIcon"
+                              [fallback]="walletIcon"
                               [size]="32"
                             />
-                          } @else {
-                            <span class="size-8 rounded-full bg-muted"></span>
                           }
                         </span>
-                        <span
-                          class="min-w-0 flex-1 truncate text-lg"
-                          [class.text-muted-foreground]="!category()"
-                        >
-                          {{ category()?.name ?? ('transactions.pickCategory' | transloco) }}
-                        </span>
+                        <span class="min-w-0 flex-1 truncate text-base">{{ wallet()?.name }}</span>
                         <ng-icon
                           name="lucideChevronRight"
                           size="20"
@@ -294,147 +250,45 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                           aria-hidden="true"
                         />
                       </button>
-                      @if (f.categoryId.touched && f.categoryId.invalid) {
-                        <p role="alert" class="px-4 pb-2 pl-17 text-sm text-destructive">
-                          {{ 'transactions.categoryRequired' | transloco }}
-                        </p>
-                      }
-                    </div>
-                    <button
-                      type="button"
-                      class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                      [attr.aria-label]="('transactions.note' | transloco) + ' ' + note()"
-                      (click)="pick('note')"
-                    >
-                      <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                        <ng-icon name="lucideTextAlignStart" size="22" aria-hidden="true" />
-                      </span>
-                      <span
-                        class="min-w-0 flex-1 truncate text-base"
-                        [class.text-muted-foreground]="!note()"
-                      >
-                        {{ note() || ('transactions.note' | transloco) }}
-                      </span>
-                      <ng-icon
-                        name="lucideChevronRight"
-                        size="20"
-                        class="text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                    </button>
-                    <app-date-row
-                      [control]="f.occurredOn"
-                      [value]="day()"
-                      [today]="transactionService.today()"
-                      [locale]="languageService.locale()"
-                      [label]="startsRule() ? ('recurring.start' | transloco) : ''"
-                      [ariaLabel]="'transactions.date' | transloco"
-                      [min]="firstDay"
-                      [max]="lastDay()"
-                    />
-                    @if (showEvent()) {
-                      <!-- The event / trip (event rule 5): set by the date when adding. -->
-                      <div class="flex min-h-14 items-center gap-1 pr-2">
-                        <button
-                          type="button"
-                          class="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 pl-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                          [attr.aria-label]="
-                            ('events.field' | transloco) +
-                            ' ' +
-                            (event()?.name ?? ('events.none' | transloco))
-                          "
-                          (click)="pick('event')"
-                        >
-                          <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                            <ng-icon name="lucidePlane" size="22" aria-hidden="true" />
-                          </span>
-                          <span class="flex min-w-0 flex-1 flex-col">
-                            <span class="text-xs text-muted-foreground">{{
-                              'events.field' | transloco
-                            }}</span>
-                            <span
-                              class="truncate text-base"
-                              [class.text-muted-foreground]="!event()"
-                              [class.font-medium]="event()"
-                              [class.text-brand]="event()"
-                              >{{ event()?.name ?? ('events.none' | transloco) }}</span
-                            >
-                          </span>
-                        </button>
-                        @if (event()) {
-                          <button
-                            hlmBtn
-                            variant="ghost"
-                            size="icon"
-                            type="button"
-                            class="size-11 shrink-0"
-                            [attr.aria-label]="'events.unlink' | transloco"
-                            (click)="chooseEvent(null)"
-                          >
-                            <ng-icon name="lucideX" size="18" aria-hidden="true" />
-                          </button>
-                        } @else {
-                          <ng-icon
-                            name="lucideChevronRight"
-                            size="20"
-                            class="mr-2 text-muted-foreground"
-                            aria-hidden="true"
-                          />
-                        }
+                      <div class="px-4">
+                        <app-calc-amount-field
+                          [control]="f.amount"
+                          [label]="'transactions.amount' | transloco"
+                          [currencyCode]="wallet()?.currencyCode ?? ''"
+                          [minorUnit]="minorUnit()"
+                          [locale]="languageService.locale()"
+                          [active]="keypad()"
+                          (activate)="keypad.set(true)"
+                        />
                       </div>
-                    }
-                  </div>
-                  <!-- Less used options, folded (owner's choice in #8): opens by itself when set. -->
-                  <button
-                    type="button"
-                    class="flex min-h-11 items-center gap-1 self-start text-sm font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    [attr.aria-expanded]="more()"
-                    (click)="more.set(!more())"
-                  >
-                    {{ 'transactions.more' | transloco }}
-                    <ng-icon
-                      name="lucideChevronDown"
-                      size="16"
-                      [class.rotate-180]="more()"
-                      aria-hidden="true"
-                    />
-                  </button>
-                  @if (more()) {
-                    <div
-                      class="-mt-2 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
-                    >
-                      @if (repeatable()) {
-                        <app-repeat-row
-                          [label]="'recurring.repeat' | transloco"
-                          [title]="repeatTitle()"
-                          [sub]="repeatSub()"
-                          [active]="repeat() !== null"
-                          (pressed)="pick('repeat')"
-                        />
-                      }
-                      @if (fromRule(); as source) {
-                        <app-repeat-row
-                          [label]="'recurring.fromRule' | transloco"
-                          [title]="'recurring.fromRule' | transloco"
-                          [sub]="source.text"
-                          (pressed)="openRule(source.id)"
-                        />
-                      }
-                      @if (debtLink(); as debt) {
-                        <!-- Counted money of a debt (debt rule 3): opens the debt's page. -->
+                      <div>
                         <button
                           type="button"
                           class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                          (click)="openDebt(debt.id)"
+                          [attr.aria-label]="
+                            ('transactions.category' | transloco) +
+                            ' ' +
+                            (category()?.name ?? ('transactions.pickCategory' | transloco))
+                          "
+                          (click)="pick('category')"
                         >
-                          <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                            <ng-icon name="lucideHandCoins" size="22" aria-hidden="true" />
+                          <span class="flex w-10 shrink-0 justify-center">
+                            @if (category(); as current) {
+                              <app-icon-badge
+                                [icon]="current.icon"
+                                [color]="current.color"
+                                [fallback]="categoryIcon"
+                                [size]="32"
+                              />
+                            } @else {
+                              <span class="size-8 rounded-full bg-muted"></span>
+                            }
                           </span>
-                          <span class="flex min-w-0 flex-1 flex-col">
-                            <span class="text-xs text-muted-foreground">{{
-                              'debts.linked' | transloco
-                            }}</span>
-                            <span class="truncate text-base">{{ debt.person }}</span>
+                          <span
+                            class="min-w-0 flex-1 truncate text-lg"
+                            [class.text-muted-foreground]="!category()"
+                          >
+                            {{ category()?.name ?? ('transactions.pickCategory' | transloco) }}
                           </span>
                           <ng-icon
                             name="lucideChevronRight"
@@ -443,300 +297,425 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                             aria-hidden="true"
                           />
                         </button>
-                      }
-                      <div class="flex min-h-14 items-center gap-3 px-4 py-2">
-                        <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                          <ng-icon name="lucideEyeOff" size="22" aria-hidden="true" />
-                        </span>
-                        <app-switch-field
-                          class="min-w-0 flex-1"
-                          [control]="f.excludeFromReport"
-                          [label]="'transactions.excludeFromReport' | transloco"
-                          [hint]="'transactions.excludeHint' | transloco"
-                        />
+                        @if (f.categoryId.touched && f.categoryId.invalid) {
+                          <p role="alert" class="px-4 pb-2 pl-17 text-sm text-destructive">
+                            {{ 'transactions.categoryRequired' | transloco }}
+                          </p>
+                        }
                       </div>
-                    </div>
-                    @if (repeatHint(); as hint) {
-                      <p class="-mt-2 px-1 text-sm text-muted-foreground">{{ hint }}</p>
-                    }
-                  }
-                </div>
-                <div sheetFooter class="relative flex flex-col pt-3">
-                  <!-- Under the keypad while it shows: ✓ first, then save (one action at a time). -->
-                  <div class="flex gap-2" [attr.inert]="keypad() ? '' : null">
-                    <button
-                      hlmBtn
-                      type="submit"
-                      class="h-11 min-w-0 flex-1 text-base"
-                      [disabled]="!transactionService.canWrite()"
-                    >
-                      {{ 'transactions.save' | transloco }}
-                    </button>
-                    @if (state()?.mode === 'create' && !repeat()) {
-                      <!-- Save and add another (8.2): the sheet stays for the next receipt. -->
                       <button
-                        hlmBtn
-                        variant="outline"
-                        size="icon"
                         type="button"
-                        class="size-11 shrink-0"
-                        [disabled]="!transactionService.canWrite()"
-                        [attr.aria-label]="'transactions.saveAndAdd' | transloco"
-                        (click)="save(true)"
+                        class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                        [attr.aria-label]="('transactions.note' | transloco) + ' ' + note()"
+                        (click)="pick('note')"
                       >
-                        <ng-icon name="lucideListPlus" size="20" aria-hidden="true" />
+                        <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
+                          <ng-icon name="lucideTextAlignStart" size="22" aria-hidden="true" />
+                        </span>
+                        <span
+                          class="min-w-0 flex-1 truncate text-base"
+                          [class.text-muted-foreground]="!note()"
+                        >
+                          {{ note() || ('transactions.note' | transloco) }}
+                        </span>
+                        <ng-icon
+                          name="lucideChevronRight"
+                          size="20"
+                          class="text-muted-foreground"
+                          aria-hidden="true"
+                        />
                       </button>
-                    }
-                  </div>
-                  @if (keypad()) {
-                    <app-calc-keypad
-                      class="absolute -inset-x-4 -bottom-4 z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-                      [quickAmounts]="quickAmounts()"
-                      [locale]="languageService.locale()"
-                      (pressed)="press($event)"
-                      (quickPressed)="addQuick($event)"
-                    />
-                  }
-                </div>
-              </app-sheet-frame>
-            </form>
-          }
-          @case ('wallet') {
-            <app-sheet-frame
-              [title]="'transactions.walletPick' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <app-wallet-pick
-                [wallets]="walletItems()"
-                [chosen]="f.walletId.value"
-                (picked)="chooseWallet($event)"
-              />
-              @if (editingId() && sameCurrencyOnly()) {
-                <p class="mt-3 text-sm text-muted-foreground">
-                  {{ 'transactions.sameCurrency' | transloco }}
-                </p>
-              }
-            </app-sheet-frame>
-          }
-          @case ('category') {
-            <app-sheet-frame
-              [title]="'transactions.pickCategory' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <!-- The type is the category's (Money Lover style): picking one sets it. -->
-              <app-segmented-field
-                class="mb-5"
-                [control]="pickType"
-                [label]="'transactions.type' | transloco"
-                [options]="typeOptions()"
-              />
-              @if (tree().length > 0) {
-                <div class="flex flex-col gap-3">
-                  @if (frequent().length > 0) {
-                    <!-- "ใช้บ่อย" (8.2): a shortcut; the tree below keeps the user's order. -->
-                    <h3 class="text-sm font-medium text-muted-foreground">
-                      {{ 'transactions.frequent' | transloco }}
-                    </h3>
-                    <ul
-                      class="grid grid-cols-4 gap-1 rounded-xl border border-border bg-card p-1.5"
-                      [attr.aria-label]="'transactions.frequent' | transloco"
-                    >
-                      @for (item of frequent(); track item.id) {
-                        <li class="min-w-0">
+                      <app-date-row
+                        [control]="f.occurredOn"
+                        [value]="day()"
+                        [today]="transactionService.today()"
+                        [locale]="languageService.locale()"
+                        [label]="startsRule() ? ('recurring.start' | transloco) : ''"
+                        [ariaLabel]="'transactions.date' | transloco"
+                        [min]="firstDay"
+                        [max]="lastDay()"
+                      />
+                      @if (showEvent()) {
+                        <!-- The event / trip (event rule 5): set by the date when adding. -->
+                        <div class="flex min-h-14 items-center gap-1 pr-2">
                           <button
                             type="button"
-                            class="flex min-h-21 w-full flex-col items-center gap-1 rounded-lg px-1 py-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                            [class.bg-muted]="item.id === f.categoryId.value"
-                            [attr.aria-current]="item.id === f.categoryId.value ? 'true' : null"
-                            (click)="chooseCategory(item.id)"
+                            class="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 pl-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                            [attr.aria-label]="
+                              ('events.field' | transloco) +
+                              ' ' +
+                              (event()?.name ?? ('events.none' | transloco))
+                            "
+                            (click)="pick('event')"
                           >
-                            <app-icon-badge
-                              [icon]="item.icon"
-                              [color]="item.color"
-                              [fallback]="categoryIcon"
-                            />
-                            <span class="line-clamp-2 w-full text-center text-xs break-words">{{
-                              item.name
-                            }}</span>
+                            <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
+                              <ng-icon name="lucidePlane" size="22" aria-hidden="true" />
+                            </span>
+                            <span class="flex min-w-0 flex-1 flex-col">
+                              <span class="text-xs text-muted-foreground">{{
+                                'events.field' | transloco
+                              }}</span>
+                              <span
+                                class="truncate text-base"
+                                [class.text-muted-foreground]="!event()"
+                                [class.font-medium]="event()"
+                                [class.text-brand]="event()"
+                                >{{ event()?.name ?? ('events.none' | transloco) }}</span
+                              >
+                            </span>
                           </button>
-                        </li>
-                      }
-                    </ul>
-                    <h3 class="text-sm font-medium text-muted-foreground">
-                      {{ 'transactions.allCategories' | transloco }}
-                    </h3>
-                  }
-                  <ul class="divide-y divide-border rounded-xl border border-border bg-card">
-                    @for (node of tree(); track node.category.id) {
-                      <li>
-                        <button
-                          type="button"
-                          class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                          [attr.aria-current]="
-                            node.category.id === f.categoryId.value ? 'true' : null
-                          "
-                          (click)="chooseCategory(node.category.id)"
-                        >
-                          <app-icon-badge
-                            [icon]="node.category.icon"
-                            [color]="node.category.color"
-                            [fallback]="categoryIcon"
-                          />
-                          <span class="min-w-0 flex-1 truncate text-base">{{
-                            node.category.name
-                          }}</span>
-                          @if (node.category.id === f.categoryId.value) {
+                          @if (event()) {
+                            <button
+                              hlmBtn
+                              variant="ghost"
+                              size="icon"
+                              type="button"
+                              class="size-11 shrink-0"
+                              [attr.aria-label]="'events.unlink' | transloco"
+                              (click)="chooseEvent(null)"
+                            >
+                              <ng-icon name="lucideX" size="18" aria-hidden="true" />
+                            </button>
+                          } @else {
                             <ng-icon
-                              name="lucideCheck"
+                              name="lucideChevronRight"
                               size="20"
-                              class="text-brand"
+                              class="mr-2 text-muted-foreground"
                               aria-hidden="true"
                             />
                           }
-                        </button>
-                        @if (node.children.length > 0) {
-                          <ul
-                            class="tpn-tree"
-                            [style.--tree-color]="treeColor(node.category.color)"
-                            [attr.aria-label]="node.category.name"
-                          >
-                            @for (child of node.children; track child.id) {
-                              <li>
-                                <button
-                                  type="button"
-                                  class="flex min-h-12 w-full items-center gap-3 py-2 pr-4 pl-7 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                                  [attr.aria-current]="
-                                    child.id === f.categoryId.value ? 'true' : null
-                                  "
-                                  (click)="chooseCategory(child.id)"
-                                >
-                                  <app-icon-badge
-                                    [icon]="child.icon"
-                                    [color]="child.color"
-                                    [fallback]="categoryIcon"
-                                    [size]="32"
-                                  />
-                                  <span class="min-w-0 flex-1 truncate text-base">{{
-                                    child.name
-                                  }}</span>
-                                  @if (child.id === f.categoryId.value) {
-                                    <ng-icon
-                                      name="lucideCheck"
-                                      size="20"
-                                      class="text-brand"
-                                      aria-hidden="true"
-                                    />
-                                  }
-                                </button>
-                              </li>
-                            }
-                          </ul>
-                        }
-                      </li>
-                    }
-                  </ul>
-                  <!-- A shared profile's hidden categories are the owner's to change (sharing rule 11). -->
-                  @if (!profileService.isShared()) {
-                    <p class="text-sm text-muted-foreground">
-                      {{ 'transactions.categoryMissing' | transloco }}
-                      <button
-                        type="button"
-                        class="min-h-11 font-semibold text-brand underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                        (click)="openWalletCategories()"
-                      >
-                        {{
-                          'transactions.walletCategories'
-                            | transloco: { name: wallet()?.name ?? '' }
-                        }}
-                      </button>
-                    </p>
-                  }
-                </div>
-              } @else {
-                <div class="flex flex-col items-center gap-2 px-2 py-8 text-center">
-                  <span
-                    class="mb-2 flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground"
-                  >
-                    <ng-icon name="lucideEyeOff" size="24" aria-hidden="true" />
-                  </span>
-                  <p class="text-base font-semibold">
-                    {{
-                      'transactions.noCategories.' + pickTypeValue()
-                        | transloco: { name: wallet()?.name ?? '' }
-                    }}
-                  </p>
-                  <p class="text-sm text-muted-foreground">
-                    {{ 'transactions.noCategoriesText' | transloco }}
-                  </p>
-                </div>
-              }
-              @if (tree().length === 0 && !profileService.isShared()) {
-                <div sheetFooter class="pt-3">
-                  <button
-                    hlmBtn
-                    variant="outline"
-                    type="button"
-                    class="h-11 w-full text-base"
-                    (click)="openWalletCategories()"
-                  >
-                    {{ 'transactions.toWalletCategories' | transloco }}
-                  </button>
-                </div>
-              }
-            </app-sheet-frame>
-          }
-          @case ('event') {
-            <app-sheet-frame
-              [title]="'events.pick' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <ul class="divide-y divide-border rounded-xl border border-border bg-card">
-                <li>
-                  <button
-                    type="button"
-                    class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                    [attr.aria-current]="eventId() === null ? 'true' : null"
-                    (click)="chooseEvent(null)"
-                  >
-                    <span
-                      class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+                        </div>
+                      }
+                    </div>
+                    <!-- Less used options, folded (owner's choice in #8): opens by itself when set. -->
+                    <button
+                      type="button"
+                      class="flex min-h-11 items-center gap-1 self-start text-sm font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                      [attr.aria-expanded]="more()"
+                      (click)="more.set(!more())"
                     >
-                      <ng-icon name="lucideX" size="20" aria-hidden="true" />
-                    </span>
-                    <span class="min-w-0 flex-1 truncate text-base">{{
-                      'events.none' | transloco
-                    }}</span>
-                    @if (eventId() === null) {
-                      <ng-icon name="lucideCheck" size="20" class="text-brand" aria-hidden="true" />
+                      {{ 'transactions.more' | transloco }}
+                      <ng-icon
+                        name="lucideChevronDown"
+                        size="16"
+                        [class.rotate-180]="more()"
+                        aria-hidden="true"
+                      />
+                    </button>
+                    @if (more()) {
+                      <div
+                        class="-mt-2 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
+                      >
+                        @if (repeatable()) {
+                          <app-repeat-row
+                            [label]="'recurring.repeat' | transloco"
+                            [title]="repeatTitle()"
+                            [sub]="repeatSub()"
+                            [active]="repeat() !== null"
+                            (pressed)="pick('repeat')"
+                          />
+                        }
+                        @if (fromRule(); as source) {
+                          <app-repeat-row
+                            [label]="'recurring.fromRule' | transloco"
+                            [title]="'recurring.fromRule' | transloco"
+                            [sub]="source.text"
+                            (pressed)="openRule(source.id)"
+                          />
+                        }
+                        @if (debtLink(); as debt) {
+                          <!-- Counted money of a debt (debt rule 3): opens the debt's page. -->
+                          <button
+                            type="button"
+                            class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                            (click)="openDebt(debt.id)"
+                          >
+                            <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
+                              <ng-icon name="lucideHandCoins" size="22" aria-hidden="true" />
+                            </span>
+                            <span class="flex min-w-0 flex-1 flex-col">
+                              <span class="text-xs text-muted-foreground">{{
+                                'debts.linked' | transloco
+                              }}</span>
+                              <span class="truncate text-base">{{ debt.person }}</span>
+                            </span>
+                            <ng-icon
+                              name="lucideChevronRight"
+                              size="20"
+                              class="text-muted-foreground"
+                              aria-hidden="true"
+                            />
+                          </button>
+                        }
+                        <div class="flex min-h-14 items-center gap-3 px-4 py-2">
+                          <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
+                            <ng-icon name="lucideEyeOff" size="22" aria-hidden="true" />
+                          </span>
+                          <app-switch-field
+                            class="min-w-0 flex-1"
+                            [control]="f.excludeFromReport"
+                            [label]="'transactions.excludeFromReport' | transloco"
+                            [hint]="'transactions.excludeHint' | transloco"
+                          />
+                        </div>
+                      </div>
+                      @if (repeatHint(); as hint) {
+                        <p class="-mt-2 px-1 text-sm text-muted-foreground">{{ hint }}</p>
+                      }
                     }
-                  </button>
-                </li>
-                @for (item of eventChoices(); track item.id) {
+                  </div>
+                  <div sheetFooter class="relative flex flex-col pt-3">
+                    <!-- Under the keypad while it shows: ✓ first, then save (one action at a time). -->
+                    <div class="flex gap-2" [attr.inert]="keypad() ? '' : null">
+                      <button
+                        hlmBtn
+                        type="submit"
+                        class="h-11 min-w-0 flex-1 text-base"
+                        [disabled]="!transactionService.canWrite()"
+                      >
+                        {{ 'transactions.save' | transloco }}
+                      </button>
+                      @if (state()?.mode === 'create' && !repeat()) {
+                        <!-- Save and add another (8.2): the sheet stays for the next receipt. -->
+                        <button
+                          hlmBtn
+                          variant="outline"
+                          size="icon"
+                          type="button"
+                          class="size-11 shrink-0"
+                          [disabled]="!transactionService.canWrite()"
+                          [attr.aria-label]="'transactions.saveAndAdd' | transloco"
+                          (click)="save(true)"
+                        >
+                          <ng-icon name="lucideListPlus" size="20" aria-hidden="true" />
+                        </button>
+                      }
+                    </div>
+                    @if (keypad()) {
+                      <app-calc-keypad
+                        class="absolute -inset-x-4 -bottom-4 z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+                        [quickAmounts]="quickAmounts()"
+                        [locale]="languageService.locale()"
+                        (pressed)="press($event)"
+                        (quickPressed)="addQuick($event)"
+                      />
+                    }
+                  </div>
+                </app-sheet-frame>
+              </form>
+            }
+            @case ('wallet') {
+              <app-sheet-frame
+                [title]="'transactions.walletPick' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <app-wallet-pick
+                  [wallets]="walletItems()"
+                  [chosen]="f.walletId.value"
+                  (picked)="chooseWallet($event)"
+                />
+                @if (editingId() && sameCurrencyOnly()) {
+                  <p class="mt-3 text-sm text-muted-foreground">
+                    {{ 'transactions.sameCurrency' | transloco }}
+                  </p>
+                }
+              </app-sheet-frame>
+            }
+            @case ('category') {
+              <app-sheet-frame
+                [title]="'transactions.pickCategory' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <!-- The type is the category's (Money Lover style): picking one sets it. -->
+                <app-segmented-field
+                  class="mb-5"
+                  [control]="pickType"
+                  [label]="'transactions.type' | transloco"
+                  [options]="typeOptions()"
+                />
+                @if (tree().length > 0) {
+                  <div class="flex flex-col gap-3">
+                    @if (frequent().length > 0) {
+                      <!-- "ใช้บ่อย" (8.2): a shortcut; the tree below keeps the user's order. -->
+                      <h3 class="text-sm font-medium text-muted-foreground">
+                        {{ 'transactions.frequent' | transloco }}
+                      </h3>
+                      <ul
+                        class="grid grid-cols-4 gap-1 rounded-xl border border-border bg-card p-1.5"
+                        [attr.aria-label]="'transactions.frequent' | transloco"
+                      >
+                        @for (item of frequent(); track item.id) {
+                          <li class="min-w-0">
+                            <button
+                              type="button"
+                              class="flex min-h-21 w-full flex-col items-center gap-1 rounded-lg px-1 py-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                              [class.bg-muted]="item.id === f.categoryId.value"
+                              [attr.aria-current]="item.id === f.categoryId.value ? 'true' : null"
+                              (click)="chooseCategory(item.id)"
+                            >
+                              <app-icon-badge
+                                [icon]="item.icon"
+                                [color]="item.color"
+                                [fallback]="categoryIcon"
+                              />
+                              <span class="line-clamp-2 w-full text-center text-xs break-words">{{
+                                item.name
+                              }}</span>
+                            </button>
+                          </li>
+                        }
+                      </ul>
+                      <h3 class="text-sm font-medium text-muted-foreground">
+                        {{ 'transactions.allCategories' | transloco }}
+                      </h3>
+                    }
+                    <ul class="divide-y divide-border rounded-xl border border-border bg-card">
+                      @for (node of tree(); track node.category.id) {
+                        <li>
+                          <button
+                            type="button"
+                            class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                            [attr.aria-current]="
+                              node.category.id === f.categoryId.value ? 'true' : null
+                            "
+                            (click)="chooseCategory(node.category.id)"
+                          >
+                            <app-icon-badge
+                              [icon]="node.category.icon"
+                              [color]="node.category.color"
+                              [fallback]="categoryIcon"
+                            />
+                            <span class="min-w-0 flex-1 truncate text-base">{{
+                              node.category.name
+                            }}</span>
+                            @if (node.category.id === f.categoryId.value) {
+                              <ng-icon
+                                name="lucideCheck"
+                                size="20"
+                                class="text-brand"
+                                aria-hidden="true"
+                              />
+                            }
+                          </button>
+                          @if (node.children.length > 0) {
+                            <ul
+                              class="tpn-tree"
+                              [style.--tree-color]="treeColor(node.category.color)"
+                              [attr.aria-label]="node.category.name"
+                            >
+                              @for (child of node.children; track child.id) {
+                                <li>
+                                  <button
+                                    type="button"
+                                    class="flex min-h-12 w-full items-center gap-3 py-2 pr-4 pl-7 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                                    [attr.aria-current]="
+                                      child.id === f.categoryId.value ? 'true' : null
+                                    "
+                                    (click)="chooseCategory(child.id)"
+                                  >
+                                    <app-icon-badge
+                                      [icon]="child.icon"
+                                      [color]="child.color"
+                                      [fallback]="categoryIcon"
+                                      [size]="32"
+                                    />
+                                    <span class="min-w-0 flex-1 truncate text-base">{{
+                                      child.name
+                                    }}</span>
+                                    @if (child.id === f.categoryId.value) {
+                                      <ng-icon
+                                        name="lucideCheck"
+                                        size="20"
+                                        class="text-brand"
+                                        aria-hidden="true"
+                                      />
+                                    }
+                                  </button>
+                                </li>
+                              }
+                            </ul>
+                          }
+                        </li>
+                      }
+                    </ul>
+                    <!-- A shared profile's hidden categories are the owner's to change (sharing rule 11). -->
+                    @if (!profileService.isShared()) {
+                      <p class="text-sm text-muted-foreground">
+                        {{ 'transactions.categoryMissing' | transloco }}
+                        <button
+                          type="button"
+                          class="min-h-11 font-semibold text-brand underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                          (click)="openWalletCategories()"
+                        >
+                          {{
+                            'transactions.walletCategories'
+                              | transloco: { name: wallet()?.name ?? '' }
+                          }}
+                        </button>
+                      </p>
+                    }
+                  </div>
+                } @else {
+                  <div class="flex flex-col items-center gap-2 px-2 py-8 text-center">
+                    <span
+                      class="mb-2 flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground"
+                    >
+                      <ng-icon name="lucideEyeOff" size="24" aria-hidden="true" />
+                    </span>
+                    <p class="text-base font-semibold">
+                      {{
+                        'transactions.noCategories.' + pickTypeValue()
+                          | transloco: { name: wallet()?.name ?? '' }
+                      }}
+                    </p>
+                    <p class="text-sm text-muted-foreground">
+                      {{ 'transactions.noCategoriesText' | transloco }}
+                    </p>
+                  </div>
+                }
+                @if (tree().length === 0 && !profileService.isShared()) {
+                  <div sheetFooter class="pt-3">
+                    <button
+                      hlmBtn
+                      variant="outline"
+                      type="button"
+                      class="h-11 w-full text-base"
+                      (click)="openWalletCategories()"
+                    >
+                      {{ 'transactions.toWalletCategories' | transloco }}
+                    </button>
+                  </div>
+                }
+              </app-sheet-frame>
+            }
+            @case ('event') {
+              <app-sheet-frame
+                [title]="'events.pick' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <ul class="divide-y divide-border rounded-xl border border-border bg-card">
                   <li>
                     <button
                       type="button"
                       class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                      [attr.aria-current]="item.id === eventId() ? 'true' : null"
-                      (click)="chooseEvent(item.id)"
+                      [attr.aria-current]="eventId() === null ? 'true' : null"
+                      (click)="chooseEvent(null)"
                     >
-                      <app-icon-badge
-                        [icon]="item.icon"
-                        [color]="item.color"
-                        [fallback]="eventIcon"
-                      />
-                      <span class="flex min-w-0 flex-1 flex-col">
-                        <span class="truncate text-base">{{ item.name }}</span>
-                        <span class="truncate text-sm text-muted-foreground">{{
-                          eventDates(item)
-                        }}</span>
+                      <span
+                        class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+                      >
+                        <ng-icon name="lucideX" size="20" aria-hidden="true" />
                       </span>
-                      @if (item.id === eventId()) {
+                      <span class="min-w-0 flex-1 truncate text-base">{{
+                        'events.none' | transloco
+                      }}</span>
+                      @if (eventId() === null) {
                         <ng-icon
                           name="lucideCheck"
                           size="20"
@@ -746,47 +725,77 @@ const TYPES: readonly CategoryType[] = ['expense', 'income']
                       }
                     </button>
                   </li>
+                  @for (item of eventChoices(); track item.id) {
+                    <li>
+                      <button
+                        type="button"
+                        class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                        [attr.aria-current]="item.id === eventId() ? 'true' : null"
+                        (click)="chooseEvent(item.id)"
+                      >
+                        <app-icon-badge
+                          [icon]="item.icon"
+                          [color]="item.color"
+                          [fallback]="eventIcon"
+                        />
+                        <span class="flex min-w-0 flex-1 flex-col">
+                          <span class="truncate text-base">{{ item.name }}</span>
+                          <span class="truncate text-sm text-muted-foreground">{{
+                            eventDates(item)
+                          }}</span>
+                        </span>
+                        @if (item.id === eventId()) {
+                          <ng-icon
+                            name="lucideCheck"
+                            size="20"
+                            class="text-brand"
+                            aria-hidden="true"
+                          />
+                        }
+                      </button>
+                    </li>
+                  }
+                </ul>
+                @if (eventChoices().length === 0) {
+                  <p class="mt-3 text-sm text-muted-foreground">
+                    {{ 'events.noneOpen' | transloco }}
+                  </p>
                 }
-              </ul>
-              @if (eventChoices().length === 0) {
-                <p class="mt-3 text-sm text-muted-foreground">
-                  {{ 'events.noneOpen' | transloco }}
-                </p>
-              }
-            </app-sheet-frame>
+              </app-sheet-frame>
+            }
+            @case ('note') {
+              <app-sheet-frame
+                [title]="'transactions.note' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <app-textarea-field
+                  [control]="f.note"
+                  [label]="'transactions.note' | transloco"
+                  [hideLabel]="true"
+                  [rows]="10"
+                  [maxLength]="noteMax"
+                  [hint]="note().length + ' / ' + noteMax"
+                />
+              </app-sheet-frame>
+            }
+            @case ('repeat') {
+              <app-sheet-frame
+                [title]="'recurring.repeat' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <app-repeat-view
+                  [startOn]="day()"
+                  [value]="repeat()"
+                  (valueChange)="setRepeat($event)"
+                />
+              </app-sheet-frame>
+            }
           }
-          @case ('note') {
-            <app-sheet-frame
-              [title]="'transactions.note' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <app-textarea-field
-                [control]="f.note"
-                [label]="'transactions.note' | transloco"
-                [hideLabel]="true"
-                [rows]="10"
-                [maxLength]="noteMax"
-                [hint]="note().length + ' / ' + noteMax"
-              />
-            </app-sheet-frame>
-          }
-          @case ('repeat') {
-            <app-sheet-frame
-              [title]="'recurring.repeat' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <app-repeat-view
-                [startOn]="day()"
-                [value]="repeat()"
-                (valueChange)="setRepeat($event)"
-              />
-            </app-sheet-frame>
-          }
-        }
+        </div>
       </hlm-drawer-content>
     </hlm-drawer>
   `,
@@ -809,6 +818,8 @@ export class TransactionSheet {
   protected firstDay = TRANSACTION_LIMITS.FIRST_DAY
   protected state = this.transactionService.sheet
   protected view = signal<View>('form')
+  /** How deep the view is: a deeper one slides in from the right, going back from the left. */
+  protected depth = computed(() => (this.view() === 'form' ? 0 : 1))
   /** The amount keypad is showing (opens by itself when adding, owner's choice in #8). */
   protected keypad = signal(false)
   /** The folded "เพิ่มเติม" options. */

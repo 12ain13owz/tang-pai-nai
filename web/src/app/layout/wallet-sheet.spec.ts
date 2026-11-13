@@ -378,6 +378,29 @@ describe('WalletSheet', () => {
     expect(listOps(db, 'pending')).toMatchObject([{ rowId: 'w1', op: 'delete' }])
   })
 
+  it('slides a deeper view in from the right and the form back in from the left', async () => {
+    const animate = vi.fn(() => ({ cancel: vi.fn() }) as unknown as Animation)
+    HTMLElement.prototype.animate = animate
+    try {
+      wallet('w1', { name: 'Card' })
+      wallets.open({ mode: 'edit', id: 'w1' })
+      await settle()
+      expect(animate).not.toHaveBeenCalled()
+      await click(th.wallets.delete)
+      expect(animate).toHaveBeenLastCalledWith(
+        [{ opacity: 0, transform: 'translateX(48px)' }, expect.objectContaining({ opacity: 1 })],
+        expect.anything()
+      )
+      await click(th.sheet.back)
+      expect(animate).toHaveBeenLastCalledWith(
+        [{ opacity: 0, transform: 'translateX(-48px)' }, expect.objectContaining({ opacity: 1 })],
+        expect.anything()
+      )
+    } finally {
+      Reflect.deleteProperty(HTMLElement.prototype, 'animate')
+    }
+  })
+
   it('closes at once with unsaved input, without asking', async () => {
     wallets.open({ mode: 'create' })
     await settle()

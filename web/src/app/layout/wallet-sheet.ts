@@ -37,6 +37,7 @@ import {
   WALLET_ICON_GROUPS,
 } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
+import { Slide } from '@/shared/components/slide'
 import type { SelectOption } from '@/shared/types'
 import { parseMajor, toMajorText } from '@/shared/utils'
 import type { WalletFormGroup } from './wallet-form.type'
@@ -73,6 +74,7 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
     HlmButton,
     HlmDrawerImports,
     SheetFrame,
+    Slide,
   ],
   providers: [
     provideIcons({ lucideArchive, lucideArchiveRestore, lucideChevronRight, lucideTrash2 }),
@@ -82,252 +84,256 @@ const REFUSAL_KEYS: Record<UnarchiveRefusal, string> = {
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
       <hlm-drawer-content
         *hlmDrawerPortal
-        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+        class="mx-auto h-[92dvh] w-full max-w-[480px] overflow-x-clip data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
       >
-        @switch (view()) {
-          @case ('form') {
-            <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
-              <app-sheet-frame
-                [title]="heading() | transloco"
-                [leadingLabel]="'sheet.close' | transloco"
-                (leading)="finish()"
-              >
-                @if (editing(); as wallet) {
-                  <div sheetActions class="flex">
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="tpn-hit size-9"
-                      [disabled]="!walletService.canWrite()"
-                      [attr.aria-label]="
-                        (wallet.isArchived ? 'wallets.unarchive' : 'wallets.archive') | transloco
-                      "
-                      (click)="toggleArchive()"
-                    >
-                      <ng-icon
-                        [name]="wallet.isArchived ? 'lucideArchiveRestore' : 'lucideArchive'"
-                        size="18"
-                        aria-hidden="true"
-                      />
-                    </button>
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="tpn-hit size-9 text-destructive"
-                      [disabled]="!walletService.canWrite() || currencyLocked()"
-                      [attr.aria-label]="'wallets.delete' | transloco"
-                      (click)="view.set('confirmDelete')"
-                    >
-                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
-                    </button>
-                  </div>
-                }
-                <div class="flex flex-col gap-5">
-                  @if (!walletService.canWrite()) {
-                    <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                      {{
-                        (walletService.serverDown()
-                          ? 'sync.serverDownWrite'
-                          : 'wallets.needsOnline'
-                        ) | transloco
-                      }}
-                    </p>
+        <div class="flex min-h-0 flex-1 flex-col" [appSlide]="depth()">
+          @switch (view()) {
+            @case ('form') {
+              <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
+                <app-sheet-frame
+                  [title]="heading() | transloco"
+                  [leadingLabel]="'sheet.close' | transloco"
+                  (leading)="finish()"
+                >
+                  @if (editing(); as wallet) {
+                    <div sheetActions class="flex">
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        class="tpn-hit size-9"
+                        [disabled]="!walletService.canWrite()"
+                        [attr.aria-label]="
+                          (wallet.isArchived ? 'wallets.unarchive' : 'wallets.archive') | transloco
+                        "
+                        (click)="toggleArchive()"
+                      >
+                        <ng-icon
+                          [name]="wallet.isArchived ? 'lucideArchiveRestore' : 'lucideArchive'"
+                          size="18"
+                          aria-hidden="true"
+                        />
+                      </button>
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        class="tpn-hit size-9 text-destructive"
+                        [disabled]="!walletService.canWrite() || currencyLocked()"
+                        [attr.aria-label]="'wallets.delete' | transloco"
+                        (click)="view.set('confirmDelete')"
+                      >
+                        <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
+                      </button>
+                    </div>
                   }
-                  @if (refusal()) {
-                    <p role="alert" class="text-sm text-destructive">
-                      {{ refusal() | transloco }}
-                    </p>
-                  }
-                  <app-name-icon-field
-                    [control]="f.name"
-                    [label]="'wallets.name' | transloco"
-                    [icon]="f.icon.value"
-                    [color]="f.color.value"
-                    [fallback]="defaultIcon"
-                    [iconLabel]="'wallets.changeIcon' | transloco"
-                    (iconClick)="view.set('icons')"
-                  />
-                  <div class="flex flex-col gap-1">
-                    <app-amount-field
-                      [control]="f.initialBalance"
-                      [negative]="f.negative"
-                      [label]="'wallets.initialBalance' | transloco"
-                    >
-                      @if (!currencyLocked() && currencyOptions().length > 1) {
-                        <select
-                          amountSuffix
-                          class="h-9 max-w-28 shrink-0 rounded-full bg-muted px-3 text-base font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                          [formControl]="f.currencyCode"
-                          [attr.aria-label]="'wallets.currency' | transloco"
-                        >
-                          @for (option of currencyOptions(); track option.value) {
-                            <option [value]="option.value">{{ option.label }}</option>
-                          }
-                        </select>
-                      } @else {
-                        <span amountSuffix class="shrink-0 text-sm text-muted-foreground">
-                          {{ f.currencyCode.value }}
-                        </span>
+                  <div class="flex flex-col gap-5">
+                    @if (!walletService.canWrite()) {
+                      <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                        {{
+                          (walletService.serverDown()
+                            ? 'sync.serverDownWrite'
+                            : 'wallets.needsOnline'
+                          ) | transloco
+                        }}
+                      </p>
+                    }
+                    @if (refusal()) {
+                      <p role="alert" class="text-sm text-destructive">
+                        {{ refusal() | transloco }}
+                      </p>
+                    }
+                    <app-name-icon-field
+                      [control]="f.name"
+                      [label]="'wallets.name' | transloco"
+                      [icon]="f.icon.value"
+                      [color]="f.color.value"
+                      [fallback]="defaultIcon"
+                      [iconLabel]="'wallets.changeIcon' | transloco"
+                      (iconClick)="view.set('icons')"
+                    />
+                    <div class="flex flex-col gap-1">
+                      <app-amount-field
+                        [control]="f.initialBalance"
+                        [negative]="f.negative"
+                        [label]="'wallets.initialBalance' | transloco"
+                      >
+                        @if (!currencyLocked() && currencyOptions().length > 1) {
+                          <select
+                            amountSuffix
+                            class="h-9 max-w-28 shrink-0 rounded-full bg-muted px-3 text-base font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            [formControl]="f.currencyCode"
+                            [attr.aria-label]="'wallets.currency' | transloco"
+                          >
+                            @for (option of currencyOptions(); track option.value) {
+                              <option [value]="option.value">{{ option.label }}</option>
+                            }
+                          </select>
+                        } @else {
+                          <span amountSuffix class="shrink-0 text-sm text-muted-foreground">
+                            {{ f.currencyCode.value }}
+                          </span>
+                        }
+                      </app-amount-field>
+                      @if (currencyLocked()) {
+                        <p class="pl-14 text-sm text-muted-foreground">
+                          {{ 'wallets.currencyLocked' | transloco }}
+                        </p>
                       }
-                    </app-amount-field>
-                    @if (currencyLocked()) {
-                      <p class="pl-14 text-sm text-muted-foreground">
-                        {{ 'wallets.currencyLocked' | transloco }}
+                    </div>
+                    <div class="-mx-4 border-t border-border"></div>
+                    <app-switch-field
+                      [control]="f.excludeFromTotal"
+                      [label]="'wallets.excludeFromTotal' | transloco"
+                    />
+                    <div class="-mx-4 -mt-1 flex flex-col border-y border-border">
+                      <button
+                        type="button"
+                        class="flex min-h-12 items-center gap-3 px-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        (click)="view.set('categories')"
+                      >
+                        <span class="text-muted-foreground">{{
+                          'wallets.categoriesUsed' | transloco
+                        }}</span>
+                        <span class="min-w-0 flex-1 truncate text-right">
+                          @if (hiddenCount() === 0) {
+                            {{ 'wallets.categoriesAll' | transloco }}
+                          } @else {
+                            {{ 'wallets.categoriesHidden' | transloco: { count: hiddenCount() } }}
+                          }
+                        </span>
+                        <ng-icon
+                          name="lucideChevronRight"
+                          size="20"
+                          class="text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      </button>
+                    </div>
+                    @if (editing() && currencyLocked()) {
+                      <p class="rounded-xl bg-muted px-4 py-3 text-sm">
+                        {{ 'wallets.deleteUsed' | transloco }}
                       </p>
                     }
                   </div>
-                  <div class="-mx-4 border-t border-border"></div>
-                  <app-switch-field
-                    [control]="f.excludeFromTotal"
-                    [label]="'wallets.excludeFromTotal' | transloco"
-                  />
-                  <div class="-mx-4 -mt-1 flex flex-col border-y border-border">
+                  <div sheetFooter class="pt-3">
                     <button
-                      type="button"
-                      class="flex min-h-12 items-center gap-3 px-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                      (click)="view.set('categories')"
+                      hlmBtn
+                      type="submit"
+                      class="h-11 w-full text-base"
+                      [disabled]="!walletService.canWrite()"
                     >
-                      <span class="text-muted-foreground">{{
-                        'wallets.categoriesUsed' | transloco
-                      }}</span>
-                      <span class="min-w-0 flex-1 truncate text-right">
-                        @if (hiddenCount() === 0) {
-                          {{ 'wallets.categoriesAll' | transloco }}
-                        } @else {
-                          {{ 'wallets.categoriesHidden' | transloco: { count: hiddenCount() } }}
-                        }
-                      </span>
-                      <ng-icon
-                        name="lucideChevronRight"
-                        size="20"
-                        class="text-muted-foreground"
-                        aria-hidden="true"
-                      />
+                      {{ 'wallets.save' | transloco }}
                     </button>
                   </div>
-                  @if (editing() && currencyLocked()) {
-                    <p class="rounded-xl bg-muted px-4 py-3 text-sm">
-                      {{ 'wallets.deleteUsed' | transloco }}
+                </app-sheet-frame>
+              </form>
+            }
+            @case ('icons') {
+              <app-sheet-frame
+                [title]="'wallets.iconHeading' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <div class="flex flex-col gap-6">
+                  <app-color-field
+                    [control]="f.color"
+                    [label]="'wallets.color' | transloco"
+                    [colors]="colors"
+                  />
+                  <app-icon-field
+                    [control]="f.icon"
+                    [label]="'wallets.icon' | transloco"
+                    [groups]="iconGroups"
+                    [color]="f.color.value"
+                  />
+                </div>
+              </app-sheet-frame>
+            }
+            @case ('categories') {
+              <app-sheet-frame
+                [title]="'wallets.categoriesUsed' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <div class="flex flex-col gap-4">
+                  <div
+                    class="flex rounded-lg bg-muted p-1"
+                    role="tablist"
+                    [attr.aria-label]="'categories.tabsLabel' | transloco"
+                  >
+                    @for (tab of categoryTabs; track tab) {
+                      <button
+                        type="button"
+                        role="tab"
+                        class="flex h-10 flex-1 items-center justify-center rounded-md text-sm text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-selected:bg-card aria-selected:font-semibold aria-selected:text-foreground aria-selected:shadow-sm"
+                        [attr.aria-selected]="categoryTab() === tab"
+                        (click)="categoryTab.set(tab)"
+                      >
+                        {{ 'categories.' + tab | transloco }}
+                      </button>
+                    }
+                  </div>
+                  @if (categoryItems().length > 0) {
+                    <app-toggle-list-field
+                      [control]="f.hiddenCategoryIds"
+                      [label]="'wallets.categoriesUsed' | transloco"
+                      [items]="categoryItems()"
+                    />
+                  } @else {
+                    <p class="text-sm text-muted-foreground">
+                      {{
+                        'categories.emptyHeading'
+                          | transloco: { label: 'categories.' + categoryTab() | transloco }
+                      }}
+                    </p>
+                  }
+                </div>
+              </app-sheet-frame>
+            }
+            @case ('confirmDelete') {
+              <app-sheet-frame
+                [title]="'wallets.delete' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <div class="flex flex-col gap-2">
+                  <p class="text-base font-semibold">
+                    {{ 'wallets.deleteHeading' | transloco: { name: editingName() } }}
+                  </p>
+                  <p class="text-sm text-muted-foreground">
+                    {{ 'wallets.deleteText' | transloco }}
+                  </p>
+                  @if (walletService.ruleCount(editing()?.id ?? null); as count) {
+                    <!-- Recurring rule 14: its rules go with it. -->
+                    <p class="text-sm text-muted-foreground">
+                      {{
+                        'recurring.deleteLine'
+                          | transloco: { count: count, what: ('recurring.whatWallet' | transloco) }
+                      }}
                     </p>
                   }
                 </div>
                 <div sheetFooter class="pt-3">
                   <button
                     hlmBtn
-                    type="submit"
+                    variant="destructive"
+                    type="button"
                     class="h-11 w-full text-base"
-                    [disabled]="!walletService.canWrite()"
+                    (click)="remove()"
                   >
-                    {{ 'wallets.save' | transloco }}
+                    {{ 'wallets.deleteConfirm' | transloco }}
                   </button>
                 </div>
               </app-sheet-frame>
-            </form>
+            }
           }
-          @case ('icons') {
-            <app-sheet-frame
-              [title]="'wallets.iconHeading' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <div class="flex flex-col gap-6">
-                <app-color-field
-                  [control]="f.color"
-                  [label]="'wallets.color' | transloco"
-                  [colors]="colors"
-                />
-                <app-icon-field
-                  [control]="f.icon"
-                  [label]="'wallets.icon' | transloco"
-                  [groups]="iconGroups"
-                  [color]="f.color.value"
-                />
-              </div>
-            </app-sheet-frame>
-          }
-          @case ('categories') {
-            <app-sheet-frame
-              [title]="'wallets.categoriesUsed' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <div class="flex flex-col gap-4">
-                <div
-                  class="flex rounded-lg bg-muted p-1"
-                  role="tablist"
-                  [attr.aria-label]="'categories.tabsLabel' | transloco"
-                >
-                  @for (tab of categoryTabs; track tab) {
-                    <button
-                      type="button"
-                      role="tab"
-                      class="flex h-10 flex-1 items-center justify-center rounded-md text-sm text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-selected:bg-card aria-selected:font-semibold aria-selected:text-foreground aria-selected:shadow-sm"
-                      [attr.aria-selected]="categoryTab() === tab"
-                      (click)="categoryTab.set(tab)"
-                    >
-                      {{ 'categories.' + tab | transloco }}
-                    </button>
-                  }
-                </div>
-                @if (categoryItems().length > 0) {
-                  <app-toggle-list-field
-                    [control]="f.hiddenCategoryIds"
-                    [label]="'wallets.categoriesUsed' | transloco"
-                    [items]="categoryItems()"
-                  />
-                } @else {
-                  <p class="text-sm text-muted-foreground">
-                    {{
-                      'categories.emptyHeading'
-                        | transloco: { label: 'categories.' + categoryTab() | transloco }
-                    }}
-                  </p>
-                }
-              </div>
-            </app-sheet-frame>
-          }
-          @case ('confirmDelete') {
-            <app-sheet-frame
-              [title]="'wallets.delete' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <div class="flex flex-col gap-2">
-                <p class="text-base font-semibold">
-                  {{ 'wallets.deleteHeading' | transloco: { name: editingName() } }}
-                </p>
-                <p class="text-sm text-muted-foreground">{{ 'wallets.deleteText' | transloco }}</p>
-                @if (walletService.ruleCount(editing()?.id ?? null); as count) {
-                  <!-- Recurring rule 14: its rules go with it. -->
-                  <p class="text-sm text-muted-foreground">
-                    {{
-                      'recurring.deleteLine'
-                        | transloco: { count: count, what: ('recurring.whatWallet' | transloco) }
-                    }}
-                  </p>
-                }
-              </div>
-              <div sheetFooter class="pt-3">
-                <button
-                  hlmBtn
-                  variant="destructive"
-                  type="button"
-                  class="h-11 w-full text-base"
-                  (click)="remove()"
-                >
-                  {{ 'wallets.deleteConfirm' | transloco }}
-                </button>
-              </div>
-            </app-sheet-frame>
-          }
-        }
+        </div>
       </hlm-drawer-content>
     </hlm-drawer>
   `,
@@ -345,6 +351,8 @@ export class WalletSheet {
   protected colors = USER_COLORS
   protected state = this.walletService.sheet
   protected view = signal<View>('form')
+  /** How deep the view is: a deeper one slides in from the right, going back from the left. */
+  protected depth = computed(() => (this.view() === 'form' ? 0 : 1))
   protected categoryTabs = CATEGORY_TABS
   protected categoryTab = signal<CategoryType>('expense')
   /** Why the wallet can't come back from the archive (a translation key). */

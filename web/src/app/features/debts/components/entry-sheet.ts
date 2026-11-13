@@ -36,6 +36,7 @@ import { CalcAmountField, CalcKeypad, FORM_IMPORTS, TextareaField } from '@/shar
 import { IconBadge, WALLET_DEFAULT_ICON } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 import { SheetFrame } from '@/shared/components/sheet'
+import { Slide } from '@/shared/components/slide'
 import { WalletPick } from '@/shared/components/wallet-pick'
 import {
   addDays,
@@ -73,6 +74,7 @@ type View = 'form' | 'wallet' | 'category' | 'note'
     TextareaField,
     IconBadge,
     SheetFrame,
+    Slide,
     DebtCategoryPick,
     DateRow,
     WalletPick,
@@ -94,247 +96,146 @@ type View = 'form' | 'wallet' | 'category' | 'note'
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
       <hlm-drawer-content
         *hlmDrawerPortal
-        class="mx-auto h-[92dvh] w-full max-w-[480px] data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
+        class="mx-auto h-[92dvh] w-full max-w-[480px] overflow-x-clip data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
         (keydown)="onKey($event)"
       >
-        @switch (view()) {
-          @case ('form') {
-            <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
-              <app-sheet-frame
-                [title]="heading()"
-                [leadingLabel]="'sheet.close' | transloco"
-                (leading)="finish()"
-              >
-                @if (rule(); as current) {
-                  <div sheetActions class="flex">
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="tpn-hit size-9"
-                      [disabled]="!debtService.canWrite()"
-                      [attr.aria-label]="
-                        (current.isPaused ? 'recurring.resume' : 'recurring.pause') | transloco
-                      "
-                      (click)="togglePause()"
-                    >
-                      <ng-icon
-                        [name]="current.isPaused ? 'lucidePlay' : 'lucidePause'"
-                        size="18"
-                        aria-hidden="true"
-                      />
-                    </button>
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="tpn-hit size-9 text-destructive"
-                      [disabled]="!debtService.canWrite()"
-                      [attr.aria-label]="'recurring.delete' | transloco"
-                      (click)="remove()"
-                    >
-                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
-                    </button>
-                  </div>
-                } @else if (state()?.mode === 'edit') {
-                  <div sheetActions class="flex">
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      class="tpn-hit size-9 text-destructive"
-                      [disabled]="!debtService.canWrite()"
-                      [attr.aria-label]="'debts.deleteEntry' | transloco"
-                      (click)="remove()"
-                    >
-                      <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
-                    </button>
-                  </div>
-                }
-                <div
-                  class="flex flex-col gap-4"
-                  (pointerdown)="leaveAmount($event)"
-                  (focusin)="leaveAmount($event)"
+        <div class="flex min-h-0 flex-1 flex-col" [appSlide]="depth()">
+          @switch (view()) {
+            @case ('form') {
+              <form [formGroup]="form" class="flex min-h-0 flex-1 flex-col" (ngSubmit)="save()">
+                <app-sheet-frame
+                  [title]="heading()"
+                  [leadingLabel]="'sheet.close' | transloco"
+                  (leading)="finish()"
                 >
-                  @if (!debtService.canWrite()) {
-                    <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                      {{
-                        (debtService.serverDown() ? 'sync.serverDownWrite' : 'debts.needsOnline')
-                          | transloco
-                      }}
-                    </p>
-                  }
-                  <div
-                    class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
-                  >
-                    @if (debt(); as d) {
-                      <div class="flex min-h-14 items-center gap-3 px-4 py-2">
-                        <span
-                          class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground"
-                        >
-                          <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
-                        </span>
-                        <span class="flex min-w-0 flex-1 flex-col">
-                          <span class="text-xs text-muted-foreground">{{
-                            'debts.person.' + d.direction | transloco
-                          }}</span>
-                          <span class="truncate text-base">{{ d.person }}</span>
-                        </span>
-                        @if (leftText(); as left) {
-                          <span class="shrink-0 text-sm text-muted-foreground tabular-nums">{{
-                            'debts.leftShort' | transloco: { amount: left }
-                          }}</span>
-                        }
-                      </div>
-                    }
-                    <div class="px-4">
-                      <app-calc-amount-field
-                        [control]="f.amount"
-                        [label]="'transactions.amount' | transloco"
-                        [currencyCode]="debt()?.currencyCode ?? ''"
-                        [minorUnit]="minorUnit()"
-                        [locale]="languageService.locale()"
-                        [active]="keypad()"
-                        (activate)="keypad.set(true)"
-                      />
-                    </div>
-                    @if (needsWallet()) {
+                  @if (rule(); as current) {
+                    <div sheetActions class="flex">
                       <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon"
                         type="button"
-                        class="flex min-h-15 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                        (click)="pick('wallet')"
+                        class="tpn-hit size-9"
+                        [disabled]="!debtService.canWrite()"
+                        [attr.aria-label]="
+                          (current.isPaused ? 'recurring.resume' : 'recurring.pause') | transloco
+                        "
+                        (click)="togglePause()"
                       >
-                        <span class="flex w-10 shrink-0 justify-center">
-                          @if (wallet(); as item) {
-                            <app-icon-badge
-                              [icon]="item.icon"
-                              [color]="item.color"
-                              [fallback]="walletIcon"
-                              [size]="32"
-                            />
-                          } @else {
-                            <ng-icon
-                              name="lucideWallet"
-                              size="22"
-                              class="text-muted-foreground"
-                              aria-hidden="true"
-                            />
-                          }
-                        </span>
-                        <span class="flex min-w-0 flex-1 flex-col">
-                          <span class="text-xs text-muted-foreground">{{ walletLabel() }}</span>
-                          <span class="truncate text-base">{{ wallet()?.name ?? '' }}</span>
-                        </span>
-                        @if (wallet(); as item) {
-                          <span class="shrink-0 text-sm text-muted-foreground tabular-nums">{{
-                            balanceText(item)
-                          }}</span>
-                        }
                         <ng-icon
-                          name="lucideChevronRight"
-                          size="20"
-                          class="text-muted-foreground"
+                          [name]="current.isPaused ? 'lucidePlay' : 'lucidePause'"
+                          size="18"
                           aria-hidden="true"
                         />
                       </button>
-                      @if (f.walletId.touched && f.walletId.invalid) {
-                        <p role="alert" class="px-4 pb-2 pl-17 text-sm text-destructive">
-                          {{ 'debts.walletRequired' | transloco }}
-                        </p>
-                      }
-                    }
-                    <button
-                      type="button"
-                      class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                      [attr.aria-label]="('transactions.note' | transloco) + ' ' + note()"
-                      (click)="pick('note')"
-                    >
-                      <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                        <ng-icon name="lucideTextAlignStart" size="22" aria-hidden="true" />
-                      </span>
-                      <span
-                        class="min-w-0 flex-1 truncate text-base"
-                        [class.text-muted-foreground]="!note()"
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        class="tpn-hit size-9 text-destructive"
+                        [disabled]="!debtService.canWrite()"
+                        [attr.aria-label]="'recurring.delete' | transloco"
+                        (click)="remove()"
                       >
-                        {{ note() || ('transactions.note' | transloco) }}
-                      </span>
-                      <ng-icon
-                        name="lucideChevronRight"
-                        size="20"
-                        class="text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                    </button>
-                    @if (!rule()) {
-                      <app-date-row
-                        [today]="transactionService.today()"
-                        [locale]="languageService.locale()"
-                        [control]="f.occurredOn"
-                        [value]="values().occurredOn ?? ''"
-                        [max]="lastDay()"
-                      />
-                    }
-                  </div>
-                  @if (allText(); as all) {
-                    <button
-                      hlmBtn
-                      variant="outline"
-                      type="button"
-                      class="-mt-1 h-10 self-start rounded-full bg-brand/10 px-4 text-brand"
-                      (click)="setAll()"
-                    >
-                      {{ 'debts.all' | transloco: { amount: all } }}
-                    </button>
+                        <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
+                      </button>
+                    </div>
+                  } @else if (state()?.mode === 'edit') {
+                    <div sheetActions class="flex">
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        class="tpn-hit size-9 text-destructive"
+                        [disabled]="!debtService.canWrite()"
+                        [attr.aria-label]="'debts.deleteEntry' | transloco"
+                        (click)="remove()"
+                      >
+                        <ng-icon name="lucideTrash2" size="18" aria-hidden="true" />
+                      </button>
+                    </div>
                   }
-                  @if (interestAllowed()) {
-                    <!-- Interest or a fee: a counted transaction linked to the debt (Q5). -->
+                  <div
+                    class="flex flex-col gap-4"
+                    (pointerdown)="leaveAmount($event)"
+                    (focusin)="leaveAmount($event)"
+                  >
+                    @if (!debtService.canWrite()) {
+                      <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                        {{
+                          (debtService.serverDown() ? 'sync.serverDownWrite' : 'debts.needsOnline')
+                            | transloco
+                        }}
+                      </p>
+                    }
                     <div
                       class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
                     >
-                      <label class="flex min-h-14 items-center gap-3 px-4 py-2">
-                        <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
-                          <ng-icon name="lucidePercent" size="22" aria-hidden="true" />
-                        </span>
-                        <span class="flex min-w-0 flex-1 flex-col">
-                          <span class="text-base">{{
-                            'debts.interest.' + debt()!.direction | transloco
-                          }}</span>
-                          <span class="text-xs text-muted-foreground">{{
-                            'debts.interestHint.' + debt()!.direction | transloco
-                          }}</span>
-                        </span>
-                        <input
-                          class="w-28 rounded-md border border-input bg-transparent px-2 py-1.5 text-right text-base tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          inputmode="decimal"
-                          placeholder="0.00"
-                          [formControl]="interestAmount"
-                          [attr.aria-label]="'debts.interest.' + debt()!.direction | transloco"
+                      @if (debt(); as d) {
+                        <div class="flex min-h-14 items-center gap-3 px-4 py-2">
+                          <span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground"
+                          >
+                            <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
+                          </span>
+                          <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-xs text-muted-foreground">{{
+                              'debts.person.' + d.direction | transloco
+                            }}</span>
+                            <span class="truncate text-base">{{ d.person }}</span>
+                          </span>
+                          @if (leftText(); as left) {
+                            <span class="shrink-0 text-sm text-muted-foreground tabular-nums">{{
+                              'debts.leftShort' | transloco: { amount: left }
+                            }}</span>
+                          }
+                        </div>
+                      }
+                      <div class="px-4">
+                        <app-calc-amount-field
+                          [control]="f.amount"
+                          [label]="'transactions.amount' | transloco"
+                          [currencyCode]="debt()?.currencyCode ?? ''"
+                          [minorUnit]="minorUnit()"
+                          [locale]="languageService.locale()"
+                          [active]="keypad()"
+                          (activate)="keypad.set(true)"
                         />
-                      </label>
-                      @if (interestValue() > 0) {
+                      </div>
+                      @if (needsWallet()) {
                         <button
                           type="button"
-                          class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                          (click)="pick('category')"
+                          class="flex min-h-15 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                          (click)="pick('wallet')"
                         >
                           <span class="flex w-10 shrink-0 justify-center">
-                            <app-icon-badge
-                              [icon]="interestCategory()?.icon ?? ''"
-                              [color]="interestCategory()?.color ?? ''"
-                              [fallback]="categoryIcon"
-                              [size]="32"
-                            />
+                            @if (wallet(); as item) {
+                              <app-icon-badge
+                                [icon]="item.icon"
+                                [color]="item.color"
+                                [fallback]="walletIcon"
+                                [size]="32"
+                              />
+                            } @else {
+                              <ng-icon
+                                name="lucideWallet"
+                                size="22"
+                                class="text-muted-foreground"
+                                aria-hidden="true"
+                              />
+                            }
                           </span>
-                          <span
-                            class="min-w-0 flex-1 truncate text-base"
-                            [class.text-muted-foreground]="!interestCategory()"
-                            >{{
-                              interestCategory()?.name ?? ('debts.interestCategory' | transloco)
-                            }}</span
-                          >
+                          <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-xs text-muted-foreground">{{ walletLabel() }}</span>
+                            <span class="truncate text-base">{{ wallet()?.name ?? '' }}</span>
+                          </span>
+                          @if (wallet(); as item) {
+                            <span class="shrink-0 text-sm text-muted-foreground tabular-nums">{{
+                              balanceText(item)
+                            }}</span>
+                          }
                           <ng-icon
                             name="lucideChevronRight"
                             size="20"
@@ -342,91 +243,194 @@ type View = 'form' | 'wallet' | 'category' | 'note'
                             aria-hidden="true"
                           />
                         </button>
-                        @if (interestMissing()) {
+                        @if (f.walletId.touched && f.walletId.invalid) {
                           <p role="alert" class="px-4 pb-2 pl-17 text-sm text-destructive">
-                            {{ 'debts.categoryRequired' | transloco }}
+                            {{ 'debts.walletRequired' | transloco }}
                           </p>
                         }
                       }
+                      <button
+                        type="button"
+                        class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                        [attr.aria-label]="('transactions.note' | transloco) + ' ' + note()"
+                        (click)="pick('note')"
+                      >
+                        <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
+                          <ng-icon name="lucideTextAlignStart" size="22" aria-hidden="true" />
+                        </span>
+                        <span
+                          class="min-w-0 flex-1 truncate text-base"
+                          [class.text-muted-foreground]="!note()"
+                        >
+                          {{ note() || ('transactions.note' | transloco) }}
+                        </span>
+                        <ng-icon
+                          name="lucideChevronRight"
+                          size="20"
+                          class="text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      </button>
+                      @if (!rule()) {
+                        <app-date-row
+                          [today]="transactionService.today()"
+                          [locale]="languageService.locale()"
+                          [control]="f.occurredOn"
+                          [value]="values().occurredOn ?? ''"
+                          [max]="lastDay()"
+                        />
+                      }
                     </div>
-                  }
-                  @if (hint(); as text) {
-                    <p class="-mt-1 px-1 text-sm text-muted-foreground">{{ text }}</p>
-                  }
-                </div>
-                <div sheetFooter class="relative flex flex-col pt-3">
-                  <!-- Under the keypad while it shows: ✓ first, then save (one action at a time). -->
-                  <div class="flex" [attr.inert]="keypad() ? '' : null">
-                    <button
-                      hlmBtn
-                      type="submit"
-                      class="h-11 min-w-0 flex-1 text-base"
-                      [disabled]="!debtService.canWrite()"
-                    >
-                      {{ 'transactions.save' | transloco }}
-                    </button>
+                    @if (allText(); as all) {
+                      <button
+                        hlmBtn
+                        variant="outline"
+                        type="button"
+                        class="-mt-1 h-10 self-start rounded-full bg-brand/10 px-4 text-brand"
+                        (click)="setAll()"
+                      >
+                        {{ 'debts.all' | transloco: { amount: all } }}
+                      </button>
+                    }
+                    @if (interestAllowed()) {
+                      <!-- Interest or a fee: a counted transaction linked to the debt (Q5). -->
+                      <div
+                        class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card"
+                      >
+                        <label class="flex min-h-14 items-center gap-3 px-4 py-2">
+                          <span class="flex w-10 shrink-0 justify-center text-muted-foreground">
+                            <ng-icon name="lucidePercent" size="22" aria-hidden="true" />
+                          </span>
+                          <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-base">{{
+                              'debts.interest.' + debt()!.direction | transloco
+                            }}</span>
+                            <span class="text-xs text-muted-foreground">{{
+                              'debts.interestHint.' + debt()!.direction | transloco
+                            }}</span>
+                          </span>
+                          <input
+                            class="w-28 rounded-md border border-input bg-transparent px-2 py-1.5 text-right text-base tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            inputmode="decimal"
+                            placeholder="0.00"
+                            [formControl]="interestAmount"
+                            [attr.aria-label]="'debts.interest.' + debt()!.direction | transloco"
+                          />
+                        </label>
+                        @if (interestValue() > 0) {
+                          <button
+                            type="button"
+                            class="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                            (click)="pick('category')"
+                          >
+                            <span class="flex w-10 shrink-0 justify-center">
+                              <app-icon-badge
+                                [icon]="interestCategory()?.icon ?? ''"
+                                [color]="interestCategory()?.color ?? ''"
+                                [fallback]="categoryIcon"
+                                [size]="32"
+                              />
+                            </span>
+                            <span
+                              class="min-w-0 flex-1 truncate text-base"
+                              [class.text-muted-foreground]="!interestCategory()"
+                              >{{
+                                interestCategory()?.name ?? ('debts.interestCategory' | transloco)
+                              }}</span
+                            >
+                            <ng-icon
+                              name="lucideChevronRight"
+                              size="20"
+                              class="text-muted-foreground"
+                              aria-hidden="true"
+                            />
+                          </button>
+                          @if (interestMissing()) {
+                            <p role="alert" class="px-4 pb-2 pl-17 text-sm text-destructive">
+                              {{ 'debts.categoryRequired' | transloco }}
+                            </p>
+                          }
+                        }
+                      </div>
+                    }
+                    @if (hint(); as text) {
+                      <p class="-mt-1 px-1 text-sm text-muted-foreground">{{ text }}</p>
+                    }
                   </div>
-                  @if (keypad()) {
-                    <app-calc-keypad
-                      class="absolute -inset-x-4 -bottom-4 z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-                      [quickAmounts]="quickAmounts()"
-                      [locale]="languageService.locale()"
-                      (pressed)="press($event)"
-                      (quickPressed)="addQuick($event)"
-                    />
-                  }
-                </div>
+                  <div sheetFooter class="relative flex flex-col pt-3">
+                    <!-- Under the keypad while it shows: ✓ first, then save (one action at a time). -->
+                    <div class="flex" [attr.inert]="keypad() ? '' : null">
+                      <button
+                        hlmBtn
+                        type="submit"
+                        class="h-11 min-w-0 flex-1 text-base"
+                        [disabled]="!debtService.canWrite()"
+                      >
+                        {{ 'transactions.save' | transloco }}
+                      </button>
+                    </div>
+                    @if (keypad()) {
+                      <app-calc-keypad
+                        class="absolute -inset-x-4 -bottom-4 z-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+                        [quickAmounts]="quickAmounts()"
+                        [locale]="languageService.locale()"
+                        (pressed)="press($event)"
+                        (quickPressed)="addQuick($event)"
+                      />
+                    }
+                  </div>
+                </app-sheet-frame>
+              </form>
+            }
+            @case ('wallet') {
+              <app-sheet-frame
+                [title]="walletLabel()"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <app-wallet-pick
+                  [wallets]="walletItems()"
+                  [empty]="'debts.noWallet' | transloco"
+                  [chosen]="f.walletId.value"
+                  (picked)="chooseWallet($event)"
+                />
               </app-sheet-frame>
-            </form>
+            }
+            @case ('category') {
+              <app-sheet-frame
+                [title]="'debts.interestCategory' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <app-debt-category-pick
+                  [profileId]="debt()?.profileId ?? ''"
+                  [type]="debt()?.direction === 'lent' ? 'income' : 'expense'"
+                  [chosen]="interestCategoryId()"
+                  (picked)="interestCategoryId.set($event); view.set('form')"
+                />
+              </app-sheet-frame>
+            }
+            @case ('note') {
+              <app-sheet-frame
+                [title]="'transactions.note' | transloco"
+                leadingIcon="back"
+                [leadingLabel]="'sheet.back' | transloco"
+                (leading)="view.set('form')"
+              >
+                <app-textarea-field
+                  [control]="f.note"
+                  [label]="'transactions.note' | transloco"
+                  [hideLabel]="true"
+                  [rows]="10"
+                  [maxLength]="noteMax"
+                  [hint]="note().length + ' / ' + noteMax"
+                />
+              </app-sheet-frame>
+            }
           }
-          @case ('wallet') {
-            <app-sheet-frame
-              [title]="walletLabel()"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <app-wallet-pick
-                [wallets]="walletItems()"
-                [empty]="'debts.noWallet' | transloco"
-                [chosen]="f.walletId.value"
-                (picked)="chooseWallet($event)"
-              />
-            </app-sheet-frame>
-          }
-          @case ('category') {
-            <app-sheet-frame
-              [title]="'debts.interestCategory' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <app-debt-category-pick
-                [profileId]="debt()?.profileId ?? ''"
-                [type]="debt()?.direction === 'lent' ? 'income' : 'expense'"
-                [chosen]="interestCategoryId()"
-                (picked)="interestCategoryId.set($event); view.set('form')"
-              />
-            </app-sheet-frame>
-          }
-          @case ('note') {
-            <app-sheet-frame
-              [title]="'transactions.note' | transloco"
-              leadingIcon="back"
-              [leadingLabel]="'sheet.back' | transloco"
-              (leading)="view.set('form')"
-            >
-              <app-textarea-field
-                [control]="f.note"
-                [label]="'transactions.note' | transloco"
-                [hideLabel]="true"
-                [rows]="10"
-                [maxLength]="noteMax"
-                [hint]="note().length + ' / ' + noteMax"
-              />
-            </app-sheet-frame>
-          }
-        }
+        </div>
       </hlm-drawer-content>
     </hlm-drawer>
   `,
@@ -447,6 +451,8 @@ export class DebtEntrySheet {
   protected noteMax = DEBT_LIMITS.NOTE_MAX
   protected state = this.debtService.entrySheet
   protected view = signal<View>('form')
+  /** How deep the view is: a deeper one slides in from the right, going back from the left. */
+  protected depth = computed(() => (this.view() === 'form' ? 0 : 1))
   protected keypad = signal(false)
   protected open = signal(false)
   protected interestCategoryId = signal<string | null>(null)
