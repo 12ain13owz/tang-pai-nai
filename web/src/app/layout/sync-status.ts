@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core'
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
@@ -8,6 +8,7 @@ import {
   lucideCloudOff,
   lucideRefreshCw,
 } from '@ng-icons/lucide'
+import { toast } from '@spartan-ng/brain/sonner'
 import { LanguageService } from '@/core/i18n'
 import { SyncService } from '@/core/offline'
 import type { SyncStatus as Status } from '@/core/offline'
@@ -70,7 +71,9 @@ export class SyncStatus {
   private profileService = inject(ProfileService)
 
   protected sheetOpen = signal(false)
-  private isAlert = computed(() => ['errors', 'offline', 'unreachable'].includes(this.status()))
+  private isAlert = computed(() =>
+    ['errors', 'offline', 'unreachable', 'failed'].includes(this.status())
+  )
   protected icon = computed(() => {
     switch (this.status()) {
       case 'syncing':
@@ -78,6 +81,7 @@ export class SyncStatus {
       case 'synced':
         return 'lucideCloudCheck'
       case 'errors':
+      case 'failed':
         return 'lucideCloudAlert'
       case 'pending':
         return 'lucideCloud'
@@ -103,6 +107,16 @@ export class SyncStatus {
     this.isAlert() ? 'bg-destructive text-background' : 'bg-muted-foreground text-background'
   )
   protected status = this.syncService.status
+  /** The pill alone is easy to miss: a failed round (the server answered an error) toasts once. */
+  private hasFailed = computed(() => this.status() === 'failed')
+
+  constructor() {
+    effect(() => {
+      if (this.hasFailed()) {
+        untracked(() => toast.error(this.transloco.translate('sync.failedToast')))
+      }
+    })
+  }
   protected label = computed(() => {
     this.languageService.language() // re-translate on a language switch
     const pending = this.syncService.pendingCount()
@@ -111,6 +125,7 @@ export class SyncStatus {
       offline: pending > 0 ? ['sync.offlinePending', { count: pending }] : ['sync.offline', {}],
       unreachable:
         pending > 0 ? ['sync.unreachablePending', { count: pending }] : ['sync.unreachable', {}],
+      failed: pending > 0 ? ['sync.failedPending', { count: pending }] : ['sync.failed', {}],
       syncing: ['sync.syncing', {}],
       pending: ['sync.pending', { count: pending }],
       synced: ['sync.synced', {}],

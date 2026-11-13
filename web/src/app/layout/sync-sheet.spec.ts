@@ -44,6 +44,7 @@ describe('SyncSheet', () => {
     notices: signal<SyncNotice[]>([]),
     canSync: signal(true),
     isSyncing: signal(false),
+    failed: signal(false),
     sync: vi.fn(async () => Promise.resolve()),
     discard: vi.fn(),
     dismissNotice: vi.fn(),

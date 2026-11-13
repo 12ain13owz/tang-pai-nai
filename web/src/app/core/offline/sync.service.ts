@@ -20,7 +20,8 @@ export interface SyncNotice {
 }
 
 /** What the header pill shows, in order of precedence (offline-sync → Web screens). */
-export type SyncStatus = 'errors' | 'offline' | 'unreachable' | 'syncing' | 'pending' | 'synced'
+export type SyncStatus =
+  'errors' | 'offline' | 'unreachable' | 'failed' | 'syncing' | 'pending' | 'synced'
 
 type ServerRow = SyncRow & { id: string; changeSeq: number }
 
@@ -61,6 +62,8 @@ export class SyncService {
   private offlineService = inject(OfflineService)
 
   isSyncing = signal(false)
+  /** The last round reached the server, which answered with an error (a 500): retried like rule 11. */
+  failed = signal(false)
   /** Rounds finished (or failed) since the app loaded: work that should follow a pull waits. */
   rounds = signal(0)
   /** When the last round finished, kept on the device. */
@@ -104,6 +107,9 @@ export class SyncService {
     // Before "syncing", so each retry doesn't flicker the pill.
     if (!this.networkStatusService.serverReachable()) {
       return 'unreachable'
+    }
+    if (this.failed()) {
+      return 'failed'
     }
     if (this.isSyncing()) {
       return 'syncing'
@@ -231,11 +237,11 @@ export class SyncService {
         if (this.networkStatusService.isOnline()) {
           this.markUnreachable()
         }
-      } else {
+      } else if (apiError.status === 401) {
         this.markReachable()
-        if (apiError.status !== 401) {
-          console.error('Sync failed', error)
-        }
+      } else {
+        console.error('Sync failed', error)
+        this.markFailed()
       }
     } finally {
       this.isSyncing.set(false)
@@ -315,6 +321,11 @@ export class SyncService {
   /** Rule 11: the API didn't answer; try again by itself, a bit later each time. */
   private markUnreachable(): void {
     this.networkStatusService.serverReachable.set(false)
+    this.failed.set(false)
+    this.scheduleRetry()
+  }
+
+  private scheduleRetry(): void {
     if (this.retryTimer) {
       clearTimeout(this.retryTimer)
     }
@@ -323,14 +334,26 @@ export class SyncService {
     this.retryTimer = setTimeout(() => void this.retry(), delay)
   }
 
+  /**
+   * The API answered, but with an error: the server stays reachable (writes aren't blocked), the
+   * pill says the sync failed (and toasts once per streak), and it retries like rule 11.
+   */
+  private markFailed(): void {
+    this.networkStatusService.serverReachable.set(true)
+    this.failed.set(true)
+    this.scheduleRetry()
+  }
+
   private markReachable(): void {
     this.networkStatusService.serverReachable.set(true)
+    this.failed.set(false)
     this.clearRetry()
   }
 
   /** Offline, locked or signed out: no retries, and the next round starts afresh. */
   private stopRetrying(): void {
     this.networkStatusService.serverReachable.set(true)
+    this.failed.set(false)
     this.clearRetry()
   }
 
