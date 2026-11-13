@@ -135,8 +135,8 @@ shows when the profile is created (rule 8).
 
     Two devices editing the same wallet follow the usual later-edit-wins for the whole row.
 
-14. An untrusted device can create, edit, archive, delete and merge categories only while
-    online (offline-sync rule 1), as for profiles.
+14. Categories are written offline like everything else. Only a device whose browser storage refused the local database (offline-sync rule 1) creates, edits,
+    archives, deletes and merges them only while online, as for profiles.
 15. **Merge** (7.3): move a category's transactions to another category, then delete it. It is
     the way to retire a category that has transactions (rule 6) without moving them one by one.
     - **Into any category of the same profile and `type`** (owner, at the start of 7.3, as in

@@ -126,7 +126,8 @@ and `countAs` tell them apart, all locked once used.
 11. Two devices editing the same debt or entry: the later edit wins, delete beats edit, a notice
     for the loser (offline-sync rule 12). Two devices adding repayments add two rows (no
     conflict; the left amount is computed).
-12. An untrusted device writes only online with the server answering, as everywhere.
+12. Debts are written offline like everything else; only a device whose browser storage refused the local database (offline-sync rule 1) writes only online
+    with the server answering, as everywhere.
 
 **Instalments** (Q7)
 

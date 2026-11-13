@@ -32,7 +32,7 @@ writes `transactions` rows (and a wallet's `hiddenCategoryIds`) through the outb
 **Export**
 
 1. Account › ข้อมูลของฉัน › **ส่งออก CSV** (`/account/export`) exports the **current profile**.
-   It works offline and on an untrusted device (it only reads).
+   It works offline (it only reads).
 2. Choices, each starting on "all": **dates** (ทั้งหมด = the oldest to the newest row, or a
    custom range of two days), **wallets** (ทุกกระเป๋า = every wallet of the profile, archived and
    excluded-from-total ones too, or some), **categories** (ทุกหมวด, or some: income and expense

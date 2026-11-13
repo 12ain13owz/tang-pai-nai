@@ -52,8 +52,7 @@ they make their first profile, then its first wallet.
    the app's data tabs show the "create profile" step (Web screens). Creating the first profile
    makes it current; the next step is its first wallet (#6.2).
 6. **Current profile per device**: the id is kept in `localStorage` under `tpn-profile:<userId>`
-   on a trusted device, and in `sessionStorage` on an untrusted one (offline-sync rule 1: nothing
-   lasting in browser storage). It isn't synced, so two devices may show different profiles.
+   (in `sessionStorage` only when the local database is kept in memory, offline-sync rule 1). It isn't synced, so two devices may show different profiles.
    Opening the app shows that profile if it is still live, else the first by order (rule 7), else
    the create step. Wiping the local data removes the key.
 7. Order: `sortOrder` ascending, then `createdAt`, then `id`. A new profile goes last
@@ -66,8 +65,8 @@ they make their first profile, then its first wallet.
    one.
 9. A profile deleted on another device disappears on the next pull; if it was current here, the
    device switches as in rule 8 and says so in a toast. Delete beats edit (offline-sync rule 12).
-10. An untrusted device can create, edit and delete profiles only while online (offline-sync
-    rule 1); offline the form says so and its save is disabled.
+10. Profiles are written offline like everything else. Only a device whose browser storage refused the local database (offline-sync rule 1) creates, edits and
+    deletes them only while online; offline the form says so and its save is disabled.
 
 ## Endpoints
 

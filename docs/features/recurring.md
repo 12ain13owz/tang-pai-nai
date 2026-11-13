@@ -109,8 +109,8 @@ and one list, one sheet and one sweep serve both.
      only `nextOn` moves.
    - At most 400 occurrences per rule in one pass (a daily rule a year behind); the rest the
      next pass.
-   - An untrusted device records only while it may write (online and the server answering,
-     offline-sync rule 1).
+   - It records offline like any write; only a device whose browser storage refused the local database (offline-sync rule 1) waits until it may write (online
+     and the server answering).
 8. **Saving a transaction with "ทำซ้ำ"** writes the rule with `nextOn` = `startOn` and runs
    rule 7 for it in the same write: a start on or before today records the occurrences up to
    today (the one the user just typed is the first occurrence, with the deterministic id); a

@@ -121,8 +121,8 @@ never stored (ROADMAP → Money & data).
     within a day the one recorded last is on top. `createdAt` is a sync column every row has
     anyway, so nothing extra is stored, and changing a row's date keeps its place among that
     day's rows by when it was recorded.
-14. An untrusted device adds, edits and deletes only while online and the server answers
-    (offline-sync rule 1), as for categories.
+14. Transactions are written offline like everything else. Only a device whose browser storage refused the local database (offline-sync rule 1) adds, edits and
+    deletes them only while online and the server answers, as for categories.
 
 ## Volume
 
@@ -210,8 +210,8 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
     other control of the form is used (a row, the type tabs, the date, เพิ่มเติม; 8.2), the
     expression settling; a hardware keyboard types into it;
   - one main button "บันทึก" (above the keypad while it shows). Errors: "ใส่จำนวนเงินที่มากกว่า 0",
-    "เลือกหมวดหมู่ก่อน". Asks before closing with unsaved input. An untrusted device offline gets
-    the notice and a disabled save.
+    "เลือกหมวดหมู่ก่อน". Asks before closing with unsaved input. When it can't write (a shared
+    profile offline, or an in-memory database) it shows the notice and a disabled save.
   - **Quick amounts** (8.2, owner's choices from a mock-up): a row of chips `20 · 50 · 100 · 500
 · 1,000` (major units, Thai banknotes) at the top of the keypad's panel, shown only while
     the keypad is; the keys get 4px shorter so the form loses little. A chip **adds** like

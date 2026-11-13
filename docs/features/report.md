@@ -75,7 +75,7 @@ No table of its own and no new column. A report reads, for the current profile:
     left-out row or transfer in view; a wallet with only transfers (savings) still gets its
     summary, since its balances moved.
 15. Nothing in this tab writes, except through the transaction sheet a row opens (its own rules
-    apply). Works the same offline; an untrusted device reads what it has pulled.
+    apply). Works the same offline, on what the device has pulled.
 
 ## Volume
 

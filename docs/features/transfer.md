@@ -80,7 +80,8 @@ different amounts or dates, delete / undo / conflicts work exactly as for a tran
    refuses its transfers too (category rule 12).
 10. **Order** with transactions: `occurredOn` desc, `createdAt` desc, `id` desc (transaction
     rule 13); a transfer's two rows sit together, the outgoing one first (Q5).
-11. An untrusted device adds, edits and deletes only while online and the server answers.
+11. Transfers are written offline like everything else; only a device whose browser storage refused the local database (offline-sync rule 1) adds, edits and
+    deletes them only while online and the server answers.
 
 ## Volume
 

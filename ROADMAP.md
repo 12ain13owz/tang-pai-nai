@@ -1314,10 +1314,12 @@ Agreed with the user. Do not re-propose alternatives unless asked.
 - **Synced rows are sync-ready**: the device generates the UUIDv7 `id`; `updatedAt`; **soft delete**
   via `deletedAt` (tombstones); a server-assigned `changeSeq` as the pull cursor.
 - **Balances and totals are always computed** from transactions, never stored.
-- **Trusted device + PIN**: offline storage only when the user marks the device as trusted at
-  sign-in. A 6-digit PIN unlocks it and wraps the key that encrypts the local DB. The app locks on
-  open and after 5 min. 5 wrong PINs, a revoked session, or a different user signing in **wipe** the
-  local data. Untrusted devices work online only.
+- **Local data on every device + optional PIN** (changed after 16.2; was "trusted device +
+  PIN"): every signed-in device keeps its data in an encrypted local DB, made at its first open,
+  with no question asked. The PIN is optional and off by default; when on, it unlocks the app and
+  wraps the key that encrypts the local DB, and the app locks on open and after 5 min. 5 wrong
+  PINs, a revoked session, sign-out, or a different user signing in **wipe** the local data; an
+  expired session only sends the user to sign-in (the data kept).
 - **Local DB = SQLite WASM in memory** + one encrypted snapshot in IndexedDB (decided by a spike
   at the start of #4a), and the app runs in one tab at a time.
 - **Conflicts**: the later edit wins between the same user's devices; delete beats edit; the
