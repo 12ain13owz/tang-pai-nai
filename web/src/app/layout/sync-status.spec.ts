@@ -2,6 +2,7 @@ import { computed, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import type { ComponentFixture } from '@angular/core/testing'
 import { TranslocoTestingModule } from '@jsverse/transloco'
+import { toastState } from '@spartan-ng/brain/sonner'
 import th from '@/core/i18n/th.json'
 import { SyncService } from '@/core/offline'
 import type { OutboxOp, SyncStatus as Status } from '@/core/offline'
@@ -26,6 +27,8 @@ describe('SyncStatus', () => {
   }
 
   beforeEach(() => {
+    // Toasts are module state: clear what an earlier spec file in this worker left.
+    toastState.dismiss()
     TestBed.configureTestingModule({
       imports: [
         TranslocoTestingModule.forRoot({
@@ -47,6 +50,10 @@ describe('SyncStatus', () => {
     fixture = TestBed.createComponent(SyncStatus)
   })
 
+  afterEach(() => {
+    toastState.dismiss()
+  })
+
   it('says each state in words, never by colour alone', () => {
     expect(show('synced')).toBe(th.sync.synced)
     expect(show('syncing')).toBe(th.sync.syncing)
@@ -56,6 +63,25 @@ describe('SyncStatus', () => {
     expect(show('errors', 0, 1)).toBe('บันทึกไม่สำเร็จ 1')
     expect(show('unreachable')).toBe(th.sync.unreachable)
     expect(show('unreachable', 2)).toBe('เซิร์ฟเวอร์ไม่ตอบ · รอ 2')
+    expect(show('failed')).toBe(th.sync.failed)
+    expect(show('failed', 2)).toBe('sync ไม่สำเร็จ · รอ 2')
+  })
+
+  it('toasts once when the server fails a round, not again on each retry', () => {
+    const toasts = () => toastState.toasts().map((toast) => toast.title)
+    show('synced')
+    expect(toasts()).toEqual([])
+
+    show('failed', 1)
+    expect(toasts()).toEqual([th.sync.failedToast])
+    show('failed', 2)
+    expect(toasts()).toEqual([th.sync.failedToast])
+
+    // Through again, then a new streak: one more toast.
+    show('synced')
+    toastState.dismiss()
+    show('failed', 1)
+    expect(toasts()).toEqual([th.sync.failedToast])
   })
 
   it('shows the state as an icon: green when synced, red with a count when something is wrong', () => {
@@ -70,6 +96,8 @@ describe('SyncStatus', () => {
     show('unreachable', 2)
     expect(button()?.className).toContain('text-destructive')
     expect(button()?.querySelector('.bg-destructive')).not.toBeNull()
+    show('failed', 1)
+    expect(button()?.className).toContain('text-destructive')
     show('pending', 3)
     expect(button()?.className).not.toContain('text-destructive')
     expect(count()).toBe('3')

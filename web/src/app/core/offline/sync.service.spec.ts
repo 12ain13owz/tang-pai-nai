@@ -477,6 +477,34 @@ describe('SyncService', () => {
       expect(retries().slice(before)).toEqual([5_000])
     })
 
+    it('says the sync failed when the server answers an error, and retries until it gets through', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      const network = TestBed.inject(NetworkStatusService)
+      const broken = (_ops: PushedOp[], req: TestRequest) =>
+        req.flush({ message: 'Internal server error' }, { status: 500, statusText: 'Error' })
+
+      await drive(service.sync(), broken)
+      expect(service.failed()).toBe(true)
+      expect(service.status()).toBe('failed')
+      // The server answered: writes aren't blocked as when it's unreachable.
+      expect(network.serverReachable()).toBe(true)
+      expect(listOps(db, 'pending')).toHaveLength(1)
+      expect(retries()).toEqual([5_000])
+
+      // Still failing: it stays failed and waits for the next retry (the delays are rule 11's,
+      // checked above for an unreachable server).
+      fireRetry()
+      await drive(service.sync(), broken)
+      expect(service.status()).toBe('failed')
+      expect(retries().length).toBeGreaterThan(1)
+
+      fireRetry()
+      await drive(service.sync())
+      expect(service.failed()).toBe(false)
+      expect(service.status()).toBe('synced')
+      expect(listOps(db, 'pending')).toEqual([])
+    })
+
     it('stops retrying offline, and the offline pill wins', async () => {
       const network = TestBed.inject(NetworkStatusService)
       await drive(service.sync(), down)
