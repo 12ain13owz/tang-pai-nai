@@ -33,7 +33,7 @@ and so does a reading app like Meb.
 | -------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | App shell      | ✅ always                                                   | Angular service worker (`@angular/pwa`) caches HTML/JS/CSS/icons. It does **not** cache API responses, because data comes from the local DB, not the SW cache. Built in #3. |
 | Data           | ✅ on trusted devices                                       | An encrypted local database in the browser (rules 4–6), plus an outbox of pending changes (rule 8).                                                                         |
-| Auth           | Sign-in online; reopening on a trusted device works offline | The app unlocks with a PIN (rules 2–3). The server stays the authority whenever the device is online (rule 7).                                                              |
+| Auth           | Sign-in online; reopening on a trusted device works offline | The app opens on its local data, behind an optional PIN (rules 2–3). The server stays the authority whenever the device is online (rule 7).                                 |
 | Shared wallets | Owner offline; members online only                          | Rules 13–16.                                                                                                                                                                |
 
 ## Data model
@@ -111,8 +111,10 @@ its row for a second create quietly: [recurring.md](recurring.md) rule 9).
   unlocking decrypts it back into memory. An untrusted device runs the same engine and never saves
   a snapshot. The wasm file is copied to `/sqlite/` and prefetched by the service worker, so it
   works offline.
-- Beside the snapshot, `tpn-vault` keeps the clear-text facts the lock screen needs before the PIN:
-  `userId`, the PBKDF2 salt and iterations, the wrapped data key, and the wrong-PIN count.
+- Beside the snapshot, `tpn-vault` keeps the clear-text facts the app needs before it opens:
+  `userId`, the display name, the data key (rule 4: wrapped by the PIN with its PBKDF2 salt and
+  iterations when the PIN is on, else the key itself as a stored `CryptoKey`), and the wrong-PIN
+  count.
 - It holds **only the signed-in user's own data plus master data**. It never holds data of wallets
   shared with them, apart from their own pending adds (rule 14).
 - The tables mirror the server's synced tables (snake_case columns: `currencies`, `profiles`,
@@ -146,27 +148,43 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
      "Online" for writing means a network **and a reachable server** (rule 11): while the last
      round couldn't reach the API, the forms block saving as when offline, so nothing waits in
      memory for a server that may not come back before the tab closes (decided after 7.2).
-   - **On (trusted)**: the user sets a **6-digit PIN**, and the local database is created encrypted
-     (rule 4).
-2. The app **locks** every time it's opened, and after **5 minutes** in the background or idle. To
-   unlock it needs the PIN. Later, a passkey or biometric unlock (WebAuthn PRF) can unwrap the same
-   key. "Idle" means no tap, click or key press for 5 minutes while the app is on screen. Locking
-   drops the key and the in-memory database (after saving it).
-   - **One tab at a time** (decided at the start of #4a): each tab would hold its own in-memory
-     copy, so the app runs in one tab only (a Web Lock, `tpn-local-db`). Another tab shows "แอป
-     เปิดอยู่ในแท็บอื่น" with "ใช้ที่แท็บนี้", which saves and locks the first tab and takes over.
-3. **5 wrong PINs in a row** wipe the local database on that device. The user then signs in again
+   - **On (trusted)**: the local database is created encrypted (rule 4) and the app opens on it
+     straight away. No PIN is asked for here (decided after #16.2: the app is mostly used on
+     phones, which have their own screen lock, so a second lock is the user's choice, rule 2).
+2. **The PIN is optional and off by default** (decided after #16.2; before that, offline always
+   came with a PIN). A trusted device turns it on or off in Account → Security; turning it off
+   needs the current PIN. Devices that already had a PIN keep it.
+   - **PIN off**: the app opens on its local data every time, with nothing to type, and never
+     locks by itself.
+   - **PIN on**: a **6-digit PIN**. The app **locks** every time it's opened, and after
+     **5 minutes** in the background or idle. To unlock it needs the PIN. Later, a passkey or
+     biometric unlock (WebAuthn PRF) can unwrap the same key. "Idle" means no tap, click or key
+     press for 5 minutes while the app is on screen. Locking drops the key and the in-memory
+     database (after saving it).
+   - **One tab at a time** (decided at the start of #4a), PIN or not: each tab would hold its own
+     in-memory copy, so the app runs in one tab only (a Web Lock, `tpn-local-db`). Another tab
+     shows "แอปเปิดอยู่ในแท็บอื่น" with "ใช้ที่แท็บนี้", which saves and closes the first tab's
+     database and takes over.
+3. With the PIN on, **5 wrong PINs in a row** wipe the local database on that device. The user then signs in again
    online and the data downloads from the server. Unsynced changes on that device are lost, and the
    lock screen warns about this from the 3rd wrong attempt. The count is stored in clear and
    survives a reload; a right PIN resets it.
 4. **Encryption at rest**: a random 256-bit data key (AES-GCM, WebCrypto) encrypts the local
-   database snapshot (a fresh 12-byte IV per save). The key is stored only **wrapped** (AES-KW) by
-   a key derived from the PIN (PBKDF2-SHA256, 600,000 iterations, random 16-byte salt). Without
-   the PIN, the stored data is unreadable, even through DevTools. A wrong PIN fails the unwrap, so
-   no PIN hash is stored. Changing the PIN re-wraps the same data key.
-   - **Honest limit:** a 6-digit PIN stops someone who just picks up the device. It doesn't stop a
-     determined attacker who copies the browser profile and brute-forces 10⁶ PINs offline. Passkey
-     unlock (rule 2) is the stronger option.
+   database snapshot (a fresh 12-byte IV per save). How the key is kept depends on the PIN
+   (rule 2); turning the PIN on or off, or changing it, only changes that, never the data key or
+   the snapshot.
+   - **PIN on**: the key is stored only **wrapped** (AES-KW) by a key derived from the PIN
+     (PBKDF2-SHA256, 600,000 iterations, random 16-byte salt). Without the PIN, the stored data is
+     unreadable, even through DevTools. A wrong PIN fails the unwrap, so no PIN hash is stored.
+   - **PIN off**: the key is stored beside the snapshot as a `CryptoKey` (IndexedDB keeps it as a
+     key object, not as bytes in a field).
+   - **Honest limits:** without the PIN, anyone who can open the browser on the device (an
+     unlocked phone) opens the app and its data, even after the session expired (rule 7); the
+     device's own screen lock is the protection, and a revoked session (rule 7) still wipes the
+     data the next time the app is online. The encryption then only keeps the snapshot from being
+     read as plain bytes. With the PIN, a 6-digit PIN stops someone who just picks up the device.
+     It doesn't stop a determined attacker who copies the browser profile and brute-forces 10⁶
+     PINs offline. Passkey unlock (rule 2) is the stronger option.
 5. `navigator.storage.persist()` is requested on trusted devices. On iOS, data survives only when
    the PWA is **installed to the home screen**. The trust prompt says so on iOS Safari.
 6. The access token stays **in memory only** (auth spec). Offline, no token is needed, because the
@@ -181,10 +199,10 @@ status: pending | rejected, error? }`. It keeps **one pending op per row**: a ne
    - **Expired session** (idle > 30 days or past the 180-day cap): the local data is kept but stays
      locked to sync until the **same user** signs in again online; then the outbox is pushed. If a
      **different** user signs in, the local data is wiped first. Meanwhile the app keeps working
-     on the local data after the PIN, online or not (decided at the start of #4a), with a banner
+     on the local data (after the PIN, when it's on), online or not (decided at the start of #4a), with a banner
      "เข้าสู่ระบบอีกครั้งเพื่อ sync" that opens sign-in.
    - **API unreachable** (offline, or the server down): a trusted device opens on its local data
-     after the PIN; an untrusted one waits on the sign-in page as before (auth spec).
+     (after the PIN, when it's on); an untrusted one waits on the sign-in page as before (auth spec).
    - **Sign-out** pushes the outbox first. If that fails (offline), it warns "มีรายการที่ยังไม่ได้
      sync" before wiping.
 
@@ -307,9 +325,9 @@ typed on an **on-screen 3×4 keypad** with six dots (like a banking app), so the
 opens.
 
 - **Trust step** `/auth/trust` after sign-in on a device with no local database (4a.1): the offline
-  switch (rule 1), the iOS "add to home screen" note (rule 5), then set the PIN and type it again.
-  Continue goes to `returnUrl`.
-- **Lock screen** `/lock` (4a.1): the user's name, the keypad, the attempts warning from the 3rd
+  switch (rule 1) and the iOS "add to home screen" note (rule 5). Continue goes to `returnUrl`
+  (no PIN step since the PIN became optional, rule 2).
+- **Lock screen** `/auth/lock` (4a.1, PIN on only): the user's name, the keypad, the attempts warning from the 3rd
   wrong PIN (rule 3), and "ออกจากระบบ" (sign out, rule 7). Later "use fingerprint/face".
 - **Another tab** (4a.1): "แอปเปิดอยู่ในแท็บอื่น" with "ใช้ที่แท็บนี้" (rule 2).
 - **Expired session banner** under the header (4a.1, rule 7).
@@ -326,8 +344,9 @@ opens.
 - **Sync test page** `/account/sync-test` (4a.2, dev only): removed in #6.2 with `sync_probes`;
   profiles and wallets are tried for real instead.
 - **Account → Security** (4a.1): a "This device" group with "Use offline on this device" (turn on:
-  set a PIN; turn off: asks, then wipes local data) and "Change PIN" (current PIN, then the new
-  one twice), beside the devices list (auth sessions).
+  at once, PIN off; turn off: asks, then wipes local data), and on a trusted device "Lock with a
+  PIN" (turn on: the new PIN twice; turn off: the current PIN) and, while it's on, "Change PIN"
+  (current PIN, then the new one twice), beside the devices list (auth sessions).
 
 ## Interactions
 
@@ -366,4 +385,6 @@ opens.
   tables synced in 4a.2), rather than a table that exists only in the API tests: that way the
   web app's outbox, offline writes, two devices, conflicts and rejections can be tried for real.
 - **Sync status**: decided at the start of 4a.2, one pill in the header (Web screens).
-- **Auto-lock timeout** 5 min and **PIN length** 6: adjustable in settings later?
+- **Auto-lock timeout** 5 min and **PIN length** 6: adjustable in settings later? (With the PIN
+  optional since after #16.2, a choice of timeout, e.g. at once / 1 / 5 / 15 min, is the next step
+  for those who keep it on.)
