@@ -9,7 +9,7 @@ const __dirname = dirname(__filename)
 const rootDir = resolve(__dirname, '..')
 const envExamplePath = join(rootDir, '.env.example')
 const envDevPath = join(rootDir, '.env.dev')
-const envProdPath = join(rootDir, '.env.prod')
+const envStagingPath = join(rootDir, '.env.staging')
 
 // Secrets the app generates for itself (not keys from an outside service). Each env file gets its
 // own random values.
@@ -112,9 +112,14 @@ function setupEnv(): void {
 
   try {
     createEnvFile(envExamplePath, envDevPath, { NODE_ENV: 'development', ...generatedSecrets() })
-    createEnvFile(envExamplePath, envProdPath, { NODE_ENV: 'production', ...generatedSecrets() })
+    createEnvFile(envExamplePath, envStagingPath, {
+      NODE_ENV: 'production',
+      ...generatedSecrets(),
+    })
 
-    console.log(chalk.cyan('\nPlease edit .env.dev and .env.prod with your configuration values.'))
+    console.log(
+      chalk.cyan('\nPlease edit .env.dev and .env.staging (docs/env.md says what goes where).')
+    )
     console.log(chalk.cyan('You can use any text editor (e.g., nano, vim, or VS Code).'))
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)

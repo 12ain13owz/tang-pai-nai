@@ -1,11 +1,13 @@
 # Run the API and the web app together, built like they ship, to test on this PC before Vercel.
 # Pick one profile (they can also run side by side, on different ports):
 #
-#   docker compose --profile dev up --build    # http://localhost:8080  no keys, codes in the API log
-#   docker compose --profile prod up --build   # http://localhost:8081  real keys from api/.env.prod
+#   docker compose --profile dev up --build      # http://localhost:8080  no keys, codes in the API log
+#   docker compose --profile staging up --build  # http://localhost:8081  staging's real services
 #
-# Each profile has its own SQLite database in a Docker volume (test users only, never shared with
-# staging or production). Migrations run every time the API starts. Commands: README → Docker.
+# `dev` keeps a SQLite database in a Docker volume (test users only). `staging` uses
+# api/.env.staging: the same file that is imported into Vercel's Preview environment, so what
+# works here works on staging (Turso, Resend, Turnstile). Migrations run every time the API
+# starts: on `staging` that migrates the staging database. Commands: README → Docker.
 
 x-api: &api
   build:
@@ -59,31 +61,28 @@ services:
       api-dev:
         condition: service_healthy
 
-  # ── prod: production settings and real keys (Resend, …) from api/.env.prod ─────────────────────
-  api-prod:
+  # ── staging: staging's real keys and database from api/.env.staging (also imported into Vercel) ─
+  api-staging:
     <<: *api
-    profiles: [prod]
-    env_file: [./api/.env.prod]
-    # DATABASE_URL is left to api/.env.prod: unset, it is the SQLite file in the volume below; set
-    # it to a test Turso database to try Turso. Never point it at the staging or production one.
+    profiles: [staging]
+    env_file: [./api/.env.staging]
+    # Only the addresses change, so links in mails open this local copy. Everything else, the Turso
+    # database included, is staging's own: the migrations at start run against it.
     environment:
       NODE_ENV: production
       PORT: '3000'
       BASE_URL: http://localhost:8081/api
       WEB_ORIGIN: http://localhost:8081
-    volumes:
-      - api-prod-data:/app/data
 
-  web-prod:
+  web-staging:
     <<: *web
-    profiles: [prod]
+    profiles: [staging]
     environment:
-      API_UPSTREAM: http://api-prod:3000
+      API_UPSTREAM: http://api-staging:3000
     ports: ['8081:80']
     depends_on:
-      api-prod:
+      api-staging:
         condition: service_healthy
 
 volumes:
   api-dev-data:
-  api-prod-data:

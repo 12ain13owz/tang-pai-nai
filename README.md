@@ -23,7 +23,7 @@ First time, set up the API and its local database:
 ```bash
 cd api
 npm install
-npm run setup-env   # creates .env.dev / .env.prod from .env.example
+npm run setup-env   # creates .env.dev / .env.staging from .env.example
 npm run db:migrate  # creates data/local.db and applies every migration in drizzle/
 ```
 
@@ -53,17 +53,18 @@ web app's production build behind nginx, which forwards `/api/*` like `web/middl
 Vercel) and runs them together. No npm and no Node needed on the PC, only Docker. Use it to try
 the app as a whole before a deploy.
 
-| Profile | Opens at                | API settings                     | Mail                                     |
-| ------- | ----------------------- | -------------------------------- | ---------------------------------------- |
-| `dev`   | `http://localhost:8080` | `api/.env.dev` (development)     | printed in the API log, no keys          |
-| `prod`  | `http://localhost:8081` | `api/.env.prod` (production)     | sent for real (Resend), keys in the file |
+| Profile   | Opens at                | API settings                    | Database, mail, bot check                       |
+| --------- | ----------------------- | ------------------------------- | ----------------------------------------------- |
+| `dev`     | `http://localhost:8080` | `api/.env.dev` (development)    | SQLite in a volume, codes in the log, test keys |
+| `staging` | `http://localhost:8081` | `api/.env.staging` (production) | staging's Turso, Resend and Turnstile           |
 
-Each profile has its **own SQLite database in a Docker volume**, so only the users you make while
-testing are in it, never mixed with staging or production. Migrations run every time the API
-container starts.
+`dev` has its **own SQLite database in a Docker volume** (test users only). `staging` runs this
+PC's code against **staging's real services**: `api/.env.staging` is the same file that is
+imported into Vercel's Preview environment, so what works here works on staging. Migrations run
+every time the API container starts, so starting `staging` migrates the staging database.
 
 First time, the env files must exist (`cd api && npm run setup-env` makes both from
-`.env.example`; without Node, copy `api/.env.example` to `api/.env.dev` and `api/.env.prod` and
+`.env.example`; without Node, copy `api/.env.example` to `api/.env.dev` and `api/.env.staging` and
 fill `JWT_SECRET` / `OTP_PEPPER` with any 32+ characters, different in each file).
 
 ```bash
@@ -73,31 +74,21 @@ docker compose --profile dev down             # stop (the database stays)
 docker compose --profile dev down -v          # stop and delete the database
 ```
 
-The `prod` profile takes the same commands with `prod` and `api-prod`. Both can run at once.
-Rebuild with `--build` after pulling or changing code.
+The `staging` profile takes the same commands with `staging` and `api-staging`. Both can run at
+once. Rebuild with `--build` after pulling or changing code.
 
-### Real keys for the `prod` profile
+### `api/.env.staging`: staging's keys
 
-`api/.env.prod` is gitignored and never copied into an image. Add what you want to try for real
-(values from [`docs/deploy.md`](docs/deploy.md)):
+Gitignored and never copied into an image. It holds staging's own values (never production's,
+which live only in Vercel); the file's header and [`docs/env.md`](docs/env.md) say what goes
+where. Fill the `CHANGE-ME` values, try it with the `staging` profile, then import the same file
+into Vercel (API project → Environment Variables → Import .env, **Preview**, branch `develop`).
 
-```bash
-NODE_ENV="production"
-EMAIL_PROVIDER="smtp"
-SMTP_URL="smtps://resend:<Resend API key>@smtp.resend.com:465"
-EMAIL_FROM="Tang Pai Nai <no-reply@your-verified-domain>"
-SMS_PROVIDER="disabled"
-# optional: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (add http://localhost:8081/api/auth/google/callback
-# as a redirect URI in Google Cloud first)
-```
-
-- Production mode refuses the `console` providers, so the API won't start until `EMAIL_PROVIDER`
-  and `SMS_PROVIDER` are set as above (`docker compose --profile prod logs api-prod` says which).
+- Production mode refuses the `console` providers: the file sets `EMAIL_PROVIDER="smtp"` and
+  `SMS_PROVIDER="disabled"`; the API won't start until `SMTP_URL` is filled
+  (`docker compose --profile staging logs api-staging` says what is missing).
 - Compose sets `WEB_ORIGIN` and `BASE_URL` to `localhost:8081` itself, so links in the mails open
-  the local app.
-- Leave `DATABASE_URL` out to use the volume's SQLite file. To try Turso, point it at a **test**
-  database of its own (with `DATABASE_AUTH_TOKEN`), never the staging or production one: the
-  container runs migrations on it at start.
+  the local copy. The staging Turnstile widget needs `localhost` among its hostnames for this.
 - Until a domain is verified in Resend, `EMAIL_FROM="onboarding@resend.dev"` sends only to the
   address of your own Resend account.
 

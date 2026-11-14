@@ -55,7 +55,7 @@ The server starts at http://localhost:3000
 Environment files are loaded based on `NODE_ENV`:
 
 - `NODE_ENV=development` -> `.env.dev`
-- `NODE_ENV=production` -> `.env.prod`
+- `NODE_ENV=production` -> `.env.staging` (staging's settings on this PC; production's live only in Vercel)
 
 Values are validated at startup with Zod (see `src/core/config/env/env.schema.ts`); the process exits if any variable is missing or invalid.
 
@@ -79,12 +79,12 @@ SHUTDOWN_TIMEOUT_MS="10000"
 
 - `npm run dev`: run with `tsx --watch` using `.env.dev`
 - `npm run build`: clean `dist`, compile TypeScript, then rewrite path aliases (`tsc-alias`)
-- `npm start`: run the compiled build using `.env.prod`
+- `npm start`: run the compiled build using `.env.staging`
 - `npm run fix`: auto-fix ESLint issues and format with Prettier
 - `npm run lint`: check with ESLint without changing files
 - `npm run typecheck`: type-check with `tsc --noEmit`
 - `npm run clean`: remove the `dist` directory
-- `npm run setup-env`: generate `.env.dev` and `.env.prod` from `.env.example`, with random
+- `npm run setup-env`: generate `.env.dev` and `.env.staging` from `.env.example`, with random
   `JWT_SECRET` / `OTP_PEPPER` (also added to existing env files that lack them)
 - `npm run auth:cleanup`: delete auth challenges, sessions and rate-limit buckets that ended over
   7 days ago
@@ -187,7 +187,7 @@ The image is a two-stage build on `node:<version>-slim` (Debian/glibc, so native
 - **Build stage** installs all dependencies and compiles TypeScript, so the running container never needs extra memory for `tsc` (useful on small/free plans).
 - **Runtime stage** contains only `dist/`, the migrations in `drizzle/` and production dependencies, runs as the non-root `node` user, and starts with `node dist/main.js` directly (not `npm start`), so `SIGTERM` from `docker stop` or a redeploy reaches the app and graceful shutdown runs.
 
-`NODE_ENV=production` is the image default. Env files are never copied into the image: compose passes `.env.dev` / `.env.prod` with `env_file`.
+`NODE_ENV=production` is the image default. Env files are never copied into the image: compose passes `.env.dev` / `.env.staging` with `env_file`.
 
 Compose gives the API a `healthcheck` on `GET /health` every 30s, and the web container waits for it (`condition: service_healthy`). Plain Compose only reports the status; it does **not** restart an unhealthy container.
 

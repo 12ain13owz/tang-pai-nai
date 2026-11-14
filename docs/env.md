@@ -4,15 +4,35 @@ Every setting both apps read, what it is for and where its value comes from. The
 is the code: `api/src/core/config/env/env.schema.ts` (the API refuses to start on a wrong or
 missing value) and `web/middleware.js`.
 
-**Where values live.** Locally: `api/.env.dev` (made by `npm run setup-env` in `api/`, from
-`api/.env.example`). Deployed: the Vercel dashboard of each project, per environment (Preview =
-staging on `develop`, Production = `main`). Never commit a `.env.*` file with real values, and
-never paste a secret in a chat, an issue or a commit.
+Never commit a `.env.*` file with real values (they are gitignored), and never paste a secret in a
+chat, an issue or a commit.
+
+## Environments
+
+Three sets of values, never sharing a key or a database. Two branches: `develop` → staging,
+`main` → production.
+
+| Set            | Runs                                                   | Values in                                             | Services                                                       |
+| -------------- | ------------------------------------------------------ | ----------------------------------------------------- | -------------------------------------------------------------- |
+| **dev**        | `npm run dev`, Docker `dev` (`:8080`)                  | `api/.env.dev`                                        | SQLite file, mail in the log, Turnstile **test keys** (a mock) |
+| **staging**    | Vercel Preview (`develop`), Docker `staging` (`:8081`) | `api/.env.staging` → imported into Vercel **Preview** | its own Turso database, Resend key and Turnstile widget        |
+| **production** | Vercel Production (`main`)                             | Vercel **Production** only (no file on the PC)        | its own Turso database, Resend key and Turnstile widget        |
+
+- `npm run setup-env` makes `.env.dev` and `.env.staging` from `api/.env.example`, and adds to
+  existing ones any variable they lack.
+- **Staging is tried on the PC first**: fill `api/.env.staging`, run
+  `docker compose --profile staging up --build` (this PC's code against staging's real Turso,
+  Resend and Turnstile; compose only swaps the addresses to `localhost:8081`), then import the same
+  file into Vercel (API project → Settings → Environment Variables → Import .env, environment
+  Preview, branch `develop`). Starting the profile **migrates the staging database**.
+- The staging Turnstile widget lists two hostnames: the web's `develop` URL and `localhost`.
+- Production's values are typed or imported into Vercel straight from a password manager; they
+  never sit in a file in the repo folder.
 
 ## 1. What to get before a deploy
 
 The values that come from outside the repo. Make a **separate one for staging and for
-production**; never share them.
+production**; never share them. Development needs none of them.
 
 | What                   | Where to get it                                                          | Becomes                                                 | Needed?                   |
 | ---------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------- |

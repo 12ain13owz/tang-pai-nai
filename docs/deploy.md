@@ -45,14 +45,15 @@ themselves (a pull request's preview must not change the staging database).
 
 - Cloudflare dashboard → Turnstile → Add widget, **one per environment** (staging, production).
   Hostnames: the web's host for that environment (e.g. `<project>-git-develop-<team>.vercel.app`
-  for staging, your own domain for production). Widget mode **Managed**. No DNS change and no
+  for staging, plus `localhost` so the Docker `staging` profile works; your own domain for
+  production). Widget mode **Managed**. No DNS change and no
   Cloudflare proxy (orange cloud) is needed: keep the web's DNS record **DNS only**, Vercel
   serves it.
 - Each widget gives a **site key** (public) → `TURNSTILE_SITE_KEY` and a **secret key** →
   `TURNSTILE_SECRET_KEY`, both on the API project (step 4). The web reads the site key from
   `GET /api/auth/providers`; it has no setting of its own.
-- Leave both unset and the check is off. Locally, Cloudflare's test keys work (see
-  `api/.env.example`).
+- Leave both unset and the check is off. Development uses Cloudflare's test keys (see
+  [env.md](env.md)); never put them on staging or production, where they would let every bot in.
 
 ## 4. Vercel: the API project
 
@@ -60,7 +61,11 @@ themselves (a pull request's preview must not change the staging database).
   the rewrite come from `api/vercel.json`).
 - Settings → Deployment Protection: **off for this project**. The web's middleware calls it from
   the server side and can't pass Vercel's login; the API has its own auth.
-- Environment variables (Production and Preview, each with its own values):
+- Environment variables (Production and Preview, each with its own values). **Preview** =
+  import `api/.env.staging` (Settings → Environment Variables → Import .env, branch `develop`)
+  once it works with `docker compose --profile staging` ([env.md](env.md) → Environments).
+  **Production**: type or import them from your password manager; they never sit in a file in
+  the repo folder.
 
 | Name                                                            | Value                                                                |
 | --------------------------------------------------------------- | -------------------------------------------------------------------- |

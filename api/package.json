@@ -5,7 +5,7 @@
   "main": "main.ts",
   "type": "module",
   "scripts": {
-    "start": "node --env-file-if-exists=.env.prod dist/main.js",
+    "start": "node --env-file-if-exists=.env.staging dist/main.js",
     "dev": "tsx --watch --env-file-if-exists=.env.dev src/main.ts",
     "fix": "eslint . --fix && prettier --write .",
     "lint": "eslint .",
@@ -33,7 +33,7 @@
     "clean": "Removes the dist directory for a fresh build.",
     "build": "Compiles TypeScript to JavaScript, resolves path aliases, and copies OpenAPI spec assets.",
     "copy-assets": "Copies the OpenAPI YAML spec tree into dist/ (not handled by tsc).",
-    "setup-env": "Initializes .env.dev and .env.prod files from templates.",
+    "setup-env": "Initializes .env.dev and .env.staging from .env.example, or adds the keys they lack.",
     "db:generate": "Generates a SQL migration in drizzle/ from changes in src/core/database/schema/.",
     "db:migrate": "Applies pending migrations to DATABASE_URL (loads .env.dev).",
     "db:seed": "Inserts dev data (idempotent; skipped in production).",

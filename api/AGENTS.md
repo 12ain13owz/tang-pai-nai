@@ -366,7 +366,7 @@ startServer(createApp(), env.PORT)
 
 - Never use `console.*` for app logging — use the Winston `logger` from `@/core/logger` (`console.info`/`warn`/`error` are only tolerated inside `core/config/env/env.ts`, for bootstrap messages that run before the logger/env are ready).
 - Never read `process.env` directly outside `core/config`. Import the validated `env` from `@/core/config`.
-- `LOG_SILENT=true` turns off every transport (console and both file transports; file transports aren't even created). It's for tests and one-off scripts. Never set it in `.env.prod`.
+- `LOG_SILENT=true` turns off every transport (console and both file transports; file transports aren't even created). It's for tests and one-off scripts. Never set it in `.env.staging` or on Vercel.
 - `LOG_FILE_ENABLED=false` keeps the console and skips only the file transports: set on Vercel, whose filesystem is read-only (Vercel collects the console).
 - Log-only strings (bootstrap `console.*` lines and Winston `logger` messages, never sent to a client) live in the `LOG` constant (`@/shared/constants`), grouped by subsystem (`LOG.CONFIG`, `LOG.SERVER`), never in `SUCCESS`/`ERRORS` — those two are API-response message pools only. See §4.
 
