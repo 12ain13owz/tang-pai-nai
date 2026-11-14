@@ -279,7 +279,9 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - **Tab bar**: the active tab is shown by colour alone: icon and label in `text-brand`, the label
   `font-semibold` and the icon stroke 2.4 (so it doesn't rely on colour only), no pill, fill or
   border (owner's choice in #6.1, so the gold ➕ stays the bar's one strong shape). Inactive tabs
-  are `text-muted-foreground`. Focus shows a ring around the icon.
+  are `text-muted-foreground`. Focus shows a ring around the icon. A page opened from another
+  tab (the Transactions ⋮ → รายการซ้ำ, which lives in Settings) keeps the tab it came from lit,
+  so the bar never jumps (owner, 2026-11).
 - **Strip under the header**: the update banner: `bg-muted px-4 py-2 text-sm`, the text left
   and one 44px button right. (The expired-session banner went after 16.2: an expired session
   goes to sign-in.)
@@ -439,7 +441,10 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   (`appSlide`, `shared/components/slide`; the Transactions tab first). The views inside a sheet
   do the same by depth, like a navigation stack (owner, 2026-11): opening a picker or a step
   (wallet, category, note, a confirm) slides it in from the right, and ‹ or a pick that goes
-  back slides the earlier view in from the left. Switching bottom tabs has
+  back slides the earlier view in from the left. Pages work the same way (owner, 2026-11): the
+  header's ‹ goes back to the page it was opened from (not always its parent), a page opened
+  deeper inside the tab slides in from the right, and ‹ brings the earlier one back from the
+  left. Switching bottom tabs has
   no order to show, so the page fades in with an 8px rise, 250 ms, CSS `ease-out` (`appFadeIn`
   on the shell's `<main>`, keyed on the tab; pages inside a tab don't fade).
 - **Keyboard**: numeric fields use `inputmode="decimal"` or `"numeric"`. Keep the focused field

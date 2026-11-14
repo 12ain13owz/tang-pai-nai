@@ -26,6 +26,7 @@ import type { DebtCountAs, DebtDirection, PlanValues } from '@/core/debt'
 import { LanguageService } from '@/core/i18n'
 import { ProfileService } from '@/core/profile'
 import { describeRepeat, shortDate } from '@/core/recurring'
+import { NavHistory } from '@/core/routing'
 import {
   QUICK_AMOUNTS,
   QuickAmountsService,
@@ -694,6 +695,7 @@ export class DebtSheet {
   private nnfb = inject(NonNullableFormBuilder)
   private transloco = inject(TranslocoService)
   private router = inject(Router)
+  private navHistory = inject(NavHistory)
   protected languageService = inject(LanguageService)
   protected debtService = inject(DebtService)
   private walletService = inject(WalletService)
@@ -1072,7 +1074,10 @@ export class DebtSheet {
     this.debtService.remove(state.id)
     toast(this.t('debts.deleted'))
     this.finish()
-    void this.router.navigate([DEBTS_ROUTE])
+    // Off the deleted debt's page, back where it was opened from (NavHistory).
+    if (this.router.url.startsWith(`${DEBTS_ROUTE}/`)) {
+      this.navHistory.back()
+    }
   }
 
   /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */

@@ -1,18 +1,11 @@
 import { Component, computed, inject } from '@angular/core'
-import { RouterLink } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideChevronLeft } from '@ng-icons/lucide'
 import { ProfileService } from '@/core/profile'
-import { PageTitleStrategy } from '@/core/routing'
+import { NavHistory, PageTitleStrategy, parentOf } from '@/core/routing'
 import { WalletService } from '@/core/wallet'
-import {
-  currentUrl,
-  isProfileTab,
-  isReportsTab,
-  isTransactionsTab,
-  parentOf,
-} from './profile-routes'
+import { currentUrl, isProfileTab, isReportsTab, isTransactionsTab } from './profile-routes'
 import { ProfileSwitcher } from './profile-switcher'
 import { SyncStatus } from './sync-status'
 import { TransactionsHeader } from './transactions-header'
@@ -20,15 +13,7 @@ import { UpdateBanner } from './update-banner'
 
 @Component({
   selector: 'app-header',
-  imports: [
-    RouterLink,
-    TranslocoPipe,
-    NgIcon,
-    SyncStatus,
-    UpdateBanner,
-    ProfileSwitcher,
-    TransactionsHeader,
-  ],
+  imports: [TranslocoPipe, NgIcon, SyncStatus, UpdateBanner, ProfileSwitcher, TransactionsHeader],
   providers: [provideIcons({ lucideChevronLeft })],
   host: {
     class:
@@ -57,14 +42,15 @@ import { UpdateBanner } from './update-banner'
     } @else {
       <div class="flex h-14 items-center justify-between gap-3 px-4">
         <div class="flex min-w-0 items-center gap-2">
-          @if (parent(); as link) {
-            <a
+          @if (parent()) {
+            <button
+              type="button"
               class="tpn-hit flex size-9 shrink-0 items-center justify-center tpn-glass rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-              [routerLink]="link"
               [attr.aria-label]="'header.back' | transloco"
+              (click)="navHistory.back()"
             >
               <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
-            </a>
+            </button>
           }
           <h1 class="truncate text-lg font-semibold">{{ pageTitleStrategy.pageTitle() }}</h1>
         </div>
@@ -76,12 +62,13 @@ import { UpdateBanner } from './update-banner'
 })
 export class AppHeader {
   protected pageTitleStrategy = inject(PageTitleStrategy)
+  protected navHistory = inject(NavHistory)
   private profileService = inject(ProfileService)
   private walletService = inject(WalletService)
   private url = currentUrl()
 
   /** The profile tabs show the current profile instead of the title (profile.md → Web screens). */
-  /** A page inside the Account tab goes back to it (owner's choice A1 in #7). */
+  /** A page inside a tab has a ‹: back where it was opened from, else up (`NavHistory`). */
   protected parent = computed(() => parentOf(this.url()))
   /** The Reports tab's own page shares the Transactions tab's header (report.md Q2–Q3). */
   protected reportsHeader = computed(() => isReportsTab(this.url()))

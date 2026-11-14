@@ -72,7 +72,7 @@ describe('PinPage', () => {
     await enter('112233')
     expect(offline.changePin).toHaveBeenCalledWith('112233')
     expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.pin.turnedOn])
-    expect(navigate).toHaveBeenCalledWith('/account/security')
+    expect(navigate).toHaveBeenCalledWith('/account/security', { replaceUrl: true })
   })
 
   it('asks for the current PIN first and says at once when it is wrong', async () => {
@@ -97,7 +97,7 @@ describe('PinPage', () => {
 
     expect(offline.changePin).toHaveBeenCalledWith('654321')
     expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.pin.changed])
-    expect(navigate).toHaveBeenCalledWith('/account/security')
+    expect(navigate).toHaveBeenCalledWith('/account/security', { replaceUrl: true })
   })
 
   it('turns the PIN off once the current one is right, with no new PIN', async () => {
@@ -114,7 +114,7 @@ describe('PinPage', () => {
     expect(offline.removePin).toHaveBeenCalled()
     expect(offline.changePin).not.toHaveBeenCalled()
     expect(toastState.toasts().map((toast) => toast.title)).toEqual([th.pin.turnedOff])
-    expect(navigate).toHaveBeenCalledWith('/account/security')
+    expect(navigate).toHaveBeenCalledWith('/account/security', { replaceUrl: true })
   })
 
   it('goes to sign-in when the 5th wrong current PIN wiped the device', async () => {

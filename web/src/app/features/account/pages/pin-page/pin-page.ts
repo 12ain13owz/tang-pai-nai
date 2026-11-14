@@ -8,9 +8,8 @@ import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { SIGN_IN_URL } from '@/core/auth'
 import { OfflineService, WARN_FROM_ATTEMPT } from '@/core/offline'
+import { NavHistory } from '@/core/routing'
 import { PinPad, PinSetup } from '@/shared/components/pin'
-
-const SECURITY_URL = '/account/security'
 
 /** `on`: choose a PIN; `change`: the current one, then a new one; `off`: the current one. */
 type PinMode = 'on' | 'change' | 'off'
@@ -85,6 +84,7 @@ type PinMode = 'on' | 'change' | 'off'
 })
 export class PinPage {
   private router = inject(Router)
+  private navHistory = inject(NavHistory)
   private transloco = inject(TranslocoService)
   protected offlineService = inject(OfflineService)
 
@@ -104,7 +104,7 @@ export class PinPage {
   constructor() {
     // The PIN locks the local database; none here (browser storage refused, rule 1).
     if (!this.offlineService.isTrusted()) {
-      void this.back()
+      this.back()
     }
   }
 
@@ -114,7 +114,7 @@ export class PinPage {
     try {
       await this.offlineService.changePin(pin)
       toast.success(this.transloco.translate(this.mode === 'on' ? 'pin.turnedOn' : 'pin.changed'))
-      await this.back()
+      this.back()
     } catch (error) {
       console.error('Saving the PIN failed', error)
       this.failed.set(true)
@@ -139,7 +139,7 @@ export class PinPage {
       } else if (this.mode === 'off') {
         await this.offlineService.removePin()
         toast.success(this.transloco.translate('pin.turnedOff'))
-        await this.back()
+        this.back()
       } else {
         this.currentChecked.set(true)
       }
@@ -152,7 +152,8 @@ export class PinPage {
     }
   }
 
-  protected async back(): Promise<void> {
-    await this.router.navigateByUrl(SECURITY_URL)
+  /** Back where it was opened from, else up (NavHistory). */
+  protected back(): void {
+    this.navHistory.back()
   }
 }

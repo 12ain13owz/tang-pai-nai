@@ -110,9 +110,16 @@ Owner's rule (after #16.1): **a component used in more than one place lives in
   `ReportService` (`core/report`, kept out of the shell so it stays in the lazy chunks),
   `DebtService` (`core/debt`, likewise: only the Wallets tab and the debts pages inject it),
   `EventService` (`core/event`, likewise: only the events pages inject it).
-- The header shows ‹ on a page inside the Account tab (`parentOf` in `layout/profile-routes`):
-  the Account tab is grouped rows that each open a page (owner's choice A1 in #7). A report page
-  goes one level up (`/reports/category/<id>/<sub>` → `/reports/category/<id>` → `/reports`). A
+- The header shows ‹ on a page inside a tab (`parentOf` in `core/routing`: the Account tab's
+  pages (owner's choice A1 in #7), Security's password / phone / PIN, debts, events, report
+  pages one level up). ‹ is `NavHistory.back()` (`core/routing/nav-history.ts`, owner 2026-11):
+  the app's own copy of the browser history, so ‹ goes back to the page it was opened from (the
+  Transactions tab's ⋮ → รายการซ้ำ → ‹ is the Transactions tab again), and only a page opened
+  directly goes up to `parentOf` (replacing it). A page's own back, or leaving a page whose row
+  was deleted, calls `back()` too, never `navigate([parent])`: that would leave the page behind
+  one ‹ away. `NavHistory.tab()` is the lit bottom tab (a page keeps the tab it was opened from)
+  and `step()` drives the shell's `[appSlide]` (deeper in the same tab from the right, back from
+  the left). `App` injects it, so it sees the first navigation. A
   page whose title is data (a category's name) calls `PageTitleStrategy.setOverride(title)`
   and sets it back to `null` on destroy.
 - The service worker (`ngsw-config.json`) caches the **app shell only**. Never add `dataGroups`:

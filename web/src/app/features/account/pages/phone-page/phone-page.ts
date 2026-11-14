@@ -2,7 +2,6 @@ import { Component, computed, DestroyRef, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, Validators } from '@angular/forms'
 import type { ValidatorFn } from '@angular/forms'
-import { Router } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideChevronLeft } from '@ng-icons/lucide'
@@ -20,6 +19,7 @@ import {
 import type { UiMessage } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
+import { NavHistory } from '@/core/routing'
 import type { PhoneCodeFormGroup, PhoneNumberFormGroup } from '@/features/account/account-form.type'
 import { ReauthStep } from '@/features/account/components/reauth-step'
 import { ReauthFlow } from '@/features/account/reauth-flow'
@@ -236,7 +236,7 @@ const RESEND_COOLDOWN_MS = 60_000
 })
 export class PhonePage {
   private nnfb = inject(NonNullableFormBuilder)
-  private router = inject(Router)
+  private navHistory = inject(NavHistory)
   private authService = inject(AuthService)
   private authStore = inject(AuthStore)
   private languageService = inject(LanguageService)
@@ -413,7 +413,8 @@ export class PhonePage {
     }
   }
 
-  protected async back(): Promise<void> {
-    await this.router.navigate(['/account/security'])
+  /** Back where it was opened from, else up (NavHistory). */
+  protected back(): void {
+    this.navHistory.back()
   }
 }

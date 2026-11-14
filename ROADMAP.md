@@ -137,6 +137,10 @@ Web only, no API change. Owner's choices after trying the app on a phone.
   every sheet with views, `appSlide` keyed on the view's depth makes a navigation stack: a
   picker or step slides in from the right, ‹ brings the earlier view back from the left. Sheets
   never ask before closing any more (owner: the forms are short, the question was a nuisance).
+  Pages are a navigation stack too: ‹ goes back to the page it was opened from (`NavHistory`;
+  the ⋮ menu's debts and รายการซ้ำ return to the Transactions tab, not to Wallets or Settings),
+  pages slide in by depth, and the bottom bar keeps the tab a page was opened from lit. To try
+  next: events as a view of the Transactions tab instead of their own pages (owner, 2026-11).
 - **The account tab is ตั้งค่า / Settings**: not โปรไฟล์ (already a data set) nor บัญชี (a bank
   account). Its icon is still `lucideCircleUser`.
 - **Number keypad** (transaction.md → Web screens): `app-calc-keypad` lost ÷ × − + and "=":

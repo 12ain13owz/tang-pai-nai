@@ -16,37 +16,6 @@ export const isProfileTab = (url: string): boolean => under(PROFILE_TABS, url)
 
 export const isWalletTab = (url: string): boolean => under(WALLET_TABS, url)
 
-/**
- * Where the header's ‹ goes from a page inside a tab: `/account/<page>` → `/account`; a debt's
- * page → `/wallets/debts` → `/wallets`; an event's → `/transactions/events` → `/transactions`; a report page one level up (`/reports/category/<id>/<sub>` → `/reports/category/<id>` → `/reports`);
- * null on a tab's own page.
- */
-export const parentOf = (url: string): string | null => {
-  const path = url.split(/[?#]/)[0]
-  if (/^\/account\/[^/]+/.test(path)) {
-    return '/account'
-  }
-  // A debt's page goes back to the debts, the debts to the Wallets tab (debt.md).
-  if (/^\/wallets\/debts\/[^/]+/.test(path)) {
-    return '/wallets/debts'
-  }
-  if (path === '/wallets/debts') {
-    return '/wallets'
-  }
-  // An event's page goes back to the events, the events to the Transactions tab (event.md).
-  if (/^\/transactions\/events\/[^/]+/.test(path)) {
-    return '/transactions/events'
-  }
-  if (path === '/transactions/events') {
-    return '/transactions'
-  }
-  const report = /^\/reports\/category\/([^/]+)\/[^/]+/.exec(path)
-  if (report) {
-    return `/reports/category/${report[1]}`
-  }
-  return /^\/reports\/.+/.test(path) ? '/reports' : null
-}
-
 /** The current URL as a signal (call in an injection context). */
 export const currentUrl = () => {
   const router = inject(Router)

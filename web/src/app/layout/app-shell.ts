@@ -13,12 +13,14 @@ import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { CategoryService } from '@/core/category'
 import { NetworkStatusService } from '@/core/network'
 import { ProfileService } from '@/core/profile'
+import { NavHistory } from '@/core/routing'
 import type { SharingService } from '@/core/sharing'
 import { TransactionService, TransferService } from '@/core/transaction'
 import { KeyboardService } from '@/core/viewport'
 import { WalletService } from '@/core/wallet'
 import { FadeIn } from '@/shared/components/fade'
 import { CustomRangeSheet } from '@/shared/components/period'
+import { Slide } from '@/shared/components/slide'
 import { AppHeader } from './app-header'
 import { BottomTabBar } from './bottom-tab-bar'
 import { CategorySheet } from './category-sheet'
@@ -67,36 +69,43 @@ const OWN_ONLY = [
     TransactionSheet,
     TransferSheet,
     FadeIn,
+    Slide,
   ],
   template: `
     <div class="mx-auto flex min-h-dvh max-w-[480px] flex-col">
       <app-header />
-      <main class="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))]" [appFadeIn]="tab()">
-        @switch (gate()) {
-          @case ('loading') {
-            <div class="flex justify-center py-16">
-              <hlm-spinner [aria-label]="'profiles.loading' | transloco" />
-            </div>
+      <main
+        class="flex-1 overflow-x-clip pb-[calc(4rem+env(safe-area-inset-bottom))]"
+        [appFadeIn]="tab()"
+      >
+        <!-- A page opened deeper in the tab slides in from the right, ‹ from the left (§8). -->
+        <div [appSlide]="navHistory.step()">
+          @switch (gate()) {
+            @case ('loading') {
+              <div class="flex justify-center py-16">
+                <hlm-spinner [aria-label]="'profiles.loading' | transloco" />
+              </div>
+            }
+            @case ('create') {
+              <app-profile-create-step />
+            }
+            @case ('firstWallet') {
+              <app-wallet-first-step />
+            }
+            @case ('sharedOffline') {
+              <app-shared-profile-step reason="offline" />
+            }
+            @case ('sharedReports') {
+              <app-shared-profile-step reason="reports" />
+            }
+            @case ('sharedMine') {
+              <app-shared-profile-step reason="mine" />
+            }
+            @default {
+              <router-outlet />
+            }
           }
-          @case ('create') {
-            <app-profile-create-step />
-          }
-          @case ('firstWallet') {
-            <app-wallet-first-step />
-          }
-          @case ('sharedOffline') {
-            <app-shared-profile-step reason="offline" />
-          }
-          @case ('sharedReports') {
-            <app-shared-profile-step reason="reports" />
-          }
-          @case ('sharedMine') {
-            <app-shared-profile-step reason="mine" />
-          }
-          @default {
-            <router-outlet />
-          }
-        }
+        </div>
       </main>
     </div>
     @if (!keyboardService.isOpen()) {
@@ -172,8 +181,9 @@ export class AppShell {
     })
   }
 
-  /** The bottom tab in view (the URL's first segment): a new one fades in (DESIGN.md §8). */
-  protected tab = computed(() => this.url().split(/[/?#]/)[1] ?? '')
+  protected navHistory = inject(NavHistory)
+  /** The bottom tab lit (a page keeps the tab it was opened from): a new one fades in (§8). */
+  protected tab = this.navHistory.tab
 
   /**
    * Profile rule 5: the data tabs need a profile (wait for a new device's first pull); wallet

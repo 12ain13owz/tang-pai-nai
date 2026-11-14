@@ -1,5 +1,5 @@
 import { Component, computed, inject, input } from '@angular/core'
-import { Router, RouterLink, RouterLinkActive } from '@angular/router'
+import { Router, RouterLink } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
@@ -10,6 +10,7 @@ import {
   lucideWallet,
 } from '@ng-icons/lucide'
 import { ProfileService } from '@/core/profile'
+import { NavHistory } from '@/core/routing'
 import { TransactionService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 
@@ -18,13 +19,12 @@ interface Tab {
   /** Translation key. */
   label: string
   icon: string
-  exact: boolean
 }
 
 /** Money Lover style bar: two tabs, a raised ➕ (add transaction), two tabs. */
 @Component({
   selector: 'app-bottom-tab-bar',
-  imports: [TranslocoPipe, RouterLink, RouterLinkActive, NgIcon],
+  imports: [TranslocoPipe, RouterLink, NgIcon],
   providers: [
     provideIcons({ lucideChartPie, lucideCircleUser, lucidePlus, lucideReceiptText, lucideWallet }),
   ],
@@ -50,9 +50,8 @@ interface Tab {
         }
         <a
           [routerLink]="tab.path"
-          routerLinkActive="active"
-          ariaCurrentWhenActive="page"
-          [routerLinkActiveOptions]="{ exact: tab.exact }"
+          [class.active]="tab.path === '/' + navHistory.tab()"
+          [attr.aria-current]="tab.path === '/' + navHistory.tab() ? 'page' : null"
           class="group flex flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground focus-visible:outline-none [&.active]:font-semibold [&.active]:text-brand [&.active]:[--ng-icon__stroke-width:2.4]"
         >
           <span
@@ -85,6 +84,8 @@ export class BottomTabBar {
   private profileService = inject(ProfileService)
   private transactionService = inject(TransactionService)
   private router = inject(Router)
+  /** The lit tab: a page opened from another tab keeps that one lit (NavHistory). */
+  protected navHistory = inject(NavHistory)
 
   /** A shared profile I can't write now: a viewer, offline, still loading (sharing rule 10). */
   protected sharedReadOnly = computed(
@@ -101,9 +102,9 @@ export class BottomTabBar {
 
   /** The ➕ sits between the 2nd and 3rd tab. */
   protected readonly tabs: readonly Tab[] = [
-    { path: '/transactions', label: 'nav.transactions', icon: 'lucideReceiptText', exact: false },
-    { path: '/wallets', label: 'nav.wallets', icon: 'lucideWallet', exact: false },
-    { path: '/reports', label: 'nav.reports', icon: 'lucideChartPie', exact: false },
-    { path: '/account', label: 'nav.account', icon: 'lucideCircleUser', exact: false },
+    { path: '/transactions', label: 'nav.transactions', icon: 'lucideReceiptText' },
+    { path: '/wallets', label: 'nav.wallets', icon: 'lucideWallet' },
+    { path: '/reports', label: 'nav.reports', icon: 'lucideChartPie' },
+    { path: '/account', label: 'nav.account', icon: 'lucideCircleUser' },
   ]
 }

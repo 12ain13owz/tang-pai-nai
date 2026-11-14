@@ -19,6 +19,7 @@ import {
 } from '@/core/event'
 import type { EventValues, TripEvent } from '@/core/event'
 import { LanguageService } from '@/core/i18n'
+import { NavHistory } from '@/core/routing'
 import { TransactionService } from '@/core/transaction'
 import { DateRow } from '@/shared/components/date-row'
 import {
@@ -266,6 +267,7 @@ export class EventSheet {
   private nnfb = inject(NonNullableFormBuilder)
   private transloco = inject(TranslocoService)
   private router = inject(Router)
+  private navHistory = inject(NavHistory)
   protected eventService = inject(EventService)
   protected languageService = inject(LanguageService)
   protected transactionService = inject(TransactionService)
@@ -376,7 +378,10 @@ export class EventSheet {
     this.eventService.remove(id)
     toast(this.transloco.translate('events.deleted'))
     this.finish()
-    void this.router.navigate([EVENTS_ROUTE])
+    // Off the deleted event's page, back where it was opened from (NavHistory).
+    if (this.router.url.startsWith(`${EVENTS_ROUTE}/`)) {
+      this.navHistory.back()
+    }
   }
 
   /** Saved, deleted, ✕, a swipe down, the backdrop or Escape: unsaved input goes (DESIGN.md §6). */

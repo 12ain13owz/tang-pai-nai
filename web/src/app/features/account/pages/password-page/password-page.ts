@@ -2,7 +2,6 @@ import { Component, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, Validators } from '@angular/forms'
 import type { ValidatorFn } from '@angular/forms'
-import { Router } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import { lucideChevronLeft } from '@ng-icons/lucide'
@@ -13,6 +12,7 @@ import { authErrorMessage, AuthService, AuthStore, passwordPolicyValidator } fro
 import type { UiMessage } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
+import { NavHistory } from '@/core/routing'
 import type { NewPasswordFormGroup } from '@/features/account/account-form.type'
 import { ReauthStep } from '@/features/account/components/reauth-step'
 import { ReauthFlow } from '@/features/account/reauth-flow'
@@ -166,7 +166,7 @@ const matchesNewPassword: ValidatorFn = (control) => {
 })
 export class PasswordPage {
   private nnfb = inject(NonNullableFormBuilder)
-  private router = inject(Router)
+  private navHistory = inject(NavHistory)
   private authService = inject(AuthService)
   private authStore = inject(AuthStore)
   private languageService = inject(LanguageService)
@@ -224,8 +224,9 @@ export class PasswordPage {
     }
   }
 
-  protected async back(): Promise<void> {
-    await this.router.navigate(['/account'])
+  /** Back where it was opened from, else up (NavHistory). */
+  protected back(): void {
+    this.navHistory.back()
   }
 
   /** Sends the action; on `REAUTH_REQUIRED` keeps it pending until the user confirms. */

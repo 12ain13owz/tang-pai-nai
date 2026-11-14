@@ -8,7 +8,7 @@ import {
   Injector,
   signal,
 } from '@angular/core'
-import { ActivatedRoute, Router, RouterLink } from '@angular/router'
+import { ActivatedRoute, RouterLink } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
@@ -36,6 +36,7 @@ import type { AuthDeviceSession, GoogleLinkFailure, UiMessage } from '@/core/aut
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
 import { OfflineService } from '@/core/offline'
+import { NavHistory } from '@/core/routing'
 import { ReauthStep } from '@/features/account/components/reauth-step'
 import { deviceLabel } from '@/features/account/device-label'
 import type { DeviceLabel } from '@/features/account/device-label'
@@ -528,7 +529,7 @@ const DAY = 24 * HOUR
   `,
 })
 export class SecurityPage {
-  private router = inject(Router)
+  private navHistory = inject(NavHistory)
   private location = inject(Location)
   private host = inject<ElementRef<HTMLElement>>(ElementRef)
   private injector = inject(Injector)
@@ -699,8 +700,9 @@ export class SecurityPage {
     return DEVICE_ICONS[label.kind]
   }
 
-  protected async back(): Promise<void> {
-    await this.router.navigate(['/account'])
+  /** Back where it was opened from, else up (NavHistory). */
+  protected back(): void {
+    this.navHistory.back()
   }
 
   private toRow(session: AuthDeviceSession): DeviceRow {
