@@ -22,6 +22,7 @@ import type { ReportUnit } from '@/core/report'
 import { PERIOD_UNITS, TransactionService, TransferService } from '@/core/transaction'
 import type { PeriodUnit } from '@/core/transaction'
 import { IconBadge } from '@/shared/components/icon-badge'
+import { Slide } from '@/shared/components/slide'
 import { ProfileSwitcher } from './profile-switcher'
 import { SyncStatus } from './sync-status'
 
@@ -35,7 +36,41 @@ import { SyncStatus } from './sync-status'
  */
 @Component({
   selector: 'app-transactions-header',
-  imports: [TranslocoPipe, NgIcon, IconBadge, ProfileSwitcher, SyncStatus],
+  imports: [TranslocoPipe, NgIcon, IconBadge, ProfileSwitcher, SyncStatus, Slide],
+  // The menu grows from the ⋮ (its top right) and fades; under reduced motion it only fades
+  // (DESIGN.md §8).
+  styles: `
+    .menu-enter {
+      animation: menu-in 150ms cubic-bezier(0.2, 0, 0, 1);
+    }
+    .menu-leave {
+      animation: menu-out 100ms cubic-bezier(0.4, 0, 1, 1) forwards;
+    }
+    @keyframes menu-in {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+    }
+    @keyframes menu-out {
+      to {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      @keyframes menu-in {
+        from {
+          opacity: 0;
+        }
+      }
+      @keyframes menu-out {
+        to {
+          opacity: 0;
+        }
+      }
+    }
+  `,
   providers: [
     provideIcons({
       lucideArrowLeftRight,
@@ -101,120 +136,125 @@ import { SyncStatus } from './sync-status'
         #menu
         role="menu"
         tabindex="-1"
-        class="absolute top-full right-2 z-30 -mt-1 min-w-56 rounded-xl border border-border bg-popover py-1.5 text-popover-foreground shadow-lg"
+        class="absolute top-full right-2 z-30 -mt-1 min-w-56 origin-top-right overflow-x-clip rounded-xl border border-border bg-popover py-1.5 text-popover-foreground shadow-lg"
+        animate.enter="menu-enter"
+        animate.leave="menu-leave"
         [attr.aria-label]="
           (level() === 'main' ? 'transfers.menu' : 'transactions.viewBy') | transloco
         "
         (keydown)="onMenuKey($event)"
       >
-        @if (level() === 'main') {
-          @if (view() === 'transactions' && !profileService.isShared()) {
+        <!-- "ดูตาม ›" slides the units in from the right, ‹ the items back from the left. -->
+        <div [appSlide]="level() === 'main' ? 0 : 1">
+          @if (level() === 'main') {
+            @if (view() === 'transactions' && !profileService.isShared()) {
+              <button
+                type="button"
+                role="menuitem"
+                class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+                (click)="transfer()"
+              >
+                <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
+                <span class="flex-1">{{ 'transfers.open' | transloco }}</span>
+              </button>
+            }
+            @if (view() === 'transactions' && !profileService.isShared()) {
+              <!-- Debts (debt.md Q9): the debts page under the Wallets tab. -->
+              <button
+                type="button"
+                role="menuitem"
+                class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+                (click)="debts()"
+              >
+                <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
+                <span class="flex-1">{{ 'debts.menu' | transloco }}</span>
+                <ng-icon
+                  name="lucideChevronRight"
+                  size="16"
+                  class="text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </button>
+            }
+            @if (view() === 'transactions' && !profileService.isShared()) {
+              <!-- Events (event.md Q6): the events page under the Transactions tab. -->
+              <button
+                type="button"
+                role="menuitem"
+                class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+                (click)="events()"
+              >
+                <ng-icon name="lucidePlane" size="20" aria-hidden="true" />
+                <span class="flex-1">{{ 'events.menu' | transloco }}</span>
+                <ng-icon
+                  name="lucideChevronRight"
+                  size="16"
+                  class="text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </button>
+            }
+            @if (view() === 'transactions' && !profileService.isShared()) {
+              <!-- Recurring (recurring.md Q5): the rules page in Account. -->
+              <button
+                type="button"
+                role="menuitem"
+                class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+                (click)="recurring()"
+              >
+                <ng-icon name="lucideRepeat" size="20" aria-hidden="true" />
+                <span class="flex-1">{{ 'recurring.menu' | transloco }}</span>
+                <ng-icon
+                  name="lucideChevronRight"
+                  size="16"
+                  class="text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </button>
+            }
             <button
               type="button"
               role="menuitem"
+              aria-haspopup="menu"
               class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
-              (click)="transfer()"
+              (click)="showUnits()"
             >
-              <ng-icon name="lucideArrowLeftRight" size="20" aria-hidden="true" />
-              <span class="flex-1">{{ 'transfers.open' | transloco }}</span>
+              <ng-icon name="lucideCalendarRange" size="20" aria-hidden="true" />
+              <span class="flex-1">{{ 'transactions.viewBy' | transloco }}</span>
+              <span class="flex items-center gap-0.5 text-sm text-muted-foreground">
+                {{ 'transactions.unit.' + currentUnit() | transloco }}
+                <ng-icon name="lucideChevronRight" size="16" aria-hidden="true" />
+              </span>
             </button>
-          }
-          @if (view() === 'transactions' && !profileService.isShared()) {
-            <!-- Debts (debt.md Q9): the debts page under the Wallets tab. -->
+          } @else {
             <button
               type="button"
               role="menuitem"
-              class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
-              (click)="debts()"
+              class="flex min-h-11 w-full items-center gap-2 px-3 text-left text-sm font-medium text-muted-foreground focus-visible:bg-muted focus-visible:outline-none"
+              [attr.aria-label]="'transfers.menuBack' | transloco"
+              (click)="showMain()"
             >
-              <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
-              <span class="flex-1">{{ 'debts.menu' | transloco }}</span>
-              <ng-icon
-                name="lucideChevronRight"
-                size="16"
-                class="text-muted-foreground"
-                aria-hidden="true"
-              />
+              <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
+              {{ 'transactions.viewBy' | transloco }}
             </button>
+            @for (unit of units(); track unit) {
+              <button
+                type="button"
+                role="menuitemradio"
+                class="flex min-h-11 w-full items-center justify-between gap-6 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
+                [class.font-semibold]="unit === currentUnit()"
+                [class.text-brand]="unit === currentUnit()"
+                [attr.aria-checked]="unit === currentUnit()"
+                (click)="choose(unit)"
+              >
+                {{ 'transactions.unit.' + unit | transloco }}
+                @if (unit === currentUnit()) {
+                  <ng-icon name="lucideCheck" size="18" aria-hidden="true" />
+                }
+              </button>
+            }
           }
-          @if (view() === 'transactions' && !profileService.isShared()) {
-            <!-- Events (event.md Q6): the events page under the Transactions tab. -->
-            <button
-              type="button"
-              role="menuitem"
-              class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
-              (click)="events()"
-            >
-              <ng-icon name="lucidePlane" size="20" aria-hidden="true" />
-              <span class="flex-1">{{ 'events.menu' | transloco }}</span>
-              <ng-icon
-                name="lucideChevronRight"
-                size="16"
-                class="text-muted-foreground"
-                aria-hidden="true"
-              />
-            </button>
-          }
-          @if (view() === 'transactions' && !profileService.isShared()) {
-            <!-- Recurring (recurring.md Q5): the rules page in Account. -->
-            <button
-              type="button"
-              role="menuitem"
-              class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
-              (click)="recurring()"
-            >
-              <ng-icon name="lucideRepeat" size="20" aria-hidden="true" />
-              <span class="flex-1">{{ 'recurring.menu' | transloco }}</span>
-              <ng-icon
-                name="lucideChevronRight"
-                size="16"
-                class="text-muted-foreground"
-                aria-hidden="true"
-              />
-            </button>
-          }
-          <button
-            type="button"
-            role="menuitem"
-            aria-haspopup="menu"
-            class="flex min-h-11 w-full items-center gap-3 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
-            (click)="showUnits()"
-          >
-            <ng-icon name="lucideCalendarRange" size="20" aria-hidden="true" />
-            <span class="flex-1">{{ 'transactions.viewBy' | transloco }}</span>
-            <span class="flex items-center gap-0.5 text-sm text-muted-foreground">
-              {{ 'transactions.unit.' + currentUnit() | transloco }}
-              <ng-icon name="lucideChevronRight" size="16" aria-hidden="true" />
-            </span>
-          </button>
-        } @else {
-          <button
-            type="button"
-            role="menuitem"
-            class="flex min-h-11 w-full items-center gap-2 px-3 text-left text-sm font-medium text-muted-foreground focus-visible:bg-muted focus-visible:outline-none"
-            [attr.aria-label]="'transfers.menuBack' | transloco"
-            (click)="showMain()"
-          >
-            <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
-            {{ 'transactions.viewBy' | transloco }}
-          </button>
-          @for (unit of units(); track unit) {
-            <button
-              type="button"
-              role="menuitemradio"
-              class="flex min-h-11 w-full items-center justify-between gap-6 px-4 text-left text-base focus-visible:bg-muted focus-visible:outline-none"
-              [class.font-semibold]="unit === currentUnit()"
-              [class.text-brand]="unit === currentUnit()"
-              [attr.aria-checked]="unit === currentUnit()"
-              (click)="choose(unit)"
-            >
-              {{ 'transactions.unit.' + unit | transloco }}
-              @if (unit === currentUnit()) {
-                <ng-icon name="lucideCheck" size="18" aria-hidden="true" />
-              }
-            </button>
-          }
-        }
+        </div>
       </div>
     }
   `,

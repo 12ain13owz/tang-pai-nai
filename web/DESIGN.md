@@ -456,7 +456,11 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   deeper inside the tab slides in from the right, and ‹ brings the earlier one back from the
   left. Switching bottom tabs has
   no order to show, so the page fades in with an 8px rise, 250 ms, CSS `ease-out` (`appFadeIn`
-  on the shell's `<main>`, keyed on the tab; pages inside a tab don't fade).
+  on the shell's `<main>`, keyed on the tab; pages inside a tab don't fade). A dropdown menu
+  (the header's ⋮, owner 2026-11) grows from its button's corner with a fade, 150 ms in and
+  100 ms out (`animate.enter` / `animate.leave`, a fade only under reduced motion); its second
+  level ("ดูตาม ›") slides in from the right and ‹ brings the first back from the left
+  (`appSlide`).
 - **Keyboard**: numeric fields use `inputmode="decimal"` or `"numeric"`. Keep the focused field
   visible above the keyboard. The tab bar hides itself while the keyboard is open.
 
