@@ -21,9 +21,16 @@ import {
   WALLET_TABLE,
   WalletService,
 } from '@/core/wallet'
-import { addDays, fromDay } from '@/shared/utils'
-import { REPORT_PREF_PREFIX, REPORT_UNITS, TREND_LENGTH } from './report.type'
-import type { CategoryShare, ReportSummary, ReportUnit, TrendPoint } from './report.type'
+import { addDays, addMonths, fromDay } from '@/shared/utils'
+import { REPORT_PREF_PREFIX, REPORT_UNITS, TREND_STEP_MONTHS } from './report.type'
+import type {
+  CategoryShare,
+  ReportSummary,
+  ReportUnit,
+  Trend,
+  TrendPoint,
+  TrendStep,
+} from './report.type'
 
 /** A period with both ends (every report unit has them). */
 interface FullRange {
@@ -34,6 +41,21 @@ interface FullRange {
 /** Days from `from` to `to`, both counted. */
 const dayCount = (from: string, to: string): number =>
   Math.round((fromDay(to).getTime() - fromDay(from).getTime()) / 86_400_000) + 1
+
+/** Calendar months `from` to `to` touch, both counted. */
+const monthCount = (from: string, to: string): number => {
+  const [fromYear, fromMonth] = from.split('-').map(Number)
+  const [toYear, toMonth] = to.split('-').map(Number)
+  return (toYear - fromYear) * 12 + (toMonth - fromMonth) + 1
+}
+
+/** The first day of the month, quarter or year holding `day`. */
+const stepStart = (day: string, step: TrendStep): string => {
+  const [year, month] = day.split('-').map(Number)
+  const size = TREND_STEP_MONTHS[step]
+  const first = Math.floor((month - 1) / size) * size + 1
+  return `${String(year).padStart(4, '0')}-${String(first).padStart(2, '0')}-01`
+}
 
 /**
  * The Reports tab (docs/features/report.md): its own period (remembered per profile), the
@@ -108,19 +130,28 @@ export class ReportService {
     const code = this.currencyCode()
     return code ? this.byCategory(this.range(), this.walletIds(), this.type(), code) : []
   })
-  trend = computed<TrendPoint[]>(() => {
-    const unit = this.unit()
-    const tab = this.tab()
+  /** Rule 7: the chosen period split into its months (quarters, years for a long range). */
+  trend = computed<Trend | null>(() => {
     const code = this.currencyCode()
-    if (unit === 'custom' || typeof tab !== 'number' || !code) {
-      return []
+    const { from, to } = this.range()
+    const months = monthCount(from, to)
+    if (!code || months <= 1) {
+      return null
     }
-    const length = TREND_LENGTH[unit]
-    const points = Array.from({ length }, (_, i) => {
-      const at = tab - (length - 1) + i
-      return { tab: at, ...this.full(this.rangeOf(at)), income: 0, expense: 0 }
-    })
-    return this.bucket(points, this.walletIds(), code)
+    const step: TrendStep = months <= 12 ? 'month' : months <= 36 ? 'quarter' : 'year'
+    const points: TrendPoint[] = []
+    for (let start = stepStart(from, step); start <= to;) {
+      const next = addMonths(start, TREND_STEP_MONTHS[step])
+      const end = addDays(next, -1)
+      points.push({
+        from: start < from ? from : start,
+        to: end > to ? to : end,
+        income: 0,
+        expense: 0,
+      })
+      start = next
+    }
+    return { step, points: this.bucket(points, this.walletIds(), code) }
   })
 
   constructor() {

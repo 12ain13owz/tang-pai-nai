@@ -16,8 +16,10 @@ import { CustomRangeSheet, PeriodStrip, Swipe } from '@/shared/components/period
 /**
  * The Reports tab (docs/features/report.md → Web screens, owner's choices in #10). The header
  * (layout/transactions-header, `view="reports"`) holds the wallet switcher and "ดูตาม"; this
- * page shows the period chips, the summary card per currency (H1), the trend and the breakdown
- * by top-level category (Q1-B). Everything is read from the local database.
+ * page shows the period chips, the summary card per currency (H1), the breakdown by top-level
+ * category (Q1-B), then the trend for a period longer than a month (rule 7), in the order a
+ * report is read: how much came in and went out, what it went on, how it moved. Everything is
+ * read from the local database.
  */
 @Component({
   selector: 'app-reports-page',
@@ -64,15 +66,6 @@ import { CustomRangeSheet, PeriodStrip, Swipe } from '@/shared/components/period
             }
           </div>
         }
-        @if (trendUnit(); as unit) {
-          <app-report-trend
-            [points]="reportService.trend()"
-            [selected]="reportService.tab()"
-            [unit]="unit"
-            [minorUnit]="reportService.minorUnit()"
-            (pick)="reportService.tab.set($event)"
-          />
-        }
         <section
           class="flex flex-col gap-3 rounded-xl border border-border bg-card px-4 pt-3 pb-1 text-card-foreground"
           aria-labelledby="report-by-category"
@@ -115,6 +108,10 @@ import { CustomRangeSheet, PeriodStrip, Swipe } from '@/shared/components/period
             </p>
           }
         </section>
+        @if (reportService.trend(); as trend) {
+          <!-- Rule 7: only a period longer than a month, split into its own months. -->
+          <app-report-trend [trend]="trend" [minorUnit]="reportService.minorUnit()" />
+        }
       } @else {
         <app-empty-state
           [heading]="'reports.emptyHeading' | transloco"
@@ -148,12 +145,6 @@ export class ReportsPage {
   protected transactionService = inject(TransactionService)
   protected view = reportView()
   protected readonly types: readonly CategoryType[] = ['expense', 'income']
-
-  /** The trend's unit; a custom range has none (Q2). */
-  protected trendUnit = computed(() => {
-    const unit = this.reportService.unit()
-    return unit === 'custom' ? null : unit
-  })
 
   /** The chosen type's total in the chosen currency: the base of every share. */
   protected typeTotal = computed(() => {

@@ -516,6 +516,12 @@ Known, for later:
   year of one category ≈ 0.28 s; the Transactions tab again: month ≈ 0.10 s, "ทั้งหมด" ≈ 0.47
   s). Tests: web 511 (API unchanged, 544). Initial bundle 713 kB.
 - **Known**: several currencies are built but only seen in specs (only THB is active).
+- **Changed after #10** (owner, 2026-11): the trend no longer shows the periods before the
+  chosen one (data from outside the chosen month confused the tab, and a bar tap that moved
+  the period shifted the bars under the finger): it splits the chosen period into its months
+  (quarters or years for a long custom range), none for a month, and a tap shows a bar's
+  figures (report.md rule 7). The summary card leads with รายรับ / รายจ่าย, the net one line
+  under them, and the breakdown comes before the trend.
 
 ## Done: Category merge (7.3)
 

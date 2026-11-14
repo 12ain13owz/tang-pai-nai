@@ -38,12 +38,15 @@ describe('ReportsPage', () => {
     db.close()
   })
 
-  it('shows the H1 summary: the net, income and expense, the balances and the notes (rules 9–11)', () => {
-    const card = element().querySelector('app-report-summary-card')?.textContent ?? ''
-    expect(card).toContain('สุทธิ · ต.ค. 2026')
-    expect(card).toContain('+48,550.00')
-    expect(card).toContain('+50,000.00')
+  it('shows the H1 summary: income and expense first, the net, the balances and the notes (rules 9–11)', () => {
+    const card = (element().querySelector('app-report-summary-card')?.textContent ?? '').replace(
+      /\s+/g,
+      ' '
+    )
+    expect(card).toContain('ต.ค. 2026')
+    expect(card.indexOf('+50,000.00')).toBeLessThan(card.indexOf(th.reports.net))
     expect(card).toContain('-1,450.00')
+    expect(card).toContain(`${th.reports.net}+48,550.00`)
     expect(card).toContain(th.reports.start)
     expect(card).toContain('9,600.00')
     expect(card).toContain('57,450.00')
@@ -73,17 +76,34 @@ describe('ReportsPage', () => {
     ).toEqual(['/reports/category/salary'])
   })
 
-  it('draws six months ending at the chosen one; a bar chooses its period (rule 7)', async () => {
-    const bars = [...element().querySelectorAll<HTMLButtonElement>('app-report-trend button')]
-    expect(bars).toHaveLength(6)
-    expect(bars.at(-1)?.getAttribute('aria-pressed')).toBe('true')
-    expect(bars.at(-1)?.getAttribute('aria-label')).toBe(
-      'ตุลาคม 2026: รายรับ 50,000.00 รายจ่าย 1,450.00'
-    )
-    bars.at(-2)?.click()
+  it('puts the breakdown before the trend, and has no trend for a month (rule 7)', async () => {
+    expect(element().querySelector('app-report-trend')).toBeNull()
+    reports.selectUnit('year')
     await settle()
-    expect(reports.tab()).toBe(-2)
-    expect(text()).toContain('สุทธิ · ก.ย. 2026')
+    const order = [...element().querySelectorAll('app-report-share-list, app-report-trend')].map(
+      (el) => el.tagName.toLowerCase()
+    )
+    expect(order).toEqual(['app-report-share-list', 'app-report-trend'])
+  })
+
+  it('splits a year into its months; a bar shows its figures and keeps the period (rule 7)', async () => {
+    reports.selectUnit('year')
+    await settle()
+    const bars = () => [...element().querySelectorAll<HTMLButtonElement>('app-report-trend button')]
+    expect(bars()).toHaveLength(12)
+    expect(bars()[9].getAttribute('aria-label')).toBe(
+      'ต.ค. 2026: รายรับ 50,000.00 รายจ่าย 1,450.00'
+    )
+    expect(text()).toContain(th.reports.trendHint.month)
+    bars()[9].click()
+    await settle()
+    expect(reports.tab()).toBe(0)
+    expect(bars()[9].getAttribute('aria-pressed')).toBe('true')
+    const detail = element().querySelector('app-report-trend [aria-live]')?.textContent ?? ''
+    expect(detail.replace(/\s+/g, ' ')).toContain('ต.ค. 2026 รายรับ 50,000.00 รายจ่าย 1,450.00')
+    bars()[9].click()
+    await settle()
+    expect(text()).toContain(th.reports.trendHint.month)
   })
 
   it('shows the empty state for a period with nothing, and adds from there', async () => {

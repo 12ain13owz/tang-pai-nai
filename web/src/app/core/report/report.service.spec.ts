@@ -237,33 +237,50 @@ describe('ReportService', () => {
     ).toBe(400)
   })
 
-  it('draws the trend of the chosen period and the ones before, in one currency (rule 7)', () => {
-    const trend = service.trend()
-    expect(trend.map((point) => point.from)).toEqual([
-      '2026-05-01',
-      '2026-06-01',
-      '2026-07-01',
-      '2026-08-01',
-      '2026-09-01',
-      '2026-10-01',
-    ])
-    expect(trend.at(-1)).toEqual({
-      tab: -1,
+  it('splits the chosen period into its own months, none inside one month (rule 7)', () => {
+    expect(service.trend()).toBeNull()
+    service.selectUnit('year')
+    const year = service.trend()
+    expect(year?.step).toBe('month')
+    expect(year?.points).toHaveLength(12)
+    expect(year?.points.at(0)).toMatchObject({ from: '2026-01-01', to: '2026-01-31' })
+    expect(year?.points.at(8)).toMatchObject({ from: '2026-09-01', income: 0, expense: 400 })
+    expect(year?.points.at(9)).toEqual({
       from: '2026-10-01',
       to: '2026-10-31',
       income: 50000,
       expense: 1450,
     })
-    expect(trend.at(-2)).toMatchObject({ tab: -2, income: 0, expense: 400 })
     service.selectUnit('quarter')
-    expect(service.trend().map((point) => point.from)).toEqual([
-      '2026-01-01',
-      '2026-04-01',
-      '2026-07-01',
+    expect(service.trend()?.points.map((point) => point.from)).toEqual([
       '2026-10-01',
+      '2026-11-01',
+      '2026-12-01',
     ])
     service.selectCustom({ from: '2026-10-01', to: '2026-10-15' })
-    expect(service.trend()).toEqual([])
+    expect(service.trend()).toBeNull()
+    // The first and last part are cut to the range.
+    service.selectCustom({ from: '2026-09-15', to: '2026-10-05' })
+    expect(service.trend()).toEqual({
+      step: 'month',
+      points: [
+        { from: '2026-09-15', to: '2026-09-30', income: 0, expense: 400 },
+        { from: '2026-10-01', to: '2026-10-05', income: 50000, expense: 1000 },
+      ],
+    })
+    service.selectCustom({ from: '2025-02-10', to: '2026-10-31' })
+    expect(service.trend()?.step).toBe('quarter')
+    expect(service.trend()?.points.at(0)?.from).toBe('2025-02-10')
+    expect(service.trend()?.points).toHaveLength(8)
+    service.selectCustom({ from: '2022-06-01', to: '2026-10-31' })
+    expect(service.trend()?.step).toBe('year')
+    expect(service.trend()?.points.map((point) => point.from)).toEqual([
+      '2022-06-01',
+      '2023-01-01',
+      '2024-01-01',
+      '2025-01-01',
+      '2026-01-01',
+    ])
   })
 
   it('follows the Transactions tab wallet, an excluded one too (Q3)', () => {
@@ -284,7 +301,8 @@ describe('ReportService', () => {
     expect(service.currencyCode()).toBe('THB')
     service.chosenCurrency.set('USD')
     expect(service.breakdown().map((share) => share.amount)).toEqual([700])
-    expect(service.trend().at(-1)).toMatchObject({ expense: 700, income: 0 })
+    service.selectUnit('year')
+    expect(service.trend()?.points.at(9)).toMatchObject({ expense: 700, income: 0 })
   })
 
   it('has no "อนาคต" tab, and the period before a custom range is as long as it', () => {

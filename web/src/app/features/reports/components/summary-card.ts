@@ -9,7 +9,8 @@ import { formatAmount } from '@/shared/utils'
 
 /**
  * The Reports tab's summary card, one per currency (report.md → Web screens, owner's choice H1
- * in #10): the net as the headline, income and expense as tinted tiles, the balances on one line
+ * in #10, reordered in 2026-11): income and expense as the headline in tinted tiles, the net on
+ * one line under them, the balances on one line
  * (rule 9), and small notes for the average per day (rule 10), the transfers and the rows left
  * out (rule 11), each only when it has something to say.
  */
@@ -23,37 +24,36 @@ import { formatAmount } from '@/shared/utils'
       class="rounded-xl border border-border bg-card px-4 pt-3 pb-4 text-card-foreground"
       [attr.aria-label]="'reports.summary' | transloco: { period: period() }"
     >
-      <div class="flex flex-col items-center text-center">
-        <span class="text-sm text-muted-foreground">
-          {{ 'reports.netOf' | transloco: { period: period() } }}
-        </span>
-        <span class="text-3xl leading-tight font-bold tabular-nums">{{ m.net }}</span>
-      </div>
-      <div class="mt-3 grid grid-cols-2 gap-2">
-        <div class="flex min-w-0 flex-col rounded-xl bg-income/10 px-3 py-2">
-          <span class="flex items-center gap-1 text-xs text-muted-foreground">
-            <ng-icon name="lucideArrowDownLeft" size="14" aria-hidden="true" />
+      <h2 class="text-sm font-medium text-muted-foreground">{{ period() }}</h2>
+      <div class="mt-2 grid grid-cols-2 gap-2">
+        <div class="flex min-w-0 flex-col rounded-xl bg-income/10 px-3 py-2.5">
+          <span class="flex items-center gap-1 text-sm text-muted-foreground">
+            <ng-icon name="lucideArrowDownLeft" size="16" aria-hidden="true" />
             {{ 'categories.income' | transloco }}
           </span>
           <span
-            class="truncate text-lg font-semibold tabular-nums"
+            class="truncate text-xl leading-tight font-bold tabular-nums"
             [class.text-income]="line().income > 0"
           >
             {{ m.income }}
           </span>
         </div>
-        <div class="flex min-w-0 flex-col rounded-xl bg-expense/10 px-3 py-2">
-          <span class="flex items-center gap-1 text-xs text-muted-foreground">
-            <ng-icon name="lucideArrowUpRight" size="14" aria-hidden="true" />
+        <div class="flex min-w-0 flex-col rounded-xl bg-expense/10 px-3 py-2.5">
+          <span class="flex items-center gap-1 text-sm text-muted-foreground">
+            <ng-icon name="lucideArrowUpRight" size="16" aria-hidden="true" />
             {{ 'categories.expense' | transloco }}
           </span>
           <span
-            class="truncate text-lg font-semibold tabular-nums"
+            class="truncate text-xl leading-tight font-bold tabular-nums"
             [class.text-expense]="line().expense > 0"
           >
             {{ m.expense }}
           </span>
         </div>
+      </div>
+      <div class="mt-3 flex items-baseline justify-between gap-2 px-1">
+        <span class="text-sm text-muted-foreground">{{ 'reports.net' | transloco }}</span>
+        <span class="truncate text-base font-semibold tabular-nums">{{ m.net }}</span>
       </div>
       <div
         class="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-t border-border pt-3"

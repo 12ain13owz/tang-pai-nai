@@ -289,7 +289,7 @@
     "emptyHeading": "No transactions in this period",
     "emptyText": "Record income and expenses and the report shows here.",
     "summary": "Summary, {{period}}",
-    "netOf": "Net · {{period}}",
+    "net": "Net",
     "start": "Starting balance",
     "end": "Ending balance",
     "perDay": "Avg. spend {{amount}}/day",
@@ -297,11 +297,15 @@
     "excluded": "{{count}} excluded from reports",
     "currency": "Currency",
     "trend": {
-      "month": "Last 6 months",
-      "quarter": "Last 4 quarters",
-      "year": "Last 5 years"
+      "month": "By month",
+      "quarter": "By quarter",
+      "year": "By year"
     },
-    "trendHint": "Tap a bar to see that period",
+    "trendHint": {
+      "month": "Tap to see each month",
+      "quarter": "Tap to see each quarter",
+      "year": "Tap to see each year"
+    },
     "trendBar": "{{period}}: income {{income}}, expense {{expense}}",
     "byCategory": "By category",
     "types": "Type",

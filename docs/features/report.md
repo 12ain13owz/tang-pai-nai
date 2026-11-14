@@ -50,8 +50,12 @@ No table of its own and no new column. A report reads, for the current profile:
 6. **A category with nothing in the period** isn't listed. A merged category (7.3) is a
    tombstone whose transactions already moved to its target, so it never appears; its money
    shows under the target.
-7. **Trend**: income and expense per period for the chosen period and the ones before it
-   (Q2), same wallets and currency, so month-to-month change is visible.
+7. **Trend** (owner, 2026-11, replacing "the chosen period and the ones before it"): the
+   chosen period **split into its months**, income and expense per part, same wallets and
+   currency, so nothing on the tab comes from outside the chosen period. A quarter is 3
+   months, a year 12; a custom range is split by month up to 12 months, by quarter up to 36,
+   else by year, the first and last part cut to the range. A period inside one month (the
+   month unit, a short custom range) has **no trend**.
 8. **Periods and dates** are the Transactions tab's (`period.ts`): weeks start on Monday,
    ค.ศ. in both languages, `occurredOn` is a calendar date with no time of day.
 9. **Balances** (E1): **ยอดเริ่มต้น** / Starting balance = the wallets in view's balance
@@ -112,21 +116,25 @@ Owner's choices in #10 (mock-up rounds 1–3; DESIGN.md → Reports):
     tab's own range sheet;
   - the **period chips** (`09/2026 · เดือนที่แล้ว · เดือนนี้`, no "อนาคต"), a sideways swipe
     moves period;
-  - the **summary card** (owner's choice **H1**, one per currency): "สุทธิ · ต.ค. 2026" and
-    the net large, รายรับ / รายจ่าย as tiles tinted with the money colours (↙ / ↗ beside the
-    word), ยอดเริ่มต้น → ยอดสุดท้าย on one line, then small chips only when they say
-    something: "เฉลี่ยรายจ่าย 755.84/วัน", "โอนเงิน −5,000.00", "ไม่รวมในรายงาน 2 รายการ
+  - the **summary card** (H1, reordered by the owner in 2026-11: what came in and went out is
+    what a report is read for, one per currency): the period's name, รายรับ / รายจ่าย as
+    the headline in tiles tinted with the money colours (↙ / ↗ beside the word), then
+    "สุทธิ" on one line, ยอดเริ่มต้น → ยอดสุดท้าย on one line, then small chips only when they
+    say something: "เฉลี่ยรายจ่าย 755.84/วัน", "โอนเงิน −5,000.00", "ไม่รวมในรายงาน 2 รายการ
     −1,500.00 ›" (a link to its page);
-  - **currency chips** above the trend and breakdown, only when the view has more than one
-    currency (Q6);
-  - the **trend card** "แนวโน้ม 6 เดือน" (4 ไตรมาส, 5 ปี; none for a custom range): a pair of
-    bars per period, the chosen one full strength and outlined, the others faded, a compact
-    scale (`50K`), "แตะแท่งเพื่อดูช่วงนั้น"; each pair is a button naming its period and both
-    amounts;
-  - the **by category card** (Q1-B): รายจ่าย / รายรับ tabs, "ตามหมวดหมู่" with the type's
-    total, a thin bar split by category, then the top-level categories largest first: badge,
-    name, amount, a bar of its size in its colour, the share, and "2 หมวดย่อย" / "เก็บถาวร";
-    a row opens the category page;
+  - **currency chips** below the summary, above the breakdown and trend, only when the view
+    has more than one currency (Q6);
+  - the **by category card** (Q1-B), right under the summary (what the money went on comes
+    second): รายจ่าย / รายรับ tabs, "ตามหมวดหมู่" with the type's total, a thin bar split by
+    category, then the top-level categories largest first: badge, name, amount, a bar of its
+    size in its colour, the share, and "2 หมวดย่อย" / "เก็บถาวร"; a row opens the category
+    page;
+  - the **trend card** last, only for a period longer than a month (rule 7): "รายเดือน"
+    (รายไตรมาส, รายปี for a long custom range), a pair of bars per part, a compact scale
+    (`50K`); tapping a pair **shows its figures** above the bars ("มี.ค. 2026 · รายรับ … ·
+    รายจ่าย …", that pair full strength and outlined, the others faded) and never changes
+    the chosen period; tapping it again clears it. Each pair is a button naming its part and
+    both amounts;
   - an empty period: `app-empty-state` "ยังไม่มีธุรกรรมในช่วงนี้" with "เพิ่มธุรกรรม" (rule 14).
 - **Category page** (`/reports/category/:id`, the header ‹ and the category's name; same
   period, wallet and currency; the chips and swipe work here too):
@@ -162,8 +170,11 @@ Ending balance), หมวดหมู่หลัก / ย่อย (DESIGN.md 
   badge + name carry identity (user colours may repeat). Charts are **our own SVG**, no chart
   library.
 - **Q2** period: month (default), quarter, year, custom, with the Transactions tab's chips and
-  ⋮ "ดูตาม"; its own choice, remembered per profile. Trend: the last 6 months, 4 quarters or 5
-  years ending at the chosen one; a tap on a bar chooses that period; no trend for custom.
+  ⋮ "ดูตาม"; its own choice, remembered per profile. Trend: ~~the last 6 months, 4 quarters or
+  5 years ending at the chosen one; a tap on a bar chooses that period~~ (changed by the owner
+  in 2026-11: data from outside the chosen period confused the month view, and a tap that
+  moved the period shifted the bars under the finger): the chosen period's own months, none
+  for a month; a tap shows a bar's figures (rule 7).
 - **Q3** wallet: the same switcher and the **same chosen wallet** as the Transactions tab.
 - **Q4** money on a parent itself: a row **"ไม่ระบุหมวดย่อย"** / "No sub-category" with the
   parent's badge, among the children by amount, only when not zero; it opens those rows only.

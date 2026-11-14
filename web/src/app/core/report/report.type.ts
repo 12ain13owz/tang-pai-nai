@@ -5,11 +5,14 @@ export type ReportUnit = 'month' | 'quarter' | 'year' | 'custom'
 
 export const REPORT_UNITS: readonly ReportUnit[] = ['month', 'quarter', 'year', 'custom']
 
-/** How many periods the trend shows, ending at the chosen one (Q2); custom has no trend. */
-export const TREND_LENGTH: Readonly<Record<Exclude<ReportUnit, 'custom'>, number>> = {
-  month: 6,
-  quarter: 4,
-  year: 5,
+/** How the trend splits the chosen period (rule 7). */
+export type TrendStep = 'month' | 'quarter' | 'year'
+
+/** Months in one part of each step. */
+export const TREND_STEP_MONTHS: Readonly<Record<TrendStep, number>> = {
+  month: 1,
+  quarter: 3,
+  year: 12,
 }
 
 /** Per profile on the device, wiped with it (`tpn-profile:` keys). */
@@ -53,12 +56,16 @@ export interface CategoryShare {
   direct: boolean
 }
 
-/** One bar pair of the trend (rule 7). */
+/** One bar pair of the trend (rule 7): a part of the chosen period, cut to it. */
 export interface TrendPoint {
-  /** The period tab it stands for (0 = the current one, −1 = the one before, …). */
-  tab: number
   from: string
   to: string
   income: number
   expense: number
+}
+
+/** The chosen period split into parts (rule 7); null when it lies inside one month. */
+export interface Trend {
+  step: TrendStep
+  points: TrendPoint[]
 }

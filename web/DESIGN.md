@@ -295,14 +295,18 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   sheet it opens (last sync, "sync ตอนนี้", rejected items with fix / discard, conflict
   notices) says them in full.
 - **Reports tab** (#10, owner's choices from a three-round mock-up; report.md → Web screens):
-  the Transactions tab's header and period chips. The **summary card (H1)**: "สุทธิ · ต.ค.
-  2026" small over the net large and centred; รายรับ / รายจ่าย as two tiles tinted with the
-  money colours (`bg-income/10`, `bg-expense/10`; ↙ / ↗ beside the word, the amount coloured
-  only when not zero); ยอดเริ่มต้น → ยอดสุดท้าย on one line under a rule; then small `bg-muted`
-  chips only when they say something (average per day, โอนเงิน, "ไม่รวมในรายงาน n รายการ ›" as a
-  link). The **trend**: a pair of bars per period in the money colours (4px rounded tops), the
-  chosen pair full strength and outlined in `ring-brand`, the others at 40%, a three-line
-  compact scale, one muted hint line; each pair is a button. The **split list** (by category,
+  the Transactions tab's header and period chips, then, in the order a report is read, the
+  summary, the breakdown, the trend (owner, 2026-11). The **summary card (H1)**: the period's
+  name small, then รายรับ / รายจ่าย as the headline (`text-xl` bold) in two tiles tinted with
+  the money colours (`bg-income/10`, `bg-expense/10`; ↙ / ↗ beside the word, the amount
+  coloured only when not zero); "สุทธิ" and the net on one line under them; ยอดเริ่มต้น →
+  ยอดสุดท้าย on one line under a rule; then small `bg-muted` chips only when they say
+  something (average per day, โอนเงิน, "ไม่รวมในรายงาน n รายการ ›" as a link). The **trend**,
+  only for a period longer than a month: a pair of bars per month (quarter, year) of the chosen
+  period in the money colours (4px rounded tops), a three-line compact scale, a line above the
+  bars with the muted hint or the tapped pair's figures; the tapped pair outlined in
+  `ring-brand`, the others at 40%; each pair is a button that never changes the period. The
+  **split list** (by category,
   a parent's sub-categories): a thin bar split by category (2px gaps), then rows largest
   first: 40px badge, name and amount, a 6px bar of its size in the category's colour, the
   share and one muted note ("2 หมวดย่อย", "เก็บถาวร", "บันทึกที่หมวดหลักโดยตรง"), › ; the badge and
