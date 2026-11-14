@@ -1,4 +1,4 @@
-import { Component, inject, input, model, signal } from '@angular/core'
+import { Component, inject, input, model, signal, viewChild } from '@angular/core'
 import type { OnInit } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, Validators } from '@angular/forms'
@@ -13,12 +13,13 @@ import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
 import type { EmailFormGroup } from '@/features/auth/auth-form.type'
+import { BotCheck } from '@/features/auth/components/bot-check'
 import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
 
 /** The sign-in page's email tab: a code and a link by mail (a new email gets an account). */
 @Component({
   selector: 'app-email-sign-in',
-  imports: [FORM_IMPORTS, TranslocoPipe, InputField, HlmButton, HlmSpinner],
+  imports: [FORM_IMPORTS, TranslocoPipe, InputField, HlmButton, HlmSpinner, BotCheck],
   template: `
     <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="onSubmit()">
       <app-input-field
@@ -34,6 +35,7 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
           {{ message.key | transloco: message.params }}
         </p>
       }
+      <app-bot-check />
       <button
         hlmBtn
         type="submit"
@@ -55,6 +57,7 @@ export class EmailSignIn implements OnInit {
   private authFlowStore = inject(AuthFlowStore)
   private languageService = inject(LanguageService)
   protected networkStatusService = inject(NetworkStatusService)
+  private botCheck = viewChild.required(BotCheck)
 
   returnUrl = input.required<string>()
   /** Shared with the password tab, so the address needn't be typed twice. */
@@ -85,7 +88,8 @@ export class EmailSignIn implements OnInit {
     this.isProcessing.set(true)
     this.error.set(null)
     try {
-      await this.authService.startEmail(email, this.languageService.language().id)
+      const botToken = await this.botCheck().token()
+      await this.authService.startEmail(email, this.languageService.language().id, botToken)
       this.authFlowStore.start(email, this.returnUrl())
       await this.router.navigate(['/auth/code'])
     } catch (error) {
@@ -97,6 +101,7 @@ export class EmailSignIn implements OnInit {
       }
       this.error.set(authErrorMessage(apiError, 'auth.sendFailed'))
     } finally {
+      this.botCheck().reset()
       this.isProcessing.set(false)
     }
   }

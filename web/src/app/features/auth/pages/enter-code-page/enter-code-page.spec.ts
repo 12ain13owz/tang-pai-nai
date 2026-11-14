@@ -48,6 +48,11 @@ describe('EnterCodePage: SMS code', () => {
     TestBed.inject(AuthFlowStore).startPhone('+66812345678', '/reports')
     fixture = TestBed.createComponent(EnterCodePage)
     await settle()
+    // The resend button's bot check asks whether it is on (auth spec rule 32): here it is off.
+    http
+      .expectOne('/api/auth/providers')
+      .flush(envelope({ google: false, phone: true, botCheckSiteKey: null }))
+    await settle()
   })
 
   afterEach(() => {

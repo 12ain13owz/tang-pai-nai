@@ -296,7 +296,7 @@ describe('AuthService', () => {
   it('counts Google as off when the API cannot be reached, and asks again next time', async () => {
     const offline = service.providers()
     http.expectOne('/api/auth/providers').error(new ProgressEvent('error'))
-    await expect(offline).resolves.toEqual({ google: false, phone: false })
+    await expect(offline).resolves.toEqual({ google: false, phone: false, botCheckSiteKey: null })
 
     const online = service.providers()
     http.expectOne('/api/auth/providers').flush(envelope({ google: true }))

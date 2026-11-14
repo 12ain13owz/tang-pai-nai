@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, inject, signal } from '@angular/core'
+import { Component, computed, DestroyRef, inject, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, Validators } from '@angular/forms'
 import { Router } from '@angular/router'
@@ -13,13 +13,14 @@ import type { UiMessage } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
 import type { CodeFormGroup } from '@/features/auth/auth-form.type'
+import { BotCheck } from '@/features/auth/components/bot-check'
 import { FORM_IMPORTS, OtpField, withMessage } from '@/shared/components/form'
 
 const CODE_LENGTH = 6
 
 @Component({
   selector: 'app-enter-code-page',
-  imports: [FORM_IMPORTS, TranslocoPipe, NgIcon, OtpField, HlmButton, HlmSpinner],
+  imports: [FORM_IMPORTS, TranslocoPipe, NgIcon, OtpField, HlmButton, HlmSpinner, BotCheck],
   providers: [provideIcons({ lucideChevronLeft, lucideMail })],
   template: `
     <div class="flex flex-1 flex-col gap-6">
@@ -89,6 +90,8 @@ const CODE_LENGTH = 6
       }
 
       <div class="mt-auto flex flex-col items-center gap-1">
+        <!-- Resending is another start (auth spec rule 32), so it needs its own bot check. -->
+        <app-bot-check class="w-full" />
         <button
           hlmBtn
           variant="ghost"
@@ -118,6 +121,7 @@ export class EnterCodePage {
   private authService = inject(AuthService)
   private authFlowStore = inject(AuthFlowStore)
   private languageService = inject(LanguageService)
+  private botCheck = viewChild.required(BotCheck)
 
   protected email = computed(() => this.authFlowStore.pending().email)
   /** Set when the code went by SMS (4.4b) instead of email. */
@@ -188,10 +192,15 @@ export class EnterCodePage {
     this.error.set(null)
     this.resent.set(false)
     try {
+      const botToken = await this.botCheck().token()
       if (this.phone()) {
-        await this.authService.startPhone(this.phone())
+        await this.authService.startPhone(this.phone(), botToken)
       } else {
-        await this.authService.startEmail(this.email(), this.languageService.language().id)
+        await this.authService.startEmail(
+          this.email(),
+          this.languageService.language().id,
+          botToken
+        )
       }
       this.authFlowStore.resent()
       this.form.controls.code.reset('', { emitEvent: false })
@@ -203,6 +212,7 @@ export class EnterCodePage {
       }
       this.error.set(authErrorMessage(apiError, 'auth.sendFailed'))
     } finally {
+      this.botCheck().reset()
       this.isResending.set(false)
     }
   }

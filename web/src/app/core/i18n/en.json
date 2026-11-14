@@ -430,6 +430,7 @@
     "unreachable": "Couldn't reach the server. Check your internet and try again",
     "localData": "This device holds {{name}}'s data. Sign in with that account to keep using it and send what's waiting. Signing in with another account deletes it.",
     "sendFailed": "Couldn't send the code. Try again",
+    "botCheckFailed": "Couldn't check that you're not a bot. Try again",
     "waitSeconds": "Too many tries. Try again in {{ count }} s",
     "waitMinutes": "Too many tries. Try again in {{ count }} min",
     "waitHours": "Too many tries. Try again in {{ count }} h",

@@ -14,7 +14,11 @@ import type {
 /** Shared by every tab, so two tabs never rotate the same refresh token at once. */
 const REFRESH_LOCK = 'tpn-auth-refresh'
 
-const NO_PROVIDERS: AuthProviders = { google: false, phone: false }
+const NO_PROVIDERS: AuthProviders = { google: false, phone: false, botCheckSiteKey: null }
+
+/** Rule 32: the bot check's token travels in the body, and only when there is one. */
+const withBotToken = <T extends object>(body: T, botToken: string | undefined) =>
+  botToken ? { ...body, botToken } : body
 
 /**
  * A sign-out the API hasn't heard of yet (made offline, offline-sync rules 3 and 7). Until it's
@@ -86,8 +90,10 @@ export class AuthService {
     this.window?.location.assign(googleStartUrl(returnUrl, lang))
   }
 
-  async startEmail(email: string, lang: string): Promise<void> {
-    await this.api.post('/auth/email/start', { email, lang }, { context: skipAuthRefresh() })
+  async startEmail(email: string, lang: string, botToken?: string): Promise<void> {
+    await this.api.post('/auth/email/start', withBotToken({ email, lang }, botToken), {
+      context: skipAuthRefresh(),
+    })
   }
 
   async verifyCode(email: string, code: string): Promise<void> {
@@ -99,8 +105,10 @@ export class AuthService {
   }
 
   /** Rule 22: an SMS code to a verified number (`phone` in E.164); the API answers the same either way. */
-  async startPhone(phone: string): Promise<void> {
-    await this.api.post('/auth/phone/start', { phone }, { context: skipAuthRefresh() })
+  async startPhone(phone: string, botToken?: string): Promise<void> {
+    await this.api.post('/auth/phone/start', withBotToken({ phone }, botToken), {
+      context: skipAuthRefresh(),
+    })
   }
 
   /** Rule 24: number + SMS code → a session. */
@@ -141,10 +149,10 @@ export class AuthService {
   }
 
   /** Rule 12: email + password → a session, like a verified code. */
-  async signInWithPassword(email: string, password: string): Promise<void> {
+  async signInWithPassword(email: string, password: string, botToken?: string): Promise<void> {
     const response = await this.api.post<AuthSession>(
       '/auth/password/sign-in',
-      { email, password },
+      withBotToken({ email, password }, botToken),
       { context: skipAuthRefresh() }
     )
     if (response.data) {

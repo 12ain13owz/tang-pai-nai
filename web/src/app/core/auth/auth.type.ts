@@ -41,6 +41,8 @@ export interface AuthProviders {
   google: boolean
   /** Phone sign-in and adding a number (4.4b); off while the API has no SMS provider. */
   phone: boolean
+  /** Rule 32: the Turnstile site key for the bot check; `null` while the API has it off. */
+  botCheckSiteKey: string | null
 }
 
 /** `/auth/callback?error=…` after Google sign-in (auth spec rule 14). */

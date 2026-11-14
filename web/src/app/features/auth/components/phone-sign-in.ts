@@ -1,4 +1,4 @@
-import { Component, inject, input, signal } from '@angular/core'
+import { Component, inject, input, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, Validators } from '@angular/forms'
 import { Router } from '@angular/router'
@@ -17,6 +17,7 @@ import type { UiMessage } from '@/core/auth'
 import { NetworkStatusService } from '@/core/network'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
 import type { PhoneFormGroup } from '@/features/auth/auth-form.type'
+import { BotCheck } from '@/features/auth/components/bot-check'
 import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
 
 /**
@@ -26,7 +27,7 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
  */
 @Component({
   selector: 'app-phone-sign-in',
-  imports: [FORM_IMPORTS, TranslocoPipe, InputField, HlmButton, HlmSpinner],
+  imports: [FORM_IMPORTS, TranslocoPipe, InputField, HlmButton, HlmSpinner, BotCheck],
   template: `
     <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="onSubmit()">
       <app-input-field
@@ -42,6 +43,7 @@ import { FORM_IMPORTS, InputField, withMessage } from '@/shared/components/form'
           {{ message.key | transloco: message.params }}
         </p>
       }
+      <app-bot-check />
       <button
         hlmBtn
         type="submit"
@@ -62,6 +64,7 @@ export class PhoneSignIn {
   private authService = inject(AuthService)
   private authFlowStore = inject(AuthFlowStore)
   protected networkStatusService = inject(NetworkStatusService)
+  private botCheck = viewChild.required(BotCheck)
 
   returnUrl = input.required<string>()
 
@@ -92,7 +95,7 @@ export class PhoneSignIn {
     this.isProcessing.set(true)
     this.error.set(null)
     try {
-      await this.authService.startPhone(phone)
+      await this.authService.startPhone(phone, await this.botCheck().token())
       this.authFlowStore.startPhone(phone, this.returnUrl())
       await this.router.navigate(['/auth/code'])
     } catch (error) {
@@ -104,6 +107,7 @@ export class PhoneSignIn {
       }
       this.error.set(authErrorMessage(apiError, 'auth.sendFailed'))
     } finally {
+      this.botCheck().reset()
       this.isProcessing.set(false)
     }
   }

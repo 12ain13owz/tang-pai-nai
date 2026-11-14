@@ -1,4 +1,4 @@
-import { Component, inject, input, model, signal } from '@angular/core'
+import { Component, inject, input, model, signal, viewChild } from '@angular/core'
 import type { OnInit } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, Validators } from '@angular/forms'
@@ -12,12 +12,21 @@ import type { UiMessage } from '@/core/auth'
 import { NetworkStatusService } from '@/core/network'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
 import type { PasswordSignInFormGroup } from '@/features/auth/auth-form.type'
+import { BotCheck } from '@/features/auth/components/bot-check'
 import { FORM_IMPORTS, InputField, PasswordField, withMessage } from '@/shared/components/form'
 
 /** The sign-in page's password tab (auth spec rule 12), for users who set a password. */
 @Component({
   selector: 'app-password-sign-in',
-  imports: [FORM_IMPORTS, TranslocoPipe, InputField, PasswordField, HlmButton, HlmSpinner],
+  imports: [
+    FORM_IMPORTS,
+    TranslocoPipe,
+    InputField,
+    PasswordField,
+    HlmButton,
+    HlmSpinner,
+    BotCheck,
+  ],
   template: `
     <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="onSubmit()">
       <app-input-field
@@ -38,6 +47,7 @@ import { FORM_IMPORTS, InputField, PasswordField, withMessage } from '@/shared/c
           {{ message.key | transloco: message.params }}
         </p>
       }
+      <app-bot-check />
       <button
         hlmBtn
         type="submit"
@@ -58,6 +68,7 @@ export class PasswordSignIn implements OnInit {
   private authService = inject(AuthService)
   private authFlowStore = inject(AuthFlowStore)
   protected networkStatusService = inject(NetworkStatusService)
+  private botCheck = viewChild.required(BotCheck)
 
   returnUrl = input.required<string>()
   /** Shared with the email tab, so the address needn't be typed twice. */
@@ -92,13 +103,15 @@ export class PasswordSignIn implements OnInit {
     this.isProcessing.set(true)
     this.error.set(null)
     try {
-      await this.authService.signInWithPassword(email.trim().toLowerCase(), password)
+      const botToken = await this.botCheck().token()
+      await this.authService.signInWithPassword(email.trim().toLowerCase(), password, botToken)
       this.authFlowStore.clear()
       await this.router.navigateByUrl(this.returnUrl(), { replaceUrl: true })
     } catch (error) {
       // The field keeps what was typed, so only the server's message shows (not "required" too).
       this.error.set(authErrorMessage(toApiError(error), 'auth.verifyFailed'))
     } finally {
+      this.botCheck().reset()
       this.isProcessing.set(false)
     }
   }
