@@ -12,10 +12,14 @@ export const createAuthRouter = (
   // Routes that act on the refresh cookie only accept the web app's own origin (rule 16).
   const sameOrigin = requireOrigin(webOrigin)
 
-  router.post('/email/start', validate(authSchema.emailStart), authController.emailStart)
+  // Rule 32: the bot check sits in front of whatever sends mail or SMS, or checks a password.
+  const botGate = authController.botGate
+
+  router.post('/email/start', botGate, validate(authSchema.emailStart), authController.emailStart)
   router.post('/email/verify', validate(authSchema.emailVerify), authController.emailVerify)
   router.post(
     '/password/sign-in',
+    botGate,
     validate(authSchema.passwordSignIn),
     authController.passwordSignIn
   )
@@ -45,7 +49,7 @@ export const createAuthRouter = (
   )
   // Rules 21–25 (4.4b): `503` before anything else while SMS is off.
   router.use('/phone', authController.phoneGate)
-  router.post('/phone/start', validate(authSchema.phoneStart), authController.phoneStart)
+  router.post('/phone/start', botGate, validate(authSchema.phoneStart), authController.phoneStart)
   router.post('/phone/verify', validate(authSchema.phoneVerify), authController.phoneVerify)
   router.post(
     '/phone/confirm',

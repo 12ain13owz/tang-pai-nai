@@ -294,8 +294,27 @@ export const createAuthController = (authService: AuthService, config: AuthContr
     const data: AuthProvidersData = {
       google: authService.googleEnabled,
       phone: authService.phoneEnabled,
+      botCheckSiteKey: authService.botCheckSiteKey,
     }
     res.status(HttpStatus.OK).json(createResponse(AUTH_MESSAGE.PROVIDERS, data))
+  }
+
+  /**
+   * Rule 32: in front of `/email/start`, `/password/sign-in` and `/phone/start`, before `validate`
+   * (which drops `botToken` from the body).
+   */
+  const botGate = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const body: unknown = req.body
+      const token =
+        body && typeof body === 'object' && 'botToken' in body && typeof body.botToken === 'string'
+          ? body.botToken
+          : undefined
+      await authService.checkHuman(token, req.ip)
+      next()
+    } catch (error) {
+      next(error)
+    }
   }
 
   /**
@@ -602,6 +621,7 @@ export const createAuthController = (authService: AuthService, config: AuthContr
     me,
     providers,
     phoneGate,
+    botGate,
     phoneStart,
     phoneVerify,
     phoneChange,

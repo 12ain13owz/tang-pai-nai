@@ -6,6 +6,7 @@ import {
   createOidcClient,
   createPwnedPasswordsChecker,
   createSealedBox,
+  createTurnstileVerifier,
   skipBreachCheck,
 } from '@/core/security'
 import { PasswordBreachCheck, SmsProviderName } from '@/shared/types'
@@ -40,12 +41,24 @@ const google =
         flowBox: createSealedBox(env.JWT_SECRET, 'google-oidc-flow'),
       }
     : null
+// Rule 32: off unless both Turnstile keys are present (Local-first).
+const botCheck =
+  env.TURNSTILE_SITE_KEY && env.TURNSTILE_SECRET_KEY
+    ? {
+        siteKey: env.TURNSTILE_SITE_KEY,
+        verify: createTurnstileVerifier({
+          secretKey: env.TURNSTILE_SECRET_KEY,
+          timeoutMs: AUTH_LIMITS.BOT_CHECK_TIMEOUT_MS,
+        }),
+      }
+    : null
 export const authService = createAuthService({
   authRepo,
   notifier,
   accessTokens,
   breachChecker,
   google,
+  botCheck,
   config: {
     webOrigin: env.WEB_ORIGIN,
     signupEnabled: env.SIGNUP_ENABLED,

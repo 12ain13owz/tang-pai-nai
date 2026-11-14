@@ -25,6 +25,8 @@ export interface AuthProvidersData {
   google: boolean
   /** Phone sign-in and adding a number (rule 21): off when `SMS_PROVIDER=disabled`. */
   phone: boolean
+  /** Rule 32: the Turnstile site key the web renders its widget with; `null` while it's off. */
+  botCheckSiteKey: string | null
 }
 
 /** `data` of sign-in and refresh. The refresh token only travels in the cookie. */

@@ -142,7 +142,7 @@ describe('GET /auth/providers', () => {
 
     const body = res.body as AppResponse<AuthProvidersData>
     expect(res.status).toBe(HttpStatus.OK)
-    expect(body.data).toEqual({ google, phone: true })
+    expect(body.data).toEqual({ google, phone: true, botCheckSiteKey: null })
   })
 })
 

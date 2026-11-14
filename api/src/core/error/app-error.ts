@@ -4,7 +4,8 @@ import type { Request } from 'express'
 
 // Body fields that hold a secret (auth spec rule 18). Their values never reach a log line or a dev
 // error response, even when a request fails validation.
-// `phone` isn't a secret, but auth rule 27 keeps full numbers out of the logs.
+// `phone` isn't a secret, but auth rule 27 keeps full numbers out of the logs. `botToken` (rule 32)
+// is a single-use Turnstile token: no use to anyone, only long.
 const SECRET_FIELDS = new Set([
   'code',
   'token',
@@ -12,6 +13,7 @@ const SECRET_FIELDS = new Set([
   'currentPassword',
   'newPassword',
   'phone',
+  'botToken',
 ])
 const REDACTED = '[redacted]'
 

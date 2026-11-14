@@ -89,7 +89,7 @@ describe('GET /auth/providers', () => {
     for (const phoneEnabled of [true, false]) {
       const res = await request(buildApp({ phoneEnabled }).app).get('/auth/providers')
       const body = res.body as AppResponse<AuthProvidersData>
-      expect(body.data).toEqual({ google: false, phone: phoneEnabled })
+      expect(body.data).toEqual({ google: false, phone: phoneEnabled, botCheckSiteKey: null })
     }
   })
 })

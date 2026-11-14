@@ -47,6 +47,8 @@ export const LOG = {
     credentialMailSkipped: (reason: string) =>
       `[Auth] ⚠️ Credential change mail not sent: ${reason}`,
     breachCheckUnavailable: '[Auth] ⚠️ Breached-password check unavailable: allowed (fail open)',
+    botCheckUnavailable: '[Auth] ⚠️ Bot check unavailable: allowed (fail open)',
+    botCheckFailed: '[Auth] Bot check failed',
     emailDailyLimit: (limit: number) => `[Auth] ⚠️ Daily email cap (${limit}) reached`,
     cleanedUp: (challenges: number, sessions: number, buckets: number) =>
       `[Auth] Cleanup removed ${challenges} challenges, ${sessions} sessions, ${buckets} rate-limit buckets`,

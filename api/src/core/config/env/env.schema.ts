@@ -85,6 +85,9 @@ export const envSchema: z.ZodType<EnvConfig> = z
         z.string().trim().min(32, ERRORS.minLength('CRON_SECRET', 32)),
       ])
       .optional(),
+    // Cloudflare Turnstile bot check (auth rule 32) is off unless both are set.
+    TURNSTILE_SITE_KEY: optionalSecret,
+    TURNSTILE_SECRET_KEY: optionalSecret,
   })
   .superRefine((env, ctx) => {
     if (env.EMAIL_PROVIDER === EmailProviderName.SMTP && !env.SMTP_URL) {
@@ -96,6 +99,10 @@ export const envSchema: z.ZodType<EnvConfig> = z
     }
     if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET)) {
       const missing = env.GOOGLE_CLIENT_ID ? 'GOOGLE_CLIENT_SECRET' : 'GOOGLE_CLIENT_ID'
+      ctx.addIssue({ code: 'custom', path: [missing], message: ERRORS.requiredField(missing) })
+    }
+    if (Boolean(env.TURNSTILE_SITE_KEY) !== Boolean(env.TURNSTILE_SECRET_KEY)) {
+      const missing = env.TURNSTILE_SITE_KEY ? 'TURNSTILE_SECRET_KEY' : 'TURNSTILE_SITE_KEY'
       ctx.addIssue({ code: 'custom', path: [missing], message: ERRORS.requiredField(missing) })
     }
     // Console providers print OTPs to stdout: dev only.

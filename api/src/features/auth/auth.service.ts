@@ -27,6 +27,7 @@ import {
 import type {
   AccessTokens,
   BreachedPasswordChecker,
+  HumanVerifier,
   OidcClient,
   OidcIdentity,
   SealedBox,
@@ -72,6 +73,13 @@ export interface AuthServiceConfig {
   smsDailyLimit: number
 }
 
+/** Rule 32: the bot check; absent when `TURNSTILE_SITE_KEY` / `_SECRET_KEY` aren't set. */
+export interface BotCheck {
+  /** Public: the web renders its widget with it (`GET /auth/providers`). */
+  siteKey: string
+  verify: HumanVerifier
+}
+
 /** Google sign-in (rule 14); absent when `GOOGLE_CLIENT_ID` / `_SECRET` aren't set. */
 export interface GoogleSignIn {
   oidc: Pick<OidcClient, 'authorizationUrl' | 'exchangeCode' | 'verifyIdToken'>
@@ -86,6 +94,7 @@ export interface AuthServiceDeps {
   /** HIBP, or a stand-in that never reports a breach (`PASSWORD_BREACH_CHECK=off`, tests). */
   breachChecker: BreachedPasswordChecker
   google?: GoogleSignIn | null
+  botCheck?: BotCheck | null
   config: AuthServiceConfig
   now?: () => Date
 }
@@ -242,9 +251,32 @@ export const createAuthService = ({
   accessTokens,
   breachChecker,
   google = null,
+  botCheck = null,
   config,
   now = () => new Date(),
 }: AuthServiceDeps) => {
+  /**
+   * Rule 32: in front of the routes that send mail or SMS or check a password. Off without its
+   * env; a missing or refused token is `403 BOT_CHECK_FAILED`; Cloudflare unreachable lets the
+   * request through (the DB-backed limits still apply).
+   */
+  const checkHuman = async (token: string | undefined, ip: string | undefined) => {
+    if (!botCheck) {
+      return
+    }
+    const human = token ? await botCheck.verify(token, ip) : false
+    if (human === null) {
+      logger.warn(LOG.AUTH.botCheckUnavailable)
+      return
+    }
+    if (!human) {
+      logger.warn(LOG.AUTH.botCheckFailed)
+      throw new ForbiddenError(AUTH_MESSAGE.BOT_CHECK_FAILED)
+        .withCode(AuthErrorCode.BOT_CHECK_FAILED)
+        .withOperation('checkHuman')
+    }
+  }
+
   const tooManyRequests = (retryAfterMs: number, operation: string) =>
     new TooManyRequestsError(ERRORS.TOO_MANY_REQUESTS, Math.ceil(retryAfterMs / 1000))
       .withCode(AuthErrorCode.RATE_LIMITED)
@@ -1499,6 +1531,8 @@ export const createAuthService = ({
   return {
     googleEnabled: google !== null,
     phoneEnabled: config.phoneEnabled,
+    botCheckSiteKey: botCheck?.siteKey ?? null,
+    checkHuman,
     startGoogleSignIn,
     finishGoogleSignIn,
     googleFlowMode,

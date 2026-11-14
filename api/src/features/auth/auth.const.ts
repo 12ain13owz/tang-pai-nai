@@ -25,6 +25,8 @@ export const AUTH_LIMITS = {
   RECENT_AUTH_MS: 10 * MINUTE,
   /** Rule 11: HIBP answers slower than this count as unreachable (fail open). */
   BREACH_CHECK_TIMEOUT_MS: 3000,
+  /** Rule 32: Turnstile answers slower than this count as unreachable (fail open). */
+  BOT_CHECK_TIMEOUT_MS: 5000,
   /** Rule 14: the Google round trip (state, nonce, PKCE verifier in a cookie). */
   GOOGLE_FLOW_TTL_MS: 10 * MINUTE,
   /** Rule 29: where the web app shows the outcome of linking Google while signed in. */
@@ -95,6 +97,8 @@ export enum AuthErrorCode {
   PHONE_UNCHANGED = 'PHONE_UNCHANGED',
   /** Rule 25: another user holds that number. */
   PHONE_IN_USE = 'PHONE_IN_USE',
+  /** Rule 32: the bot check's token is missing or Cloudflare refused it. */
+  BOT_CHECK_FAILED = 'BOT_CHECK_FAILED',
 }
 
 export const AUTH_MESSAGE = {
@@ -138,6 +142,7 @@ export const AUTH_MESSAGE = {
   GOOGLE_IN_USE: 'This Google account is linked to another account',
   PHONE: 'Phone sign-in',
   PHONE_DISABLED: 'Phone sign-in is not available',
+  BOT_CHECK_FAILED: 'The bot check failed. Try again',
   PHONE_CODE_SENT: 'If the number can sign in, a code is on its way',
   PHONE_VERIFY_CODE_SENT: 'A confirmation code is on its way to that number',
   PHONE_SAVED: 'Phone number saved',

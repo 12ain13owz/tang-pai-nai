@@ -28,3 +28,5 @@ export type {
 } from './oidc-client'
 export { createSealedBox } from './sealed-box'
 export type { SealedBox } from './sealed-box'
+export { createTurnstileVerifier, TURNSTILE_VERIFY_URL } from './turnstile'
+export type { HumanVerifier, TurnstileVerifierOptions } from './turnstile'
