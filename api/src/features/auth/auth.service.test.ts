@@ -108,8 +108,8 @@ const wrongCode = (code: string) => (code === '000000' ? '111111' : '000000')
 
 describe('startEmailSignIn', () => {
   it.each<[MailLanguage, string]>([
-    ['th', 'คือรหัสเข้าสู่ระบบ'],
-    ['en', 'is your Tang Pai Nai sign-in code'],
+    ['th', 'รหัสยืนยันการเข้าแอป ตังค์ไปไหน'],
+    ['en', 'your Tang Pai Nai sign-in code'],
   ])('mails one code and one magic link in the chosen language (%s)', async (lang, subject) => {
     const ctx = setup()
     await ctx.service.startEmailSignIn(EMAIL, lang, CLIENT)
