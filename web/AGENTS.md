@@ -228,8 +228,8 @@ reports) shows the **current profile's** data.
   `save()` of a new profile writes the default category set in the same write
   (`default-categories.ts`, in `LanguageService`'s language); `switchSheet` opens the switch
   sheet the shell renders (the header and Account › หมวดหมู่ use it).
-- The shell owns the profile UI because every tab needs it: `layout/profile-switcher` (header,
-  on `isProfileTab()` routes), `layout/profile-sheet` (create / edit / fix / delete, opened by
+- The shell owns the profile UI because every tab needs it: `layout/profile-switcher` (the
+  glass capsule left in both `app-header` on `isProfileTab()` routes and `transactions-header`), `layout/profile-sheet` (create / edit / fix / delete, opened by
   `ProfileService.open(state)` from anywhere and `@defer`red), and `layout/profile-create-step`,
   which `AppShell` renders instead of the page on the data tabs while there is no profile. Data
   pages can therefore assume `current()` is set.

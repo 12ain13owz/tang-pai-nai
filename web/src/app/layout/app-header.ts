@@ -43,25 +43,31 @@ import { UpdateBanner } from './update-banner'
       } @placeholder {
         <div class="h-14"></div>
       }
+    } @else if (showSwitcher()) {
+      <!-- The Transactions header's layout: profile left, the title in the very centre, sync right. -->
+      <div class="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-1 pr-1 pl-2">
+        <app-profile-switcher />
+        <h1 class="max-w-48 truncate text-lg font-semibold">
+          {{ pageTitleStrategy.pageTitle() }}
+        </h1>
+        <div class="flex justify-end">
+          <app-sync-status />
+        </div>
+      </div>
     } @else {
       <div class="flex h-14 items-center justify-between gap-3 px-4">
-        @if (showSwitcher()) {
-          <h1 class="sr-only">{{ pageTitleStrategy.pageTitle() }}</h1>
-          <app-profile-switcher />
-        } @else {
-          <div class="flex min-w-0 items-center gap-2">
-            @if (parent(); as link) {
-              <a
-                class="tpn-hit flex size-9 shrink-0 items-center justify-center tpn-glass rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                [routerLink]="link"
-                [attr.aria-label]="'header.back' | transloco"
-              >
-                <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
-              </a>
-            }
-            <h1 class="truncate text-lg font-semibold">{{ pageTitleStrategy.pageTitle() }}</h1>
-          </div>
-        }
+        <div class="flex min-w-0 items-center gap-2">
+          @if (parent(); as link) {
+            <a
+              class="tpn-hit flex size-9 shrink-0 items-center justify-center tpn-glass rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              [routerLink]="link"
+              [attr.aria-label]="'header.back' | transloco"
+            >
+              <ng-icon name="lucideChevronLeft" size="18" aria-hidden="true" />
+            </a>
+          }
+          <h1 class="truncate text-lg font-semibold">{{ pageTitleStrategy.pageTitle() }}</h1>
+        </div>
         <app-sync-status class="-mr-3 shrink-0" />
       </div>
     }

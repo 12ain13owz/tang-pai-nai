@@ -215,7 +215,9 @@ One PR, no behaviour change. The owner's rule: components that do the same job m
 
 Known, for later:
 
-- The initial bundle is **737.4 kB** after 16.2 (warning at 750 kB): 16.1's Thai translations
+- The initial bundle is **750.6 kB** after the one profile switcher (2026-11; warning budget
+  750 → 760 kB: the Wallets tab header took the three-column layout). It was 737.4 kB after
+  16.2: 16.1's Thai translations
   (`th.json` is an initial chunk) and 16.2's shell pieces (switcher group, shared-profile step,
   TEMP tables). Keep new screens lazy and their services out of
   the shell (#12 loads `RecurringService` and 16.1 `SharingService` with a dynamic `import()`

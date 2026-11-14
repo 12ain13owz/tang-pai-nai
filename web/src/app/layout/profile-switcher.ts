@@ -6,8 +6,10 @@ import { ProfileService } from '@/core/profile'
 import { IconBadge } from '@/shared/components/icon-badge'
 
 /**
- * The header's current profile (decided at the start of #6.1): icon, name and a chevron in place
- * of the page title. Tapping it opens the switch sheet (`ProfileService.switchSheet`, rendered by the shell).
+ * The current profile at the left of every data tab's header (owner, 2026-11): one glass
+ * capsule with the profile's icon and a ▾, the same on every tab, like the wallet switcher
+ * beside it. The name lives in the switch sheet it opens (`ProfileService.switchSheet`, rendered
+ * by the shell); a profile shared with me wears a small people badge (sharing rule 10).
  */
 @Component({
   selector: 'app-profile-switcher',
@@ -18,27 +20,24 @@ import { IconBadge } from '@/shared/components/icon-badge'
     @if (profileService.current(); as profile) {
       <button
         type="button"
-        class="-ml-2 flex h-11 min-w-0 items-center gap-2 rounded-full px-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        class="tpn-hit flex h-9 shrink-0 items-center gap-1 tpn-glass rounded-full py-1 pr-2 pl-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         aria-haspopup="dialog"
         [attr.aria-label]="'profiles.switchLabel' | transloco: { name: profile.name }"
         (click)="profileService.switchSheet.set(true)"
       >
-        <app-icon-badge [icon]="profile.icon" [color]="profile.color" [size]="28" />
-        @if (profileService.shared(); as shared) {
-          <!-- A profile shared with me (sharing rule 10): whose it is under the name. -->
-          <span class="flex min-w-0 flex-col items-start leading-tight">
-            <span class="max-w-full truncate text-base font-semibold">{{ profile.name }}</span>
-            <span class="flex items-center gap-1 text-xs text-muted-foreground">
-              <ng-icon name="lucideUsers" size="12" aria-hidden="true" />
-              {{ 'sharing.ofOwner' | transloco: { name: shared.owner.displayName } }}
+        <span class="relative flex">
+          <app-icon-badge [icon]="profile.icon" [color]="profile.color" [size]="28" />
+          @if (profileService.isShared()) {
+            <span
+              class="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-background"
+            >
+              <ng-icon name="lucideUsers" size="10" aria-hidden="true" />
             </span>
-          </span>
-        } @else {
-          <span class="truncate text-lg font-semibold">{{ profile.name }}</span>
-        }
+          }
+        </span>
         <ng-icon
           name="lucideChevronDown"
-          size="20"
+          size="16"
           class="shrink-0 text-muted-foreground"
           aria-hidden="true"
         />

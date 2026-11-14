@@ -22,11 +22,12 @@ import type { ReportUnit } from '@/core/report'
 import { PERIOD_UNITS, TransactionService, TransferService } from '@/core/transaction'
 import type { PeriodUnit } from '@/core/transaction'
 import { IconBadge } from '@/shared/components/icon-badge'
+import { ProfileSwitcher } from './profile-switcher'
 import { SyncStatus } from './sync-status'
 
 /**
  * The Transactions tab's header (transaction.md → Web screens; owner's choice in #8): the
- * profile's icon on the left, the wallet switcher in the very centre, the sync icon and the ⋮
+ * profile switcher on the left, the wallet switcher in the very centre, the sync icon and the ⋮
  * menu on the right; both sides are the same width so the switcher stays centred. The menu is a
  * two-level list (transfer.md → Web screens, owner's choice B in #9): "โอนเงิน" and "ดูตาม ›",
  * which turns the menu into the units. The Reports tab uses it too (report.md Q2–Q3): the same
@@ -34,7 +35,7 @@ import { SyncStatus } from './sync-status'
  */
 @Component({
   selector: 'app-transactions-header',
-  imports: [TranslocoPipe, NgIcon, IconBadge, SyncStatus],
+  imports: [TranslocoPipe, NgIcon, IconBadge, ProfileSwitcher, SyncStatus],
   providers: [
     provideIcons({
       lucideArrowLeftRight,
@@ -56,19 +57,7 @@ import { SyncStatus } from './sync-status'
     '(keydown.escape)': 'closeMenu(true)',
   },
   template: `
-    <div class="flex min-w-0">
-      @if (profileService.current(); as profile) {
-        <button
-          type="button"
-          class="flex size-11 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          aria-haspopup="dialog"
-          [attr.aria-label]="'profiles.switchLabel' | transloco: { name: profile.name }"
-          (click)="profileService.switchSheet.set(true)"
-        >
-          <app-icon-badge [icon]="profile.icon" [color]="profile.color" [size]="28" />
-        </button>
-      }
-    </div>
+    <app-profile-switcher />
     <button
       type="button"
       class="tpn-hit flex h-9 max-w-48 min-w-0 items-center gap-2 tpn-glass rounded-full py-1 pr-3 pl-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"

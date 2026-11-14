@@ -167,7 +167,7 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
 
 - **Transactions tab** (home; owner's choices in #8 from mock-ups, Money Lover style; DESIGN.md
   §2 and §5):
-  - header: the profile's 28px icon left (opens the switch sheet), the **wallet switcher** in the
+  - header: the profile switcher left (a glass capsule, icon and ▾; opens the switch sheet), the **wallet switcher** in the
     very centre (a pill; "ทุกกระเป๋า" or one wallet, opening a sheet with the total, the open
     wallets with their balances and the archived ones folded), and right the **sync icon**
     (the pill in its icon form, on every tab since #9) and the **⋮** menu (since #9 a two-level

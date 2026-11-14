@@ -40,7 +40,10 @@ choice that isn't decided yet is marked **Proposal** until the owner confirms it
 - **Transactions tab header** (#8, Money Lover style; the Reports tab uses it too since #10,
   its ⋮ holding only "ดูตาม"): three columns of which the outer two
   are equal, so the **wallet switcher** (a pill: wallet badge, name, ▾) sits in the very
-  centre; the profile's 28px icon left, the sync icon and the ⋮ menu right. The ⋮ menu (#9,
+  centre; the **profile switcher** left, the sync icon and the ⋮ menu right. The profile
+  switcher is the same on every data tab (owner, 2026-11): a glass capsule with the profile's
+  28px icon and a ▾, no name (it lives in the switch sheet). The Wallets tab uses the same
+  three columns with its title in the centre, so the header never changes shape between tabs. The ⋮ menu (#9,
   owner's choice B, so later items fit) is a two-level nav list: rows with an icon ("โอนเงิน",
   "ดูตาม" with the current unit and ›); a row with › turns the menu into its options, headed
   by "‹ ดูตาม" to go back; ← / → move between the levels. Under it
@@ -371,7 +374,7 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   my profiles in the switch sheet (badge, name, a role tag, "ของ <owner> · n กระเป๋า" with a
   users icon); offline the group is dimmed and disabled under a `destructive/10` line. In use,
   every screen is the **same as an own profile's** (no special page, one ➕, the same sheet):
-  the header's switcher adds "ของ <owner>" under the name, and what isn't shared is simply not
+  the header's profile switcher wears a small people badge (its label says "ของ <owner>"), and what isn't shared is simply not
   there. Where nothing can show (offline, Reports, the profile's own setup pages) an empty state
   says why with an outline "กลับไปโปรไฟล์ของฉัน". A row an editor added carries a muted
   "เพิ่มโดย <name>" line (users icon, `text-xs`) under its note, on both sides.

@@ -97,9 +97,9 @@ Glossary: โปรไฟล์ / Profile (DESIGN.md §11).
   a rejected profile op opens it with the refused values (`FIX_ROUTES` →
   `/account/profiles?fix=<opId>`). Closing never asks: unsaved input goes with the sheet.
 - **Profile switcher** (decided at the start of #6.1): on the Transactions, Wallets and Reports
-  tabs the header's left side shows the current profile (24px icon circle, name, chevron) instead
-  of the page title (the tab bar already says which tab it is; the document title stays the page
-  title). Tapping it opens a sheet: the profiles in order with a check on the current one, "จัดการ
+  tabs the header's left side shows the current profile: one glass capsule with its icon and a
+  ▾, the same on every tab (owner, 2026-11; the name was there on the Wallets tab only, and the
+  header changed shape between tabs). The Wallets tab shows its title in the centre. Tapping it opens a sheet: the profiles in order with a check on the current one, "จัดการ
   โปรไฟล์" as a header icon and "เพิ่มโปรไฟล์" (hidden at 20) as the sheet's button. The Account tab keeps its page title.
 - **Account › โปรไฟล์** `/account/profiles`: the list in order (icon, name, "รอ sync" on a
   pending row). Tap a row to edit it in the form, whose header trash icon ("ลบโปรไฟล์") opens
