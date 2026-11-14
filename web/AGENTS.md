@@ -122,6 +122,11 @@ Owner's rule (after #16.1): **a component used in more than one place lives in
   the left). `App` injects it, so it sees the first navigation. A
   page whose title is data (a category's name) calls `PageTitleStrategy.setOverride(title)`
   and sets it back to `null` on destroy.
+- **Scroll** (owner 2026-11): the window scrolls, not `<main>`. `app.config.ts` sets
+  `withInMemoryScrolling({ scrollPositionRestoration: 'enabled' })`: a page opened anew (another
+  tab, a deeper page) starts at the top, and back (‹ is `location.back()`, so it counts)
+  returns to where it was. Tapping the tab already showing scrolls it to the top
+  (`BottomTabBar.toTop`, smooth unless reduced motion), as native tab bars do.
 - The service worker (`ngsw-config.json`) caches the **app shell only**. Never add `dataGroups`:
   data comes from the local DB ([offline-sync](../docs/features/offline-sync.md) → Layers). It is
   off in `ng serve`, so check PWA behaviour against `npm run build` output served with an SPA

@@ -1,4 +1,4 @@
-import { Component, computed, inject, input } from '@angular/core'
+import { Component, computed, DOCUMENT, inject, input } from '@angular/core'
 import { Router, RouterLink } from '@angular/router'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
@@ -52,6 +52,7 @@ interface Tab {
           [routerLink]="tab.path"
           [class.active]="tab.path === '/' + navHistory.tab()"
           [attr.aria-current]="tab.path === '/' + navHistory.tab() ? 'page' : null"
+          (click)="toTop(tab.path)"
           class="group flex flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground focus-visible:outline-none [&.active]:font-semibold [&.active]:text-brand [&.active]:[--ng-icon__stroke-width:2.4]"
         >
           <span
@@ -84,6 +85,7 @@ export class BottomTabBar {
   private profileService = inject(ProfileService)
   private transactionService = inject(TransactionService)
   private router = inject(Router)
+  private window = inject(DOCUMENT).defaultView
   /** The lit tab: a page opened from another tab keeps that one lit (NavHistory). */
   protected navHistory = inject(NavHistory)
 
@@ -98,6 +100,23 @@ export class BottomTabBar {
       return
     }
     void this.router.navigate(['/transactions'])
+  }
+
+  /**
+   * Tapping the tab already showing scrolls it back to the top, as native tab bars do (the
+   * router ignores a link to the same URL). Any other tab is a new page, which starts at the
+   * top by itself (`withInMemoryScrolling` in app.config).
+   */
+  protected toTop(path: string): void {
+    if (this.router.url.split(/[?#]/)[0] !== path) {
+      return
+    }
+    const view = this.window
+    // `matchMedia` may be missing (the test DOM): no motion then.
+    const smooth =
+      typeof view?.matchMedia === 'function' &&
+      !view.matchMedia('(prefers-reduced-motion: reduce)').matches
+    view?.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' })
   }
 
   /** The ➕ sits between the 2nd and 3rd tab. */

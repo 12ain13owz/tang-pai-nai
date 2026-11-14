@@ -6,7 +6,7 @@ import {
   provideBrowserGlobalErrorListeners,
 } from '@angular/core'
 import type { ApplicationConfig } from '@angular/core'
-import { provideRouter, TitleStrategy } from '@angular/router'
+import { provideRouter, TitleStrategy, withInMemoryScrolling } from '@angular/router'
 import { provideServiceWorker } from '@angular/service-worker'
 import { provideAuth } from '@/core/auth'
 import { provideI18n } from '@/core/i18n'
@@ -17,7 +17,8 @@ import { routes } from './app.routes'
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes),
+    // A page opened anew starts at the top; back (‹, the browser's) returns to where it was.
+    provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'enabled' })),
     provideAuth(),
     provideI18n(),
     { provide: TitleStrategy, useExisting: PageTitleStrategy },
