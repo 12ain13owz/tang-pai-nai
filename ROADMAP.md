@@ -119,6 +119,12 @@ Decisions (owner, #17):
   reach their own API (locked decision "Same origin via rewrite" still holds).
 - Cleanups: `GET /auth/cleanup` and `GET /sync/cleanup` behind `CRON_SECRET`, two daily Vercel
   Cron jobs (production only; on staging by hand).
+- **Local check before a deploy: Docker** (owner, 2026-11). A root `docker-compose.yml` builds
+  both apps as they ship (`api/Dockerfile`, `web/Dockerfile` with nginx standing in for
+  `middleware.js`) and runs them with one command, no npm: profile `dev` (`.env.dev`, mail in the
+  log, `:8080`) and `prod` (`.env.prod` with real keys such as Resend, `:8081`). Each has its own
+  SQLite volume of test users only; migrations run at container start. Still no root
+  `package.json` ("One repo, two folders" holds). Commands: README → Run in Docker.
 
 Known: a pull request's own preview URL can't keep a session (the API accepts the refresh cookie
 only from `WEB_ORIGIN`): test sign-in on the `develop` URL. `TRUST_PROXY_HOPS` is checked on the

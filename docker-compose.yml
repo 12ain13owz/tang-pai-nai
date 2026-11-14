@@ -1,0 +1,89 @@
+# Run the API and the web app together, built like they ship, to test on this PC before Vercel.
+# Pick one profile (they can also run side by side, on different ports):
+#
+#   docker compose --profile dev up --build    # http://localhost:8080  no keys, codes in the API log
+#   docker compose --profile prod up --build   # http://localhost:8081  real keys from api/.env.prod
+#
+# Each profile has its own SQLite database in a Docker volume (test users only, never shared with
+# staging or production). Migrations run every time the API starts. Commands: README → Docker.
+
+x-api: &api
+  build:
+    context: ./api
+  restart: on-failure:3
+  # Apply pending migrations, then start the API (`exec` so SIGTERM reaches node).
+  command: ['sh', '-c', 'node dist/core/database/migrate.js && exec node dist/main.js']
+  healthcheck:
+    # node's built-in fetch: the slim image has neither curl nor wget.
+    test:
+      - CMD
+      - node
+      - -e
+      - "fetch('http://localhost:3000/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 10s
+
+x-web: &web
+  build:
+    context: ./web
+  restart: on-failure:3
+
+services:
+  # ── dev: development settings, no API keys ─────────────────────────────────────────────────────
+  api-dev:
+    <<: *api
+    profiles: [dev]
+    env_file: [./api/.env.dev]
+    # These win over the env file: the browser reaches the API only through the web's /api proxy.
+    environment:
+      PORT: '3000'
+      BASE_URL: http://localhost:8080/api
+      WEB_ORIGIN: http://localhost:8080
+      DATABASE_URL: file:./data/local.db
+      DATABASE_AUTH_TOKEN: ''
+    volumes:
+      - api-dev-data:/app/data
+      # Development mode refuses to start without the file on disk (core/config/env/env.ts); the
+      # values themselves come from env_file above.
+      - ./api/.env.dev:/app/.env.dev:ro
+
+  web-dev:
+    <<: *web
+    profiles: [dev]
+    environment:
+      API_UPSTREAM: http://api-dev:3000
+    ports: ['8080:80']
+    depends_on:
+      api-dev:
+        condition: service_healthy
+
+  # ── prod: production settings and real keys (Resend, …) from api/.env.prod ─────────────────────
+  api-prod:
+    <<: *api
+    profiles: [prod]
+    env_file: [./api/.env.prod]
+    # DATABASE_URL is left to api/.env.prod: unset, it is the SQLite file in the volume below; set
+    # it to a test Turso database to try Turso. Never point it at the staging or production one.
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      BASE_URL: http://localhost:8081/api
+      WEB_ORIGIN: http://localhost:8081
+    volumes:
+      - api-prod-data:/app/data
+
+  web-prod:
+    <<: *web
+    profiles: [prod]
+    environment:
+      API_UPSTREAM: http://api-prod:3000
+    ports: ['8081:80']
+    depends_on:
+      api-prod:
+        condition: service_healthy
+
+volumes:
+  api-dev-data:
+  api-prod-data:

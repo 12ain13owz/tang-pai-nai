@@ -178,26 +178,18 @@ npm run test:watch  # watch mode
 
 ## Docker
 
-The app service is behind the `prod` Compose profile, so a plain `docker compose up` won't start it. That leaves room to add dev-only services (database, mail catcher, …) that start without the app. Run it with:
-
-```bash
-docker compose --profile prod up -d --build
-```
-
-Stop the container:
-
-```bash
-docker compose --profile prod down
-```
+The API and the web app run together from the repo root's `docker-compose.yml` (profiles `dev`
+and `prod`). The commands are in the root [README](../README.md#run-in-docker). This folder holds
+only the API's `Dockerfile`.
 
 The image is a two-stage build on `node:<version>-slim` (Debian/glibc, so native modules install without compiling):
 
 - **Build stage** installs all dependencies and compiles TypeScript, so the running container never needs extra memory for `tsc` (useful on small/free plans).
-- **Runtime stage** contains only `dist/` and production dependencies, runs as the non-root `node` user, and starts with `node dist/main.js` directly (not `npm start`), so `SIGTERM` from `docker stop` or a redeploy reaches the app and graceful shutdown runs.
+- **Runtime stage** contains only `dist/`, the migrations in `drizzle/` and production dependencies, runs as the non-root `node` user, and starts with `node dist/main.js` directly (not `npm start`), so `SIGTERM` from `docker stop` or a redeploy reaches the app and graceful shutdown runs.
 
-`NODE_ENV=production` is the default. Run `npm run setup-env` first so `.env.prod` exists — `docker-compose.yml` loads it via `env_file`. It is never copied into the image; on a host like Render, set the variables in the dashboard instead (and point its health check at `/health`).
+`NODE_ENV=production` is the image default. Env files are never copied into the image: compose passes `.env.dev` / `.env.prod` with `env_file`.
 
-The service has a `healthcheck` that calls `GET /health` every 30s, so `docker ps` shows `(healthy)` / `(unhealthy)` and other services can wait on it with `depends_on: { nodejs: { condition: service_healthy } }`. Plain Compose only reports the status; it does **not** restart an unhealthy container (Swarm, Kubernetes, or a helper like autoheal does). If you change `PORT` in `.env.prod`, update the URL in the healthcheck too.
+Compose gives the API a `healthcheck` on `GET /health` every 30s, and the web container waits for it (`condition: service_healthy`). Plain Compose only reports the status; it does **not** restart an unhealthy container.
 
 ## Project Structure
 
@@ -225,7 +217,6 @@ The service has a `healthcheck` that calls `GET /health` every 30s, so `docker p
 |  |- app.ts                  # createApp(): global middleware + routes + error handler
 |  |- main.ts                 # App entry point (startServer + onShutdown registrations)
 |  \- routes.ts               # Root router (mounts every feature router)
-|- docker-compose.yml
 |- Dockerfile
 |- eslint.config.mjs
 |- package.json
