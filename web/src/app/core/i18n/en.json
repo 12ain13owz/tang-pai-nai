@@ -1334,7 +1334,7 @@
     "viewerHint": "Sees balances and entries only, online",
     "walletsPicked": "Shared wallets ({{count}}/{{total}})",
     "selectAll": "Select all",
-    "selectNone": "Select none",
+    "selectNone": "Clear all",
     "pickOne": "Pick at least one wallet",
     "noWallets": "This profile has no open wallets yet",
     "inviteNote": "We email only your name and the wallet names. The invitee signs in with this email and taps “Accept” in the app. The invitation expires in 14 days.",

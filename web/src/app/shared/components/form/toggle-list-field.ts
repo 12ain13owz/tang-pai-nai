@@ -1,6 +1,8 @@
 import { NgTemplateOutlet } from '@angular/common'
 import { Component, computed, input } from '@angular/core'
+import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import type { FormControl } from '@angular/forms'
+import { switchMap } from 'rxjs'
 import { IconBadge } from '@/shared/components/icon-badge'
 import type { UserIcon } from '@/shared/components/icon-badge'
 
@@ -48,7 +50,7 @@ export interface ToggleListItem {
     </ul>
     <ng-template #row let-item>
       @let locked = !!item.lockedNote;
-      @let on = !locked && !control().value.includes(item.id);
+      @let on = !locked && !off().includes(item.id);
       <button
         type="button"
         role="switch"
@@ -98,6 +100,19 @@ export class ToggleListField {
   /** Names the list for screen readers. */
   label = input.required<string>()
   items = input.required<readonly ToggleListItem[]>()
+
+  /**
+   * The ids switched off, as a signal: the page may set the control itself ("เลือกทั้งหมด"), and
+   * reading `control().value` in the template wouldn't redraw the switches then.
+   */
+  private changed = toSignal(
+    toObservable(this.control).pipe(switchMap((control) => control.valueChanges)),
+    { initialValue: null, equal: () => false }
+  )
+  protected off = computed(() => {
+    this.changed()
+    return this.control().value
+  })
 
   /** Each top-level row with the child rows that follow it. */
   protected groups = computed(() => {
