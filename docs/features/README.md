@@ -20,6 +20,7 @@ AI can understand a feature without reading its code. These docs are the shared 
 | CSV export     | [export.md](export.md)             | Built (#15)        |
 | Family sharing | [sharing.md](sharing.md)           | Built (16.1)       |
 | Offline & sync | [offline-sync.md](offline-sync.md) | Built (4a.1, 4a.2) |
+| Install (PWA)  | [install.md](install.md)           | Built (web only)   |
 
 Order of work and project-wide decisions live in [`../../ROADMAP.md`](../../ROADMAP.md), not here.
 
