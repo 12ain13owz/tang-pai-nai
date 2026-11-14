@@ -21,20 +21,20 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'] as const
     '(document:keydown)': 'onKey($event)',
   },
   template: `
-    <div class="flex gap-4" role="img" [attr.aria-label]="filledLabel()">
+    <div class="flex gap-5" role="img" [attr.aria-label]="filledLabel()">
       @for (dot of dots; track dot) {
         <span
-          class="size-3.5 rounded-full border-2 border-foreground transition-colors"
+          class="size-4 rounded-full border-2 border-foreground transition-colors"
           [class.bg-foreground]="dot < digits().length"
           aria-hidden="true"
         ></span>
       }
     </div>
-    <div class="grid grid-cols-3 gap-x-6 gap-y-3">
+    <div class="grid grid-cols-3 gap-x-7 gap-y-4">
       @for (key of keys; track key) {
         <button
           type="button"
-          class="flex size-16 items-center justify-center rounded-full bg-muted text-2xl font-medium tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:bg-border disabled:opacity-50"
+          class="flex size-18 items-center justify-center rounded-full bg-muted text-3xl font-medium tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:bg-border disabled:opacity-50"
           [disabled]="disabled()"
           (click)="press(key)"
         >
@@ -44,7 +44,7 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'] as const
       <span aria-hidden="true"></span>
       <button
         type="button"
-        class="flex size-16 items-center justify-center rounded-full bg-muted text-2xl font-medium tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:bg-border disabled:opacity-50"
+        class="flex size-18 items-center justify-center rounded-full bg-muted text-3xl font-medium tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:bg-border disabled:opacity-50"
         [disabled]="disabled()"
         (click)="press('0')"
       >
@@ -52,7 +52,7 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'] as const
       </button>
       <button
         type="button"
-        class="flex size-16 items-center justify-center rounded-full text-2xl text-muted-foreground transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:bg-muted disabled:opacity-50"
+        class="flex size-18 items-center justify-center rounded-full text-3xl text-muted-foreground transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:bg-muted disabled:opacity-50"
         [attr.aria-label]="deleteLabel()"
         [disabled]="disabled() || digits().length === 0"
         (click)="backspace()"

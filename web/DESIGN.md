@@ -274,7 +274,7 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   notice is a tinted block (`rounded-xl bg-destructive/10 text-destructive`), and the action it
   blocks is disabled.
 - **PIN entry** (`app-pin-pad`, `shared/components/pin`): six dots over an on-screen 3×4 keypad
-  of 64px round `bg-muted` keys, so the phone keyboard never opens; Backspace bottom right, a
+  of 72px round `bg-muted` keys (`text-3xl` digits, 16px dots), so the phone keyboard never opens; Backspace bottom right, a
   hardware keyboard works too. The sixth digit submits. Choosing a PIN is `app-pin-setup` (type,
   then type again; a mismatch starts over with one error line). Errors and the attempts warning
   sit in one `role="alert"` line between the heading and the dots. Used by the lock screen and
