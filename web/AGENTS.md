@@ -933,9 +933,16 @@ are on, so don't disable them.
   `INVALID_CREDENTIALS`, `CURRENT_PASSWORD_INVALID`, `REAUTH_REQUIRED`, `PASSWORD_TOO_SHORT`,
   `PASSWORD_TOO_LONG`, `PASSWORD_TOO_WEAK`, `PASSWORD_MATCHES_EMAIL`, `PASSWORD_BREACHED`,
   `CURRENT_SESSION`, `IDENTITY_ALREADY_LINKED`, `GOOGLE_IN_USE`, `PHONE_DISABLED`,
-  `PHONE_UNCHANGED`, `PHONE_IN_USE`.
+  `PHONE_UNCHANGED`, `PHONE_IN_USE`, `BOT_CHECK_FAILED`.
   `authErrorMessage` (`core/auth/auth-error.ts`, shared by the auth and account features) maps
   them to translation keys.
+- **Bot check** (auth spec rule 32): `features/auth/components/bot-check.ts` (`app-bot-check`,
+  Cloudflare Turnstile through `features/auth/turnstile.ts`, script loaded on first use) sits in
+  each sign-in tab's form and beside the code screen's "resend". The form calls
+  `await botCheck().token()` before `startEmail` / `signInWithPassword` / `startPhone` (their
+  last argument) and `botCheck().reset()` in `finally`. It reads the site key from
+  `AuthService.providers()` (`botCheckSiteKey`; `null` = off, nothing loads), so a spec that
+  renders one of these screens answers that `GET /api/auth/providers` (`enter-code-page.spec.ts`).
 - **Testing**: `provideHttpClient(withInterceptors([authInterceptor]))` +
   `provideHttpClientTesting()`; flush envelopes from `HttpTestingController`. A spec that renders
   the shell sets a session on `AuthStore` first and stubs `DeviceStorageService` (see

@@ -370,6 +370,33 @@ SMS provider prints the code, so the whole flow is testable without an SMS accou
       and skips the mail; the change still succeeds. It counts toward the daily cap but not toward
       the per-email start limits of rule 6.
 
+**Bot check (Cloudflare Turnstile)** (decided before deploy, #17)
+
+32. The routes that send a mail or an SMS, or check a password, for someone **not signed in**
+    need a **Cloudflare Turnstile** token: `POST /auth/email/start`, `/auth/password/sign-in` and
+    `/auth/phone/start`. The DB-backed limits of rules 6, 12 and 23 stay as they are; the check
+    is there so a bot can't use up the global `EMAIL_DAILY_LIMIT` (which would lock the whole
+    family out of email codes for a day), mail-bomb strangers, or lock a password sign-in with
+    failures.
+    - **On/off**: on only when `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` are both set
+      (one without the other is a startup error). Off, nothing changes (local dev, tests).
+      `GET /auth/providers` answers `botCheckSiteKey`: the public site key, or `null` while off.
+    - **Token**: `botToken` in the request body (a single-use string, at most 2048 characters;
+      redacted from logs like a secret). The API checks it with Cloudflare's `siteverify`
+      (the secret, the token and the client IP) **before** validating the body. A missing or
+      refused token is `403` `BOT_CHECK_FAILED`. Cloudflare unreachable, slower than **5 s**, or
+      answering `internal-error` **fails open** with a `warn` (as the breach check, rule 11): the
+      limits above still hold.
+    - **Not checked**: verifying a code or link (rules 7, 24: the code already proves the inbox),
+      Google (Google checks), and everything behind a session (step-up codes, adding a number,
+      sync): a signed-in user has proven who they are, and sync runs in the background.
+    - **Web**: an invisible widget (`appearance: interaction-only`) on each sign-in tab and beside
+      "resend" on the code screen; a checkbox shows only when Cloudflare asks for a click. The
+      form waits for the token, sends it, and resets the widget after every request (a token works
+      once). The script loads from `challenges.cloudflare.com` only on these screens, and only
+      when the API gave a site key. `BOT_CHECK_FAILED` shows "ตรวจสอบว่าไม่ใช่บอทไม่สำเร็จ
+      ลองใหม่อีกครั้ง".
+
 ## Endpoints
 
 All live under `/auth`, on the public router. "Bearer" = needs `authenticate`.
@@ -388,7 +415,7 @@ All live under `/auth`, on the public router. "Bearer" = needs `authenticate`.
 | POST   | `/auth/phone`            | Bearer | Add or change number (recent auth): send `verify_phone` code   | 4.4b |
 | POST   | `/auth/phone/confirm`    | Bearer | `{ code }` → save the number as verified                       | 4.4b |
 | DELETE | `/auth/phone`            | Bearer | Remove the number (recent auth)                                | 4.4b |
-| GET    | `/auth/providers`        | —      | Which extra ways are on: `{ google }`, + `phone` (4.4b)        | 4.3  |
+| GET    | `/auth/providers`        | —      | `{ google, phone, botCheckSiteKey }` (rules 14, 21, 32)        | 4.3  |
 | GET    | `/auth/google/start`     | —      | Redirect to Google (PKCE + state + nonce)                      | 4.3  |
 | GET    | `/auth/google/callback`  | —      | Finish Google sign-in or link; redirects to web                | 4.3  |
 | POST   | `/auth/google/link`      | Bearer | Start linking Google (recent auth) → `{ authorizationUrl }`    | 4.4a |

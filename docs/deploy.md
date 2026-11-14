@@ -41,6 +41,19 @@ themselves (a pull request's preview must not change the staging database).
   that domain, e.g. `Tang Pai Nai <no-reply@your-domain>`.
 - Until a domain is verified, Resend only delivers to the account owner's own address.
 
+## 3b. Cloudflare Turnstile (bot check on sign-in, auth rule 32)
+
+- Cloudflare dashboard → Turnstile → Add widget, **one per environment** (staging, production).
+  Hostnames: the web's host for that environment (e.g. `<project>-git-develop-<team>.vercel.app`
+  for staging, your own domain for production). Widget mode **Managed**. No DNS change and no
+  Cloudflare proxy (orange cloud) is needed: keep the web's DNS record **DNS only**, Vercel
+  serves it.
+- Each widget gives a **site key** (public) → `TURNSTILE_SITE_KEY` and a **secret key** →
+  `TURNSTILE_SECRET_KEY`, both on the API project (step 4). The web reads the site key from
+  `GET /api/auth/providers`; it has no setting of its own.
+- Leave both unset and the check is off. Locally, Cloudflare's test keys work (see
+  `api/.env.example`).
+
 ## 4. Vercel: the API project
 
 - New project from this repo, **Root Directory `api`**, Framework Preset _Other_ (build, output and
@@ -63,6 +76,7 @@ themselves (a pull request's preview must not change the staging database).
 | `JWT_SECRET`, `OTP_PEPPER`, `CRON_SECRET`                       | each `openssl rand -base64 48`, new for every environment            |
 | `SIGNUP_ENABLED`                                                | `true` while the family signs up, then `false`                       |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`                      | optional: leave unset and the Google button is hidden                |
+| `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`                    | step 3b; both or neither (unset: no bot check)                       |
 
 Vercel Cron calls `GET /auth/cleanup` and `GET /sync/cleanup` every day (02:17 and 02:47 Thai
 time) with `CRON_SECRET`, on **production only**. On staging run them by hand when needed:
@@ -89,7 +103,9 @@ from `WEB_ORIGIN`, so a pull request's own preview URL can't stay signed in: tes
 
 1. `https://<web>/api/health` answers `Operation successful` (the middleware reaches the API).
 2. Sign in with your email: the code arrives from Resend; set the PIN, create a profile and a
-   wallet, add a transaction, reload: the data comes back after the PIN.
+   wallet, add a transaction, reload: the data comes back after the PIN. With Turnstile on,
+   `https://<web>/api/auth/providers` shows `botCheckSiteKey`, and the sign-in shows no
+   "bot check failed" line.
 3. Set the API's Preview `LOG_LEVEL_CONSOLE` to `http` and redeploy: each request line in the
    Vercel logs ends with the IP the API sees. It must be your phone's public IP, not a Vercel
    address; if it isn't, raise `TRUST_PROXY_HOPS` by one and redeploy (rate limits count per

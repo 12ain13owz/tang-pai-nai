@@ -104,10 +104,20 @@ decision "Local-first").
 ## Next: Deploy (#17)
 
 **Code: done in the #17 PR.** What's left is the owner's setup in each dashboard, step by step in
-[docs/deploy.md](docs/deploy.md): GitHub settings, Turso (staging + prod), Resend, the two Vercel
-projects and their environment variables, then the first check on staging.
+[docs/deploy.md](docs/deploy.md): GitHub settings, Turso (staging + prod), Resend, Cloudflare
+Turnstile, the two Vercel projects and their environment variables, then the first check on
+staging.
 
 Decisions (owner, #17):
+
+- **Bot check: Cloudflare Turnstile** (owner, 2026-11, [auth.md](docs/features/auth.md) rule
+  32) on the three sign-in calls that send mail / SMS or check a password, so a bot can't spend
+  the daily mail cap for the whole family. Invisible unless Cloudflare asks for a click; off
+  without `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`, fails open when Cloudflare is down (the
+  DB limits stay). Not on verify, Google, or anything behind a session. The domain's DNS stays
+  "DNS only" (no Cloudflare proxy or Bot Fight Mode in front of Vercel). Tests: API (verifier,
+  `checkHuman`, the gate on the three routes) and web (`BotCheck`, the forms sending the token)
+  are still to write once the owner confirms the behaviour.
 
 - **Staging = the `develop` branch** (Vercel _Preview_ scoped to `develop`), production = `main`;
   each with its own Turso database and secrets. Migrations run by hand from the owner's PC

@@ -546,6 +546,14 @@ REAUTH_REQUIRED`. Revoking sessions needs an active session but no recent auth (
   | `HIBP_API_URL`                              | HIBP range API base; a local stand-in when testing             | `https://api.pwnedpasswords.com` |
   | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google sign-in; both or neither (off: `404`)                   | unset                            |
   | `GOOGLE_ISSUER`                             | OIDC issuer (discovery); http only outside production          | `https://accounts.google.com`    |
+  | `TURNSTILE_SITE_KEY` / `_SECRET_KEY`        | Turnstile bot check (rule 32); both or neither (off: no check) | unset                            |
+
+- **Bot check** (spec rule 32): `authController.botGate` sits in front of `/email/start`,
+  `/password/sign-in` and `/phone/start`, **before** `validate` (which drops `botToken` from the
+  body), and calls `authService.checkHuman`: off without its env, `403 BOT_CHECK_FAILED` for a
+  missing or refused token, fail open (a `warn`) when Cloudflare can't answer.
+  `createTurnstileVerifier` (`core/security/turnstile.ts`) answers `true` / `false` / `null`
+  like the breach checker. Tests pass `botCheck: { siteKey, verify }` with a fake `verify`.
 
 - **Cleanup**: `npm run auth:cleanup` deletes challenges, sessions and buckets that ended over 7
   days ago (a Vercel Cron endpoint replaces it at deploy, #17).
