@@ -44,13 +44,50 @@ function fillMissingSecrets(targetPath: string): void {
   }
 }
 
+/** `KEY=` lines of an env file, with the comment lines right above each one. */
+function exampleEntries(content: string): { key: string; lines: string[] }[] {
+  const entries: { key: string; lines: string[] }[] = []
+  let comments: string[] = []
+  for (const line of content.split(/\r?\n/)) {
+    const key = /^([A-Z][A-Z0-9_]*)=/.exec(line)?.[1]
+    if (key) {
+      entries.push({ key, lines: [...comments, line] })
+      comments = []
+    } else {
+      comments = line.startsWith('#') ? [...comments, line] : []
+    }
+  }
+  return entries
+}
+
+// A variable added to .env.example after the file was made is appended with the example's value
+// and comment, so the file always lists every setting. Values already there are left alone.
+function fillMissingKeys(examplePath: string, targetPath: string): void {
+  let content = readFileSync(targetPath, 'utf-8')
+  const missing = exampleEntries(readFileSync(examplePath, 'utf-8')).filter(
+    ({ key }) => !new RegExp(`^${key}=`, 'm').test(content)
+  )
+  if (missing.length === 0) {
+    return
+  }
+  const block = missing.map(({ lines }) => lines.join('\n')).join('\n')
+  content = `${content.trimEnd()}\n\n# ── Added by \`npm run setup-env\` from .env.example ──\n${block}\n`
+  writeFileSync(targetPath, content)
+  console.log(
+    chalk.green(`Added to ${basename(targetPath)}: ${missing.map(({ key }) => key).join(', ')}`)
+  )
+}
+
 function createEnvFile(
   sourcePath: string,
   targetPath: string,
   replace: Record<string, string> = {}
 ): boolean {
   if (existsSync(targetPath)) {
-    console.log(chalk.yellow(`Warning: ${basename(targetPath)} already exists. Skipping creation.`))
+    console.log(
+      chalk.yellow(`${basename(targetPath)} already exists: only missing keys are added.`)
+    )
+    fillMissingKeys(sourcePath, targetPath)
     fillMissingSecrets(targetPath)
     return false
   }
