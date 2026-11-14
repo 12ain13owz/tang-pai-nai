@@ -9,7 +9,7 @@ has the matching environments: _Preview_ (scoped to `develop`) and _Production_.
 own Turso database and its own secrets. Never share a database or a secret between them.
 
 Never paste a key or a secret in a chat, an issue or a commit. They go in the Vercel dashboard
-only.
+only. What each variable means and which keys to get first: [env.md](env.md).
 
 ## 1. GitHub
 
