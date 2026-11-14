@@ -9,7 +9,7 @@ import { NetworkStatusService } from '@/core/network'
 import { OfflineService, SHARED_TABLES } from './offline.service'
 import { countOps, findPending, listOps, queueWrite } from './outbox'
 import { getRow, putRow } from './sync-tables'
-import { RETRY_DELAYS_MS, SyncService } from './sync.service'
+import { RETRY_DELAYS_MS, SyncService, WRITE_DELAY_MS } from './sync.service'
 import { openTestDatabase } from './testing-db'
 import type { LocalDatabase } from './local-database'
 
@@ -420,7 +420,12 @@ describe('SyncService', () => {
   })
 
   describe('while the server is unreachable (rule 11)', () => {
-    /** Retry timers the service set, captured instead of run (other timers run as usual). */
+    /**
+     * Retry timers the service set, captured instead of run. The round a write starts after
+     * `WRITE_DELAY_MS` is dropped: the tests run their rounds themselves, and on a slow run that
+     * real timer fired mid-test, failed one more round and scheduled an extra retry. Other timers
+     * run as usual.
+     */
     let scheduled: { delay: number; run: () => void }[] = []
     const down = (_ops: PushedOp[], req: TestRequest) =>
       req.flush('', { status: 502, statusText: 'Bad Gateway' })
@@ -437,6 +442,9 @@ describe('SyncService', () => {
       vi.spyOn(globalThis, 'setTimeout').mockImplementation(((run: () => void, delay?: number) => {
         if (delay !== undefined && delays.includes(delay)) {
           scheduled.push({ delay, run })
+          return 0
+        }
+        if (delay === WRITE_DELAY_MS) {
           return 0
         }
         return real(run, delay)

@@ -1,4 +1,13 @@
-import { computed, DOCUMENT, effect, inject, Service, signal, untracked } from '@angular/core'
+import {
+  computed,
+  DestroyRef,
+  DOCUMENT,
+  effect,
+  inject,
+  Service,
+  signal,
+  untracked,
+} from '@angular/core'
 import { ApiClient, isUnreachable, toApiError } from '@/core/api'
 import { AuthStore } from '@/core/auth'
 import { NetworkStatusService } from '@/core/network'
@@ -43,7 +52,7 @@ const PUSH_BATCH = 100
 const PULL_LIMIT = 500
 /** Rounds per trigger at most, so a server that keeps answering "more" can't spin forever. */
 const MAX_PAGES = 50
-const WRITE_DELAY_MS = 2_000
+export const WRITE_DELAY_MS = 2_000
 const INTERVAL_MS = 5 * 60_000
 /** Rule 11: retries while the server is unreachable; the last one repeats. */
 export const RETRY_DELAYS_MS = [5_000, 15_000, 30_000, 60_000, 120_000, INTERVAL_MS] as const
@@ -120,6 +129,8 @@ export class SyncService {
   private writeTimer: ReturnType<typeof setTimeout> | null = null
   private retryTimer: ReturnType<typeof setTimeout> | null = null
   private retryStep = 0
+  /** Set once the injector is gone: no timer may start a round after that. */
+  private destroyed = false
   private running: Promise<void> | null = null
   private again = false
 
@@ -148,17 +159,29 @@ export class SyncService {
       this.offlineService.changes()
       untracked(() => this.afterWrite())
     })
-    this.window?.document.addEventListener('visibilitychange', () => {
+    const onVisible = () => {
       if (this.window?.document.visibilityState === 'visible') {
         void this.sync()
       }
+    }
+    this.window?.document.addEventListener('visibilitychange', onVisible)
+    const interval = this.window?.setInterval(() => void this.sync(), INTERVAL_MS)
+    // The app never destroys it; a test's injector does, and its timers must not outlive it.
+    inject(DestroyRef).onDestroy(() => {
+      this.destroyed = true
+      this.window?.document.removeEventListener('visibilitychange', onVisible)
+      this.window?.clearInterval(interval)
+      if (this.writeTimer) {
+        clearTimeout(this.writeTimer)
+        this.writeTimer = null
+      }
+      this.clearRetry()
     })
-    this.window?.setInterval(() => void this.sync(), INTERVAL_MS)
   }
 
   /** One round now (or right after the running one): push, then pull. */
   async sync(): Promise<void> {
-    if (!this.canSync()) {
+    if (this.destroyed || !this.canSync()) {
       return
     }
     if (this.running) {
@@ -326,6 +349,9 @@ export class SyncService {
   }
 
   private scheduleRetry(): void {
+    if (this.destroyed) {
+      return
+    }
     if (this.retryTimer) {
       clearTimeout(this.retryTimer)
     }
