@@ -73,7 +73,16 @@ const STEPS: Record<InstallPlatform, readonly Step[]> = {
           </div>
         </div>
       } @else {
-        <p class="text-sm text-muted-foreground">{{ 'install.why' | transloco }}</p>
+        <section class="flex flex-col gap-2" aria-labelledby="install-why">
+          <h2 id="install-why" class="text-sm font-medium text-muted-foreground">
+            {{ 'install.whyHeading' | transloco }}
+          </h2>
+          <ul class="flex list-disc flex-col gap-1 pl-5">
+            <li>{{ 'install.why1' | transloco }}</li>
+            <li>{{ 'install.why2' | transloco }}</li>
+            <li>{{ 'install.why3' | transloco }}</li>
+          </ul>
+        </section>
         @if (deviceStorageService.canPrompt()) {
           <button hlmBtn type="button" class="h-11 w-full text-base" (click)="install()">
             <ng-icon name="lucideDownload" size="20" aria-hidden="true" />
@@ -85,7 +94,10 @@ const STEPS: Record<InstallPlatform, readonly Step[]> = {
         }
         <section class="flex flex-col gap-3" aria-labelledby="install-steps">
           <h2 id="install-steps" class="text-sm font-medium text-muted-foreground">
-            {{ 'install.stepsHeading' | transloco }}
+            {{
+              (deviceStorageService.canPrompt() ? 'install.stepsHeadingOr' : 'install.stepsHeading')
+                | transloco
+            }}
           </h2>
           <app-segmented-field
             [control]="platformControl"

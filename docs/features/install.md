@@ -32,5 +32,8 @@ comes back with the next pull either way, but what wasn't is lost.
 
 - **Account › การตั้งค่า › ติดตั้งลงหน้าจอ** (`/account/install`), between การแสดงผล and เครื่องนี้.
   The row's line says "ติดตั้งแล้ว" or "ยังไม่ได้ติดตั้ง".
-- The page: why to install (one short paragraph), the "ติดตั้งแอป" button when rule 2 applies,
-  then the platform control and numbered steps, each with the icon the person will look for.
+- The page: "ประโยชน์ของการติดตั้ง" (three short points: opens from its icon, works offline, saved
+  data is kept), the "ติดตั้งแอป" button when rule 2 applies, then "วิธีติดตั้ง" ("หรือติดตั้งเอง
+  ตามขั้นตอนนี้" under the button) with the platform control and numbered steps, each with the
+  icon the person will look for. Steps call it "แอปตังค์ไปไหน"; the words are user-facing, never
+  technical ("the browser clears storage").
