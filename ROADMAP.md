@@ -1320,7 +1320,9 @@ The plan written before #17, and where each item ended up:
 3. **Web on Vercel**: `web/vercel.json` (SPA fallback outside `/api`, no-cache for `index.html`
    and the service worker) + `web/middleware.js` for `/api/*`.
 4. **Claude Code GitHub Action**: not done (not needed for staging); still open.
-5. **Previews**: both projects skip builds when their folder didn't change (`ignoreCommand`);
+5. **Previews**: both projects skip builds when their folder didn't change since the branch's last
+   successful deployment (`ignoreCommand` on `VERCEL_GIT_PREVIOUS_SHA`; no previous deployment,
+   or a SHA the shallow clone lacks, builds);
    the web's Preview `API_ORIGIN` is the API's `develop` URL.
 6. **Mail/SMS**: Resend via `SMTP_URL`; SMS later (backlog).
 
