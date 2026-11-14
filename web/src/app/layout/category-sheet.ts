@@ -103,7 +103,12 @@ const REFUSAL_KEYS: Record<CategoryUnarchiveRefusal, string> = {
   ],
   template: `
     @let f = form.controls;
-    <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="finish()">
+    <!-- A new category starts in its name, ready to type; an edit starts at ✕ as before. -->
+    <hlm-drawer
+      [state]="open() ? 'open' : 'closed'"
+      [autoFocus]="state()?.mode === 'create' ? 'app-name-icon-field input' : 'first-tabbable'"
+      (closed)="finish()"
+    >
       <hlm-drawer-content
         *hlmDrawerPortal
         class="mx-auto h-[92dvh] w-full max-w-[480px] overflow-x-clip data-[vaul-drawer-direction=bottom]:max-h-[92dvh]"
