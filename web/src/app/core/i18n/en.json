@@ -453,6 +453,7 @@
     "linkExpired": "This link has expired or was already used. Request a new one from the sign-in page",
     "linkFailed": "Couldn't sign in with this link. Request a new code from the sign-in page",
     "linkMissing": "The link is incomplete. Open it from the email again",
+    "installLink": "Install the app on your home screen",
     "backToSignIn": "Back to sign in",
     "or": "or",
     "continueWithGoogle": "Continue with Google",

@@ -39,6 +39,13 @@ export default [
         loadComponent: async () =>
           import('./pages/enter-code-page/enter-code-page').then((m) => m.EnterCodePage),
       },
+      {
+        // Install before signing in (install.md): open to everyone, signed in or not.
+        path: 'install',
+        title: 'title.install',
+        loadComponent: async () =>
+          import('./pages/install-guide-page/install-guide-page').then((m) => m.InstallGuidePage),
+      },
       // Old addresses of the password and phone tabs, now on the sign-in page.
       { path: 'password', redirectTo: signInTab('password') },
       { path: 'phone', redirectTo: signInTab('phone') },

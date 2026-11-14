@@ -98,7 +98,8 @@ Owner's rule (after #16.1): **a component used in more than one place lives in
   Full-screen flows that shouldn't show the bar (sign-in, PIN) go outside it.
 - The sign-in flow (`features/auth`, under `/auth/*`) is mounted before the shell with its own
   `AuthLayout` (app name + language switch); so are the device screens `/auth/lock` (PIN on)
-  and `/auth/tab` (offline-sync rules 2–3). The shell route carries `shellGuard` (`core/offline`,
+  and `/auth/tab` (offline-sync rules 2–3), and `/auth/install` (install.md rule 5: Account's
+  `InstallPage`, exported by `@/features/account`, open before sign-in). The shell route carries `shellGuard` (`core/offline`,
   `canActivate` + `canActivateChild`): it makes the local database on a device's first open and
   opens it (with its PIN, when it has one) even offline; a session the server refused goes to
   sign-in. See "Trusted device" below.

@@ -155,7 +155,10 @@ app on their phone, and on iPhone only an installed app keeps its local data.
   so; otherwise why to install, a one-tap "ติดตั้งแอป" where the browser offers it
   (`beforeinstallprompt`, caught at start by `DeviceStorageService`, which `App` injects), and
   numbered steps for iPhone / Android (segmented, starting on the phone's own).
-- Not done (owner): a reminder card elsewhere in the app. Check on real phones: the iOS share
+- Sign-in page (owner, 2026-11, rule 5): a quiet "ติดตั้งแอปลงหน้าจอ" link, hidden in the installed
+  app, opens `/auth/install` (the same page in the sign-in layout, `InstallPage` exported by
+  `@/features/account`): an iPhone installs first and signs in once, inside the app.
+- Not done (owner): a reminder card or banner elsewhere in the app. Check on real phones: the iOS share
   sheet's wording and the ⋯ menu move between iOS versions.
 
 ---

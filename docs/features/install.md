@@ -1,6 +1,6 @@
 # Install to the home screen
 
-> Status: Built: web only, `features/account/pages/install-page`, `core/pwa`
+> Status: Built: web only, `features/account/pages/install-page`, `features/auth/pages/install-guide-page`, `core/pwa`
 
 ## Purpose
 
@@ -12,7 +12,8 @@ comes back with the next pull either way, but what wasn't is lost.
 
 ## Out of scope
 
-- A reminder card or banner elsewhere in the app (owner, 2026-11: the Account page only for now).
+- A reminder card, banner or popup anywhere (owner, 2026-11). The only other way in is the quiet
+  link on the sign-in page (rule 5).
 - App stores (the app is a PWA, ROADMAP locked decisions).
 
 ## Business rules
@@ -27,6 +28,9 @@ comes back with the next pull either way, but what wasn't is lost.
    โฮม" → "เพิ่ม". Android: ⋮ → "ติดตั้งแอป" (or "เพิ่มไปยังหน้าจอหลัก") → "ติดตั้ง". A
    segmented control picks the platform; it starts on the phone's own (iPadOS counts as iPhone).
 4. Nothing is stored and nothing is sent to the server.
+5. **Before sign-in** (owner, 2026-11): the sign-in page links to the same steps, unless the app
+   is already installed. On iPhone the home-screen app keeps its own storage, apart from Safari,
+   so installing first means signing in once, inside the app, and nothing left behind in Safari.
 
 ## Web screens
 
@@ -37,3 +41,7 @@ comes back with the next pull either way, but what wasn't is lost.
   ตามขั้นตอนนี้" under the button) with the platform control and numbered steps, each with the
   icon the person will look for. Steps call it "แอปตังค์ไปไหน"; the words are user-facing, never
   technical ("the browser clears storage").
+- **Sign-in › ติดตั้งแอปลงหน้าจอ** (`/auth/install`, rule 5): a text link with the download icon
+  at the bottom of the sign-in page, hidden in the installed app. It opens the same page inside
+  the sign-in layout, with "ติดตั้งลงหน้าจอ" as its heading and "กลับไปหน้าเข้าสู่ระบบ" at the
+  bottom. Open to everyone, signed in or not.

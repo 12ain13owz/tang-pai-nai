@@ -8,6 +8,7 @@ import { TranslocoTestingModule } from '@jsverse/transloco'
 import { AuthService, PHONE_FEATURE } from '@/core/auth'
 import th from '@/core/i18n/th.json'
 import { OfflineService } from '@/core/offline'
+import { DeviceStorageService } from '@/core/pwa'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
 import { SignInPage } from './sign-in-page'
 
@@ -26,6 +27,8 @@ describe('SignInPage', () => {
   }
   /** The phone tab is built but held back (`PHONE_FEATURE`); these specs turn it on. */
   let phoneFeature = true
+  /** jsdom has no matchMedia: the page only reads whether the app is installed. */
+  const device = { isInstalled: signal(false) }
 
   const page = () => fixture.nativeElement as HTMLElement
   const googleButton = () =>
@@ -79,6 +82,7 @@ describe('SignInPage', () => {
     sessionStorage.clear()
     offline.meta.set(null)
     phoneFeature = true
+    device.isInstalled.set(false)
     await TestBed.configureTestingModule({
       imports: [
         SignInPage,
@@ -92,6 +96,7 @@ describe('SignInPage', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: OfflineService, useValue: offline },
+        { provide: DeviceStorageService, useValue: device },
         { provide: PHONE_FEATURE, useFactory: () => phoneFeature },
         provideRouter([
           { path: 'auth/sign-in', component: SignInPage },
@@ -114,6 +119,17 @@ describe('SignInPage', () => {
     offline.meta.set({ userId: 'u1', displayName: 'mom' })
     fixture.detectChanges()
     expect(page().textContent).toContain(th.auth.localData.replace('{{name}}', 'mom'))
+  })
+
+  it('links to the install steps in a browser tab, not inside the installed app', async () => {
+    await open('/auth/sign-in', { google: false })
+    const link = () =>
+      [...page().querySelectorAll('a')].find((a) => a.textContent.includes(th.auth.installLink))
+    expect(link()?.getAttribute('href')).toBe('/auth/install')
+
+    device.isInstalled.set(true)
+    fixture.detectChanges()
+    expect(link()).toBeUndefined()
   })
 
   describe('Continue with Google', () => {

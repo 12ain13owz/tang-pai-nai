@@ -2,14 +2,17 @@ import { NgOptimizedImage } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder } from '@angular/forms'
-import { ActivatedRoute, Router } from '@angular/router'
+import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
+import { NgIcon, provideIcons } from '@ng-icons/core'
+import { lucideDownload } from '@ng-icons/lucide'
 import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmSpinner } from '@spartan-ng/helm/spinner'
 import { AuthService, AuthStore, PHONE_FEATURE, safeReturnUrl } from '@/core/auth'
 import { LanguageService } from '@/core/i18n'
 import { NetworkStatusService } from '@/core/network'
 import { OfflineService } from '@/core/offline'
+import { DeviceStorageService } from '@/core/pwa'
 import { AuthFlowStore } from '@/features/auth/auth-flow.store'
 import { EmailSignIn } from '@/features/auth/components/email-sign-in'
 import { PasswordSignIn } from '@/features/auth/components/password-sign-in'
@@ -30,6 +33,8 @@ const METHODS: readonly SignInMethod[] = ['email', 'password', 'phone']
   imports: [
     TranslocoPipe,
     NgOptimizedImage,
+    RouterLink,
+    NgIcon,
     HlmButton,
     HlmSpinner,
     GoogleLogo,
@@ -38,6 +43,7 @@ const METHODS: readonly SignInMethod[] = ['email', 'password', 'phone']
     PasswordSignIn,
     PhoneSignIn,
   ],
+  providers: [provideIcons({ lucideDownload })],
   // Coming back from Google with the browser's back button restores this page as it was left.
   host: { '(window:pageshow)': 'isLeaving.set(false)' },
   template: `
@@ -109,6 +115,17 @@ const METHODS: readonly SignInMethod[] = ['email', 'password', 'phone']
           </button>
         </div>
       }
+
+      @if (!deviceStorageService.isInstalled()) {
+        <!-- Install first, then sign in inside the app (install.md: iPhone keeps them apart). -->
+        <a
+          routerLink="/auth/install"
+          class="mt-auto inline-flex min-h-11 items-center justify-center gap-2 self-center px-3 text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          <ng-icon name="lucideDownload" size="18" aria-hidden="true" />
+          {{ 'auth.installLink' | transloco }}
+        </a>
+      }
     </div>
   `,
 })
@@ -123,6 +140,7 @@ export class SignInPage {
   private languageService = inject(LanguageService)
   protected networkStatusService = inject(NetworkStatusService)
   private offlineService = inject(OfflineService)
+  protected deviceStorageService = inject(DeviceStorageService)
 
   protected returnUrl = safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'))
 
