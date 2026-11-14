@@ -847,8 +847,8 @@ are on, so don't disable them.
 - Translations are bundled as lazy chunks (not fetched JSON), so the service worker prefetches them
   and both languages work offline. `LanguageService` loads the saved language before the first
   render and loads a new one before switching, so keys never flash on screen.
-- Not translated: the app name ตังค์ไปไหน, theme names (Midnight Gold, …), language names (each
-  in its own language) and user data (wallet / category names).
+- Not translated: the app name ตังค์ไปไหน, theme names (Midnight Gold, …), language codes
+  (TH / EN) and user data (wallet / category names).
 
 ## 4. API & session contract
 

@@ -241,6 +241,9 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   rows (ข้อมูลของฉัน, บัญชีและความปลอดภัย, การตั้งค่า), each row a link with a 40px muted icon
   square, its name, one muted line on what's there and a chevron; settings live on their own
   pages (การแสดงผล, เครื่องนี้), never inline. A page inside the tab shows ‹ in the header.
+  การแสดงผล has no dropdowns: language (TH / EN) and mode (ตามระบบ / สว่าง / มืด) are segmented
+  controls with a visible label (`showLabel`), the theme the grid of colour discs, so the two
+  kinds of choice never look alike.
 - **Segmented control** (`app-segmented-field`): two or three short choices in a `bg-muted` track,
   the chosen one a `bg-card` chip with `font-semibold` (รายจ่าย / รายรับ). The same look serves
   as tabs above a list (`role="tab"`, Account › หมวดหมู่).
@@ -488,10 +491,10 @@ WCAG 2.2 AA, as in `AGENTS.md`:
   literal translation.
 - **Keep English where Thai would sound odd.** Names and terms with no natural Thai form stay in
   English in both languages, rather than a forced translation: theme names (Midnight Gold, …),
-  PWA, PIN, OTP, email. The app name stays ตังค์ไปไหน in both. Language names are shown in their
-  own language (ไทย, English) in Account; the switch before sign-in shows TH | EN. The language
-  label carries both ("ภาษา (Language)"), so someone stuck in the wrong language can still find
-  the switch.
+  PWA, PIN, OTP, email. The app name stays ตังค์ไปไหน in both. Languages are shown as **TH / EN**
+  everywhere (Account and the switch before sign-in): the codes read the same in either
+  language, so someone stuck in the wrong one can still find theirs. The label is just the UI
+  language's own word (ภาษา / Language), no brackets.
 - **Thai: short, friendly, and neutral in politeness.** No ครับ/ค่ะ (the user may be anyone in the
   family) and no stiff official register. Prefer `บันทึกแล้ว` over `ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว`.
 - **English: plain and short, sentence case** ("Add wallet", not "Add Wallet"), no exclamation

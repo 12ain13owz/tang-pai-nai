@@ -8,7 +8,7 @@ import { PALETTES, ThemeService } from '@/core/theme'
 import type { PaletteId, ThemePreference } from '@/core/theme'
 import { QuickAmountsService } from '@/core/transaction'
 import { PalettePicker } from '@/features/account/pages/account-page/palette-picker'
-import { SelectField, SwitchField } from '@/shared/components/form'
+import { SegmentedField, SwitchField } from '@/shared/components/form'
 import type { SelectOption } from '@/shared/types'
 
 /**
@@ -17,18 +17,20 @@ import type { SelectOption } from '@/shared/types'
  */
 @Component({
   selector: 'app-appearance-page',
-  imports: [TranslocoPipe, SelectField, SwitchField, PalettePicker],
+  imports: [TranslocoPipe, SegmentedField, SwitchField, PalettePicker],
   template: `
-    <div class="flex flex-col gap-4 p-4">
-      <app-select-field
+    <div class="flex flex-col gap-5 p-4">
+      <app-segmented-field
         [control]="languageControl"
         [label]="'account.language' | transloco"
         [options]="languageOptions"
+        showLabel
       />
-      <app-select-field
+      <app-segmented-field
         [control]="themeControl"
         [label]="'account.mode' | transloco"
         [options]="themeOptions()"
+        showLabel
       />
       <app-palette-picker [control]="paletteControl" [palettes]="palettes" />
       <div class="border-t border-border pt-4">
@@ -49,7 +51,7 @@ export class AppearancePage {
   private quickAmountsService = inject(QuickAmountsService)
 
   protected readonly palettes = PALETTES
-  // Language names are shown in their own language, so they never need translating.
+  // TH / EN read the same in either language, so they never need translating.
   protected readonly languageOptions: readonly SelectOption<Language>[] = LANGUAGES.map(
     (language) => ({ value: language.id, label: language.label })
   )
@@ -62,22 +64,23 @@ export class AppearancePage {
     ]
   })
 
-  protected languageControl = this.nnfb.control<Language | ''>(this.languageService.language().id)
-  protected themeControl = this.nnfb.control<ThemePreference | ''>(this.themeService.preference())
+  // Plain strings, as the segmented field takes; values only ever come from the options.
+  protected languageControl = this.nnfb.control<string>(this.languageService.language().id)
+  protected themeControl = this.nnfb.control<string>(this.themeService.preference())
   protected paletteControl = this.nnfb.control<PaletteId>(this.themeService.palette().id)
   protected quickAmountsControl = this.nnfb.control(this.quickAmountsService.enabled())
 
   constructor() {
     this.languageControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((language) => {
       if (language) {
-        this.languageService.setLanguage(language).catch((error: unknown) => {
+        this.languageService.setLanguage(language as Language).catch((error: unknown) => {
           console.error('Language switch failed', error)
         })
       }
     })
     this.themeControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((preference) => {
       if (preference) {
-        this.themeService.setPreference(preference)
+        this.themeService.setPreference(preference as ThemePreference)
       }
     })
     this.paletteControl.valueChanges

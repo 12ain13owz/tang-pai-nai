@@ -24,7 +24,7 @@ import type { Language } from '@/core/i18n'
           [attr.aria-pressed]="languageService.language().id === language.id"
           (click)="select(language.id)"
         >
-          {{ language.id.toUpperCase() }}
+          {{ language.label }}
         </button>
       }
     </div>

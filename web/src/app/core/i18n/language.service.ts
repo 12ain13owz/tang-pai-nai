@@ -6,7 +6,7 @@ export type Language = 'th' | 'en'
 
 export interface LanguageOption {
   id: Language
-  /** Each language names itself, so it can be found from the other one. */
+  /** TH / EN: the codes read the same in either language, so it can be found from the other one. */
   label: string
   /**
    * Locale for `Intl` number / date / currency formatting. Thai pins the Gregorian calendar: the
@@ -16,8 +16,8 @@ export interface LanguageOption {
 }
 
 export const LANGUAGES: readonly LanguageOption[] = [
-  { id: 'th', label: 'ไทย', locale: 'th-TH-u-ca-gregory' },
-  { id: 'en', label: 'English', locale: 'en-GB' },
+  { id: 'th', label: 'TH', locale: 'th-TH-u-ca-gregory' },
+  { id: 'en', label: 'EN', locale: 'en-GB' },
 ]
 
 const DEFAULT_LANGUAGE = LANGUAGES[0]

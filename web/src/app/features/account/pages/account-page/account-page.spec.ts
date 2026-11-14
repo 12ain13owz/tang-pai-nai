@@ -117,7 +117,7 @@ describe('AccountPage', () => {
     // Debts and events are data, not settings (owner, 2026-11): reached from their tabs.
     expect(text).not.toContain(th.debts.menu)
     expect(text).not.toContain(th.events.menu)
-    expect(text).toContain('ไทย · ตามระบบ · Midnight Gold')
+    expect(text).toContain('TH · ตามระบบ · Midnight Gold')
     expect(text).toContain('เปิดในเบราว์เซอร์ · ไม่รองรับการเก็บถาวร')
   })
 

@@ -331,7 +331,7 @@
   },
   "account": {
     "appearance": "การแสดงผล",
-    "language": "ภาษา (Language)",
+    "language": "ภาษา",
     "mode": "โหมดสี",
     "modeSystem": "ตามระบบ",
     "modeLight": "สว่าง",

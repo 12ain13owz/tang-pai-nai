@@ -331,7 +331,7 @@
   },
   "account": {
     "appearance": "Appearance",
-    "language": "Language (ภาษา)",
+    "language": "Language",
     "mode": "Mode",
     "modeSystem": "System",
     "modeLight": "Light",
