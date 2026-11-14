@@ -108,6 +108,7 @@ describe('AccountPage', () => {
       '/account/export',
       '/account/security',
       '/account/appearance',
+      '/account/install',
       '/account/device',
     ])
     const text = page().textContent
@@ -118,6 +119,8 @@ describe('AccountPage', () => {
     expect(text).not.toContain(th.debts.menu)
     expect(text).not.toContain(th.events.menu)
     expect(text).toContain('TH · ตามระบบ · Midnight Gold')
+    // Install (install.md): not installed yet.
+    expect(text).toContain(th.account.installHintNo)
     expect(text).toContain('เปิดในเบราว์เซอร์ · ไม่รองรับการเก็บถาวร')
   })
 

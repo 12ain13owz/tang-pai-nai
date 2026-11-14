@@ -67,6 +67,12 @@ export default [
       import('./pages/appearance-page/appearance-page').then((m) => m.AppearancePage),
   },
   {
+    path: 'install',
+    title: 'title.install',
+    loadComponent: async () =>
+      import('./pages/install-page/install-page').then((m) => m.InstallPage),
+  },
+  {
     path: 'device',
     title: 'title.device',
     loadComponent: async () => import('./pages/device-page/device-page').then((m) => m.DevicePage),

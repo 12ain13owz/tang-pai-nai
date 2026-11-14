@@ -5,6 +5,7 @@ import { NgIcon, provideIcons } from '@ng-icons/core'
 import {
   lucideChevronRight,
   lucideFileSpreadsheet,
+  lucideHousePlus,
   lucideLogOut,
   lucidePalette,
   lucideRepeat,
@@ -41,6 +42,7 @@ interface AccountItem {
     provideIcons({
       lucideChevronRight,
       lucideFileSpreadsheet,
+      lucideHousePlus,
       lucideLogOut,
       lucidePalette,
       lucideRepeat,
@@ -266,6 +268,16 @@ export class AccountPage {
               t(`account.mode${capitalize(this.themeService.preference())}`),
               this.themeService.palette().label,
             ].join(' · '),
+          },
+          {
+            link: '/account/install',
+            icon: 'lucideHousePlus',
+            label: 'account.install',
+            hint: t(
+              this.deviceStorageService.isInstalled()
+                ? 'account.installedYes'
+                : 'account.installHintNo'
+            ),
           },
           {
             link: '/account/device',

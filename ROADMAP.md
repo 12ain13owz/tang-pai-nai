@@ -132,6 +132,20 @@ first staging deploy (docs/deploy.md step 7).
 
 ---
 
+## Done: Account › ติดตั้งลงหน้าจอ (2026-11)
+
+Web only, no API change. [spec](docs/features/install.md). Owner: people didn't know how to put the
+app on their phone, and on iPhone only an installed app keeps its local data.
+
+- A settings row between การแสดงผล and เครื่องนี้ opens `/account/install`: installed → it says
+  so; otherwise why to install, a one-tap "ติดตั้งแอป" where the browser offers it
+  (`beforeinstallprompt`, caught at start by `DeviceStorageService`, which `App` injects), and
+  numbered steps for iPhone / Android (segmented, starting on the phone's own).
+- Not done (owner): a reminder card elsewhere in the app. Check on real phones: the iOS share
+  sheet's wording and the ⋯ menu move between iOS versions.
+
+---
+
 ## Done: Motion, a number keypad, the ตั้งค่า tab (UI polish, 2026-11)
 
 Web only, no API change. Owner's choices after trying the app on a phone.

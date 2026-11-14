@@ -104,7 +104,8 @@ Owner's rule (after #16.1): **a component used in more than one place lives in
   sign-in. See "Trusted device" below.
 - App-wide device state lives in `core/` as signal services: `ThemeService` (`core/theme`),
   `LanguageService` (`core/i18n`), `NetworkStatusService` (`core/network`), `KeyboardService`
-  (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`), `OfflineService`
+  (`core/viewport`), `AppUpdateService` + `DeviceStorageService` (`core/pwa`; also the install
+  offer, `canPrompt` / `promptInstall` / `platform`, install.md, so `App` injects it), `OfflineService`
   and `SyncService` (`core/offline`), `ProfileService` (`core/profile`), `WalletService`
   (`core/wallet`), `CategoryService` (`core/category`), `TransactionService` (`core/transaction`),
   `ReportService` (`core/report`, kept out of the shell so it stays in the lazy chunks),

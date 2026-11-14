@@ -242,7 +242,7 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
 - **Account tab** (owner's choice A1 in #7): who is signed in on top, then titled groups of
   rows (ข้อมูลของฉัน, บัญชีและความปลอดภัย, การตั้งค่า), each row a link with a 40px muted icon
   square, its name, one muted line on what's there and a chevron; settings live on their own
-  pages (การแสดงผล, เครื่องนี้), never inline. A page inside the tab shows ‹ in the header.
+  pages (การแสดงผล, ติดตั้งลงหน้าจอ, เครื่องนี้), never inline. A page inside the tab shows ‹ in the header.
   การแสดงผล has no dropdowns: language (TH / EN) and mode (ตามระบบ / สว่าง / มืด) are segmented
   controls with a visible label (`showLabel`), the theme the grid of colour discs, so the two
   kinds of choice never look alike.
