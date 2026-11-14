@@ -27,9 +27,12 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=build /app/dist ./dist
+# Migrations, for `node dist/core/database/migrate.js` (root docker-compose.yml runs it at start).
+COPY drizzle ./drizzle
 
-# Winston writes to ./logs; let the non-root user create files there.
-RUN mkdir logs && chown node:node logs
+# Winston writes to ./logs and the local SQLite file lives in ./data (a volume in compose); let
+# the non-root user create files there.
+RUN mkdir logs data && chown node:node logs data
 USER node
 
 EXPOSE 3000
