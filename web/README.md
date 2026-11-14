@@ -40,7 +40,7 @@ For a fixed URL, use a named tunnel on a domain in your Cloudflare account. Once
 ```bash
 cloudflared tunnel login                                   # pick the domain in the browser
 cloudflared tunnel create tpn-dev
-cloudflared tunnel route dns tpn-dev tang.dryst-lab.com
+cloudflared tunnel route dns tpn-dev tpn-dev.dryst-lab.com
 cp .env.tunnel.example .env.tunnel                         # TUNNEL_NAME + TUNNEL_HOST
 ```
 
