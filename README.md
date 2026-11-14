@@ -15,7 +15,7 @@ has its own CI workflow.
 
 ## Run locally
 
-Use Node 24 (`.nvmrc`). Run every npm command inside `api/` or `web/` (there is no root
+Use Node 26.13.1 or a later 26 (`.nvmrc`; older builds miss the November 2026 security fixes). Run every npm command inside `api/` or `web/` (there is no root
 `package.json`).
 
 First time, set up the API and its local database:

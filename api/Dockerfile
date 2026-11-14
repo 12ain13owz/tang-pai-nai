@@ -1,9 +1,10 @@
 # Debian slim (glibc) rather than Alpine (musl): prebuilt native modules a project
 # may add later (bcrypt, sharp, ORM engines, …) work without compiling.
-# Pin the exact version so builds are reproducible; bump it deliberately.
+# Pin the exact version so builds are reproducible; bump it deliberately, together with the
+# root .nvmrc (CI reads it) and both package.json `engines`.
 
 # ── Build stage: full deps + compile ──────────────────────────────────────────
-FROM node:24.20.0-slim AS build
+FROM node:26.13.1-slim AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -16,7 +17,7 @@ COPY . .
 RUN npm run build
 
 # ── Runtime stage: compiled output + production deps only ────────────────────
-FROM node:24.20.0-slim
+FROM node:26.13.1-slim
 WORKDIR /app
 
 # Default to production so a plain `docker run` / `docker compose up` behaves like

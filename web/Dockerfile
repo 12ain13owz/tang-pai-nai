@@ -2,7 +2,8 @@
 # (root docker-compose.yml). Vercel does not use this file.
 
 # ── Build stage ───────────────────────────────────────────────────────────────
-FROM node:24.20.0-slim AS build
+# Same Node as api/Dockerfile and the root .nvmrc.
+FROM node:26.13.1-slim AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./

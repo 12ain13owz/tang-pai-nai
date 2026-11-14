@@ -52,7 +52,7 @@
   "author": "Dryst",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": "^26.13.1"
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^12.1.0",
