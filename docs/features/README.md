@@ -31,6 +31,7 @@ Order of work and project-wide decisions live in [`../../ROADMAP.md`](../../ROAD
 | `docs/features/<feature>.md` (this) | What a feature does: data, rules, endpoints, flows |
 | `api/AGENTS.md`, `web/AGENTS.md`    | How to write the code                              |
 | `api/src/features/docs/spec/`       | Exact request/response shapes                      |
+| `docs/features/mockups/`            | Design choices as they were offered; never updated |
 
 Don't repeat another file's content; link to it instead, because duplicates drift.
 
