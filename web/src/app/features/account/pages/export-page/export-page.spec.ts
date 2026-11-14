@@ -91,7 +91,7 @@ describe('ExportPage (docs/features/export.md rules 1–4)', () => {
     button(/^\s*เสร็จ\s*$/)?.click()
     await settle()
     expect(text()).toContain('1 หมวด · รายรับ')
-    expect(text()).toContain('เลือกบางหมวดแล้ว การโอนและหนี้สินไม่มีหมวด')
+    expect(text()).toContain('เลือกบางหมวดแล้ว การโอนและยืม-คืนไม่มีหมวด')
     expect(button(/ส่งออก 1 รายการ/)).toBeDefined()
   })
 

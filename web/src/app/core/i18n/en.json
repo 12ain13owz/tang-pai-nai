@@ -28,7 +28,7 @@
     "appearance": "Appearance",
     "device": "This device",
     "recurring": "Recurring",
-    "debts": "Debts & loans",
+    "debts": "Loans",
     "events": "Events / trips",
     "export": "Export CSV",
     "sharing": "Share wallets"
@@ -406,8 +406,6 @@
     "quickAmountsHint": "A row of 20 · 50 · 100 · 500 · 1,000 above the keypad when adding a transaction; each tap adds",
     "recurring": "Recurring",
     "recurringHint": "{{count}} in {{name}}",
-    "debtsHint": "{{count}} in {{name}}",
-    "eventsHint": "{{count}} in {{name}}",
     "export": "Export CSV",
     "exportHint": "Transactions of {{name}}",
     "sharing": "Share wallets",
@@ -967,16 +965,25 @@
     "stoppedDebt": "“{{name}}” is closed"
   },
   "debts": {
-    "menu": "Debts & loans",
+    "menu": "Loans",
     "borrowed": "Borrowed",
     "lent": "Lent",
     "direction": "Borrowed or lent",
-    "add": "Add a debt",
-    "createHeading": "Add a debt",
+    "add": {
+      "borrowed": "Add money borrowed",
+      "lent": "Add money lent"
+    },
+    "createHeading": {
+      "borrowed": "Add money borrowed",
+      "lent": "Add money lent"
+    },
     "editHeading": "Edit debt",
     "fixHeading": "Fix the debt",
     "edit": "Edit debt",
-    "created": "Debt added",
+    "created": {
+      "borrowed": "Money borrowed saved",
+      "lent": "Money lent saved"
+    },
     "saved": "Saved",
     "entrySaved": "Saved",
     "needsOnline": "Saving needs the internet.",
@@ -1150,7 +1157,8 @@
     "paidUp": "Paid back",
     "forgiven": "Forgiven",
     "limit": "A profile holds at most 100 open debts",
-    "walletsHeading": "Debts",
+    "walletsHeading": "Loans",
+    "walletsNone": "Nothing owed either way",
     "walletsLine": {
       "borrowed": "To pay back · {{count}}",
       "lent": "To get back · {{count}}"
@@ -1252,9 +1260,9 @@
     "categoryCountOne": "1 category",
     "withChildren": "{{name}} (+{{count}} sub)",
     "edit": "Edit",
-    "others": "Include transfers and debts",
+    "others": "Include transfers and loans",
     "othersHint": "Transfer out / in rows and borrow / repay entries of the chosen wallets",
-    "othersOff": "Some categories chosen: transfers and debts have no category",
+    "othersOff": "Some categories chosen: transfers and loans have no category",
     "button": "Export {{count}} rows",
     "none": "Nothing to export",
     "exported": "Exported {{count}} rows",
@@ -1364,7 +1372,7 @@
     "reportsHeading": "Reports cover your own profiles",
     "reportsText": "Switch to one of your profiles to see its reports.",
     "mineHeading": "This page is for your own profiles",
-    "mineText": "In a shared profile, categories, debts, events, recurring rules and sharing belong to the owner.",
+    "mineText": "In a shared profile, categories, loans, events, recurring rules and sharing belong to the owner.",
     "backToMine": "Back to my profile",
     "stale": "This entry was just changed, so it was reloaded",
     "refused": "Couldn't save, so the data was reloaded",

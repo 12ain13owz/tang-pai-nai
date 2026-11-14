@@ -7,8 +7,6 @@ import {
   lucideFileSpreadsheet,
   lucideLogOut,
   lucidePalette,
-  lucideHandCoins,
-  lucidePlane,
   lucideRepeat,
   lucideShapes,
   lucideShare2,
@@ -45,8 +43,6 @@ interface AccountItem {
       lucideFileSpreadsheet,
       lucideLogOut,
       lucidePalette,
-      lucideHandCoins,
-      lucidePlane,
       lucideRepeat,
       lucideShapes,
       lucideShare2,
@@ -234,28 +230,6 @@ export class AccountPage {
               ? t('account.recurringHint', {
                   name: profile.name,
                   count: this.profileService.ruleCount(profile.id),
-                })
-              : t('account.profilesNone'),
-          },
-          {
-            link: '/wallets/debts',
-            icon: 'lucideHandCoins',
-            label: 'debts.menu',
-            hint: profile
-              ? t('account.debtsHint', {
-                  name: profile.name,
-                  count: this.profileService.debtCount(profile.id),
-                })
-              : t('account.profilesNone'),
-          },
-          {
-            link: '/transactions/events',
-            icon: 'lucidePlane',
-            label: 'events.menu',
-            hint: profile
-              ? t('account.eventsHint', {
-                  name: profile.name,
-                  count: this.profileService.eventCount(profile.id),
                 })
               : t('account.profilesNone'),
           },

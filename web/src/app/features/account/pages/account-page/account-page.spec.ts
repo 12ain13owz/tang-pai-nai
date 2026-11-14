@@ -62,8 +62,6 @@ describe('AccountPage', () => {
             isShared: signal(false),
             profiles: signal([{}, {}]),
             ruleCount: () => 2,
-            debtCount: () => 3,
-            eventCount: () => 4,
           },
         },
         {
@@ -107,8 +105,6 @@ describe('AccountPage', () => {
       '/account/categories',
       '/account/sharing',
       '/account/recurring',
-      '/wallets/debts',
-      '/transactions/events',
       '/account/export',
       '/account/security',
       '/account/appearance',
@@ -118,8 +114,9 @@ describe('AccountPage', () => {
     expect(text).toContain('ของโปรไฟล์ ส่วนตัว')
     // Recurring (#12): how many rules the profile holds.
     expect(text).toContain('2 รายการใน ส่วนตัว')
-    // Events (#14): how many the profile holds.
-    expect(text).toContain('4 อีเวนต์ใน ส่วนตัว')
+    // Debts and events are data, not settings (owner, 2026-11): reached from their tabs.
+    expect(text).not.toContain(th.debts.menu)
+    expect(text).not.toContain(th.events.menu)
     expect(text).toContain('ไทย · ตามระบบ · Midnight Gold')
     expect(text).toContain('เปิดในเบราว์เซอร์ · ไม่รองรับการเก็บถาวร')
   })

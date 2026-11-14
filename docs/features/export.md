@@ -37,7 +37,7 @@ writes `transactions` rows (and a wallet's `hiddenCategoryIds`) through the outb
    custom range of two days), **wallets** (ทุกกระเป๋า = every wallet of the profile, archived and
    excluded-from-total ones too, or some), **categories** (ทุกหมวด, or some: income and expense
    tabs; a parent ticks its children, a parent with only some children ticked shows half
-   ticked; archived categories are listed, merged ones are not), and **รวมการโอนเงินและหนี้สิน**
+   ticked; archived categories are listed, merged ones are not), and **รวมการโอนเงินและยืม-คืน**
    (on by default). Choosing some categories turns that switch off and disables it: transfers
    and debt entries have no category.
 3. The button says how many rows the file will hold ("ส่งออก n รายการ"), counted on each change;

@@ -141,6 +141,11 @@ Web only, no API change. Owner's choices after trying the app on a phone.
   the ⋮ menu's debts and รายการซ้ำ return to the Transactions tab, not to Wallets or Settings),
   pages slide in by depth, and the bottom bar keeps the tab a page was opened from lit. To try
   next: events as a view of the Transactions tab instead of their own pages (owner, 2026-11).
+  Settings holds settings only: its debts and events rows went (debts: the Wallets tab card and
+  ⋮; events: ⋮), and the Wallets tab's debts card moved under the total, one row while nothing
+  is owed, so 20 wallets never push it out of sight. The section is called **ยืม-คืน / Loans**
+  everywhere (it was หนี้สิน, หนี้ / เงินกู้ and ยืมมา | ให้ยืม at once); one item is still หนี้,
+  and adding one says which way ("เพิ่มรายการยืม" / "เพิ่มรายการให้ยืม").
 - **The account tab is ตั้งค่า / Settings**: not โปรไฟล์ (already a data set) nor บัญชี (a bank
   account). Its icon is still `lucideCircleUser`.
 - **Number keypad** (transaction.md → Web screens): `app-calc-keypad` lost ÷ × − + and "=":

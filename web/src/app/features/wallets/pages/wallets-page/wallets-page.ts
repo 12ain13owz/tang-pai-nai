@@ -79,6 +79,81 @@ import { formatMoney } from '@/shared/utils'
           }
         </section>
 
+        <!-- Debts (debt.md Q8–Q9): what is owed and lent, each opening the debts page. Under the
+             total, so 20 wallets never push it out of sight; one row while nothing is owed. -->
+        @if (!shared()) {
+          <section class="flex flex-col gap-3" aria-labelledby="wallets-debts">
+            <h2 id="wallets-debts" class="text-sm font-medium text-muted-foreground">
+              {{ 'debts.walletsHeading' | transloco }}
+            </h2>
+            @if (!hasDebts()) {
+              <a
+                class="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-card px-4 py-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                [routerLink]="debtsRoute"
+              >
+                <span
+                  class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground"
+                >
+                  <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
+                </span>
+                <span class="min-w-0 flex-1 text-base text-muted-foreground">
+                  {{ 'debts.walletsNone' | transloco }}
+                </span>
+                <ng-icon
+                  name="lucideChevronRight"
+                  size="18"
+                  class="text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </a>
+            } @else {
+              <ul class="divide-y divide-border rounded-xl border border-border bg-card">
+                @for (line of debtLines(); track line.direction) {
+                  <li>
+                    <a
+                      class="flex min-h-16 items-center gap-3 px-4 py-2.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                      [routerLink]="debtsRoute"
+                      [queryParams]="line.direction === 'lent' ? { tab: 'lent' } : {}"
+                    >
+                      <span
+                        class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground"
+                      >
+                        <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
+                      </span>
+                      <span class="flex min-w-0 flex-1 flex-col">
+                        <span class="text-base">{{ 'debts.' + line.direction | transloco }}</span>
+                        <span class="text-sm text-muted-foreground">
+                          {{
+                            'debts.walletsLine.' + line.direction | transloco: { count: line.count }
+                          }}
+                          @if (line.overdue > 0) {
+                            ·
+                            <span class="text-destructive">{{
+                              'debts.overdueCount' | transloco: { count: line.overdue }
+                            }}</span>
+                          }
+                        </span>
+                      </span>
+                      <span
+                        class="shrink-0 text-base tabular-nums"
+                        [class.text-expense]="line.direction === 'borrowed' && line.count > 0"
+                        [class.text-income]="line.direction === 'lent' && line.count > 0"
+                        >{{ line.text }}</span
+                      >
+                      <ng-icon
+                        name="lucideChevronRight"
+                        size="18"
+                        class="text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        }
+
         @if (open.length > 0) {
           <section class="flex flex-col gap-3" aria-labelledby="wallets-open">
             <div class="flex items-center justify-between gap-3">
@@ -189,56 +264,6 @@ import { formatMoney } from '@/shared/utils'
         </div>
       }
 
-      <!-- Debts (debt.md Q8–Q9): what is owed and lent, each opening the debts page. -->
-      @if (!shared()) {
-        <section class="flex flex-col gap-3" aria-labelledby="wallets-debts">
-          <h2 id="wallets-debts" class="text-sm font-medium text-muted-foreground">
-            {{ 'debts.walletsHeading' | transloco }}
-          </h2>
-          <ul class="divide-y divide-border rounded-xl border border-border bg-card">
-            @for (line of debtLines(); track line.direction) {
-              <li>
-                <a
-                  class="flex min-h-16 items-center gap-3 px-4 py-2.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                  [routerLink]="debtsRoute"
-                  [queryParams]="line.direction === 'lent' ? { tab: 'lent' } : {}"
-                >
-                  <span
-                    class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground"
-                  >
-                    <ng-icon name="lucideHandCoins" size="20" aria-hidden="true" />
-                  </span>
-                  <span class="flex min-w-0 flex-1 flex-col">
-                    <span class="text-base">{{ 'debts.' + line.direction | transloco }}</span>
-                    <span class="text-sm text-muted-foreground">
-                      {{ 'debts.walletsLine.' + line.direction | transloco: { count: line.count } }}
-                      @if (line.overdue > 0) {
-                        ·
-                        <span class="text-destructive">{{
-                          'debts.overdueCount' | transloco: { count: line.overdue }
-                        }}</span>
-                      }
-                    </span>
-                  </span>
-                  <span
-                    class="shrink-0 text-base tabular-nums"
-                    [class.text-expense]="line.direction === 'borrowed' && line.count > 0"
-                    [class.text-income]="line.direction === 'lent' && line.count > 0"
-                    >{{ line.text }}</span
-                  >
-                  <ng-icon
-                    name="lucideChevronRight"
-                    size="18"
-                    class="text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                </a>
-              </li>
-            }
-          </ul>
-        </section>
-      }
-
       @if (archived.length > 0) {
         <section class="flex flex-col gap-3">
           <button
@@ -338,6 +363,9 @@ export class WalletsPage {
       }
     })
   })
+
+  /** Any open debt either way; without one the card is a single row to the debts page. */
+  protected hasDebts = computed(() => this.debtLines().some((line) => line.count > 0))
 
   protected defaultIcon = WALLET_DEFAULT_ICON
   private profileService = inject(ProfileService)

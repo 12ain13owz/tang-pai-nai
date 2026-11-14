@@ -17,7 +17,7 @@ import type { UserIcon } from '@/shared/components/icon-badge'
 import { formatMoney } from '@/shared/utils'
 
 /**
- * หนี้ / เงินกู้ (docs/features/debt.md → Web screens, mock-up frames 2 and 10): ยืมมา | ให้ยืม,
+ * ยืม-คืน (docs/features/debt.md → Web screens, mock-up frames 2 and 10): ยืมมา | ให้ยืม,
  * what is left in total, the open debts by due date, "ปิดแล้ว (n)" folded, and "บันทึกหนี้".
  */
 @Component({
@@ -191,7 +191,7 @@ import { formatMoney } from '@/shared/utils'
           [disabled]="!debtService.canWrite()"
           (click)="debtService.open({ mode: 'create', direction: tab() })"
         >
-          {{ 'debts.add' | transloco }}
+          {{ 'debts.add.' + tab() | transloco }}
         </button>
       }
     </div>

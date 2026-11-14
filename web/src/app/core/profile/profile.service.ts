@@ -367,12 +367,12 @@ export class ProfileService {
     return this.childCount('transactions', id) + this.childCount('transfers', id)
   }
 
-  /** The profile's live debts (Account › หนี้ / เงินกู้, the delete confirm, debt rule 10). */
+  /** The profile's live debts (the delete confirm, debt rule 10). */
   debtCount(id: string): number {
     return this.childCount('debts', id)
   }
 
-  /** The profile's live events (Account › อีเวนต์ / ทริป, the delete confirm, event rule 8). */
+  /** The profile's live events (the delete confirm, event rule 8). */
   eventCount(id: string): number {
     return this.childCount('events', id)
   }

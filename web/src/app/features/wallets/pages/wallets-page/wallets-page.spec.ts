@@ -52,7 +52,7 @@ describe('WalletsPage', () => {
       return typeof label === 'string' ? name === label : label.test(name)
     })
   const rows = () =>
-    [...page().querySelectorAll('ul')[0].querySelectorAll('li')].map((li) =>
+    [...page().querySelectorAll('section[aria-labelledby="wallets-open"] li')].map((li) =>
       li.querySelector('span.truncate')?.textContent.trim()
     )
   const settle = async () => {
@@ -145,6 +145,18 @@ describe('WalletsPage', () => {
     expect(text()).toContain('Card -฿18,250.75')
     expect(text()).toContain(`Gold ${th.wallets.excluded} ฿45,000.00`)
     expect(text()).toContain('กระเป๋าที่ใช้อยู่ (3)')
+  })
+
+  it('puts the debts under the total, one row to the debts page while nothing is owed', async () => {
+    wallet('Cash')
+    await settle()
+    const all = text()
+    expect(all).toContain(`${th.debts.walletsHeading} ${th.debts.walletsNone}`)
+    // Above the wallets, so 20 of them never push it out of sight.
+    expect(all.indexOf(th.debts.walletsHeading)).toBeLessThan(all.indexOf('กระเป๋าที่ใช้อยู่'))
+    expect(all).not.toContain(th.debts.borrowed)
+    const link = page().querySelector('section[aria-labelledby="wallets-debts"] a')
+    expect(link?.getAttribute('href')).toBe('/wallets/debts')
   })
 
   it('shows ฿0.00 while nothing counts toward the total', async () => {

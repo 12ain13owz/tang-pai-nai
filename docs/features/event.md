@@ -75,7 +75,8 @@ None of its own: `events` and `transactions.eventId` travel on `/sync/push` and 
 ## Web screens
 
 Lazy pages `features/events` at `/transactions/events` (Q6), reached from the Transactions tab's
-⋮ menu ("อีเวนต์ / ทริป ›") and Account › ข้อมูลของฉัน.
+⋮ menu ("อีเวนต์ / ทริป ›"). Account › ข้อมูลของฉัน had a row until 2026-11 (events are data,
+not settings); the plan is to show an event as a view of the Transactions tab.
 
 1. **List**: "ยังไม่จบ (n)" by `startOn` desc ("กำลังใช้" on events whose dates hold today),
    "จบแล้ว (n)" folded; each row: icon, name, dates, expense, row count. "เพิ่มอีเวนต์" below.

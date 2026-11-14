@@ -789,7 +789,7 @@ export class DebtSheet {
       ? 'debts.editHeading'
       : state?.mode === 'fix'
         ? 'debts.fixHeading'
-        : 'debts.createHeading'
+        : `debts.createHeading.${this.direction()}`
   })
   protected profileId = computed(() => this.profileService.current()?.id ?? '')
   protected walletChoices = computed(() => this.walletService.openOf(this.profileId()))
@@ -1061,7 +1061,7 @@ export class DebtSheet {
       },
       plan
     )
-    toast.success(this.t('debts.created'))
+    toast.success(this.t(`debts.created.${value.direction}`))
     this.finish()
     void this.router.navigate([DEBTS_ROUTE, id])
   }

@@ -71,7 +71,7 @@ describe('Debts pages and sheets', () => {
     expect(text()).not.toContain('เพื่อนเอ')
     await click('ปิดแล้ว (1)')
     expect(text()).toContain('เพื่อนเอ')
-    await click(th.debts.add)
+    await click(th.debts.add.lent)
     expect(debts.sheet()).toEqual({ mode: 'create', direction: 'lent' })
   })
 
@@ -113,7 +113,11 @@ describe('Debts pages and sheets', () => {
   it('creates a borrowed debt from the form, its money into a wallet', async () => {
     await harness.navigateByUrl('/wallets/debts')
     await settle()
-    await click(th.debts.add)
+    await click(th.debts.add.borrowed)
+    // The button, heading and toast say which way (owner, 2026-11; "บันทึกหนี้" read as my debt).
+    expect(body().querySelector('hlm-drawer-content h2')?.textContent).toContain(
+      th.debts.createHeading.borrowed
+    )
     const person = body().querySelector<HTMLInputElement>('hlm-drawer-content input[list]')
     person!.value = 'ลุง'
     person!.dispatchEvent(new Event('input'))
