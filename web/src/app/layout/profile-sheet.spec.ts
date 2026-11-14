@@ -132,7 +132,10 @@ describe('ProfileSheet', () => {
     ) as HTMLInputElement
     store.click()
     await settle()
-    // Picking the icon goes back to the form.
+    // Picking only selects: the view stays until ‹.
+    expect(body().textContent).toContain(th.profiles.iconHeading)
+    button(th.sheet.back)?.click()
+    await settle()
     expect(nameInput().value).toBe('  ร้านกาแฟ ')
     await submit()
     expect(profiles.profiles()).toMatchObject([

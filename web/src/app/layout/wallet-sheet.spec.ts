@@ -206,7 +206,9 @@ describe('WalletSheet', () => {
     expect(text()).toContain(th.wallets.iconHeading)
     await radio('สีที่ 7')
     await radio(th.icons.tpnCardChip)
-    // Picking the icon goes back to the form.
+    // Picking only selects: the view stays until ‹.
+    expect(text()).toContain(th.wallets.iconHeading)
+    await click(th.sheet.back)
     expect(input(th.wallets.name).value).toBe('  บัตรเครดิต ')
     ;(body().querySelector('[role="switch"]') as HTMLElement).click()
     await settle()

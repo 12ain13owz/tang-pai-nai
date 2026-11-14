@@ -493,12 +493,6 @@ export class WalletSheet {
       this.refusal.set(null)
       this.hidden.set(this.form.controls.hiddenCategoryIds.value)
     })
-    // Picking an icon is the icon view's answer: back to the form.
-    this.form.controls.icon.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
-      if (this.view() === 'icons') {
-        this.view.set('form')
-      }
-    })
     // The balance's allowed decimals follow the currency.
     this.form.controls.currencyCode.valueChanges
       .pipe(takeUntilDestroyed())

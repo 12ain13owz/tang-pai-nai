@@ -851,12 +851,6 @@ export class CategorySheet {
       const { type, parentId, hiddenIn } = this.form.getRawValue()
       this.formValue.set({ type, parentId, hiddenIn })
     })
-    // Picking an icon is the icon view's answer: back to the form.
-    this.form.controls.icon.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
-      if (this.view() === 'icons') {
-        this.view.set('form')
-      }
-    })
     // A parent belongs to one type: another type starts at the top level (rule 4).
     this.form.controls.type.valueChanges.pipe(takeUntilDestroyed()).subscribe((type) => {
       const parentId = this.form.controls.parentId.value

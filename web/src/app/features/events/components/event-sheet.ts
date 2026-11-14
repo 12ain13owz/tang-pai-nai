@@ -323,12 +323,6 @@ export class EventSheet {
     this.form.controls.startOn.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.form.controls.endOn.updateValueAndValidity({ emitEvent: false }))
-    // Picking an icon or a colour goes back to the form, like the wallet sheet.
-    this.form.controls.icon.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
-      if (this.view() === 'icons') {
-        this.view.set('form')
-      }
-    })
     effect(() => {
       const state = this.state()
       untracked(() => {

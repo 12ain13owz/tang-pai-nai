@@ -199,7 +199,9 @@ Controls are spartan/ui (`hlm*`). Build these patterns from them instead of inve
   and no hints. Row 1 is the icon on its colour (a 52px button with a small pencil) and the name
   across the rest (`app-name-icon-field`, the label read by screen readers and shown as the
   placeholder); tapping the icon opens an "ไอคอนและสี" view in the same sheet (colours, then the
-  icon grid; picking an icon goes back). Further rows are one line each (an amount with its +/−
+  icon grid). Picking a colour or an icon only selects it, both alike: the view stays open
+  and ‹ takes the choice back to the form (owner, 2026-11: going back on the icon read as "OK"
+  while the colour didn't, which confused people). Further rows are one line each (an amount with its +/−
   button and currency, a switch). Errors still show under their row, one at a time. Long forms
   (password, phone) keep labels.
 - **Transaction form** (owner's choice in #8, from the Money Lover screenshot): **one card of

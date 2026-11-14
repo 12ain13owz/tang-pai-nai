@@ -201,6 +201,9 @@ describe('CategorySheet', () => {
     expect(text()).toContain(th.categories.iconHeading)
     await radio('สีที่ 5')
     await radio(th.icons.tpnBubbleTea)
+    // Picking only selects: the view stays until ‹.
+    expect(text()).toContain(th.categories.iconHeading)
+    await click(th.sheet.back)
     expect(input(th.categories.name).value).toBe('  ชานมไข่มุก ')
     parentRow()?.click()
     await settle()

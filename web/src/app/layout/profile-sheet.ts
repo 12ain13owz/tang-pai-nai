@@ -1,5 +1,4 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NonNullableFormBuilder, Validators } from '@angular/forms'
 import type { ValidatorFn } from '@angular/forms'
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco'
@@ -253,12 +252,6 @@ export class ProfileSheet {
   protected open = signal(false)
 
   constructor() {
-    // Picking an icon is the icon view's answer: back to the form.
-    this.form.controls.icon.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
-      if (this.view() === 'icons') {
-        this.view.set('form')
-      }
-    })
     effect(() => {
       const state = this.state()
       untracked(() => {
