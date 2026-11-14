@@ -2,9 +2,11 @@ import { NgTemplateOutlet } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { TranslocoPipe } from '@jsverse/transloco'
 import { NgIcon, provideIcons } from '@ng-icons/core'
-import { lucideCheck, lucideChevronDown, lucideWallet } from '@ng-icons/lucide'
+import { lucideCheck, lucideChevronDown, lucidePlus, lucideWallet } from '@ng-icons/lucide'
+import { HlmButton } from '@spartan-ng/helm/button'
 import { HlmDrawerImports } from '@spartan-ng/helm/drawer'
 import { LanguageService } from '@/core/i18n'
+import { ProfileService } from '@/core/profile'
 import { TransactionService } from '@/core/transaction'
 import { WalletService } from '@/core/wallet'
 import type { Wallet } from '@/core/wallet'
@@ -14,12 +16,22 @@ import { formatMoney } from '@/shared/utils'
 
 /**
  * The Transactions tab's wallet switcher (transaction.md → Web screens): "ทุกกระเป๋า" with the
- * total, the open wallets with their balances, then the archived ones folded.
+ * total, the open wallets with their balances, "เพิ่มกระเป๋าเงิน", then the archived ones folded.
+ * Adding closes this sheet and opens the wallet sheet over the same page (owner, 2026-11: no
+ * page change, the view stays as it was).
  */
 @Component({
   selector: 'app-view-wallet-sheet',
-  imports: [NgTemplateOutlet, TranslocoPipe, NgIcon, HlmDrawerImports, IconBadge, SheetFrame],
-  providers: [provideIcons({ lucideCheck, lucideChevronDown, lucideWallet })],
+  imports: [
+    NgTemplateOutlet,
+    TranslocoPipe,
+    NgIcon,
+    HlmButton,
+    HlmDrawerImports,
+    IconBadge,
+    SheetFrame,
+  ],
+  providers: [provideIcons({ lucideCheck, lucideChevronDown, lucidePlus, lucideWallet })],
   template: `
     <hlm-drawer [state]="open() ? 'open' : 'closed'" (closed)="open.set(false)">
       <hlm-drawer-content
@@ -68,6 +80,24 @@ import { formatMoney } from '@/shared/utils'
                   </li>
                 }
               </ul>
+              <!-- As on the Wallets tab: not in a shared profile (sharing rule 10), not past 20. -->
+              @if (!profileService.isShared()) {
+                @if (walletService.atLimit()) {
+                  <p class="text-sm text-muted-foreground">{{ 'wallets.limit' | transloco }}</p>
+                } @else {
+                  <button
+                    hlmBtn
+                    variant="outline"
+                    type="button"
+                    class="h-11 w-full"
+                    [disabled]="!walletService.canWrite()"
+                    (click)="add()"
+                  >
+                    <ng-icon name="lucidePlus" size="20" aria-hidden="true" />
+                    {{ 'wallets.add' | transloco }}
+                  </button>
+                }
+              }
             </section>
             @if (walletService.archived().length > 0) {
               <section class="flex flex-col gap-3">
@@ -144,6 +174,7 @@ import { formatMoney } from '@/shared/utils'
 export class ViewWalletSheet {
   protected walletService = inject(WalletService)
   private transactionService = inject(TransactionService)
+  protected profileService = inject(ProfileService)
   private languageService = inject(LanguageService)
 
   open = model(false)
@@ -172,6 +203,11 @@ export class ViewWalletSheet {
       this.walletService.minorUnit(wallet.currencyCode),
       this.languageService.locale()
     )
+  }
+
+  protected add(): void {
+    this.open.set(false)
+    this.walletService.open({ mode: 'create' })
   }
 
   protected pick(id: string | null): void {

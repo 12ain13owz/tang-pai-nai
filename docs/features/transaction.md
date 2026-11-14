@@ -169,7 +169,9 @@ Glossary: ธุรกรรม / Transaction, รายรับ / รายจ
   §2 and §5):
   - header: the profile switcher left (a glass capsule, icon and ▾; opens the switch sheet), the **wallet switcher** in the
     very centre (a pill; "ทุกกระเป๋า" or one wallet, opening a sheet with the total, the open
-    wallets with their balances and the archived ones folded), and right the **sync icon**
+    wallets with their balances, "เพิ่มกระเป๋าเงิน" (closes it and opens the wallet sheet on the
+    same page; not in a shared profile or past 20, owner 2026-11) and the archived ones folded),
+    and right the **sync icon**
     (the pill in its icon form, on every tab since #9) and the **⋮** menu (since #9 a two-level
     list: "โอนเงิน" and "ดูตาม · เดือน ›", which turns into day / week / month (default) / quarter /
     year / all / custom range, the last in a sheet with two dates; transfer.md);
