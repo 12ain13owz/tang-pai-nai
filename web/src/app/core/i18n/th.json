@@ -353,7 +353,7 @@
     "signingOut": "กำลังออกจากระบบ",
     "signOutFailed": "ออกจากระบบไม่สำเร็จ ลองใหม่อีกครั้ง",
     "security": "ความปลอดภัย",
-    "securityHint": "รหัสผ่าน, เบอร์มือถือ, Google, PIN และอุปกรณ์",
+    "securityHint": "รหัสผ่าน, PIN และอุปกรณ์",
     "password": "รหัสผ่าน",
     "passwordSet": "ตั้งแล้ว",
     "passwordUnset": "ยังไม่ได้ตั้ง",

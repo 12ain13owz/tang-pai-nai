@@ -353,7 +353,7 @@
     "signingOut": "Signing out",
     "signOutFailed": "Couldn't sign out. Try again",
     "security": "Security",
-    "securityHint": "Password, phone, Google, PIN and devices",
+    "securityHint": "Password, PIN and devices",
     "password": "Password",
     "passwordSet": "Set",
     "passwordUnset": "Not set",

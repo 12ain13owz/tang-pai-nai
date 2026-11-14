@@ -113,7 +113,9 @@ Decisions (owner, #17):
   each with its own Turso database and secrets. Migrations run by hand from the owner's PC
   (`npm run db:migrate` with that database's URL), never by a deploy.
 - Mail: Resend through the existing SMTP adapter (env only). SMS stays `disabled` (phone sign-in
-  hidden) and Google stays off until the owner sets them up.
+  hidden) and Google stays off until the owner sets them up. Account's Security row says only
+  "รหัสผ่าน, PIN และอุปกรณ์" (`account.securityHint`, owner 2026-11): add phone / Google back to
+  it when they are turned on.
 - `/api` on the web goes through **Vercel Routing Middleware** (`web/middleware.js`, `API_ORIGIN`
   per environment) instead of a fixed rewrite in `vercel.json`, so staging and production each
   reach their own API (locked decision "Same origin via rewrite" still holds).
